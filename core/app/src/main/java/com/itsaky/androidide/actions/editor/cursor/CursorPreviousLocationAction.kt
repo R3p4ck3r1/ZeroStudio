@@ -7,7 +7,7 @@ import com.itsaky.androidide.actions.ActionItem
 import com.itsaky.androidide.actions.EditorActionItem
 import com.itsaky.androidide.cursor.CursorHistoryManager
 import com.itsaky.androidide.resources.R
-import io.github.rosemoe.sora.widget.CodeEditor
+import com.itsaky.androidide.editor.ui.IDEEditor
 
 /**
  * Navigate to the last cursor position Action
