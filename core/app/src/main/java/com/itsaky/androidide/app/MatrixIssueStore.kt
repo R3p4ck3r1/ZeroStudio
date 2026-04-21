@@ -38,6 +38,36 @@ class MatrixIssueStore(private val application: Application) {
         .onFailure { log.warn("Failed writing Matrix issue", it) }
   }
 
+  fun queryRecent(limit: Int = 200, pluginPrefix: String? = null): List<MatrixIssueRecord> {
+    val files = dir.listFiles()?.sortedByDescending { it.lastModified() } ?: return emptyList()
+    val out = mutableListOf<MatrixIssueRecord>()
+    for (file in files) {
+      if (out.size >= limit) break
+      val lines = runCatching { file.readLines() }.getOrElse { emptyList() }
+      for (line in lines.asReversed()) {
+        if (out.size >= limit) break
+        parseLine(line)?.let { rec ->
+          if (pluginPrefix == null || rec.plugin.startsWith(pluginPrefix)) {
+            out += rec
+          }
+        }
+      }
+    }
+    return out
+  }
+
+  fun summarizeByPlugin(limit: Int = 1000): Map<String, Int> {
+    return queryRecent(limit = limit).groupingBy { it.plugin }.eachCount()
+  }
+
+  private fun parseLine(line: String): MatrixIssueRecord? {
+    val ts = Regex(""""ts":(\\d+)""").find(line)?.groupValues?.getOrNull(1)?.toLongOrNull()
+    val plugin = Regex(""""plugin":"([^"]*)"""").find(line)?.groupValues?.getOrNull(1)
+    val content = Regex(""""content":"(.*)"}$""").find(line)?.groupValues?.getOrNull(1)
+    if (ts == null || plugin == null || content == null) return null
+    return MatrixIssueRecord(ts, plugin, content)
+  }
+
   private fun escape(value: String): String {
     return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
   }
