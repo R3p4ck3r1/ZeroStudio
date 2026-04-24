@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.Debug
 import android.os.Process
+import android.os.SystemClock
 import dalvik.system.DexFile
 import java.io.File
 import kotlin.math.max
@@ -77,7 +78,7 @@ class EditorProcessApmMonitor(
               openFdCount = readOpenFdCount(),
               gcCount = readGcCount(),
               gcTimeMs = readGcTimeMs(),
-              appUptimeMs = android.os.SystemClock.elapsedRealtime(),
+              appUptimeMs = SystemClock.elapsedRealtime(),
               dexClassStat = dexStat,
               classArtifactStat = classArtifactStat,
           )
@@ -162,14 +163,24 @@ class EditorProcessApmMonitor(
   }
 
   private fun readCpuStat(): CpuStat {
-    val processTokens = File("/proc/self/stat").readText().trim().split(" ")
     val processTicks =
-        (processTokens.getOrNull(13)?.toLongOrNull() ?: 0L) +
-            (processTokens.getOrNull(14)?.toLongOrNull() ?: 0L)
+        runCatching {
+              val processTokens = File("/proc/self/stat").readText().trim().split(" ")
+              (processTokens.getOrNull(13)?.toLongOrNull() ?: 0L) +
+                  (processTokens.getOrNull(14)?.toLongOrNull() ?: 0L)
+            }
+            .getOrElse { Process.getElapsedCpuTime() }
 
-    val systemTokens = File("/proc/stat").readLines().firstOrNull()?.trim()?.split(Regex("\\s+")) ?: emptyList()
-    val systemTicks = systemTokens.drop(1).mapNotNull { it.toLongOrNull() }.sum()
-    return CpuStat(processTicks = processTicks, systemTicks = systemTicks)
+    val systemTicks =
+        runCatching {
+              val systemTokens =
+                  File("/proc/stat").readLines().firstOrNull()?.trim()?.split(Regex("\\s+"))
+                      ?: emptyList()
+              systemTokens.drop(1).mapNotNull { it.toLongOrNull() }.sum()
+            }
+            .getOrElse { SystemClock.elapsedRealtime() }
+
+    return CpuStat(processTicks = processTicks, systemTicks = max(1L, systemTicks))
   }
 
   private fun calcCpuUsage(previous: CpuStat, current: CpuStat): Double {
