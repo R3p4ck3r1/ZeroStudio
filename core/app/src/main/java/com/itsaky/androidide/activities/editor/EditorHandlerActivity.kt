@@ -59,6 +59,7 @@ import com.itsaky.androidide.interfaces.IEditorHandler
 import com.itsaky.androidide.lsp.kotlin.ui.events.LspEventBus
 import com.itsaky.androidide.lsp.kotlin.ui.events.LspInstallRequestEvent
 import com.itsaky.androidide.lsp.kotlin.ui.LspInstallerDialog
+import com.itsaky.androidide.lsp.kotlin.KotlinLspIntegration
 import com.itsaky.androidide.models.FileExtension
 import com.itsaky.androidide.models.OpenedFile
 import com.itsaky.androidide.models.OpenedFilesCache
@@ -467,6 +468,9 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     val position = editorViewModel.getOpenedFileCount()
 
     log.info("Opening file at index {} file:{}", position, file)
+    if (isKotlinSourceFile(file)) {
+      KotlinLspIntegration.setup(this)
+    }
 
     val editor = CodeEditorView(this, file, selection!!)
     editor.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
@@ -481,6 +485,11 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     // onFileLoaded(editor, file)
 
     return position
+  }
+
+  private fun isKotlinSourceFile(file: File): Boolean {
+    val name = file.name
+    return name.endsWith(".kt", ignoreCase = true) || name.endsWith(".kts", ignoreCase = true)
   }
 
   override fun getEditorForFile(file: File): CodeEditorView? {
