@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -42,6 +44,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,6 +64,7 @@ import com.itsaky.androidide.projects.builder.BuildService
 import com.itsaky.androidide.utils.executioncommand.TermuxCommand
 import com.itsaky.androidide.resources.R as ResString
 import java.util.Locale
+import android.widget.Toast
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -402,6 +407,8 @@ private fun TermuxSubsystemCard(stats: List<EditorSubsystemStat>) {
 
 @Composable
 private fun HotClassActivityCard(classStats: List<EditorHotClassStat>) {
+  val clipboardManager = LocalClipboardManager.current
+  val context = LocalContext.current
   Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
     Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
       Text(stringResource(ResString.string.apm_hot_class_title), fontWeight = FontWeight.SemiBold)
@@ -411,7 +418,24 @@ private fun HotClassActivityCard(classStats: List<EditorHotClassStat>) {
       }
 
       classStats.take(15).forEach { stat ->
-        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            modifier =
+                Modifier.fillMaxWidth().clickable {
+                  val payload =
+                      buildString {
+                        appendLine("Class: ${stat.className}")
+                        appendLine("calls=${stat.calls}")
+                        appendLine("totalCPU=${formatFloat(stat.totalCpuMs)} ms")
+                        appendLine("avgCPU=${formatFloat(stat.avgCpuMs)} ms")
+                        appendLine("totalMem=${formatFloat(stat.totalMemMb)} MB")
+                        appendLine("avgMem=${formatFloat(stat.avgMemMb)} MB")
+                        appendLine("peakA=${formatFloat(stat.peakMemMb)} MB")
+                      }
+                  clipboardManager.setText(AnnotatedString(payload))
+                  Toast.makeText(context, "已复制热点类指标到剪切板", Toast.LENGTH_SHORT).show()
+                },
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
           Text(stat.className, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
           Text(
               "该类累计采样 ${stat.calls} 次，累计CPU ${formatFloat(stat.totalCpuMs)}ms，平均每次 ${formatFloat(stat.avgCpuMs)}ms。",
