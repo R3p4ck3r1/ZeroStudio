@@ -20,7 +20,6 @@ package com.itsaky.androidide.services.builder
 import ch.qos.logback.core.CoreConstants
 import com.itsaky.androidide.shell.executeProcessAsync
 import com.itsaky.androidide.tasks.cancelIfActive
-import com.itsaky.androidide.tasks.ifCancelledOrInterrupted
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.IToolingApiServer
@@ -34,7 +33,6 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 
@@ -50,6 +48,8 @@ internal class ToolingServerRunner(
 
   internal var pid: Int? = null
   private var _job: Job? = null
+  @Volatile private var processRef: Process? = null
+  @Volatile private var isStarting = false
   private var _isStarted = AtomicBoolean(false)
 
   var isStarted: Boolean
@@ -57,6 +57,9 @@ internal class ToolingServerRunner(
     private set(value) {
       _isStarted.set(value)
     }
+
+  val isRunningOrStarting: Boolean
+    get() = _job?.isActive == true || isStarted || isStarting
 
   private val runnerScope = CoroutineScope(Dispatchers.IO + CoroutineName("ToolingServerRunner"))
 
@@ -72,7 +75,10 @@ internal class ToolingServerRunner(
   fun startAsync(envs: Map<String, String>) =
       runnerScope
           .launch {
-            var process: Process?
+            if (isStarted || isStarting) {
+              return@launch
+            }
+            isStarting = true
             try {
               log.info("Starting tooling API server...")
               val command =
@@ -103,7 +109,7 @@ internal class ToolingServerRunner(
                       Environment.TOOLING_API_JAR.absolutePath,
                   )
 
-              process = executeProcessAsync {
+              val process = executeProcessAsync {
                 this.command = command
 
                 // input and output is used for communication to the tooling server
@@ -112,29 +118,14 @@ internal class ToolingServerRunner(
                 this.workingDirectory = null // HOME
                 this.environment = envs
               }
+              processRef = process
 
-              pid =
-                  ReflectionUtils.getDeclaredField(process::class.java, "pid")?.get(process) as Int?
+              pid = getProcessId(process)
               pid ?: throw IllegalStateException("Unable to get process ID")
 
               val inputStream = process.inputStream
               val outputStream = process.outputStream
               val errorStream = process.errorStream
-
-              val processJob =
-                  launch(Dispatchers.IO) {
-                    try {
-                      process?.waitFor()
-                      log.info(
-                          "Tooling API process exited with code : {}",
-                          process?.exitValue() ?: "<unknown>",
-                      )
-                      process = null
-                    } finally {
-                      log.info("Destroying Tooling API process...")
-                      process?.destroyForcibly()
-                    }
-                  }
 
               val launcher =
                   ToolingApiLauncher.newClientLauncher(
@@ -159,27 +150,26 @@ internal class ToolingServerRunner(
               // release to prevent memory leak
               listener = null
 
-              // Wait(block) until the process terminates
-              val serverJob =
-                  launch(Dispatchers.IO) {
-                    try {
-                      future.get()
-                    } catch (err: Throwable) {
-                      err.ifCancelledOrInterrupted {
-                        log.info("ToolingServerThread has been cancelled or interrupted.")
-                      }
+              val exitCode = process.waitFor()
+              log.info("Tooling API process exited with code : {}", exitCode)
+              observer?.onServerExited(exitCode)
 
-                      // rethrow the error
-                      throw err
-                    }
-                  }
-
-              processJob.join()
-              joinAll(serverJob, processJob)
+              if (!future.isDone) {
+                future.cancel(true)
+              }
             } catch (e: Throwable) {
               if (e !is CancellationException) {
                 log.error("Unable to start tooling API server", e)
               }
+            } finally {
+              isStarting = false
+              isStarted = false
+              processRef?.let {
+                log.info("Destroying Tooling API process...")
+                it.destroyForcibly()
+              }
+              processRef = null
+              pid = null
             }
           }
           .also { _job = it }
@@ -188,7 +178,20 @@ internal class ToolingServerRunner(
     this.listener = null
     this.observer = null
     this._job?.cancel(CancellationException("Cancellation was requested"))
+    this.processRef?.destroyForcibly()
+    this.processRef = null
     this.runnerScope.cancelIfActive("Cancellation was requested")
+  }
+
+  private fun getProcessId(process: Process): Int? {
+    val pidMethod = ReflectionUtils.getDeclaredMethod(Process::class.java, "pid")
+    val javaPid =
+        pidMethod?.let { method -> ReflectionUtils.invokeMethod(method, process).value as? Long }
+    if (javaPid != null && javaPid > 0L) {
+      return javaPid.toInt()
+    }
+
+    return ReflectionUtils.getDeclaredField(process::class.java, "pid")?.get(process) as Int?
   }
 
   interface Observer {
