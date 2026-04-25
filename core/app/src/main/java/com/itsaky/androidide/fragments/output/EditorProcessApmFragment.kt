@@ -57,6 +57,7 @@ import com.itsaky.androidide.activities.editor.ProjectHandlerActivity
 import com.itsaky.androidide.lookup.Lookup
 import com.itsaky.androidide.lsp.IDELanguageClientImpl
 import com.itsaky.androidide.monitor.EditorHotClassStat
+import com.itsaky.androidide.monitor.EditorPssBreakdownStat
 import com.itsaky.androidide.monitor.EditorProcessApmMonitor
 import com.itsaky.androidide.monitor.EditorProcessApmSnapshot
 import com.itsaky.androidide.monitor.EditorSubsystemStat
@@ -210,6 +211,9 @@ private fun EditorApmMonitorScreen(
         )
       }
       item {
+        TemperatureStatusCard(snapshot = snapshot)
+      }
+      item {
         AdvancedOverviewCard(snapshot = snapshot)
       }
       item {
@@ -219,6 +223,8 @@ private fun EditorApmMonitorScreen(
         MetricGrid(
             listOf(
                 stringResource(ResString.string.apm_metric_rss) to format(snapshot?.processRssMb, "MB"),
+                stringResource(ResString.string.apm_metric_uss) to format(snapshot?.processUssMb, "MB"),
+                stringResource(ResString.string.apm_metric_vss) to format(snapshot?.processVssMb, "MB"),
                 stringResource(ResString.string.apm_metric_java_heap) to
                     "${format(snapshot?.javaHeapUsedMb, "MB")} / ${format(snapshot?.javaHeapMaxMb, "MB")}",
                 stringResource(ResString.string.apm_metric_native_heap) to format(snapshot?.nativeHeapMb, "MB"),
@@ -242,11 +248,49 @@ private fun EditorApmMonitorScreen(
         }
       }
       item {
+        PssBreakdownCard(stats = snapshot?.pssBreakdownStats.orEmpty())
+      }
+      item {
+        RuntimeSignalsCard(snapshot = snapshot)
+      }
+      item {
         HotClassActivityCard(classStats = snapshot?.hotClassStats.orEmpty())
       }
       item {
         TermuxSubsystemCard(stats = snapshot?.termuxSubsystemStats.orEmpty())
       }
+    }
+  }
+}
+
+@Composable
+private fun TemperatureStatusCard(snapshot: EditorProcessApmSnapshot?) {
+  val temp = snapshot?.deviceThermalStat?.batteryTempCelsius
+  val level = snapshot?.deviceThermalStat?.level ?: "unknown"
+  val (textColor, label) =
+      when (level) {
+        "danger" -> Color(0xFFC62828) to stringResource(ResString.string.apm_temp_state_danger)
+        "warning" -> Color(0xFFF9A825) to stringResource(ResString.string.apm_temp_state_warning)
+        "safe" -> Color(0xFF2E7D32) to stringResource(ResString.string.apm_temp_state_safe)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant to stringResource(ResString.string.apm_temp_state_unknown)
+      }
+
+  Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+      Text(stringResource(ResString.string.apm_temp_title), fontWeight = FontWeight.SemiBold)
+      Text(
+          stringResource(
+              ResString.string.apm_temp_value,
+              temp?.let { formatFloat(it) } ?: "--",
+          ),
+          fontSize = 20.sp,
+          fontWeight = FontWeight.Bold,
+          color = textColor,
+      )
+      Text(
+          stringResource(ResString.string.apm_temp_state, label),
+          color = textColor,
+      )
     }
   }
 }
@@ -482,6 +526,72 @@ private fun HotClassActivityCard(classStats: List<EditorHotClassStat>) {
                 modifier = Modifier.weight(1f),
             )
           }
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun PssBreakdownCard(stats: List<EditorPssBreakdownStat>) {
+  Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      Text(stringResource(ResString.string.apm_pss_breakdown_title), fontWeight = FontWeight.SemiBold)
+      if (stats.isEmpty()) {
+        Text(stringResource(ResString.string.apm_waiting_data), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return@Column
+      }
+      stats.forEach { stat ->
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+          Text(stat.category, color = MaterialTheme.colorScheme.onSurfaceVariant)
+          Text("${formatFloat(stat.pssMb)} MB", fontWeight = FontWeight.Medium)
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun RuntimeSignalsCard(snapshot: EditorProcessApmSnapshot?) {
+  Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      Text(stringResource(ResString.string.apm_runtime_signals_title), fontWeight = FontWeight.SemiBold)
+      Text(
+          stringResource(
+              ResString.string.apm_runtime_cpu_breakdown,
+              snapshot?.cpuBreakdownStat?.userCpuMs ?: 0L,
+              snapshot?.cpuBreakdownStat?.systemCpuMs ?: 0L,
+          ),
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          fontSize = 12.sp,
+      )
+      Text(
+          stringResource(
+              ResString.string.apm_runtime_io,
+              snapshot?.ioStat?.readBytes ?: 0L,
+              snapshot?.ioStat?.writeBytes ?: 0L,
+          ),
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          fontSize = 12.sp,
+      )
+      Text(
+          stringResource(
+              ResString.string.apm_runtime_jank,
+              formatFloat(snapshot?.frameJankStat?.frameDropPercent ?: 0.0),
+              snapshot?.frameJankStat?.jankFrameCount ?: 0L,
+              snapshot?.frameJankStat?.totalFrameCount ?: 0L,
+          ),
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          fontSize = 12.sp,
+      )
+      if (snapshot?.topThreadStats?.isNotEmpty() == true) {
+        Text(stringResource(ResString.string.apm_runtime_top_threads), fontWeight = FontWeight.Medium)
+        snapshot.topThreadStats.take(5).forEach { thread ->
+          Text(
+              "T${thread.tid} ${thread.name} • Δticks=${thread.cpuDeltaTicks}",
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              fontSize = 12.sp,
+          )
         }
       }
     }
