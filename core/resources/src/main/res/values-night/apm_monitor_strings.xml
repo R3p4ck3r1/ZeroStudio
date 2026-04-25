@@ -53,4 +53,12 @@
     <string name="apm_runtime_io">I/O delta: read=%1$d bytes, write=%2$d bytes</string>
     <string name="apm_runtime_jank">Frame drop=%1$s%% (%2$d / %3$d frames)</string>
     <string name="apm_runtime_top_threads">Top CPU delta threads</string>
+    <string name="apm_runtime_cpu_user">CPU User time</string>
+    <string name="apm_runtime_cpu_system">CPU System time</string>
+    <string name="apm_runtime_io_read">I/O Read delta</string>
+    <string name="apm_runtime_io_write">I/O Write delta</string>
+    <string name="apm_runtime_jank_ratio">Jank drop ratio</string>
+    <string name="apm_hook_title">Advanced Hook Capability</string>
+    <string name="apm_hook_ready">Ready</string>
+    <string name="apm_hook_not_ready">Not ready</string>
 </resources>

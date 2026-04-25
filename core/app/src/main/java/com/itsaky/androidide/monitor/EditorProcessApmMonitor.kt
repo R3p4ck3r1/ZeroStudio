@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.Context
+import android.os.Build
 import android.os.Debug
 import android.os.Handler
 import android.os.Looper
@@ -57,6 +58,7 @@ data class EditorProcessApmSnapshot(
     val topThreadStats: List<EditorThreadCpuStat>,
     val frameJankStat: EditorFrameJankStat,
     val deviceThermalStat: EditorDeviceThermalStat,
+    val advancedHookStat: EditorAdvancedHookStat,
     val healthAlerts: List<String>,
 )
 
@@ -107,6 +109,15 @@ data class EditorFrameJankStat(
 data class EditorDeviceThermalStat(
     val batteryTempCelsius: Double?,
     val level: String,
+)
+
+data class EditorAdvancedHookStat(
+    val jvmtiReady: Boolean,
+    val pltHookReady: Boolean,
+    val inlineHookReady: Boolean,
+    val mallocHookReady: Boolean,
+    val memUnreachableReady: Boolean,
+    val notes: List<String>,
 )
 
 /** Non-intrusive process-level APM monitor for editor bottom sheet dashboard. */
@@ -178,6 +189,7 @@ class EditorProcessApmMonitor(
         previousThreadCpuStat = threadCpuStat
 
         val thermalStat = readBatteryThermalStat()
+        val advancedHookStat = readAdvancedHookStat()
         val frameJankStat = frameTracker.snapshotAndReset()
         val cpuBreakdown = readCpuBreakdownStat()
         val alerts =
@@ -216,6 +228,7 @@ class EditorProcessApmMonitor(
                 topThreadStats = topThreadStats,
                 frameJankStat = frameJankStat,
                 deviceThermalStat = thermalStat,
+                advancedHookStat = advancedHookStat,
                 healthAlerts = alerts,
             )
         )
@@ -515,6 +528,45 @@ class EditorProcessApmMonitor(
     )
   }
 
+  private fun readAdvancedHookStat(): EditorAdvancedHookStat {
+    val notes = mutableListOf<String>()
+    val jvmtiReady = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+    if (jvmtiReady) {
+      notes += "JVMTI dynamic agent is supported on Android 8.0+."
+    } else {
+      notes += "JVMTI requires Android 8.0+."
+    }
+
+    val nativeLibDir = File(appContext.applicationInfo.nativeLibraryDir ?: "")
+    val pltHookReady = nativeLibDir.listFiles()?.any { it.name.contains("plthook", ignoreCase = true) } == true
+    val inlineHookReady = nativeLibDir.listFiles()?.any { it.name.contains("shadowhook", ignoreCase = true) || it.name.contains("inlinehook", ignoreCase = true) } == true
+    val mallocHookReady = (System.getenv("LIBC_HOOKS_ENABLE") == "1") || hasAnyFile("/data/local/tmp/libc_malloc_hooks.so")
+    val memUnreachableReady = hasAnyFile("/system/lib64/libmemunreachable.so", "/system/lib/libmemunreachable.so")
+
+    if (!pltHookReady) notes += "PLT Hook bridge library not detected in app native libs."
+    if (!inlineHookReady) notes += "Inline Hook bridge library not detected in app native libs."
+    if (!mallocHookReady) notes += "jemalloc/scudo malloc hook bridge not enabled."
+    if (!memUnreachableReady) notes += "libmemunreachable is unavailable on this device image."
+
+    val externalProbeScript = File(appContext.filesDir, "apm-probes/collect.sh")
+    if (externalProbeScript.exists()) {
+      notes += "External advanced probe script detected: ${externalProbeScript.absolutePath}."
+    } else {
+      notes += "Optional external probes can be mounted at files/apm-probes/collect.sh with no app source patching."
+    }
+
+    return EditorAdvancedHookStat(
+        jvmtiReady = jvmtiReady,
+        pltHookReady = pltHookReady,
+        inlineHookReady = inlineHookReady,
+        mallocHookReady = mallocHookReady,
+        memUnreachableReady = memUnreachableReady,
+        notes = notes,
+    )
+  }
+
+  private fun hasAnyFile(vararg paths: String): Boolean = paths.any { File(it).exists() }
+
   private fun buildHealthAlerts(
       cpuUsagePercent: Double,
       javaHeapUsedMb: Double,
@@ -540,9 +592,12 @@ class EditorProcessApmMonitor(
 
   private class ClassActivityTracker(private val appPackageName: String) {
     private val stats = LinkedHashMap<String, MutableHotClassStat>()
+    private val lastHitSnapshot = mutableMapOf<String, Double>()
+    private var sampleSeq = 0L
 
     fun sample(cpuDeltaMs: Double, memDeltaMb: Double): List<EditorHotClassStat> {
-      val classHits = collectAppClassHits()
+      sampleSeq++
+      val classHits = collectAppClassHitsWeighted()
       if (classHits.isEmpty()) {
         return stats.values
             .sortedByDescending { it.totalCpuMs }
@@ -550,11 +605,14 @@ class EditorProcessApmMonitor(
             .map { it.toSnapshot() }
       }
 
-      val totalHits = classHits.values.sum().coerceAtLeast(1)
+      val totalHits = classHits.values.sum().takeIf { it > 0.0 } ?: 1.0
       classHits.forEach { (className, hits) ->
-        val ratio = hits.toDouble() / totalHits.toDouble()
+        val ratio = hits / totalHits
+        val previousWeight = lastHitSnapshot[className] ?: 0.0
+        val smoothRatio = (ratio * 0.7) + (previousWeight * 0.3)
+        lastHitSnapshot[className] = smoothRatio
         val cpuShare = cpuDeltaMs * ratio
-        val memShare = memDeltaMb * ratio
+        val memShare = memDeltaMb * smoothRatio
         val item =
             stats.getOrPut(className) {
               MutableHotClassStat(
@@ -565,23 +623,28 @@ class EditorProcessApmMonitor(
                   peakMemMb = 0.0,
               )
             }
-        item.calls += hits
+        item.calls += max(1, (hits * 10.0).toInt())
         item.totalCpuMs += cpuShare
         item.totalMemMb += memShare
         item.peakMemMb = max(item.peakMemMb, memShare)
+        item.lastSeenSeq = sampleSeq
       }
 
       return stats.values
+          .filter { sampleSeq - it.lastSeenSeq <= 45L }
           .sortedByDescending { it.totalCpuMs }
           .take(MAX_HOT_CLASSES)
           .map { it.toSnapshot() }
     }
 
-    private fun collectAppClassHits(): Map<String, Int> {
-      val hits = mutableMapOf<String, Int>()
+    private fun collectAppClassHitsWeighted(): Map<String, Double> {
+      val hits = mutableMapOf<String, Double>()
       Thread.getAllStackTraces().values.forEach { stack ->
-        val frame = stack.firstOrNull { it.className.startsWith(appPackageName) } ?: return@forEach
-        hits[frame.className] = (hits[frame.className] ?: 0) + 1
+        stack.take(6).forEachIndexed { index, frame ->
+          if (!frame.className.startsWith(appPackageName)) return@forEachIndexed
+          val depthWeight = 1.0 / (index + 1).toDouble()
+          hits[frame.className] = (hits[frame.className] ?: 0.0) + depthWeight
+        }
       }
       return hits
     }
@@ -593,6 +656,7 @@ class EditorProcessApmMonitor(
       var totalCpuMs: Double,
       var totalMemMb: Double,
       var peakMemMb: Double,
+      var lastSeenSeq: Long = 0L,
   ) {
     fun toSnapshot(): EditorHotClassStat {
       val avgCpuMs = if (calls > 0) totalCpuMs / calls.toDouble() else 0.0
