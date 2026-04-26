@@ -67,6 +67,7 @@ import io.github.rosemoe.sora.widget.EditorTouchEventHandler
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
+import org.slf4j.LoggerFactory
 
 /**
  * PopupMenu for showing editor's text and code actions.
@@ -82,6 +83,7 @@ open class EditorActionsMenu(val editor: IDEEditor) :
   companion object {
 
     const val DELAY: Long = 200
+    private val log = LoggerFactory.getLogger(EditorActionsMenu::class.java)
   }
 
   private val touchHandler: EditorTouchEventHandler = editor.eventHandler
@@ -566,7 +568,11 @@ open class EditorActionsMenu(val editor: IDEEditor) :
       this.list.adapter = ActionsListAdapter(item.subMenu, true)
 
       measureActionsList()
-      popup.update(findWidestItem(), this.list.measuredHeight)
+      runCatching { popup.update(findWidestItem(), this.list.measuredHeight) }
+          .onFailure {
+            log.warn("Failed to update editor actions popup after submenu selection", it)
+            dismiss()
+          }
     }
 
     return true
