@@ -101,7 +101,8 @@ constructor(
   private var isImeVisible = false
   private var windowInsets: Insets? = null
   private var selectedHeaderPage = PAGE_BUILD_STATUS
-  private var switcherHeight = 0
+
+  var onHeaderPageChanged: ((Boolean) -> Unit)? = null
 
   private val insetBottom: Int
     get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
@@ -178,12 +179,12 @@ constructor(
       (fragment as ShareableOutputFragment).clearOutput()
     }
 
-    binding.pageSwitchContainer.addOnButtonCheckedListener { _, checkedId, isChecked ->
-      if (!isChecked) return@addOnButtonCheckedListener
-      when (checkedId) {
-        R.id.build_status_tab -> selectHeaderPage(PAGE_BUILD_STATUS)
-        R.id.symbol_input_tab -> selectHeaderPage(PAGE_SYMBOL_INPUT)
-      }
+    binding.buildStatusTab.setOnClickListener {
+      selectHeaderPage(PAGE_BUILD_STATUS)
+    }
+
+    binding.symbolInputTab.setOnClickListener {
+      selectHeaderPage(PAGE_SYMBOL_INPUT)
     }
 
     binding.headerContainer.setOnClickListener {
@@ -229,13 +230,17 @@ constructor(
             view.viewTreeObserver.removeOnGlobalLayoutListener(this)
             anchorOffset = view.height + SizeUtils.dp2px(1f)
 
-            switcherHeight = binding.pageSwitchContainer.height
-
+            updatePeekHeight()
             behavior.expandedOffset = anchorOffset
             behavior.isGestureInsetBottomIgnored = isImeVisible
 
             binding.root.updatePadding(bottom = anchorOffset + insetBottom)
-            syncCollapsedMetrics()
+            binding.headerRoot.apply {
+              updatePaddingRelative(bottom = paddingBottom + insetBottom)
+              updateLayoutParams<ViewGroup.LayoutParams> {
+                height = (collapsedHeight + insetBottom).roundToInt()
+              }
+            }
           }
         }
 
@@ -258,9 +263,13 @@ constructor(
         }
 
     val padding = insetBottom * paddingScale
+    if (selectedHeaderPage == PAGE_SYMBOL_INPUT) {
+      return
+    }
+
     binding.headerRoot.apply {
       updateLayoutParams<ViewGroup.LayoutParams> {
-        height = ((effectiveCollapsedHeight() + padding) * heightScale).roundToInt()
+        height = ((collapsedHeight + padding) * heightScale).roundToInt()
       }
       updatePaddingRelative(bottom = padding.roundToInt())
     }
@@ -268,16 +277,16 @@ constructor(
 
   fun showChild(index: Int) {
     if (index == CHILD_ACTION) {
-      binding.pageSwitchContainer.visibility = View.GONE
       binding.headerContainer.displayedChild = CHILD_ACTION
-      syncCollapsedMetrics()
+      binding.pageSwitchContainer.visibility = View.GONE
+      updatePeekHeight()
       return
     }
 
     binding.pageSwitchContainer.visibility = View.VISIBLE
     selectedHeaderPage = if (index == CHILD_SYMBOL_INPUT) PAGE_SYMBOL_INPUT else PAGE_BUILD_STATUS
     selectHeaderPage(selectedHeaderPage)
-    syncCollapsedMetrics()
+    updatePeekHeight()
   }
 
   fun setActionText(text: CharSequence) {
@@ -341,31 +350,36 @@ constructor(
   private fun selectHeaderPage(page: Int) {
     selectedHeaderPage = page
 
-    val targetButtonId =
-        if (page == PAGE_BUILD_STATUS) R.id.build_status_tab else R.id.symbol_input_tab
-    if (binding.pageSwitchContainer.checkedButtonId != targetButtonId) {
-      binding.pageSwitchContainer.check(targetButtonId)
-    }
-
     if (binding.headerContainer.displayedChild != CHILD_ACTION) {
       binding.headerContainer.displayedChild =
           if (page == PAGE_BUILD_STATUS) CHILD_HEADER else CHILD_SYMBOL_INPUT
     }
-  }
 
-  private fun syncCollapsedMetrics() {
-    behavior.peekHeight = effectiveCollapsedHeight().roundToInt()
-    binding.headerRoot.apply {
-      updateLayoutParams<ViewGroup.LayoutParams> {
-        height = (effectiveCollapsedHeight() + insetBottom).roundToInt()
+    if (page == PAGE_SYMBOL_INPUT) {
+      binding.headerContainer.updateLayoutParams<ViewGroup.LayoutParams> {
+        height = ViewGroup.LayoutParams.WRAP_CONTENT
       }
+      binding.buildStatusTab.alpha = 0.6f
+      binding.symbolInputTab.alpha = 1f
+    } else {
+      binding.headerContainer.updateLayoutParams<ViewGroup.LayoutParams> {
+        height = (collapsedHeight + insetBottom).roundToInt()
+      }
+      binding.buildStatusTab.alpha = 1f
+      binding.symbolInputTab.alpha = 0.6f
     }
+
+    onHeaderPageChanged?.invoke(page == PAGE_BUILD_STATUS)
   }
 
-  private fun effectiveCollapsedHeight(): Float {
-    val visibleSwitcherHeight =
-        if (binding.pageSwitchContainer.visibility == View.VISIBLE) switcherHeight else 0
-    return collapsedHeight + visibleSwitcherHeight
+  private fun updatePeekHeight() {
+    val switchHeight =
+        if (binding.pageSwitchContainer.visibility == View.VISIBLE) {
+          binding.pageSwitchContainer.height + SizeUtils.dp2px(12f)
+        } else {
+          0
+        }
+    behavior.peekHeight = (collapsedHeight + switchHeight).roundToInt()
   }
 
   fun setStatus(text: CharSequence, @GravityInt gravity: Int) {
