@@ -318,7 +318,8 @@ constructor(
   }
 
   fun refreshSymbolInput(editor: CodeEditorView) {
-    binding.symbolInputView.bindEditor(editor.editor)
+    val codeEditor = editor.editor ?: return
+    binding.symbolInputView.bindEditor(codeEditor)
   }
 
   fun onSoftInputChanged() {
