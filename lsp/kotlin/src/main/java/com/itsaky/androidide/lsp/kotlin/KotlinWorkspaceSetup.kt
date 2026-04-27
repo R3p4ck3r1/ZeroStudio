@@ -82,7 +82,7 @@ class KotlinWorkspaceSetup(private val context: Context, private val workspace: 
       }
 
       if (modulesToWatch.isEmpty()) {
-        log.warn("No build directories found to watch")
+        log.info("No build directories found to watch. Skipping build watcher bootstrap.")
         return
       }
 

@@ -818,13 +818,13 @@ class GradleBuildService :
       return
     }
 
-    if (toolingServerRunner?.isStarted != true) {
+    if (toolingServerRunner?.isRunningOrStarting != true) {
       val envs = TermuxShellEnvironment().getEnvironment(this, false)
       toolingServerRunner = ToolingServerRunner(listener, this).also { it.startAsync(envs) }
       return
     }
 
-    if (toolingServerRunner!!.isStarted && listener != null) {
+    if (toolingServerRunner!!.isStarted && toolingServerRunner!!.pid != null && listener != null) {
       listener.onServerStarted(toolingServerRunner!!.pid!!)
     } else {
       setServerListener(listener)

@@ -123,6 +123,8 @@ class KotlinLanguageServerImpl(
     @Volatile
     private var isInitialized = false
     @Volatile
+    private var lastOpenedFile: Path? = null
+    @Volatile
     private var lastInitError: String? = null
     private val gson = Gson()
     private val completionConverter = KotlinCompletionConverter()
@@ -236,7 +238,7 @@ class KotlinLanguageServerImpl(
         ensureInitialized(workspace.getProjectDir())
     }
 
-    private fun ensureInitialized(projectDir: File? = runCatching { IProjectManager.getInstance().projectDir }.getOrNull()): Boolean {
+    private fun ensureInitialized(projectDir: File? = resolveInitializationRoot()): Boolean {
         if (isInitialized) return true
         val rootDir = projectDir ?: return false
         synchronized(initLock) {
@@ -244,6 +246,21 @@ class KotlinLanguageServerImpl(
             initializeServer(rootDir)
             return isInitialized
         }
+    }
+
+    private fun resolveInitializationRoot(file: Path? = null): File? {
+        val managerProjectDir = runCatching { IProjectManager.getInstance().projectDir }.getOrNull()
+        if (managerProjectDir != null && managerProjectDir.exists()) {
+            return managerProjectDir
+        }
+
+        val anchor = file ?: lastOpenedFile
+        val fromOpenedFile = anchor?.toAbsolutePath()?.parent?.toFile()
+        if (fromOpenedFile != null && fromOpenedFile.exists()) {
+            return fromOpenedFile
+        }
+
+        return null
     }
 
     private fun initializeServer(projectDir: File) {
@@ -307,13 +324,15 @@ class KotlinLanguageServerImpl(
     // --- 文档生命周期同步 (Text Document Sync) ---
 
     override fun didOpen(params: DidOpenTextDocumentParams) {
-        if (!ensureInitialized()) return
+        lastOpenedFile = params.file
+        if (!ensureInitialized(resolveInitializationRoot(params.file))) return
         val item = TextDocumentItem(params.file.toUri().toString(), params.languageId, params.version, params.text)
         requireServer().textDocumentService.didOpen(org.eclipse.lsp4j.DidOpenTextDocumentParams(item))
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
-        if (!ensureInitialized()) return
+        lastOpenedFile = params.file
+        if (!ensureInitialized(resolveInitializationRoot(params.file))) return
         val changes = params.contentChanges.map { 
             // 简化为全量更新以避免增量 range 计算的潜在偏移问题
             org.eclipse.lsp4j.TextDocumentContentChangeEvent(it.text) 
@@ -323,19 +342,21 @@ class KotlinLanguageServerImpl(
     }
 
     override fun didClose(params: DidCloseTextDocumentParams) {
-        if (!ensureInitialized()) return
+        if (!ensureInitialized(resolveInitializationRoot(params.file))) return
         requireServer().textDocumentService.didClose(org.eclipse.lsp4j.DidCloseTextDocumentParams(TextDocumentIdentifier(params.file.toUri().toString())))
     }
 
     override fun didSave(params: DidSaveTextDocumentParams) {
-        if (!ensureInitialized()) return
+        if (!ensureInitialized(resolveInitializationRoot(params.file))) return
         requireServer().textDocumentService.didSave(org.eclipse.lsp4j.DidSaveTextDocumentParams(TextDocumentIdentifier(params.file.toUri().toString()), params.text))
     }
 
     // --- 核心特性实现 ---
 
     override fun complete(params: CompletionParams?): CompletionResult {
-        if (params == null || !ensureInitialized()) return CompletionResult.EMPTY
+        if (params == null || !ensureInitialized(resolveInitializationRoot(params.file))) {
+            return CompletionResult.EMPTY
+        }
         
         return runBlocking(Dispatchers.IO) {
             try {
@@ -429,7 +450,7 @@ class KotlinLanguageServerImpl(
     }
 
     override suspend fun findDefinition(params: DefinitionParams): DefinitionResult = withContext(Dispatchers.IO) {
-        if (!ensureInitialized()) return@withContext DefinitionResult(emptyList())
+        if (!ensureInitialized(resolveInitializationRoot(params.file))) return@withContext DefinitionResult(emptyList())
         try {
             val req = org.eclipse.lsp4j.DefinitionParams(
                 TextDocumentIdentifier(params.file.toUri().toString()),
@@ -446,7 +467,7 @@ class KotlinLanguageServerImpl(
     }
 
     override suspend fun findReferences(params: ReferenceParams): ReferenceResult = withContext(Dispatchers.IO) {
-        if (!ensureInitialized()) return@withContext ReferenceResult(emptyList())
+        if (!ensureInitialized(resolveInitializationRoot(params.file))) return@withContext ReferenceResult(emptyList())
         try {
             val req = org.eclipse.lsp4j.ReferenceParams(
                 ReferenceContext(params.includeDeclaration)
@@ -465,7 +486,7 @@ class KotlinLanguageServerImpl(
     }
 
     override suspend fun hover(params: DefinitionParams): MarkupContent = withContext(Dispatchers.IO) {
-        if (!ensureInitialized()) return@withContext MarkupContent("", MarkupKind.PLAIN)
+        if (!ensureInitialized(resolveInitializationRoot(params.file))) return@withContext MarkupContent("", MarkupKind.PLAIN)
         try {
             val req = org.eclipse.lsp4j.HoverParams(
                 TextDocumentIdentifier(params.file.toUri().toString()),
@@ -505,7 +526,7 @@ class KotlinLanguageServerImpl(
     override suspend fun expandSelection(params: ExpandSelectionParams): Range = params.selection
 
     override suspend fun signatureHelp(params: SignatureHelpParams): SignatureHelp = withContext(Dispatchers.IO) {
-        if (!ensureInitialized()) return@withContext SignatureHelp(emptyList(), 0, 0)
+        if (!ensureInitialized(resolveInitializationRoot(params.file))) return@withContext SignatureHelp(emptyList(), 0, 0)
         try {
             val req = LspSignatureHelpParams(
                 TextDocumentIdentifier(params.file.toUri().toString()),
@@ -554,7 +575,7 @@ class KotlinLanguageServerImpl(
     }
 
     override suspend fun rename(params: RenameParams): WorkspaceEdit = withContext(Dispatchers.IO) {
-        if (!ensureInitialized()) return@withContext WorkspaceEdit()
+        if (!ensureInitialized(resolveInitializationRoot(params.file))) return@withContext WorkspaceEdit()
         try {
             val req = org.eclipse.lsp4j.RenameParams(
                 TextDocumentIdentifier(params.file.toUri().toString()),

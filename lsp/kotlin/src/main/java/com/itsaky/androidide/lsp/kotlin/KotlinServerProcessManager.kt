@@ -265,7 +265,7 @@ class KotlinServerProcessManager(private val context: Context) {
                     delay(300)
                 }
             }
-            log.warn("Workspace unavailable while bootstrapping Kotlin LSP. Waiting for project events.")
+            log.info("Workspace unavailable while bootstrapping Kotlin LSP. Running in standalone-file mode until project is ready.")
         }
     }
 

@@ -52,18 +52,25 @@ object KotlinLspIntegration {
    */
   @Synchronized
   fun setup(context: Context) {
+    val registry = ILanguageServerRegistry.getDefault()
+    val existingServer = registry.getServer("kotlin-lsp") as? KotlinLanguageServerImpl
     if (isInitialized.get()) {
       val workspace = IProjectManager.getInstance().getWorkspace()
-      val server =
-          ILanguageServerRegistry.getDefault().getServer("kotlin-lsp") as? KotlinLanguageServerImpl
-      if (workspace != null && server != null) {
-        server.setupWorkspace(workspace)
-        server.applySettings(KotlinServerSettings())
+      if (workspace != null && existingServer != null) {
+        existingServer.setupWorkspace(workspace)
+        existingServer.applySettings(KotlinServerSettings())
+        log.info("Kotlin LSP already initialized. Refreshed workspace/configuration binding.")
+        return
       }
-      log.info("Kotlin LSP already initialized. Refreshed workspace/configuration binding.")
+
+      // 已标记初始化，但实际 server 不存在（例如安装取消/启动失败）时允许自动重试。
+      log.warn("Kotlin LSP marked initialized but no active server found. Re-initializing...")
+      isInitialized.set(false)
+    }
+
+    if (!isInitialized.compareAndSet(false, true)) {
       return
     }
-    isInitialized.set(true)
 
     try {
       KotlinTextDocumentSyncHandler.init()
@@ -99,10 +106,12 @@ object KotlinLspIntegration {
           server.applySettings(KotlinServerSettings())
           log.info("Kotlin LSP Integration successfully stitched together with Workspace support!")
         } else {
+          isInitialized.set(false)
           log.warn("Kotlin LSP Server failed to start or register within timeout.")
         }
       }
     } catch (e: Exception) {
+      isInitialized.set(false)
       log.error("Critical error during Kotlin LSP Integration setup", e)
     }
   }

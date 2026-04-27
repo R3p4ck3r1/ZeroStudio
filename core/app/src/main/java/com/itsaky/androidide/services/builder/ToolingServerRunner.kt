@@ -20,7 +20,6 @@ package com.itsaky.androidide.services.builder
 import ch.qos.logback.core.CoreConstants
 import com.itsaky.androidide.shell.executeProcessAsync
 import com.itsaky.androidide.tasks.cancelIfActive
-import com.itsaky.androidide.tasks.ifCancelledOrInterrupted
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.IToolingApiServer
@@ -51,6 +50,7 @@ internal class ToolingServerRunner(
   internal var pid: Int? = null
   private var _job: Job? = null
   @Volatile private var processRef: Process? = null
+  @Volatile private var isStarting = false
   private var _isStarted = AtomicBoolean(false)
 
   var isStarted: Boolean
@@ -58,6 +58,9 @@ internal class ToolingServerRunner(
     private set(value) {
       _isStarted.set(value)
     }
+
+  val isRunningOrStarting: Boolean
+    get() = _job?.isActive == true || isStarted || isStarting
 
   private val runnerScope = CoroutineScope(Dispatchers.IO + CoroutineName("ToolingServerRunner"))
 
@@ -73,6 +76,10 @@ internal class ToolingServerRunner(
   fun startAsync(envs: Map<String, String>) =
       runnerScope
           .launch {
+            if (isStarted || isStarting) {
+              return@launch
+            }
+            isStarting = true
             try {
               log.info("Starting tooling API server...")
               val command =
@@ -144,34 +151,19 @@ internal class ToolingServerRunner(
               // release to prevent memory leak
               listener = null
 
-              // Wait(block) until RPC listener is terminated.
-              val serverJob =
-                  launch(Dispatchers.IO) {
-                    try {
-                      runInterruptible { future.get() }
-                    } catch (err: Throwable) {
-                      err.ifCancelledOrInterrupted {
-                        log.info("ToolingServerThread has been cancelled or interrupted.")
-                      }
-
-                      // rethrow the error
-                      throw err
-                    }
-                  }
-
-              val exitCode = runInterruptible { process.waitFor() }
+              val exitCode = process.waitFor()
               log.info("Tooling API process exited with code : {}", exitCode)
               observer?.onServerExited(exitCode)
 
               if (!future.isDone) {
                 future.cancel(true)
               }
-              serverJob.join()
             } catch (e: Throwable) {
               if (e !is CancellationException) {
                 log.error("Unable to start tooling API server", e)
               }
             } finally {
+              isStarting = false
               isStarted = false
               processRef?.let {
                 log.info("Destroying Tooling API process...")
