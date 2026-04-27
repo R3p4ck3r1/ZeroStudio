@@ -57,7 +57,6 @@ import com.itsaky.androidide.tasks.TaskExecutor.CallbackWithError
 import com.itsaky.androidide.tasks.TaskExecutor.executeAsync
 import com.itsaky.androidide.tasks.TaskExecutor.executeAsyncProvideError
 import com.itsaky.androidide.utils.IntentUtils.shareFile
-import com.itsaky.androidide.utils.Symbols.forFile
 import com.itsaky.androidide.utils.flashError
 import java.io.File
 import java.io.IOException
@@ -101,6 +100,7 @@ constructor(
   private var anchorOffset = 0
   private var isImeVisible = false
   private var windowInsets: Insets? = null
+  private var selectedHeaderPage = PAGE_BUILD_STATUS
 
   private val insetBottom: Int
     get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
@@ -113,6 +113,9 @@ constructor(
     const val CHILD_HEADER = 0
     const val CHILD_SYMBOL_INPUT = 1
     const val CHILD_ACTION = 2
+
+    private const val PAGE_BUILD_STATUS = 0
+    private const val PAGE_SYMBOL_INPUT = 1
   }
 
   private fun initialize(context: FragmentActivity) {
@@ -174,11 +177,21 @@ constructor(
       (fragment as ShareableOutputFragment).clearOutput()
     }
 
+    binding.buildStatusTab.setOnClickListener {
+      selectHeaderPage(PAGE_BUILD_STATUS)
+    }
+
+    binding.symbolInputTab.setOnClickListener {
+      selectHeaderPage(PAGE_SYMBOL_INPUT)
+    }
+
     binding.headerContainer.setOnClickListener {
       if (behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
         behavior.state = BottomSheetBehavior.STATE_EXPANDED
       }
     }
+
+    selectHeaderPage(PAGE_BUILD_STATUS)
 
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
       this.windowInsets = insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
@@ -257,7 +270,15 @@ constructor(
   }
 
   fun showChild(index: Int) {
-    binding.headerContainer.displayedChild = index
+    if (index == CHILD_ACTION) {
+      binding.pageSwitchContainer.visibility = View.GONE
+      binding.headerContainer.displayedChild = CHILD_ACTION
+      return
+    }
+
+    binding.pageSwitchContainer.visibility = View.VISIBLE
+    selectedHeaderPage = if (index == CHILD_SYMBOL_INPUT) PAGE_SYMBOL_INPUT else PAGE_BUILD_STATUS
+    selectHeaderPage(selectedHeaderPage)
   }
 
   fun setActionText(text: CharSequence) {
@@ -297,7 +318,7 @@ constructor(
   }
 
   fun refreshSymbolInput(editor: CodeEditorView) {
-    binding.symbolInput.refresh(editor.editor, forFile(editor.file))
+    binding.symbolInputView.bindEditor(editor.editor)
   }
 
   fun onSoftInputChanged() {
@@ -306,8 +327,6 @@ constructor(
       return
     }
 
-    binding.symbolInput.itemAnimator?.endAnimations()
-
     TransitionManager.beginDelayedTransition(
         binding.root,
         MaterialSharedAxis(MaterialSharedAxis.Y, false),
@@ -315,9 +334,21 @@ constructor(
 
     val activity = context as Activity
     if (KeyboardUtils.isSoftInputVisible(activity)) {
-      binding.headerContainer.displayedChild = CHILD_SYMBOL_INPUT
-    } else {
-      binding.headerContainer.displayedChild = CHILD_HEADER
+      selectHeaderPage(PAGE_SYMBOL_INPUT)
+    }
+  }
+
+  private fun selectHeaderPage(page: Int) {
+    selectedHeaderPage = page
+
+    binding.buildStatusTab.alpha = if (page == PAGE_BUILD_STATUS) 1f else 0.45f
+    binding.symbolInputTab.alpha = if (page == PAGE_SYMBOL_INPUT) 1f else 0.45f
+    binding.buildStatusTab.isChecked = page == PAGE_BUILD_STATUS
+    binding.symbolInputTab.isChecked = page == PAGE_SYMBOL_INPUT
+
+    if (binding.headerContainer.displayedChild != CHILD_ACTION) {
+      binding.headerContainer.displayedChild =
+          if (page == PAGE_BUILD_STATUS) CHILD_HEADER else CHILD_SYMBOL_INPUT
     }
   }
 
