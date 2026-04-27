@@ -24,27 +24,27 @@
   android:layout_width="match_parent"
   android:layout_height="match_parent"
   android:background="?attr/colorSurface">
-  
+
   <com.google.android.material.card.MaterialCardView
     android:id="@+id/cardView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardCornerRadius="24dp"
-    android:layout_marginLeft="16dp"
-    android:layout_marginRight="16dp"
-    app:strokeWidth="0dp"
-    app:cardElevation="0dp"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
     android:scaleX="0.9"
     android:scaleY="0.9"
-    app:cardBackgroundColor="?attr/colorSurface">
-  </com.google.android.material.card.MaterialCardView>
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp" />
+
   <include
     android:id="@+id/border"
     layout="@layout/layout_divider_horizontal"
     android:layout_width="match_parent"
-    android:layout_marginBottom="2dp"
     android:layout_height="0.5dp"
-    android:layout_alignParentTop="true" />
+    android:layout_alignParentTop="true"
+    android:layout_marginBottom="2dp" />
 
   <LinearLayout
     android:id="@+id/header_root"
@@ -54,7 +54,7 @@
     android:background="?attr/colorSurface"
     android:orientation="vertical">
 
-    <LinearLayout
+    <com.google.android.material.button.MaterialButtonToggleGroup
       android:id="@+id/page_switch_container"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
@@ -62,32 +62,34 @@
       android:layout_marginTop="6dp"
       android:layout_marginEnd="12dp"
       android:layout_marginBottom="4dp"
-      android:orientation="horizontal">
+      android:orientation="horizontal"
+      app:selectionRequired="true"
+      app:singleSelection="true">
 
       <com.google.android.material.button.MaterialButton
         android:id="@+id/build_status_tab"
-        style="@style/Widget.Material3.Button.TextButton"
+        style="@style/Widget.Material3.Button"
         android:layout_width="0dp"
-        android:layout_height="24dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:backgroundTint="#D6A6A6"
         android:insetTop="0dp"
         android:insetBottom="0dp"
-        android:minHeight="24dp"
-        android:text="" />
+        android:minHeight="28dp"
+        android:text="@string/bottom_sheet_page_build"
+        android:textAllCaps="false" />
 
       <com.google.android.material.button.MaterialButton
         android:id="@+id/symbol_input_tab"
-        style="@style/Widget.Material3.Button.TextButton"
+        style="@style/Widget.Material3.Button"
         android:layout_width="0dp"
-        android:layout_height="24dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:backgroundTint="#A7D6B1"
         android:insetTop="0dp"
         android:insetBottom="0dp"
-        android:minHeight="24dp"
-        android:text="" />
-    </LinearLayout>
+        android:minHeight="28dp"
+        android:text="@string/bottom_sheet_page_symbols"
+        android:textAllCaps="false" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <ViewFlipper
       android:id="@+id/header_container"
@@ -96,29 +98,27 @@
       android:background="?attr/colorSurface">
 
       <include
-        layout="@layout/layout_editor_build_status"
-        android:id="@+id/build_status"/>
+        android:id="@+id/build_status"
+        layout="@layout/layout_editor_build_status" />
 
       <android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
         android:id="@+id/symbol_input_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content" />
 
       <include
-        layout="@layout/layout_editor_bottom_action"
-        android:id="@+id/bottom_action"/>
+        android:id="@+id/bottom_action"
+        layout="@layout/layout_editor_bottom_action" />
 
     </ViewFlipper>
-
   </LinearLayout>
-
 
   <com.google.android.material.tabs.TabLayout
     android:id="@+id/tabs"
     style="@style/AppTheme.TabLayout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_below="@id/header_container" />
+    android:layout_below="@id/header_root" />
 
   <androidx.legacy.widget.Space
     android:id="@+id/space_bottom"
@@ -129,11 +129,11 @@
 
   <androidx.viewpager2.widget.ViewPager2
     android:id="@+id/pager"
-    android:background="?android:attr/colorBackground"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_above="@id/space_bottom"
     android:layout_below="@id/tabs"
+    android:background="?android:attr/colorBackground"
     android:clickable="true"
     android:focusable="false" />
 
