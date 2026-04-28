@@ -390,21 +390,7 @@ constructor(
   }
 
   private fun updatePeekHeight() {
-    val switchHeight: Int =
-        if (binding.pageSwitchContainer.visibility == View.VISIBLE) {
-          binding.pageSwitchContainer.height + SizeUtils.dp2px(8f)
-        } else {
-          0
-        }
-
-    val contentHeight: Int =
-        if (selectedHeaderPage == PAGE_BUILD_STATUS && binding.headerRoot.visibility == View.VISIBLE) {
-          collapsedHeight.roundToInt()
-        } else {
-          SizeUtils.dp2px(8f)
-        }
-
-    behavior.peekHeight = switchHeight + contentHeight
+    behavior.peekHeight = collapsedHeight.roundToInt()
   }
 
   fun setStatus(text: CharSequence, @GravityInt gravity: Int) {

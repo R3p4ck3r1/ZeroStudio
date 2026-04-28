@@ -1,41 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<RelativeLayout
+<FrameLayout
   xmlns:android="http://schemas.android.com/apk/res/android"
-  xmlns:tools="http://schemas.android.com/tools"
   xmlns:app="http://schemas.android.com/apk/res-auto"
+  xmlns:tools="http://schemas.android.com/tools"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
   android:clipChildren="false"
   android:clipToPadding="false"
   android:background="?attr/colorSurface">
 
-  <com.google.android.material.card.MaterialCardView
-    android:id="@+id/cardView"
+  <RelativeLayout
+    android:id="@+id/content_root"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
-    android:scaleX="0.9"
-    android:scaleY="0.9"
-    app:cardBackgroundColor="?attr/colorSurface"
-    app:cardCornerRadius="24dp"
-    app:cardElevation="0dp"
-    app:strokeWidth="0dp" />
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface">
 
-  <include
-    android:id="@+id/border"
-    layout="@layout/layout_divider_horizontal"
-    android:layout_width="match_parent"
-    android:layout_height="0.5dp"
-    android:layout_alignParentTop="true"
-    android:layout_marginBottom="2dp" />
+    <com.google.android.material.card.MaterialCardView
+      android:id="@+id/cardView"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginStart="16dp"
+      android:layout_marginEnd="16dp"
+      android:scaleX="0.9"
+      android:scaleY="0.9"
+      app:cardBackgroundColor="?attr/colorSurface"
+      app:cardCornerRadius="24dp"
+      app:cardElevation="0dp"
+      app:strokeWidth="0dp" />
+
+    <include
+      android:id="@+id/border"
+      layout="@layout/layout_divider_horizontal"
+      android:layout_width="match_parent"
+      android:layout_height="0.5dp"
+      android:layout_alignParentTop="true"
+      android:layout_marginBottom="2dp" />
+
+    <FrameLayout
+      android:id="@+id/header_root"
+      android:layout_width="match_parent"
+      android:layout_height="@dimen/editor_sheet_collapsed_height"
+      android:layout_below="@id/border"
+      android:background="?attr/colorSurface">
+
+      <ViewFlipper
+        android:id="@+id/header_container"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/editor_sheet_collapsed_height"
+        android:background="?attr/colorSurface">
+
+        <include
+          android:id="@+id/build_status"
+          layout="@layout/layout_editor_build_status" />
+
+        <include
+          android:id="@+id/bottom_action"
+          layout="@layout/layout_editor_bottom_action" />
+
+      </ViewFlipper>
+    </FrameLayout>
+
+    <com.google.android.material.tabs.TabLayout
+      android:id="@+id/tabs"
+      style="@style/AppTheme.TabLayout"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_below="@id/header_root" />
+
+    <androidx.legacy.widget.Space
+      android:id="@+id/space_bottom"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_alignParentBottom="true"
+      tools:layout_height="56dp" />
+
+    <androidx.viewpager2.widget.ViewPager2
+      android:id="@+id/pager"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:layout_above="@id/space_bottom"
+      android:layout_below="@id/tabs"
+      android:background="?android:attr/colorBackground"
+      android:clickable="true"
+      android:focusable="false" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+      android:id="@+id/clear_fab"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_above="@id/space_bottom"
+      android:layout_alignParentEnd="true"
+      android:layout_margin="16dp"
+      android:src="@drawable/ic_sweep_delete" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+      android:id="@+id/share_output_fab"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_above="@id/clear_fab"
+      android:layout_alignParentEnd="true"
+      android:layout_marginStart="16dp"
+      android:layout_marginTop="16dp"
+      android:layout_marginEnd="16dp"
+      android:layout_marginBottom="16dp"
+      android:src="@drawable/ic_share" />
+  </RelativeLayout>
 
   <FrameLayout
     android:id="@+id/page_switch_container"
     android:layout_width="match_parent"
     android:layout_height="24dp"
-    android:layout_alignParentTop="true"
+    android:layout_gravity="top"
     android:layout_marginTop="1dp"
     android:clipChildren="false"
     android:clipToPadding="false">
@@ -82,84 +158,11 @@
     </com.google.android.material.card.MaterialCardView>
   </FrameLayout>
 
-  <FrameLayout
-    android:id="@+id/header_root"
-    android:layout_width="match_parent"
-    android:layout_height="@dimen/editor_sheet_collapsed_height"
-    android:layout_below="@id/border"
-    android:clipChildren="false"
-    android:clipToPadding="false"
-    android:background="?attr/colorSurface">
-
-    <ViewFlipper
-      android:id="@+id/header_container"
-      android:layout_width="match_parent"
-      android:layout_height="@dimen/editor_sheet_collapsed_height"
-      android:background="?attr/colorSurface">
-
-      <include
-        android:id="@+id/build_status"
-        layout="@layout/layout_editor_build_status" />
-
-      <include
-        android:id="@+id/bottom_action"
-        layout="@layout/layout_editor_bottom_action" />
-
-    </ViewFlipper>
-  </FrameLayout>
-
-  <com.google.android.material.tabs.TabLayout
-    android:id="@+id/tabs"
-    style="@style/AppTheme.TabLayout"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_below="@id/header_root" />
-
-  <androidx.legacy.widget.Space
-    android:id="@+id/space_bottom"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_alignParentBottom="true"
-    tools:layout_height="56dp" />
-
-  <androidx.viewpager2.widget.ViewPager2
-    android:id="@+id/pager"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_above="@id/space_bottom"
-    android:layout_below="@id/tabs"
-    android:background="?android:attr/colorBackground"
-    android:clickable="true"
-    android:focusable="false" />
-
-  <com.google.android.material.floatingactionbutton.FloatingActionButton
-    android:id="@+id/clear_fab"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_above="@id/space_bottom"
-    android:layout_alignParentEnd="true"
-    android:layout_margin="16dp"
-    android:src="@drawable/ic_sweep_delete" />
-
-  <com.google.android.material.floatingactionbutton.FloatingActionButton
-    android:id="@+id/share_output_fab"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_above="@id/clear_fab"
-    android:layout_alignParentEnd="true"
-    android:layout_marginStart="16dp"
-    android:layout_marginTop="16dp"
-    android:layout_marginEnd="16dp"
-    android:layout_marginBottom="16dp"
-    android:src="@drawable/ic_share" />
-
   <include
     android:id="@+id/symbol_input_overlay"
     layout="@layout/layout_editor_symbol_input_overlay"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_alignParentTop="true"
-    android:layout_alignParentBottom="true"
     android:visibility="gone" />
 
-</RelativeLayout>
+</FrameLayout>
