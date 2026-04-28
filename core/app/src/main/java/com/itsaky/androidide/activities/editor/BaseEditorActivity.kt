@@ -40,8 +40,6 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.collection.MutableIntIntMap
 import androidx.core.graphics.Insets
 import androidx.core.view.GravityCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
@@ -213,8 +211,6 @@ abstract class BaseEditorActivity :
   private var lastPageSwitchVisible: Boolean? = null
   private var lastPageSwitchAlpha = Float.NaN
   private var bottomSheetSlideOffset = 0f
-  private var imeBottomInsetPx = 0
-  private var imeAnimationBottomInsetPx = 0
   private var blockBottomSheetExpandForTabSwitch = false
   private var isPageSwitchAnchorUpdatePosted = false
 
@@ -286,10 +282,6 @@ abstract class BaseEditorActivity :
     val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
 
     _binding?.content?.bottomSheet?.setImeVisible(imeInsets.bottom > 0)
-    imeBottomInsetPx = imeInsets.bottom.coerceAtLeast(0)
-    if (imeAnimationBottomInsetPx == 0) {
-      applyExternalSymbolImeInset()
-    }
     _binding?.contentCard?.updateLayoutParams<ViewGroup.LayoutParams> {
       this.height = height - imeInsets.bottom
     }
@@ -853,9 +845,7 @@ abstract class BaseEditorActivity :
         }
 
     content.apply {
-      // IME follow is centrally controlled in activity to guarantee synchronized animation with
-      // page_switch_container and symbolInputPage.
-      externalSymbolInputView.followSystemIme = false
+      externalSymbolInputView.followSystemIme = true
       pageSwitchContainer.bringToFront()
       pageSwitchContainer.post { updatePageSwitchContainerPosition() }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
@@ -866,56 +856,28 @@ abstract class BaseEditorActivity :
         updatePageSwitchContainerPosition()
       }
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
-      ViewCompat.setOnApplyWindowInsetsListener(realContainer) { _, insets ->
-        imeBottomInsetPx = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom.coerceAtLeast(0)
-        if (imeAnimationBottomInsetPx == 0) {
-          applyExternalSymbolImeInset()
-        }
-        insets
-      }
-      ViewCompat.setWindowInsetsAnimationCallback(
-          realContainer,
-          object : WindowInsetsAnimationCompat.Callback(
-              WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE
-          ) {
-            override fun onProgress(
-                insets: WindowInsetsCompat,
-                runningAnimations: MutableList<WindowInsetsAnimationCompat>,
-            ): WindowInsetsCompat {
-              imeAnimationBottomInsetPx =
-                  insets.getInsets(WindowInsetsCompat.Type.ime()).bottom.coerceAtLeast(0)
-              applyExternalSymbolImeInset()
-              return insets
-            }
-
-            override fun onEnd(animation: WindowInsetsAnimationCompat) {
-              super.onEnd(animation)
-              imeAnimationBottomInsetPx = 0
-              applyExternalSymbolImeInset()
-            }
-          },
-      )
       pageSwitchBuildTab.setOnClickListener {
         blockBottomSheetExpandForTabSwitch = true
+        bottomSheet.suspendHeaderExpandFor(500L)
         bottomSheet.suppressNextHeaderExpand()
         if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
           editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         }
         setExternalSymbolPageActive(false)
         bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
-        pageSwitchContainer.post { if (_binding != null) editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED }
-        ThreadUtils.runOnUiThreadDelayed({ blockBottomSheetExpandForTabSwitch = false }, 360)
+        editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+        ThreadUtils.runOnUiThreadDelayed({ blockBottomSheetExpandForTabSwitch = false }, 500)
         updateBottomSheetPageSwitch(isBuildStatusPage = true)
       }
       pageSwitchSymbolTab.setOnClickListener {
         blockBottomSheetExpandForTabSwitch = true
+        bottomSheet.suspendHeaderExpandFor(320L)
         bottomSheet.suppressNextHeaderExpand()
         if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
           editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         }
         setExternalSymbolPageActive(true)
-        ViewCompat.requestApplyInsets(realContainer)
-        ThreadUtils.runOnUiThreadDelayed({ blockBottomSheetExpandForTabSwitch = false }, 240)
+        ThreadUtils.runOnUiThreadDelayed({ blockBottomSheetExpandForTabSwitch = false }, 320)
         updateBottomSheetPageSwitch(isBuildStatusPage = false)
       }
       bottomSheet.onHeaderPageChanged = { page ->
@@ -977,20 +939,8 @@ abstract class BaseEditorActivity :
       editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
     }
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
-    if (active) {
-      content.bottomSheet.visibility = View.INVISIBLE
-    } else if (blockBottomSheetExpandForTabSwitch) {
-      content.bottomSheet.visibility = View.INVISIBLE
-      content.bottomSheet.post {
-        if (_binding == null) return@post
-        editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
-        content.bottomSheet.visibility = View.VISIBLE
-      }
-    } else {
-      content.bottomSheet.visibility = View.VISIBLE
-    }
+    content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
     updatePageSwitchAnchor()
-    ViewCompat.requestApplyInsets(content.realContainer)
     applyExternalSymbolImeInset()
     updatePageSwitchContainerPosition()
   }
@@ -1018,15 +968,8 @@ abstract class BaseEditorActivity :
 
   private fun applyExternalSymbolImeInset() {
     if (_binding == null) return
-    val imeBottomInset =
-        if (isExternalSymbolPageActive) {
-          maxOf(imeBottomInsetPx, imeAnimationBottomInsetPx)
-        } else {
-          0
-        }
-    val offsetY = -imeBottomInset.toFloat()
-    content.symbolInputPage.translationY = offsetY
-    content.pageSwitchContainer.translationY = offsetY
+    content.symbolInputPage.translationY = 0f
+    content.pageSwitchContainer.translationY = 0f
     updatePageSwitchAnchor()
     updatePageSwitchContainerPosition()
   }
