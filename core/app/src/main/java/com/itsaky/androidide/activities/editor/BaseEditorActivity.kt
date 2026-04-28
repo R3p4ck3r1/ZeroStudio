@@ -213,6 +213,7 @@ abstract class BaseEditorActivity :
   private var bottomSheetSlideOffset = 0f
   private var imeBottomInsetPx = 0
   private var imeAnimationBottomInsetPx = 0
+  private var blockBottomSheetExpandForTabSwitch = false
 
   companion object {
 
@@ -802,6 +803,10 @@ abstract class BaseEditorActivity :
         object : BottomSheetCallback() {
           override fun onStateChanged(bottomSheet: View, newState: Int) {
             if (isDestroying || _binding == null) return
+            if (newState == BottomSheetBehavior.STATE_EXPANDED && blockBottomSheetExpandForTabSwitch) {
+              editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
+              return
+            }
             if (newState == BottomSheetBehavior.STATE_EXPANDED) {
               val editor = provideCurrentEditor()
               editor?.editor?.ensureWindowsDismissed()
@@ -876,21 +881,28 @@ abstract class BaseEditorActivity :
           },
       )
       pageSwitchBuildTab.setOnClickListener {
+        blockBottomSheetExpandForTabSwitch = true
         bottomSheet.suppressNextHeaderExpand()
         if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
           editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         }
         setExternalSymbolPageActive(false)
         bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
-        editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+        pageSwitchContainer.post {
+          if (_binding == null) return@post
+          editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
+          blockBottomSheetExpandForTabSwitch = false
+        }
         updateBottomSheetPageSwitch(isBuildStatusPage = true)
       }
       pageSwitchSymbolTab.setOnClickListener {
+        blockBottomSheetExpandForTabSwitch = true
         bottomSheet.suppressNextHeaderExpand()
         if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
           editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         }
         setExternalSymbolPageActive(true)
+        pageSwitchContainer.post { blockBottomSheetExpandForTabSwitch = false }
         updateBottomSheetPageSwitch(isBuildStatusPage = false)
       }
       bottomSheet.onHeaderPageChanged = { page ->
@@ -974,6 +986,14 @@ abstract class BaseEditorActivity :
   private fun updatePageSwitchContainerPosition() {
     if (_binding == null) return
     val container = content.pageSwitchContainer
+
+    val translationY =
+        if (isExternalSymbolPageActive) {
+          (content.symbolInputPage.top - content.bottomSheet.top).toFloat()
+        } else {
+          0f
+        }
+    container.translationY = translationY
 
     val shouldShow = true
     if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {
