@@ -279,14 +279,14 @@ constructor(
     if (index == CHILD_ACTION) {
       binding.headerContainer.displayedChild = CHILD_HEADER + 1
       binding.pageSwitchContainer.visibility = View.GONE
-      binding.symbolInputOverlay.visibility = View.GONE
+      binding.symbolInputOverlay.root.visibility = View.GONE
       onHeaderPageChanged?.invoke(false)
       updatePeekHeight()
       return
     }
 
     binding.pageSwitchContainer.visibility = View.VISIBLE
-    binding.symbolInputOverlay.visibility =
+    binding.symbolInputOverlay.root.visibility =
         if (index == CHILD_SYMBOL_INPUT) View.VISIBLE else View.GONE
     selectedHeaderPage = if (index == CHILD_SYMBOL_INPUT) PAGE_SYMBOL_INPUT else PAGE_BUILD_STATUS
     selectHeaderPage(selectedHeaderPage)
@@ -331,7 +331,7 @@ constructor(
 
   fun refreshSymbolInput(editor: CodeEditorView) {
     val codeEditor = editor.editor ?: return
-    binding.symbolInputView.bindEditor(codeEditor)
+    binding.symbolInputOverlay.symbolInputView.bindEditor(codeEditor)
   }
 
   fun onSoftInputChanged() {
@@ -391,7 +391,7 @@ constructor(
         } else {
           0
         }
-    behavior.peekHeight = switchHeight.roundToInt()
+    behavior.peekHeight = switchHeight
   }
 
   fun setStatus(text: CharSequence, @GravityInt gravity: Int) {
