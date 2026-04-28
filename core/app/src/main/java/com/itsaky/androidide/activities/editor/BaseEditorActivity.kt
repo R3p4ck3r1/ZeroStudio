@@ -85,6 +85,7 @@ import com.itsaky.androidide.projects.IProjectManager
 import com.itsaky.androidide.tasks.cancelIfActive
 import com.itsaky.androidide.ui.CodeEditorView
 import com.itsaky.androidide.ui.ContentTranslatingDrawerLayout
+import com.itsaky.androidide.ui.EditorBottomSheet
 import com.itsaky.androidide.ui.SwipeRevealLayout
 import com.itsaky.androidide.utils.ActionMenuUtils.createMenu
 import com.itsaky.androidide.utils.ApkInstallationSessionCallback
@@ -840,6 +841,7 @@ abstract class BaseEditorActivity :
       }
       bottomSheet.onHeaderPageChanged = { page ->
         if (_binding != null) {
+          val isBuildStatusPage = page == EditorBottomSheet.CHILD_HEADER
           val showPageSwitch = page != EditorBottomSheet.CHILD_ACTION
           content.pageSwitchContainer.visibility = if (showPageSwitch) View.VISIBLE else View.INVISIBLE
           content.pageSwitchBuildTab.isEnabled = showPageSwitch
