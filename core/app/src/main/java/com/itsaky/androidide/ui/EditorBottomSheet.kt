@@ -277,14 +277,17 @@ constructor(
 
   fun showChild(index: Int) {
     if (index == CHILD_ACTION) {
-      binding.headerContainer.displayedChild = CHILD_ACTION
+      binding.headerContainer.displayedChild = CHILD_HEADER + 1
       binding.pageSwitchContainer.visibility = View.GONE
+      binding.symbolInputOverlay.visibility = View.GONE
       onHeaderPageChanged?.invoke(false)
       updatePeekHeight()
       return
     }
 
     binding.pageSwitchContainer.visibility = View.VISIBLE
+    binding.symbolInputOverlay.visibility =
+        if (index == CHILD_SYMBOL_INPUT) View.VISIBLE else View.GONE
     selectedHeaderPage = if (index == CHILD_SYMBOL_INPUT) PAGE_SYMBOL_INPUT else PAGE_BUILD_STATUS
     selectHeaderPage(selectedHeaderPage)
     updatePeekHeight()
@@ -351,15 +354,12 @@ constructor(
   private fun selectHeaderPage(page: Int) {
     selectedHeaderPage = page
 
-    if (binding.headerContainer.displayedChild != CHILD_ACTION) {
-      binding.headerContainer.displayedChild =
-          if (page == PAGE_BUILD_STATUS) CHILD_HEADER else CHILD_SYMBOL_INPUT
+    if (binding.headerContainer.displayedChild == CHILD_HEADER + 1 && page == PAGE_BUILD_STATUS) {
+      binding.headerContainer.displayedChild = CHILD_HEADER
     }
 
     if (page == PAGE_SYMBOL_INPUT) {
-      binding.headerContainer.updateLayoutParams<ViewGroup.LayoutParams> {
-        height = ViewGroup.LayoutParams.WRAP_CONTENT
-      }
+      binding.headerRoot.visibility = View.GONE
       binding.pageSwitchBubble.scaleX = 0.94f
       binding.pageSwitchBubble.scaleY = 0.94f
       binding.pageSwitchBubble.translationY = -SizeUtils.dp2px(1f).toFloat()
@@ -368,6 +368,7 @@ constructor(
       binding.symbolInputTab.alpha = 1f
       binding.symbolInputTab.textSize = 13f
     } else {
+      binding.headerRoot.visibility = View.VISIBLE
       binding.headerContainer.updateLayoutParams<ViewGroup.LayoutParams> {
         height = (collapsedHeight + insetBottom).roundToInt()
       }
@@ -386,12 +387,11 @@ constructor(
   private fun updatePeekHeight() {
     val switchHeight =
         if (binding.pageSwitchContainer.visibility == View.VISIBLE) {
-          (binding.pageSwitchContainer.height + (binding.pageSwitchBubble.height / 2)) +
-              SizeUtils.dp2px(6f)
+          binding.pageSwitchContainer.height + SizeUtils.dp2px(8f)
         } else {
           0
         }
-    behavior.peekHeight = (collapsedHeight + switchHeight).roundToInt()
+    behavior.peekHeight = switchHeight.roundToInt()
   }
 
   fun setStatus(text: CharSequence, @GravityInt gravity: Int) {
