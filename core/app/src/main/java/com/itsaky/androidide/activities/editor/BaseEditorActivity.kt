@@ -206,6 +206,9 @@ abstract class BaseEditorActivity :
 
   private var optionsMenuInvalidator: Runnable? = null
   private var isPageSwitchVisibleForCurrentPage = true
+  private var lastPageSwitchY = Float.NaN
+  private var lastPageSwitchVisible: Boolean? = null
+  private var isPageSwitchPositionUpdatePosted = false
 
   companion object {
 
@@ -830,6 +833,7 @@ abstract class BaseEditorActivity :
         }
 
     content.apply {
+      externalSymbolInputView.followSystemIme = true
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updatePageSwitchContainerPosition()
@@ -841,11 +845,15 @@ abstract class BaseEditorActivity :
       pageSwitchBuildTab.setOnClickListener {
         setExternalSymbolPageActive(false)
         bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
-        editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+        if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
+          editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+        }
         updateBottomSheetPageSwitch(isBuildStatusPage = true)
       }
       pageSwitchSymbolTab.setOnClickListener {
-        editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+        if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
+          editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+        }
         setExternalSymbolPageActive(true)
         updateBottomSheetPageSwitch(isBuildStatusPage = false)
       }
@@ -899,7 +907,9 @@ abstract class BaseEditorActivity :
   private fun setExternalSymbolPageActive(active: Boolean) {
     if (_binding == null) return
     isExternalSymbolPageActive = active
-    editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+    if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
+      editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+    }
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
     updatePageSwitchContainerPosition()
@@ -909,7 +919,13 @@ abstract class BaseEditorActivity :
     if (_binding == null) return
     val container = content.pageSwitchContainer
     if (container.height == 0) {
-      container.post { updatePageSwitchContainerPosition() }
+      if (!isPageSwitchPositionUpdatePosted) {
+        isPageSwitchPositionUpdatePosted = true
+        container.post {
+          isPageSwitchPositionUpdatePosted = false
+          updatePageSwitchContainerPosition()
+        }
+      }
       return
     }
 
@@ -920,7 +936,11 @@ abstract class BaseEditorActivity :
           content.bottomSheet.top
         }
 
-    container.y = (anchorTop - container.height).toFloat()
+    val targetY = (anchorTop - container.height).toFloat()
+    if (lastPageSwitchY.isNaN() || kotlin.math.abs(lastPageSwitchY - targetY) > 0.5f) {
+      container.y = targetY
+      lastPageSwitchY = targetY
+    }
 
     val shouldShow =
         isPageSwitchVisibleForCurrentPage &&
@@ -930,7 +950,10 @@ abstract class BaseEditorActivity :
               content.bottomSheet.visibility == View.VISIBLE &&
                   editorBottomSheet?.state != BottomSheetBehavior.STATE_EXPANDED
             }
-    container.visibility = if (shouldShow) View.VISIBLE else View.INVISIBLE
+    if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {
+      container.visibility = if (shouldShow) View.VISIBLE else View.INVISIBLE
+      lastPageSwitchVisible = shouldShow
+    }
   }
 
   private fun updateBottomSheetPageSwitch(isBuildStatusPage: Boolean) {
