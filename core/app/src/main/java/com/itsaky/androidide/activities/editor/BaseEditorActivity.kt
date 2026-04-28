@@ -863,7 +863,7 @@ abstract class BaseEditorActivity :
       bottomSheet.onHeaderPageChanged = { page ->
         if (_binding != null) {
           val isBuildStatusPage = page == EditorBottomSheet.CHILD_HEADER
-          val showPageSwitch = page != EditorBottomSheet.CHILD_ACTION
+          val showPageSwitch = true
           isPageSwitchVisibleForCurrentPage = showPageSwitch
           content.pageSwitchBuildTab.isEnabled = showPageSwitch
           content.pageSwitchSymbolTab.isEnabled = showPageSwitch
