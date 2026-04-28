@@ -57,7 +57,6 @@ import com.itsaky.androidide.tasks.TaskExecutor.CallbackWithError
 import com.itsaky.androidide.tasks.TaskExecutor.executeAsync
 import com.itsaky.androidide.tasks.TaskExecutor.executeAsyncProvideError
 import com.itsaky.androidide.utils.IntentUtils.shareFile
-import com.itsaky.androidide.utils.Symbols.forFile
 import com.itsaky.androidide.utils.flashError
 import java.io.File
 import java.io.IOException
@@ -297,7 +296,8 @@ constructor(
   }
 
   fun refreshSymbolInput(editor: CodeEditorView) {
-    binding.symbolInput.refresh(editor.editor, forFile(editor.file))
+    val codeEditor = editor.editor ?: return
+    binding.symbolInputView.bindEditor(codeEditor)
   }
 
   fun onSoftInputChanged() {
@@ -305,8 +305,6 @@ constructor(
       log.error("Bottom sheet is not attached to an activity!")
       return
     }
-
-    binding.symbolInput.itemAnimator?.endAnimations()
 
     TransitionManager.beginDelayedTransition(
         binding.root,
