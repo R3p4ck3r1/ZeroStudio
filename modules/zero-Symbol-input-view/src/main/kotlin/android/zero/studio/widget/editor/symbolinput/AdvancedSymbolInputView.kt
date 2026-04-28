@@ -18,6 +18,8 @@ import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.TextViewCompat
 import androidx.core.widget.NestedScrollView
 import androidx.viewpager.widget.PagerAdapter
@@ -85,8 +87,13 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         val symbolsPerRow: Int
     )
 
-    // 为兼容 MainActivity 旧代码提供空实现
+    // 为兼容 MainActivity 旧代码保留，并实现跟随 IME 顶部
     var followSystemIme: Boolean = false
+        set(value) {
+            field = value
+            applyImeOffset()
+        }
+    private var imeBottomInsetPx = 0
 
     init {
         orientation = VERTICAL
@@ -116,6 +123,12 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         updatePagerHeight(collapsedHeightPx)
         applyTabRowByFraction(0f)
+        ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+            imeBottomInsetPx = imeInsets.bottom.coerceAtLeast(0)
+            applyImeOffset()
+            insets
+        }
         refreshData()
     }
 
@@ -177,6 +190,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         super.onAttachedToWindow()
         context.getSharedPreferences("advanced_symbol_prefs", Context.MODE_PRIVATE)
             .registerOnSharedPreferenceChangeListener(prefsListener)
+        ViewCompat.requestApplyInsets(this)
         applyIndicatorStyle()
     }
 
@@ -187,6 +201,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         context.getSharedPreferences("advanced_symbol_prefs", Context.MODE_PRIVATE)
             .unregisterOnSharedPreferenceChangeListener(prefsListener)
         super.onDetachedFromWindow()
+    }
+
+    private fun applyImeOffset() {
+        translationY = if (followSystemIme) -imeBottomInsetPx.toFloat() else 0f
     }
 
     /**
