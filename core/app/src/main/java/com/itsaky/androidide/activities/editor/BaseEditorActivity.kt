@@ -205,6 +205,7 @@ abstract class BaseEditorActivity :
   }
 
   private var optionsMenuInvalidator: Runnable? = null
+  private var isPageSwitchVisibleForCurrentPage = true
 
   companion object {
 
@@ -807,6 +808,7 @@ abstract class BaseEditorActivity :
               this.bottomSheet.onSlide(slideOffset)
               this.viewContainer.scaleX = editorScale
               this.viewContainer.scaleY = editorScale
+              updatePageSwitchContainerPosition()
             }
           }
         }
@@ -829,13 +831,21 @@ abstract class BaseEditorActivity :
 
     content.apply {
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
+      bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+        updatePageSwitchContainerPosition()
+      }
+      symbolInputPage.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+        updatePageSwitchContainerPosition()
+      }
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       pageSwitchBuildTab.setOnClickListener {
         setExternalSymbolPageActive(false)
         bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
+        editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         updateBottomSheetPageSwitch(isBuildStatusPage = true)
       }
       pageSwitchSymbolTab.setOnClickListener {
+        editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         setExternalSymbolPageActive(true)
         updateBottomSheetPageSwitch(isBuildStatusPage = false)
       }
@@ -843,7 +853,7 @@ abstract class BaseEditorActivity :
         if (_binding != null) {
           val isBuildStatusPage = page == EditorBottomSheet.CHILD_HEADER
           val showPageSwitch = page != EditorBottomSheet.CHILD_ACTION
-          content.pageSwitchContainer.visibility = if (showPageSwitch) View.VISIBLE else View.INVISIBLE
+          isPageSwitchVisibleForCurrentPage = showPageSwitch
           content.pageSwitchBuildTab.isEnabled = showPageSwitch
           content.pageSwitchSymbolTab.isEnabled = showPageSwitch
 
@@ -874,21 +884,53 @@ abstract class BaseEditorActivity :
           if (!isExternalSymbolPageActive) {
             updateBottomSheetPageSwitch(isBuildStatusPage)
           }
+          updatePageSwitchContainerPosition()
         }
       }
       setExternalSymbolPageActive(false)
-      content.pageSwitchContainer.visibility = View.VISIBLE
+      isPageSwitchVisibleForCurrentPage = true
       content.pageSwitchBuildTab.isEnabled = true
       content.pageSwitchSymbolTab.isEnabled = true
       updateBottomSheetPageSwitch(isBuildStatusPage = true)
+      updatePageSwitchContainerPosition()
     }
   }
 
   private fun setExternalSymbolPageActive(active: Boolean) {
     if (_binding == null) return
     isExternalSymbolPageActive = active
+    editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
+    updatePageSwitchContainerPosition()
+  }
+
+  private fun updatePageSwitchContainerPosition() {
+    if (_binding == null) return
+    val container = content.pageSwitchContainer
+    if (container.height == 0) {
+      container.post { updatePageSwitchContainerPosition() }
+      return
+    }
+
+    val anchorTop =
+        if (isExternalSymbolPageActive) {
+          content.symbolInputPage.top
+        } else {
+          content.bottomSheet.top
+        }
+
+    container.y = (anchorTop - container.height).toFloat()
+
+    val shouldShow =
+        isPageSwitchVisibleForCurrentPage &&
+            if (isExternalSymbolPageActive) {
+              content.symbolInputPage.visibility == View.VISIBLE
+            } else {
+              content.bottomSheet.visibility == View.VISIBLE &&
+                  editorBottomSheet?.state != BottomSheetBehavior.STATE_EXPANDED
+            }
+    container.visibility = if (shouldShow) View.VISIBLE else View.INVISIBLE
   }
 
   private fun updateBottomSheetPageSwitch(isBuildStatusPage: Boolean) {
