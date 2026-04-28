@@ -119,8 +119,8 @@
           android:id="@+id/page_switch_container"
           android:layout_width="220dp"
           android:layout_height="24dp"
-          android:layout_gravity="bottom|center_horizontal"
-          android:layout_marginBottom="@dimen/editor_sheet_collapsed_height"
+          app:layout_anchor="@id/bottom_sheet"
+          app:layout_anchorGravity="top|center_horizontal"
           app:cardBackgroundColor="#7A2E8B"
           app:cardCornerRadius="12dp"
           app:cardElevation="4dp">

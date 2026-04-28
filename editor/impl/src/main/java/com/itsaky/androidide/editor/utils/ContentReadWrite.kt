@@ -22,6 +22,9 @@ import io.github.rosemoe.sora.text.Content
 import io.github.rosemoe.sora.text.ContentLockAccessor
 import java.io.File
 import java.io.IOException
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import kotlin.math.floor
 
 /**
@@ -40,10 +43,17 @@ object ContentReadWrite {
   @JvmStatic
   fun Content.writeTo(file: File, progressConsumer: ((Int) -> Unit)? = null) {
     val consumer = discreteProgressConsumer(progressConsumer = progressConsumer)
+    val parent = file.parentFile
+    if (parent != null && !parent.exists() && !parent.mkdirs()) {
+      throw RuntimeException("Failed to create parent directory for file: ${file.absolutePath}")
+    }
+    val outputDir = parent ?: file.absoluteFile.parentFile
+    val tempFile =
+        File.createTempFile("${file.name}.", ".tmp", outputDir).apply { deleteOnExit() }
 
-    file.writer().buffered(DEFAULT_BUFFER_SIZE * 2).use { writer ->
+    tempFile.writer().buffered(DEFAULT_BUFFER_SIZE * 2).use { writer ->
       val lastLine = lineCount - 1
-      val length = length
+      val contentLength = length.takeIf { it > 0 } ?: 1
 
       ContentLockAccessor.lock(this, false)
       var totalWrote = 0.0
@@ -56,7 +66,7 @@ object ContentReadWrite {
           writer.write(separatorChars)
 
           totalWrote += line.length + separatorChars.size
-          val saveProgress = (totalWrote / length) * 100
+          val saveProgress = (totalWrote / contentLength) * 100
           consumer(floor(saveProgress).toInt())
         }
       } catch (err: IOException) {
@@ -70,6 +80,28 @@ object ContentReadWrite {
       }
 
       writer.flush()
+    }
+
+    try {
+      try {
+        Files.move(
+            tempFile.toPath(),
+            file.toPath(),
+            StandardCopyOption.REPLACE_EXISTING,
+            StandardCopyOption.ATOMIC_MOVE,
+        )
+      } catch (_: AtomicMoveNotSupportedException) {
+        Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+      }
+    } catch (err: IOException) {
+      throw RuntimeException(
+          "Failed to replace file with written content: ${file.absolutePath}",
+          err,
+      )
+    } finally {
+      if (tempFile.exists()) {
+        tempFile.delete()
+      }
     }
   }
 

@@ -101,6 +101,7 @@ constructor(
   private var isImeVisible = false
   private var windowInsets: Insets? = null
   private var suppressNextHeaderClickExpand = false
+  private var headerExpandEnabled = true
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
 
@@ -177,6 +178,9 @@ constructor(
     }
 
     binding.headerContainer.setOnClickListener {
+      if (!headerExpandEnabled) {
+        return@setOnClickListener
+      }
       if (suppressNextHeaderClickExpand) {
         suppressNextHeaderClickExpand = false
         return@setOnClickListener
@@ -270,6 +274,14 @@ constructor(
   fun suppressNextHeaderExpand() {
     suppressNextHeaderClickExpand = true
   }
+
+  fun suspendHeaderExpandFor(durationMs: Long) {
+    headerExpandEnabled = false
+    binding.headerContainer.removeCallbacks(resumeHeaderExpandRunnable)
+    binding.headerContainer.postDelayed(resumeHeaderExpandRunnable, durationMs)
+  }
+
+  private val resumeHeaderExpandRunnable = Runnable { headerExpandEnabled = true }
 
   fun setActionText(text: CharSequence) {
     binding.bottomAction.actionText.text = text
