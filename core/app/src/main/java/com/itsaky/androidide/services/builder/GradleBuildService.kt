@@ -59,6 +59,7 @@ import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
 import java.io.File
+import java.io.InterruptedIOException
 import java.io.IOException
 import java.io.InputStream
 import java.lang.ref.WeakReference
@@ -653,12 +654,28 @@ class GradleBuildService :
 
             val outputReaderJob =
                 buildServiceScope.launch(Dispatchers.IO) {
-                  outputReader.useLines { lines -> lines.forEach { line -> logOutput(line) } }
+                  try {
+                    outputReader.useLines { lines -> lines.forEach { line -> logOutput(line) } }
+                  } catch (error: Throwable) {
+                    if (shouldIgnoreProcessStreamError(error)) {
+                      log.debug("Ignoring gradle stdout stream close during cancellation/teardown")
+                    } else {
+                      log.error("Failed while reading gradle stdout", error)
+                    }
+                  }
                 }
 
             val errorReaderJob =
                 buildServiceScope.launch(Dispatchers.IO) {
-                  errorReader.useLines { lines -> lines.forEach { line -> logOutput(line) } }
+                  try {
+                    errorReader.useLines { lines -> lines.forEach { line -> logOutput(line) } }
+                  } catch (error: Throwable) {
+                    if (shouldIgnoreProcessStreamError(error)) {
+                      log.debug("Ignoring gradle stderr stream close during cancellation/teardown")
+                    } else {
+                      log.error("Failed while reading gradle stderr", error)
+                    }
+                  }
                 }
 
             val exitCode = process.waitFor()
@@ -887,6 +904,21 @@ class GradleBuildService :
             log.error("Failed to read tooling server output", e)
           }
         }
+  }
+
+  private fun shouldIgnoreProcessStreamError(error: Throwable): Boolean {
+    if (error is InterruptedIOException) {
+      return true
+    }
+
+    if (error is IOException) {
+      val message = error.message?.lowercase().orEmpty()
+      if (message.contains("interrupted") || message.contains("closed")) {
+        return true
+      }
+    }
+
+    return !isBuildInProgress
   }
 
   /** Handles events received from a Gradle build. */

@@ -977,7 +977,18 @@ abstract class BaseEditorActivity :
       editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
     }
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
-    content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
+    if (active) {
+      content.bottomSheet.visibility = View.INVISIBLE
+    } else if (blockBottomSheetExpandForTabSwitch) {
+      content.bottomSheet.visibility = View.INVISIBLE
+      content.bottomSheet.post {
+        if (_binding == null) return@post
+        editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
+        content.bottomSheet.visibility = View.VISIBLE
+      }
+    } else {
+      content.bottomSheet.visibility = View.VISIBLE
+    }
     updatePageSwitchAnchor()
     ViewCompat.requestApplyInsets(content.realContainer)
     applyExternalSymbolImeInset()
@@ -996,7 +1007,6 @@ abstract class BaseEditorActivity :
     layoutParams.anchorId = targetAnchorId
     layoutParams.anchorGravity = targetAnchorGravity
     container.layoutParams = layoutParams
-    container.translationY = 0f
     if (!isPageSwitchAnchorUpdatePosted) {
       isPageSwitchAnchorUpdatePosted = true
       container.post {
@@ -1014,9 +1024,9 @@ abstract class BaseEditorActivity :
         } else {
           0
         }
-    content.symbolInputPage.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-      bottomMargin = imeBottomInset
-    }
+    val offsetY = -imeBottomInset.toFloat()
+    content.symbolInputPage.translationY = offsetY
+    content.pageSwitchContainer.translationY = offsetY
     updatePageSwitchAnchor()
     updatePageSwitchContainerPosition()
   }
@@ -1030,8 +1040,6 @@ abstract class BaseEditorActivity :
   private fun updatePageSwitchContainerPosition() {
     if (_binding == null) return
     val container = content.pageSwitchContainer
-
-    container.translationY = 0f
 
     val shouldShow = true
     if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {
