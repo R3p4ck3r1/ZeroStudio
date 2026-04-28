@@ -851,6 +851,9 @@ abstract class BaseEditorActivity :
       }
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       pageSwitchBuildTab.setOnClickListener {
+        if (isExternalSymbolPageActive) {
+          bottomSheet.suppressNextHeaderExpand()
+        }
         if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
           editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         }
