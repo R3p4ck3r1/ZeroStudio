@@ -957,7 +957,9 @@ abstract class BaseEditorActivity :
           content.bottomSheet.top
         }
 
-    val targetY = (anchorTop - container.height).toFloat()
+    val rawTargetY = (anchorTop - container.height).toFloat()
+    val minVisibleY = content.editorAppBarLayout.bottom.toFloat()
+    val targetY = kotlin.math.max(rawTargetY, minVisibleY)
     if (lastPageSwitchY.isNaN() || kotlin.math.abs(lastPageSwitchY - targetY) > 0.5f) {
       container.y = targetY
       lastPageSwitchY = targetY

@@ -100,6 +100,7 @@ constructor(
   private var anchorOffset = 0
   private var isImeVisible = false
   private var windowInsets: Insets? = null
+  private var suppressNextHeaderClickExpand = false
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
 
@@ -176,6 +177,10 @@ constructor(
     }
 
     binding.headerContainer.setOnClickListener {
+      if (suppressNextHeaderClickExpand) {
+        suppressNextHeaderClickExpand = false
+        return@setOnClickListener
+      }
       if (behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
         behavior.state = BottomSheetBehavior.STATE_EXPANDED
       }
@@ -260,6 +265,10 @@ constructor(
   fun showChild(index: Int) {
     binding.headerContainer.displayedChild = if (index == CHILD_ACTION) 1 else 0
     onHeaderPageChanged?.invoke(if (index == CHILD_ACTION) CHILD_ACTION else CHILD_HEADER)
+  }
+
+  fun suppressNextHeaderExpand() {
+    suppressNextHeaderClickExpand = true
   }
 
   fun setActionText(text: CharSequence) {
