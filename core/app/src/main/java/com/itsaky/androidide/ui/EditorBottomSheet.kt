@@ -112,8 +112,8 @@ constructor(
     private const val COLLAPSE_HEADER_AT_OFFSET = 0.5f
 
     const val CHILD_HEADER = 0
-    const val CHILD_SYMBOL_INPUT = 1
-    const val CHILD_ACTION = 2
+    const val CHILD_ACTION = 1
+    const val STATE_EXTERNAL_SYMBOL = -1
   }
 
   private fun initialize(context: FragmentActivity) {
@@ -315,7 +315,7 @@ constructor(
 
     val activity = context as Activity
     if (KeyboardUtils.isSoftInputVisible(activity)) {
-      onHeaderPageChanged?.invoke(CHILD_SYMBOL_INPUT)
+      onHeaderPageChanged?.invoke(STATE_EXTERNAL_SYMBOL)
     } else {
       binding.headerContainer.displayedChild = CHILD_HEADER
       onHeaderPageChanged?.invoke(CHILD_HEADER)

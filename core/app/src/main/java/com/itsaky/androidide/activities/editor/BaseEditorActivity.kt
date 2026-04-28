@@ -840,8 +840,13 @@ abstract class BaseEditorActivity :
       }
       bottomSheet.onHeaderPageChanged = { page ->
         if (_binding != null) {
+          val showPageSwitch = page != EditorBottomSheet.CHILD_ACTION
+          content.pageSwitchContainer.visibility = if (showPageSwitch) View.VISIBLE else View.INVISIBLE
+          content.pageSwitchBuildTab.isEnabled = showPageSwitch
+          content.pageSwitchSymbolTab.isEnabled = showPageSwitch
+
           when (page) {
-            EditorBottomSheet.CHILD_SYMBOL_INPUT -> {
+            EditorBottomSheet.STATE_EXTERNAL_SYMBOL -> {
               if (!isExternalSymbolPageActive) {
                 setExternalSymbolPageActive(true)
               }
@@ -870,6 +875,9 @@ abstract class BaseEditorActivity :
         }
       }
       setExternalSymbolPageActive(false)
+      content.pageSwitchContainer.visibility = View.VISIBLE
+      content.pageSwitchBuildTab.isEnabled = true
+      content.pageSwitchSymbolTab.isEnabled = true
       updateBottomSheetPageSwitch(isBuildStatusPage = true)
     }
   }
