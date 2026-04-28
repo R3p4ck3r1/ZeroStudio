@@ -836,6 +836,7 @@ abstract class BaseEditorActivity :
 
     content.apply {
       externalSymbolInputView.followSystemIme = true
+      pageSwitchContainer.bringToFront()
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updatePageSwitchContainerPosition()
@@ -959,12 +960,14 @@ abstract class BaseEditorActivity :
             if (isExternalSymbolPageActive) {
               content.symbolInputPage.visibility == View.VISIBLE
             } else {
-              content.bottomSheet.visibility == View.VISIBLE &&
-                  editorBottomSheet?.state != BottomSheetBehavior.STATE_EXPANDED
+              content.bottomSheet.visibility == View.VISIBLE
             }
     if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {
       container.visibility = if (shouldShow) View.VISIBLE else View.INVISIBLE
       lastPageSwitchVisible = shouldShow
+    }
+    if (shouldShow) {
+      container.bringToFront()
     }
   }
 
