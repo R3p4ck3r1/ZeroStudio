@@ -193,6 +193,9 @@ constructor(
       }
     }
 
+    binding.symbolInputOverlay.root.bringToFront()
+    binding.pageSwitchContainer.bringToFront()
+
     selectHeaderPage(PAGE_BUILD_STATUS)
 
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
@@ -360,6 +363,7 @@ constructor(
 
     if (page == PAGE_SYMBOL_INPUT) {
       binding.headerRoot.visibility = View.GONE
+      binding.symbolInputOverlay.root.visibility = View.VISIBLE
       binding.pageSwitchBubble.scaleX = 0.94f
       binding.pageSwitchBubble.scaleY = 0.94f
       binding.pageSwitchBubble.translationY = -SizeUtils.dp2px(1f).toFloat()
@@ -369,6 +373,7 @@ constructor(
       binding.symbolInputTab.textSize = 13f
     } else {
       binding.headerRoot.visibility = View.VISIBLE
+      binding.symbolInputOverlay.root.visibility = View.GONE
       binding.headerContainer.updateLayoutParams<ViewGroup.LayoutParams> {
         height = (collapsedHeight + insetBottom).roundToInt()
       }
@@ -385,13 +390,21 @@ constructor(
   }
 
   private fun updatePeekHeight() {
-    val switchHeight =
+    val switchHeight: Int =
         if (binding.pageSwitchContainer.visibility == View.VISIBLE) {
           binding.pageSwitchContainer.height + SizeUtils.dp2px(8f)
         } else {
           0
         }
-    behavior.peekHeight = switchHeight
+
+    val contentHeight: Int =
+        if (selectedHeaderPage == PAGE_BUILD_STATUS && binding.headerRoot.visibility == View.VISIBLE) {
+          collapsedHeight.roundToInt()
+        } else {
+          SizeUtils.dp2px(8f)
+        }
+
+    behavior.peekHeight = switchHeight + contentHeight
   }
 
   fun setStatus(text: CharSequence, @GravityInt gravity: Int) {
