@@ -6,6 +6,8 @@
   xmlns:app="http://schemas.android.com/apk/res-auto"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
+  android:clipChildren="false"
+  android:clipToPadding="false"
   android:background="?attr/colorSurface">
 
   <com.google.android.material.card.MaterialCardView
@@ -29,57 +31,70 @@
     android:layout_alignParentTop="true"
     android:layout_marginBottom="2dp" />
 
-  <com.google.android.material.card.MaterialCardView
+  <FrameLayout
     android:id="@+id/page_switch_container"
     android:layout_width="match_parent"
-    android:layout_height="40dp"
-    android:layout_below="@id/border"
-    android:layout_marginStart="16dp"
-    android:layout_marginTop="8dp"
-    android:layout_marginEnd="16dp"
-    app:cardBackgroundColor="#7A2E8B"
-    app:cardCornerRadius="20dp"
-    app:cardElevation="4dp">
+    android:layout_height="6dp"
+    android:layout_alignParentTop="true"
+    android:layout_marginTop="1dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
-    <LinearLayout
-      android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      android:orientation="horizontal">
+    <com.google.android.material.card.MaterialCardView
+      android:id="@+id/page_switch_bubble"
+      android:layout_width="188dp"
+      android:layout_height="32dp"
+      android:layout_gravity="center_horizontal|top"
+      android:layout_marginTop="-16dp"
+      app:cardBackgroundColor="#7A2E8B"
+      app:cardCornerRadius="16dp"
+      app:cardElevation="6dp"
+      app:strokeColor="#66FFFFFF"
+      app:strokeWidth="0.5dp">
 
-      <TextView
-        android:id="@+id/build_status_tab"
-        android:layout_width="0dp"
+      <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="1"
         android:gravity="center"
-        android:text="@string/bottom_sheet_page_build"
-        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-        android:textColor="@android:color/white" />
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
 
-      <TextView
-        android:id="@+id/symbol_input_tab"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:text="@string/bottom_sheet_page_symbols"
-        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-        android:textColor="#CCFFFFFF" />
-    </LinearLayout>
-  </com.google.android.material.card.MaterialCardView>
+        <TextView
+          android:id="@+id/build_status_tab"
+          android:layout_width="0dp"
+          android:layout_height="match_parent"
+          android:layout_weight="1"
+          android:gravity="center"
+          android:text="@string/bottom_sheet_page_build"
+          android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+          android:textColor="@android:color/white" />
+
+        <TextView
+          android:id="@+id/symbol_input_tab"
+          android:layout_width="0dp"
+          android:layout_height="match_parent"
+          android:layout_weight="1"
+          android:gravity="center"
+          android:text="@string/bottom_sheet_page_symbols"
+          android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+          android:textColor="#B3FFFFFF" />
+      </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+  </FrameLayout>
 
   <FrameLayout
     android:id="@+id/header_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_below="@id/page_switch_container"
-    android:layout_marginTop="4dp"
+    android:layout_below="@id/border"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:background="?attr/colorSurface">
 
     <ViewFlipper
       android:id="@+id/header_container"
       android:layout_width="match_parent"
-      android:layout_height="@dimen/editor_sheet_collapsed_height"
+      android:layout_height="wrap_content"
       android:background="?attr/colorSurface">
 
       <include

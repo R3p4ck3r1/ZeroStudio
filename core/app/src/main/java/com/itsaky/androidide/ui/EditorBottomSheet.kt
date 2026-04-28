@@ -279,6 +279,7 @@ constructor(
     if (index == CHILD_ACTION) {
       binding.headerContainer.displayedChild = CHILD_ACTION
       binding.pageSwitchContainer.visibility = View.GONE
+      onHeaderPageChanged?.invoke(false)
       updatePeekHeight()
       return
     }
@@ -359,14 +360,24 @@ constructor(
       binding.headerContainer.updateLayoutParams<ViewGroup.LayoutParams> {
         height = ViewGroup.LayoutParams.WRAP_CONTENT
       }
-      binding.buildStatusTab.alpha = 0.6f
+      binding.pageSwitchBubble.scaleX = 0.94f
+      binding.pageSwitchBubble.scaleY = 0.94f
+      binding.pageSwitchBubble.translationY = -SizeUtils.dp2px(1f).toFloat()
+      binding.buildStatusTab.alpha = 0.55f
+      binding.buildStatusTab.textSize = 12f
       binding.symbolInputTab.alpha = 1f
+      binding.symbolInputTab.textSize = 13f
     } else {
       binding.headerContainer.updateLayoutParams<ViewGroup.LayoutParams> {
         height = (collapsedHeight + insetBottom).roundToInt()
       }
+      binding.pageSwitchBubble.scaleX = 1f
+      binding.pageSwitchBubble.scaleY = 1f
+      binding.pageSwitchBubble.translationY = 0f
       binding.buildStatusTab.alpha = 1f
-      binding.symbolInputTab.alpha = 0.6f
+      binding.buildStatusTab.textSize = 13f
+      binding.symbolInputTab.alpha = 0.55f
+      binding.symbolInputTab.textSize = 12f
     }
 
     onHeaderPageChanged?.invoke(page == PAGE_BUILD_STATUS)
@@ -375,7 +386,8 @@ constructor(
   private fun updatePeekHeight() {
     val switchHeight =
         if (binding.pageSwitchContainer.visibility == View.VISIBLE) {
-          binding.pageSwitchContainer.height + SizeUtils.dp2px(12f)
+          (binding.pageSwitchContainer.height + (binding.pageSwitchBubble.height / 2)) +
+              SizeUtils.dp2px(6f)
         } else {
           0
         }
