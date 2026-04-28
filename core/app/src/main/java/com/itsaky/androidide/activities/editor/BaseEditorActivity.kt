@@ -824,10 +824,11 @@ abstract class BaseEditorActivity :
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       bottomSheet.onHeaderPageChanged = { isBuildStatusPage ->
-        if (_binding == null) return@onHeaderPageChanged
-        binding.swipeReveal.isEnabled = isBuildStatusPage
-        if (!isBuildStatusPage && binding.swipeReveal.isOpen) {
-          binding.swipeReveal.close()
+        if (_binding != null) {
+          binding.swipeReveal.isEnabled = isBuildStatusPage
+          if (!isBuildStatusPage && binding.swipeReveal.isOpen) {
+            binding.swipeReveal.close()
+          }
         }
       }
     }
