@@ -208,6 +208,8 @@ abstract class BaseEditorActivity :
   private var isPageSwitchVisibleForCurrentPage = true
   private var lastPageSwitchY = Float.NaN
   private var lastPageSwitchVisible: Boolean? = null
+  private var lastPageSwitchAlpha = Float.NaN
+  private var bottomSheetSlideOffset = 0f
   private var isPageSwitchPositionUpdatePosted = false
 
   companion object {
@@ -809,6 +811,7 @@ abstract class BaseEditorActivity :
           override fun onSlide(bottomSheet: View, slideOffset: Float) {
             if (isDestroying || _binding == null) return
             content.apply {
+              bottomSheetSlideOffset = slideOffset
               val editorScale = 1 - slideOffset * (1 - EDITOR_CONTAINER_SCALE_FACTOR)
               this.bottomSheet.onSlide(slideOffset)
               this.viewContainer.scaleX = editorScale
@@ -847,12 +850,15 @@ abstract class BaseEditorActivity :
       }
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       pageSwitchBuildTab.setOnClickListener {
-        setExternalSymbolPageActive(false)
-        bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
         if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
           editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         }
-        updateBottomSheetPageSwitch(isBuildStatusPage = true)
+        pageSwitchContainer.post {
+          if (_binding == null) return@post
+          setExternalSymbolPageActive(false)
+          bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
+          updateBottomSheetPageSwitch(isBuildStatusPage = true)
+        }
       }
       pageSwitchSymbolTab.setOnClickListener {
         if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
@@ -912,6 +918,7 @@ abstract class BaseEditorActivity :
     if (_binding == null) return
     isExternalSymbolPageActive = active
     if (active) {
+      bottomSheetSlideOffset = 0f
       resetEditorSurfaceTransform()
       content.bottomSheet.onSlide(0f)
     }
@@ -962,6 +969,20 @@ abstract class BaseEditorActivity :
       lastPageSwitchVisible = shouldShow
     }
     if (shouldShow) {
+      val alpha =
+          if (isExternalSymbolPageActive) {
+            1f
+          } else if (bottomSheetSlideOffset < 0f) {
+            (1f + bottomSheetSlideOffset).coerceIn(0f, 1f)
+          } else if (bottomSheetSlideOffset <= 0.5f) {
+            1f
+          } else {
+            (((0.5f - bottomSheetSlideOffset) + 0.5f) * 2f).coerceIn(0f, 1f)
+          }
+      if (lastPageSwitchAlpha.isNaN() || kotlin.math.abs(lastPageSwitchAlpha - alpha) > 0.01f) {
+        container.alpha = alpha
+        lastPageSwitchAlpha = alpha
+      }
       container.bringToFront()
     }
   }
