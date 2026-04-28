@@ -57,7 +57,6 @@ import com.itsaky.androidide.tasks.TaskExecutor.CallbackWithError
 import com.itsaky.androidide.tasks.TaskExecutor.executeAsync
 import com.itsaky.androidide.tasks.TaskExecutor.executeAsyncProvideError
 import com.itsaky.androidide.utils.IntentUtils.shareFile
-import com.itsaky.androidide.utils.Symbols.forFile
 import com.itsaky.androidide.utils.flashError
 import java.io.File
 import java.io.IOException
@@ -101,6 +100,8 @@ constructor(
   private var anchorOffset = 0
   private var isImeVisible = false
   private var windowInsets: Insets? = null
+
+  var onHeaderPageChanged: ((Boolean) -> Unit)? = null
 
   private val insetBottom: Int
     get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
@@ -258,6 +259,7 @@ constructor(
 
   fun showChild(index: Int) {
     binding.headerContainer.displayedChild = index
+    onHeaderPageChanged?.invoke(index == CHILD_HEADER)
   }
 
   fun setActionText(text: CharSequence) {
@@ -297,7 +299,8 @@ constructor(
   }
 
   fun refreshSymbolInput(editor: CodeEditorView) {
-    binding.symbolInput.refresh(editor.editor, forFile(editor.file))
+    val codeEditor = editor.editor ?: return
+    binding.symbolInputView.bindEditor(codeEditor)
   }
 
   fun onSoftInputChanged() {
@@ -305,8 +308,6 @@ constructor(
       log.error("Bottom sheet is not attached to an activity!")
       return
     }
-
-    binding.symbolInput.itemAnimator?.endAnimations()
 
     TransitionManager.beginDelayedTransition(
         binding.root,
@@ -316,8 +317,10 @@ constructor(
     val activity = context as Activity
     if (KeyboardUtils.isSoftInputVisible(activity)) {
       binding.headerContainer.displayedChild = CHILD_SYMBOL_INPUT
+      onHeaderPageChanged?.invoke(false)
     } else {
       binding.headerContainer.displayedChild = CHILD_HEADER
+      onHeaderPageChanged?.invoke(true)
     }
   }
 
