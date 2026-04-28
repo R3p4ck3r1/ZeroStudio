@@ -350,16 +350,27 @@ class CodeEditorView(context: Context, file: File, selection: Range) :
               return false
             }
 
-    withContext(Dispatchers.Main.immediate) {
-      withContext(readWriteContext) {
-        // Do not call suspend functions in this scope
-        // the writeTo function acquires lock to the Content object before writing and releases
-        // the lock after writing
-        // if there are any suspend function calls in between, the lock and unlock calls might not
-        // be called on the same thread
-        text.writeTo(file, this@CodeEditorView::updateReadWriteProgress)
-      }
+    val saved = withContext(Dispatchers.Main.immediate) {
+      val saveResult =
+          withContext(readWriteContext) {
+            // Do not call suspend functions in this scope
+            // the writeTo function acquires lock to the Content object before writing and releases
+            // the lock after writing
+            // if there are any suspend function calls in between, the lock and unlock calls might not
+            // be called on the same thread
+            try {
+              text.writeTo(file, this@CodeEditorView::updateReadWriteProgress)
+              true
+            } catch (error: Throwable) {
+              log.error("Failed to save file {}", file.absolutePath, error)
+              false
+            }
+          }
       _binding?.rwProgress?.isVisible = false
+      saveResult
+    }
+    if (!saved) {
+      return false
     }
 
     markUnmodified()
