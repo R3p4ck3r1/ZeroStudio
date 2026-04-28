@@ -864,6 +864,9 @@ abstract class BaseEditorActivity :
           if (!enableSwipeReveal && binding.swipeReveal.isOpen) {
             binding.swipeReveal.close()
           }
+          if (!isExternalSymbolPageActive) {
+            updateBottomSheetPageSwitch(isBuildStatusPage)
+          }
         }
       }
       setExternalSymbolPageActive(false)
