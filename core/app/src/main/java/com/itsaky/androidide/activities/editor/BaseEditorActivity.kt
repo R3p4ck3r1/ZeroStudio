@@ -30,6 +30,7 @@ import android.text.style.ClickableSpan
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
+import android.view.Gravity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.viewModels
@@ -59,6 +60,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCa
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.Tab
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.itsaky.androidide.R
 import com.itsaky.androidide.R.string
 import com.itsaky.androidide.actions.ActionItem.Location.EDITOR_FILE_TABS
@@ -214,6 +216,7 @@ abstract class BaseEditorActivity :
   private var imeBottomInsetPx = 0
   private var imeAnimationBottomInsetPx = 0
   private var blockBottomSheetExpandForTabSwitch = false
+  private var isPageSwitchAnchorUpdatePosted = false
 
   companion object {
 
@@ -283,6 +286,10 @@ abstract class BaseEditorActivity :
     val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
 
     _binding?.content?.bottomSheet?.setImeVisible(imeInsets.bottom > 0)
+    imeBottomInsetPx = imeInsets.bottom.coerceAtLeast(0)
+    if (imeAnimationBottomInsetPx == 0) {
+      applyExternalSymbolImeInset()
+    }
     _binding?.contentCard?.updateLayoutParams<ViewGroup.LayoutParams> {
       this.height = height - imeInsets.bottom
     }
@@ -852,6 +859,12 @@ abstract class BaseEditorActivity :
       pageSwitchContainer.bringToFront()
       pageSwitchContainer.post { updatePageSwitchContainerPosition() }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
+      bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+        updatePageSwitchContainerPosition()
+      }
+      symbolInputPage.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+        updatePageSwitchContainerPosition()
+      }
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       ViewCompat.setOnApplyWindowInsetsListener(realContainer) { _, insets ->
         imeBottomInsetPx = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom.coerceAtLeast(0)
@@ -890,11 +903,8 @@ abstract class BaseEditorActivity :
         }
         setExternalSymbolPageActive(false)
         bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
-        pageSwitchContainer.post {
-          if (_binding == null) return@post
-          editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
-          blockBottomSheetExpandForTabSwitch = false
-        }
+        pageSwitchContainer.post { if (_binding != null) editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED }
+        ThreadUtils.runOnUiThreadDelayed({ blockBottomSheetExpandForTabSwitch = false }, 360)
         updateBottomSheetPageSwitch(isBuildStatusPage = true)
       }
       pageSwitchSymbolTab.setOnClickListener {
@@ -905,7 +915,7 @@ abstract class BaseEditorActivity :
         }
         setExternalSymbolPageActive(true)
         ViewCompat.requestApplyInsets(realContainer)
-        pageSwitchContainer.post { blockBottomSheetExpandForTabSwitch = false }
+        ThreadUtils.runOnUiThreadDelayed({ blockBottomSheetExpandForTabSwitch = false }, 240)
         updateBottomSheetPageSwitch(isBuildStatusPage = false)
       }
       bottomSheet.onHeaderPageChanged = { page ->
@@ -968,9 +978,32 @@ abstract class BaseEditorActivity :
     }
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
+    updatePageSwitchAnchor()
     ViewCompat.requestApplyInsets(content.realContainer)
     applyExternalSymbolImeInset()
     updatePageSwitchContainerPosition()
+  }
+
+  private fun updatePageSwitchAnchor() {
+    if (_binding == null) return
+    val container = content.pageSwitchContainer
+    val layoutParams = container.layoutParams as? CoordinatorLayout.LayoutParams ?: return
+    val targetAnchorId = if (isExternalSymbolPageActive) content.symbolInputPage.id else content.bottomSheet.id
+    val targetAnchorGravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+    val anchorChanged =
+        layoutParams.anchorId != targetAnchorId || layoutParams.anchorGravity != targetAnchorGravity
+    if (!anchorChanged) return
+    layoutParams.anchorId = targetAnchorId
+    layoutParams.anchorGravity = targetAnchorGravity
+    container.layoutParams = layoutParams
+    container.translationY = 0f
+    if (!isPageSwitchAnchorUpdatePosted) {
+      isPageSwitchAnchorUpdatePosted = true
+      container.post {
+        isPageSwitchAnchorUpdatePosted = false
+        updatePageSwitchContainerPosition()
+      }
+    }
   }
 
   private fun applyExternalSymbolImeInset() {
@@ -984,6 +1017,7 @@ abstract class BaseEditorActivity :
     content.symbolInputPage.updateLayoutParams<ViewGroup.MarginLayoutParams> {
       bottomMargin = imeBottomInset
     }
+    updatePageSwitchAnchor()
     updatePageSwitchContainerPosition()
   }
 
@@ -997,13 +1031,7 @@ abstract class BaseEditorActivity :
     if (_binding == null) return
     val container = content.pageSwitchContainer
 
-    val translationY =
-        if (isExternalSymbolPageActive) {
-          (content.symbolInputPage.top - content.bottomSheet.top).toFloat()
-        } else {
-          0f
-        }
-    container.translationY = translationY
+    container.translationY = 0f
 
     val shouldShow = true
     if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {
