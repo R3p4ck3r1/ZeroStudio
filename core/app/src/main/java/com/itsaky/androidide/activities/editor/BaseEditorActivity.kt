@@ -806,6 +806,7 @@ abstract class BaseEditorActivity :
             } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
               resetEditorSurfaceTransform()
             }
+            updatePageSwitchContainerPosition()
           }
 
           override fun onSlide(bottomSheet: View, slideOffset: Float) {
@@ -957,9 +958,7 @@ abstract class BaseEditorActivity :
           content.bottomSheet.top
         }
 
-    val rawTargetY = (anchorTop - container.height).toFloat()
-    val minVisibleY = content.editorAppBarLayout.bottom.toFloat()
-    val targetY = kotlin.math.max(rawTargetY, minVisibleY)
+    val targetY = (anchorTop - container.height).toFloat().coerceAtLeast(0f)
     if (lastPageSwitchY.isNaN() || kotlin.math.abs(lastPageSwitchY - targetY) > 0.5f) {
       container.y = targetY
       lastPageSwitchY = targetY
