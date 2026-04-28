@@ -846,7 +846,9 @@ abstract class BaseEditorActivity :
         }
 
     content.apply {
-      externalSymbolInputView.followSystemIme = true
+      // IME follow is centrally controlled in activity to guarantee synchronized animation with
+      // page_switch_container and symbolInputPage.
+      externalSymbolInputView.followSystemIme = false
       pageSwitchContainer.bringToFront()
       pageSwitchContainer.post { updatePageSwitchContainerPosition() }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
@@ -902,6 +904,7 @@ abstract class BaseEditorActivity :
           editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         }
         setExternalSymbolPageActive(true)
+        ViewCompat.requestApplyInsets(realContainer)
         pageSwitchContainer.post { blockBottomSheetExpandForTabSwitch = false }
         updateBottomSheetPageSwitch(isBuildStatusPage = false)
       }
@@ -965,16 +968,23 @@ abstract class BaseEditorActivity :
     }
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
+    ViewCompat.requestApplyInsets(content.realContainer)
     applyExternalSymbolImeInset()
     updatePageSwitchContainerPosition()
   }
 
   private fun applyExternalSymbolImeInset() {
     if (_binding == null) return
-    val imeBottomInset = maxOf(imeBottomInsetPx, imeAnimationBottomInsetPx)
+    val imeBottomInset =
+        if (isExternalSymbolPageActive) {
+          maxOf(imeBottomInsetPx, imeAnimationBottomInsetPx)
+        } else {
+          0
+        }
     content.symbolInputPage.updateLayoutParams<ViewGroup.MarginLayoutParams> {
       bottomMargin = imeBottomInset
     }
+    updatePageSwitchContainerPosition()
   }
 
   private fun resetEditorSurfaceTransform() {
