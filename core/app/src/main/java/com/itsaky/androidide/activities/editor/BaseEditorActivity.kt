@@ -837,6 +837,7 @@ abstract class BaseEditorActivity :
     content.apply {
       externalSymbolInputView.followSystemIme = true
       pageSwitchContainer.bringToFront()
+      pageSwitchContainer.post { updatePageSwitchContainerPosition() }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updatePageSwitchContainerPosition()
@@ -955,13 +956,7 @@ abstract class BaseEditorActivity :
       lastPageSwitchY = targetY
     }
 
-    val shouldShow =
-        isPageSwitchVisibleForCurrentPage &&
-            if (isExternalSymbolPageActive) {
-              content.symbolInputPage.visibility == View.VISIBLE
-            } else {
-              content.bottomSheet.visibility == View.VISIBLE
-            }
+    val shouldShow = true
     if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {
       container.visibility = if (shouldShow) View.VISIBLE else View.INVISIBLE
       lastPageSwitchVisible = shouldShow
