@@ -823,15 +823,31 @@ abstract class BaseEditorActivity :
     content.apply {
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
+      pageSwitchBuildTab.setOnClickListener {
+        bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
+        updateBottomSheetPageSwitch(isBuildStatusPage = true)
+      }
+      pageSwitchSymbolTab.setOnClickListener {
+        bottomSheet.showChild(EditorBottomSheet.CHILD_SYMBOL_INPUT)
+        updateBottomSheetPageSwitch(isBuildStatusPage = false)
+      }
       bottomSheet.onHeaderPageChanged = { isBuildStatusPage ->
         if (_binding != null) {
           binding.swipeReveal.isEnabled = isBuildStatusPage
           if (!isBuildStatusPage && binding.swipeReveal.isOpen) {
             binding.swipeReveal.close()
           }
+          updateBottomSheetPageSwitch(isBuildStatusPage)
         }
       }
+      updateBottomSheetPageSwitch(isBuildStatusPage = true)
     }
+  }
+
+  private fun updateBottomSheetPageSwitch(isBuildStatusPage: Boolean) {
+    if (_binding == null) return
+    content.pageSwitchBuildTab.alpha = if (isBuildStatusPage) 1f else 0.55f
+    content.pageSwitchSymbolTab.alpha = if (isBuildStatusPage) 0.55f else 1f
   }
 
   private fun setupDiagnosticInfo() {

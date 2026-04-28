@@ -101,6 +101,8 @@ constructor(
   private var isImeVisible = false
   private var windowInsets: Insets? = null
 
+  var onHeaderPageChanged: ((Boolean) -> Unit)? = null
+
   private val insetBottom: Int
     get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
 
@@ -257,6 +259,7 @@ constructor(
 
   fun showChild(index: Int) {
     binding.headerContainer.displayedChild = index
+    onHeaderPageChanged?.invoke(index == CHILD_HEADER)
   }
 
   fun setActionText(text: CharSequence) {
@@ -314,8 +317,10 @@ constructor(
     val activity = context as Activity
     if (KeyboardUtils.isSoftInputVisible(activity)) {
       binding.headerContainer.displayedChild = CHILD_SYMBOL_INPUT
+      onHeaderPageChanged?.invoke(false)
     } else {
       binding.headerContainer.displayedChild = CHILD_HEADER
+      onHeaderPageChanged?.invoke(true)
     }
   }
 
