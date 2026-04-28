@@ -101,7 +101,7 @@ constructor(
   private var isImeVisible = false
   private var windowInsets: Insets? = null
 
-  var onHeaderPageChanged: ((Boolean) -> Unit)? = null
+  var onHeaderPageChanged: ((Int) -> Unit)? = null
 
   private val insetBottom: Int
     get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
@@ -258,8 +258,8 @@ constructor(
   }
 
   fun showChild(index: Int) {
-    binding.headerContainer.displayedChild = index
-    onHeaderPageChanged?.invoke(index == CHILD_HEADER)
+    binding.headerContainer.displayedChild = if (index == CHILD_ACTION) 1 else 0
+    onHeaderPageChanged?.invoke(if (index == CHILD_ACTION) CHILD_ACTION else CHILD_HEADER)
   }
 
   fun setActionText(text: CharSequence) {
@@ -298,9 +298,8 @@ constructor(
     runOnUiThread { pagerAdapter.searchResultFragment?.setAdapter(adapter) }
   }
 
-  fun refreshSymbolInput(editor: CodeEditorView) {
-    val codeEditor = editor.editor ?: return
-    binding.symbolInputView.bindEditor(codeEditor)
+  fun refreshSymbolInput(@Suppress("UNUSED_PARAMETER") editor: CodeEditorView) {
+    // Symbol input is managed externally by BaseEditorActivity.
   }
 
   fun onSoftInputChanged() {
@@ -316,11 +315,10 @@ constructor(
 
     val activity = context as Activity
     if (KeyboardUtils.isSoftInputVisible(activity)) {
-      binding.headerContainer.displayedChild = CHILD_SYMBOL_INPUT
-      onHeaderPageChanged?.invoke(false)
+      onHeaderPageChanged?.invoke(CHILD_SYMBOL_INPUT)
     } else {
       binding.headerContainer.displayedChild = CHILD_HEADER
-      onHeaderPageChanged?.invoke(true)
+      onHeaderPageChanged?.invoke(CHILD_HEADER)
     }
   }
 

@@ -159,9 +159,7 @@ abstract class BaseEditorActivity :
           if (binding.root.isDrawerOpen(GravityCompat.START)) {
             binding.root.closeDrawer(GravityCompat.START)
           } else if (isExternalSymbolPageActive) {
-            isExternalSymbolPageActive = false
-            content.symbolInputPage.visibility = View.GONE
-            content.bottomSheet.visibility = View.VISIBLE
+            setExternalSymbolPageActive(false)
             content.bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
             updateBottomSheetPageSwitch(isBuildStatusPage = true)
           } else if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
@@ -832,21 +830,36 @@ abstract class BaseEditorActivity :
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       pageSwitchBuildTab.setOnClickListener {
-        isExternalSymbolPageActive = false
-        content.symbolInputPage.visibility = View.GONE
-        bottomSheet.visibility = View.VISIBLE
+        setExternalSymbolPageActive(false)
         bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
         updateBottomSheetPageSwitch(isBuildStatusPage = true)
       }
       pageSwitchSymbolTab.setOnClickListener {
-        isExternalSymbolPageActive = true
-        content.symbolInputPage.visibility = View.VISIBLE
-        bottomSheet.visibility = View.INVISIBLE
+        setExternalSymbolPageActive(true)
         updateBottomSheetPageSwitch(isBuildStatusPage = false)
       }
-      bottomSheet.onHeaderPageChanged = { isBuildStatusPage ->
+      bottomSheet.onHeaderPageChanged = { page ->
         if (_binding != null) {
-          val enableSwipeReveal = isBuildStatusPage && !isExternalSymbolPageActive
+          when (page) {
+            EditorBottomSheet.CHILD_SYMBOL_INPUT -> {
+              if (!isExternalSymbolPageActive) {
+                setExternalSymbolPageActive(true)
+              }
+              updateBottomSheetPageSwitch(isBuildStatusPage = false)
+            }
+            EditorBottomSheet.CHILD_HEADER -> {
+              if (isExternalSymbolPageActive) {
+                setExternalSymbolPageActive(false)
+              }
+              updateBottomSheetPageSwitch(isBuildStatusPage = true)
+            }
+            EditorBottomSheet.CHILD_ACTION -> {
+              if (isExternalSymbolPageActive) {
+                setExternalSymbolPageActive(false)
+              }
+            }
+          }
+          val enableSwipeReveal = page == EditorBottomSheet.CHILD_HEADER && !isExternalSymbolPageActive
           binding.swipeReveal.isEnabled = enableSwipeReveal
           if (!enableSwipeReveal && binding.swipeReveal.isOpen) {
             binding.swipeReveal.close()
@@ -856,10 +869,16 @@ abstract class BaseEditorActivity :
           }
         }
       }
-      content.symbolInputPage.visibility = View.GONE
-      bottomSheet.visibility = View.VISIBLE
+      setExternalSymbolPageActive(false)
       updateBottomSheetPageSwitch(isBuildStatusPage = true)
     }
+  }
+
+  private fun setExternalSymbolPageActive(active: Boolean) {
+    if (_binding == null) return
+    isExternalSymbolPageActive = active
+    content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
+    content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
   }
 
   private fun updateBottomSheetPageSwitch(isBuildStatusPage: Boolean) {
