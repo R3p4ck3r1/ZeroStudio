@@ -801,6 +801,8 @@ abstract class BaseEditorActivity :
             if (newState == BottomSheetBehavior.STATE_EXPANDED) {
               val editor = provideCurrentEditor()
               editor?.editor?.ensureWindowsDismissed()
+            } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+              resetEditorSurfaceTransform()
             }
           }
 
@@ -907,12 +909,22 @@ abstract class BaseEditorActivity :
   private fun setExternalSymbolPageActive(active: Boolean) {
     if (_binding == null) return
     isExternalSymbolPageActive = active
+    if (active) {
+      resetEditorSurfaceTransform()
+      content.bottomSheet.onSlide(0f)
+    }
     if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
       editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
     }
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
     updatePageSwitchContainerPosition()
+  }
+
+  private fun resetEditorSurfaceTransform() {
+    if (_binding == null) return
+    content.viewContainer.scaleX = 1f
+    content.viewContainer.scaleY = 1f
   }
 
   private fun updatePageSwitchContainerPosition() {
