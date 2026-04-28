@@ -899,6 +899,10 @@ class GradleBuildService :
               // will be suppressed
               return@launch
             }
+            if (shouldIgnoreProcessStreamError(e)) {
+              log.debug("Ignoring tooling server output stream close during cancellation/teardown")
+              return@launch
+            }
 
             // log the error and fail silently
             log.error("Failed to read tooling server output", e)

@@ -13,6 +13,7 @@ import android.os.SystemClock
 import android.view.Choreographer
 import dalvik.system.DexFile
 import com.itsaky.androidide.utils.executioncommand.TermuxCommand
+import java.util.ArrayDeque
 import java.io.File
 import kotlin.math.max
 import kotlinx.coroutines.CoroutineDispatcher
@@ -380,12 +381,20 @@ class EditorProcessApmMonitor(
     var ktCount = 0
 
     roots.forEach { root ->
-      root.walkTopDown().forEach { file ->
-        if (!file.isFile) return@forEach
-        when {
-          file.name.endsWith(".class", ignoreCase = true) -> classCount++
-          file.name.endsWith(".clazz", ignoreCase = true) -> clazzCount++
-          file.name.endsWith(".kt", ignoreCase = true) -> ktCount++
+      if (!root.exists() || !root.isDirectory) return@forEach
+
+      val directoryStack = ArrayDeque<File>()
+      directoryStack.add(root)
+      while (directoryStack.isNotEmpty()) {
+        val current = directoryStack.removeLast()
+        val children = runCatching { current.listFiles() }.getOrNull() ?: continue
+        for (child in children) {
+          when {
+            child.isDirectory -> directoryStack.add(child)
+            child.isFile && child.name.endsWith(".class", ignoreCase = true) -> classCount++
+            child.isFile && child.name.endsWith(".clazz", ignoreCase = true) -> clazzCount++
+            child.isFile && child.name.endsWith(".kt", ignoreCase = true) -> ktCount++
+          }
         }
       }
     }
