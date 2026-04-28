@@ -127,6 +127,7 @@ abstract class BaseEditorActivity :
   private val bottomSheetHeaderHideReasons = mutableSetOf<String>()
   private var bottomSheetCardVisibilitySnapshot: Int = View.VISIBLE
   private var bottomSheetHeaderVisibilitySnapshot: Int = View.VISIBLE
+  private var isExternalSymbolPageActive = false
 
   var isDestroying = false
     protected set
@@ -157,6 +158,12 @@ abstract class BaseEditorActivity :
 
           if (binding.root.isDrawerOpen(GravityCompat.START)) {
             binding.root.closeDrawer(GravityCompat.START)
+          } else if (isExternalSymbolPageActive) {
+            isExternalSymbolPageActive = false
+            content.symbolInputPage.visibility = View.GONE
+            content.bottomSheet.visibility = View.VISIBLE
+            content.bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
+            updateBottomSheetPageSwitch(isBuildStatusPage = true)
           } else if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
             editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
           } else if (binding.swipeReveal.isOpen) {
@@ -644,6 +651,7 @@ abstract class BaseEditorActivity :
   fun refreshSymbolInput(editor: CodeEditorView) {
     if (isDestroying || _binding == null) return
     content.bottomSheet.refreshSymbolInput(editor)
+    editor.editor?.also { content.externalSymbolInputView.bindEditor(it) }
   }
 
   private fun checkIsDestroying() {
@@ -824,22 +832,32 @@ abstract class BaseEditorActivity :
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       pageSwitchBuildTab.setOnClickListener {
+        isExternalSymbolPageActive = false
+        content.symbolInputPage.visibility = View.GONE
+        bottomSheet.visibility = View.VISIBLE
         bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
         updateBottomSheetPageSwitch(isBuildStatusPage = true)
       }
       pageSwitchSymbolTab.setOnClickListener {
-        bottomSheet.showChild(EditorBottomSheet.CHILD_SYMBOL_INPUT)
+        isExternalSymbolPageActive = true
+        content.symbolInputPage.visibility = View.VISIBLE
+        bottomSheet.visibility = View.INVISIBLE
         updateBottomSheetPageSwitch(isBuildStatusPage = false)
       }
       bottomSheet.onHeaderPageChanged = { isBuildStatusPage ->
         if (_binding != null) {
-          binding.swipeReveal.isEnabled = isBuildStatusPage
-          if (!isBuildStatusPage && binding.swipeReveal.isOpen) {
+          val enableSwipeReveal = isBuildStatusPage && !isExternalSymbolPageActive
+          binding.swipeReveal.isEnabled = enableSwipeReveal
+          if (!enableSwipeReveal && binding.swipeReveal.isOpen) {
             binding.swipeReveal.close()
           }
-          updateBottomSheetPageSwitch(isBuildStatusPage)
+          if (!isExternalSymbolPageActive) {
+            updateBottomSheetPageSwitch(isBuildStatusPage)
+          }
         }
       }
+      content.symbolInputPage.visibility = View.GONE
+      bottomSheet.visibility = View.VISIBLE
       updateBottomSheetPageSwitch(isBuildStatusPage = true)
     }
   }
