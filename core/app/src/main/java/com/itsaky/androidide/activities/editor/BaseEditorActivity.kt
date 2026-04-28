@@ -208,6 +208,7 @@ abstract class BaseEditorActivity :
   private var isPageSwitchVisibleForCurrentPage = true
   private var lastPageSwitchY = Float.NaN
   private var lastPageSwitchVisible: Boolean? = null
+  private var lastPageSwitchAlpha = Float.NaN
   private var isPageSwitchPositionUpdatePosted = false
 
   companion object {
@@ -847,6 +848,7 @@ abstract class BaseEditorActivity :
       }
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       pageSwitchBuildTab.setOnClickListener {
+        content.bottomSheet.suppressNextHeaderExpand()
         setExternalSymbolPageActive(false)
         bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
         if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
@@ -950,8 +952,9 @@ abstract class BaseEditorActivity :
           content.bottomSheet.top
         }
 
+    val rawTargetY = (anchorTop - container.height).toFloat()
     val minVisibleY = content.editorAppBarLayout.bottom.toFloat()
-    val targetY = kotlin.math.max((anchorTop - container.height).toFloat(), minVisibleY)
+    val targetY = kotlin.math.max(rawTargetY, minVisibleY)
     if (lastPageSwitchY.isNaN() || kotlin.math.abs(lastPageSwitchY - targetY) > 0.5f) {
       container.y = targetY
       lastPageSwitchY = targetY
@@ -963,6 +966,12 @@ abstract class BaseEditorActivity :
       lastPageSwitchVisible = shouldShow
     }
     if (shouldShow) {
+      val overlap = (minVisibleY - rawTargetY).coerceAtLeast(0f)
+      val alpha = (1f - (overlap / container.height)).coerceIn(0f, 1f)
+      if (lastPageSwitchAlpha.isNaN() || kotlin.math.abs(lastPageSwitchAlpha - alpha) > 0.01f) {
+        container.alpha = alpha
+        lastPageSwitchAlpha = alpha
+      }
       container.bringToFront()
     }
   }
