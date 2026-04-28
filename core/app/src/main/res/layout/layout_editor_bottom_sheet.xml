@@ -1,168 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<FrameLayout
+<!--
+  ~  This file is part of AndroidIDE.
+  ~
+  ~  AndroidIDE is free software: you can redistribute it and/or modify
+  ~  it under the terms of the GNU General Public License as published by
+  ~  the Free Software Foundation, either version 3 of the License, or
+  ~  (at your option) any later version.
+  ~
+  ~  AndroidIDE is distributed in the hope that it will be useful,
+  ~  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~  GNU General Public License for more details.
+  ~
+  ~  You should have received a copy of the GNU General Public License
+  ~   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<RelativeLayout
   xmlns:android="http://schemas.android.com/apk/res/android"
-  xmlns:app="http://schemas.android.com/apk/res-auto"
   xmlns:tools="http://schemas.android.com/tools"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
-  android:clipChildren="false"
-  android:clipToPadding="false"
   android:background="?attr/colorSurface">
-
-  <RelativeLayout
-    android:id="@+id/content_root"
+  
+  <com.google.android.material.card.MaterialCardView
+    android:id="@+id/cardView"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="24dp"
+    android:layout_marginLeft="16dp"
+    android:layout_marginRight="16dp"
+    app:strokeWidth="0dp"
+    app:cardElevation="0dp"
+    android:scaleX="0.9"
+    android:scaleY="0.9"
+    app:cardBackgroundColor="?attr/colorSurface">
+  </com.google.android.material.card.MaterialCardView>
+  <include
+    android:id="@+id/border"
+    layout="@layout/layout_divider_horizontal"
+    android:layout_width="match_parent"
+    android:layout_marginBottom="2dp"
+    android:layout_height="0.5dp"
+    android:layout_alignParentTop="true" />
+
+  <ViewFlipper
+    android:id="@+id/header_container"
+    android:layout_width="match_parent"
+    android:layout_below="@id/border"
+    android:layout_height="@dimen/editor_sheet_collapsed_height"
     android:background="?attr/colorSurface">
 
-    <com.google.android.material.card.MaterialCardView
-      android:id="@+id/cardView"
+    <include
+      layout="@layout/layout_editor_build_status"
+      android:id="@+id/build_status"/>
+
+    <com.itsaky.androidide.ui.SymbolInputView
+      android:id="@+id/symbol_input"
       android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_marginStart="16dp"
-      android:layout_marginEnd="16dp"
-      android:scaleX="0.9"
-      android:scaleY="0.9"
-      app:cardBackgroundColor="?attr/colorSurface"
-      app:cardCornerRadius="24dp"
-      app:cardElevation="0dp"
-      app:strokeWidth="0dp" />
+      android:layout_height="wrap_content"/>
 
     <include
-      android:id="@+id/border"
-      layout="@layout/layout_divider_horizontal"
-      android:layout_width="match_parent"
-      android:layout_height="0.5dp"
-      android:layout_alignParentTop="true"
-      android:layout_marginBottom="2dp" />
+      layout="@layout/layout_editor_bottom_action"
+      android:id="@+id/bottom_action"/>
 
-    <FrameLayout
-      android:id="@+id/header_root"
-      android:layout_width="match_parent"
-      android:layout_height="@dimen/editor_sheet_collapsed_height"
-      android:layout_below="@id/border"
-      android:background="?attr/colorSurface">
+  </ViewFlipper>
 
-      <ViewFlipper
-        android:id="@+id/header_container"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/editor_sheet_collapsed_height"
-        android:background="?attr/colorSurface">
 
-        <include
-          android:id="@+id/build_status"
-          layout="@layout/layout_editor_build_status" />
-
-        <include
-          android:id="@+id/bottom_action"
-          layout="@layout/layout_editor_bottom_action" />
-
-      </ViewFlipper>
-    </FrameLayout>
-
-    <com.google.android.material.tabs.TabLayout
-      android:id="@+id/tabs"
-      style="@style/AppTheme.TabLayout"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_below="@id/header_root" />
-
-    <androidx.legacy.widget.Space
-      android:id="@+id/space_bottom"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_alignParentBottom="true"
-      tools:layout_height="56dp" />
-
-    <androidx.viewpager2.widget.ViewPager2
-      android:id="@+id/pager"
-      android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      android:layout_above="@id/space_bottom"
-      android:layout_below="@id/tabs"
-      android:background="?android:attr/colorBackground"
-      android:clickable="true"
-      android:focusable="false" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-      android:id="@+id/clear_fab"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_above="@id/space_bottom"
-      android:layout_alignParentEnd="true"
-      android:layout_margin="16dp"
-      android:src="@drawable/ic_sweep_delete" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-      android:id="@+id/share_output_fab"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_above="@id/clear_fab"
-      android:layout_alignParentEnd="true"
-      android:layout_marginStart="16dp"
-      android:layout_marginTop="16dp"
-      android:layout_marginEnd="16dp"
-      android:layout_marginBottom="16dp"
-      android:src="@drawable/ic_share" />
-  </RelativeLayout>
-
-  <FrameLayout
-    android:id="@+id/page_switch_container"
+  <com.google.android.material.tabs.TabLayout
+    android:id="@+id/tabs"
+    style="@style/AppTheme.TabLayout"
     android:layout_width="match_parent"
-    android:layout_height="24dp"
-    android:layout_gravity="top"
-    android:layout_marginTop="1dp"
-    android:clipChildren="false"
-    android:clipToPadding="false">
+    android:layout_height="wrap_content"
+    android:layout_below="@id/header_container" />
 
-    <com.google.android.material.card.MaterialCardView
-      android:id="@+id/page_switch_bubble"
-      android:layout_width="188dp"
-      android:layout_height="32dp"
-      android:layout_gravity="center_horizontal|top"
-      android:layout_marginTop="-16dp"
-      app:cardBackgroundColor="#7A2E8B"
-      app:cardCornerRadius="16dp"
-      app:cardElevation="6dp"
-      app:strokeColor="#66FFFFFF"
-      app:strokeWidth="0.5dp">
+  <androidx.legacy.widget.Space
+    android:id="@+id/space_bottom"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_alignParentBottom="true"
+    tools:layout_height="56dp" />
 
-      <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:paddingHorizontal="8dp">
-
-        <TextView
-          android:id="@+id/build_status_tab"
-          android:layout_width="0dp"
-          android:layout_height="match_parent"
-          android:layout_weight="1"
-          android:gravity="center"
-          android:text="@string/bottom_sheet_page_build"
-          android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-          android:textColor="@android:color/white" />
-
-        <TextView
-          android:id="@+id/symbol_input_tab"
-          android:layout_width="0dp"
-          android:layout_height="match_parent"
-          android:layout_weight="1"
-          android:gravity="center"
-          android:text="@string/bottom_sheet_page_symbols"
-          android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
-          android:textColor="#B3FFFFFF" />
-      </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-  </FrameLayout>
-
-  <include
-    android:id="@+id/symbol_input_overlay"
-    layout="@layout/layout_editor_symbol_input_overlay"
+  <androidx.viewpager2.widget.ViewPager2
+    android:id="@+id/pager"
+    android:background="?android:attr/colorBackground"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:visibility="gone" />
+    android:layout_above="@id/space_bottom"
+    android:layout_below="@id/tabs"
+    android:clickable="true"
+    android:focusable="false" />
 
-</FrameLayout>
+  <com.google.android.material.floatingactionbutton.FloatingActionButton
+    android:id="@+id/clear_fab"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_above="@id/space_bottom"
+    android:layout_alignParentEnd="true"
+    android:layout_margin="16dp"
+    android:src="@drawable/ic_sweep_delete" />
+
+  <com.google.android.material.floatingactionbutton.FloatingActionButton
+    android:id="@+id/share_output_fab"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_above="@id/clear_fab"
+    android:layout_alignParentEnd="true"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="16dp"
+    android:src="@drawable/ic_share" />
+
+</RelativeLayout>

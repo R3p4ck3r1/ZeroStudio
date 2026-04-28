@@ -57,6 +57,7 @@ import com.itsaky.androidide.tasks.TaskExecutor.CallbackWithError
 import com.itsaky.androidide.tasks.TaskExecutor.executeAsync
 import com.itsaky.androidide.tasks.TaskExecutor.executeAsyncProvideError
 import com.itsaky.androidide.utils.IntentUtils.shareFile
+import com.itsaky.androidide.utils.Symbols.forFile
 import com.itsaky.androidide.utils.flashError
 import java.io.File
 import java.io.IOException
@@ -100,9 +101,6 @@ constructor(
   private var anchorOffset = 0
   private var isImeVisible = false
   private var windowInsets: Insets? = null
-  private var selectedHeaderPage = PAGE_BUILD_STATUS
-
-  var onHeaderPageChanged: ((Boolean) -> Unit)? = null
 
   private val insetBottom: Int
     get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
@@ -115,9 +113,6 @@ constructor(
     const val CHILD_HEADER = 0
     const val CHILD_SYMBOL_INPUT = 1
     const val CHILD_ACTION = 2
-
-    private const val PAGE_BUILD_STATUS = 0
-    private const val PAGE_SYMBOL_INPUT = 1
   }
 
   private fun initialize(context: FragmentActivity) {
@@ -179,24 +174,11 @@ constructor(
       (fragment as ShareableOutputFragment).clearOutput()
     }
 
-    binding.buildStatusTab.setOnClickListener {
-      selectHeaderPage(PAGE_BUILD_STATUS)
-    }
-
-    binding.symbolInputTab.setOnClickListener {
-      selectHeaderPage(PAGE_SYMBOL_INPUT)
-    }
-
     binding.headerContainer.setOnClickListener {
       if (behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
         behavior.state = BottomSheetBehavior.STATE_EXPANDED
       }
     }
-
-    binding.symbolInputOverlay.root.bringToFront()
-    binding.pageSwitchContainer.bringToFront()
-
-    selectHeaderPage(PAGE_BUILD_STATUS)
 
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
       this.windowInsets = insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
@@ -233,12 +215,12 @@ constructor(
             view.viewTreeObserver.removeOnGlobalLayoutListener(this)
             anchorOffset = view.height + SizeUtils.dp2px(1f)
 
-            updatePeekHeight()
+            behavior.peekHeight = collapsedHeight.roundToInt()
             behavior.expandedOffset = anchorOffset
             behavior.isGestureInsetBottomIgnored = isImeVisible
 
             binding.root.updatePadding(bottom = anchorOffset + insetBottom)
-            binding.headerRoot.apply {
+            binding.headerContainer.apply {
               updatePaddingRelative(bottom = paddingBottom + insetBottom)
               updateLayoutParams<ViewGroup.LayoutParams> {
                 height = (collapsedHeight + insetBottom).roundToInt()
@@ -266,11 +248,7 @@ constructor(
         }
 
     val padding = insetBottom * paddingScale
-    if (selectedHeaderPage == PAGE_SYMBOL_INPUT) {
-      return
-    }
-
-    binding.headerRoot.apply {
+    binding.headerContainer.apply {
       updateLayoutParams<ViewGroup.LayoutParams> {
         height = ((collapsedHeight + padding) * heightScale).roundToInt()
       }
@@ -279,21 +257,7 @@ constructor(
   }
 
   fun showChild(index: Int) {
-    if (index == CHILD_ACTION) {
-      binding.headerContainer.displayedChild = CHILD_HEADER + 1
-      binding.pageSwitchContainer.visibility = View.GONE
-      binding.symbolInputOverlay.root.visibility = View.GONE
-      onHeaderPageChanged?.invoke(false)
-      updatePeekHeight()
-      return
-    }
-
-    binding.pageSwitchContainer.visibility = View.VISIBLE
-    binding.symbolInputOverlay.root.visibility =
-        if (index == CHILD_SYMBOL_INPUT) View.VISIBLE else View.GONE
-    selectedHeaderPage = if (index == CHILD_SYMBOL_INPUT) PAGE_SYMBOL_INPUT else PAGE_BUILD_STATUS
-    selectHeaderPage(selectedHeaderPage)
-    updatePeekHeight()
+    binding.headerContainer.displayedChild = index
   }
 
   fun setActionText(text: CharSequence) {
@@ -333,8 +297,7 @@ constructor(
   }
 
   fun refreshSymbolInput(editor: CodeEditorView) {
-    val codeEditor = editor.editor ?: return
-    binding.symbolInputOverlay.symbolInputView.bindEditor(codeEditor)
+    binding.symbolInput.refresh(editor.editor, forFile(editor.file))
   }
 
   fun onSoftInputChanged() {
@@ -343,54 +306,19 @@ constructor(
       return
     }
 
+    binding.symbolInput.itemAnimator?.endAnimations()
+
     TransitionManager.beginDelayedTransition(
         binding.root,
         MaterialSharedAxis(MaterialSharedAxis.Y, false),
     )
 
     val activity = context as Activity
-    if (KeyboardUtils.isSoftInputVisible(activity) && selectedHeaderPage == PAGE_BUILD_STATUS) {
-      selectHeaderPage(PAGE_SYMBOL_INPUT)
-    }
-  }
-
-  private fun selectHeaderPage(page: Int) {
-    selectedHeaderPage = page
-
-    if (binding.headerContainer.displayedChild == CHILD_HEADER + 1 && page == PAGE_BUILD_STATUS) {
+    if (KeyboardUtils.isSoftInputVisible(activity)) {
+      binding.headerContainer.displayedChild = CHILD_SYMBOL_INPUT
+    } else {
       binding.headerContainer.displayedChild = CHILD_HEADER
     }
-
-    if (page == PAGE_SYMBOL_INPUT) {
-      binding.headerRoot.visibility = View.GONE
-      binding.symbolInputOverlay.root.visibility = View.VISIBLE
-      binding.pageSwitchBubble.scaleX = 0.94f
-      binding.pageSwitchBubble.scaleY = 0.94f
-      binding.pageSwitchBubble.translationY = -SizeUtils.dp2px(1f).toFloat()
-      binding.buildStatusTab.alpha = 0.55f
-      binding.buildStatusTab.textSize = 12f
-      binding.symbolInputTab.alpha = 1f
-      binding.symbolInputTab.textSize = 13f
-    } else {
-      binding.headerRoot.visibility = View.VISIBLE
-      binding.symbolInputOverlay.root.visibility = View.GONE
-      binding.headerContainer.updateLayoutParams<ViewGroup.LayoutParams> {
-        height = (collapsedHeight + insetBottom).roundToInt()
-      }
-      binding.pageSwitchBubble.scaleX = 1f
-      binding.pageSwitchBubble.scaleY = 1f
-      binding.pageSwitchBubble.translationY = 0f
-      binding.buildStatusTab.alpha = 1f
-      binding.buildStatusTab.textSize = 13f
-      binding.symbolInputTab.alpha = 0.55f
-      binding.symbolInputTab.textSize = 12f
-    }
-
-    onHeaderPageChanged?.invoke(page == PAGE_BUILD_STATUS)
-  }
-
-  private fun updatePeekHeight() {
-    behavior.peekHeight = collapsedHeight.roundToInt()
   }
 
   fun setStatus(text: CharSequence, @GravityInt gravity: Int) {
