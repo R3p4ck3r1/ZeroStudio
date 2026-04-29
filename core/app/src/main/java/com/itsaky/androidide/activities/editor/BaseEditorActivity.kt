@@ -40,6 +40,8 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.collection.MutableIntIntMap
 import androidx.core.graphics.Insets
 import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
@@ -844,7 +846,7 @@ abstract class BaseEditorActivity :
         }
 
     content.apply {
-      externalSymbolInputView.followSystemIme = false
+      setupExternalSymbolImeSync()
       pageSwitchContainer.bringToFront()
       pageSwitchContainer.post { updatePageSwitchContainerPosition() }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
@@ -956,7 +958,6 @@ abstract class BaseEditorActivity :
     content.bottomSheet.setBottomSheetDragEnabled(!active)
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
-    content.externalSymbolInputView.followSystemIme = active
     updatePageSwitchAnchor()
     applyExternalSymbolImeInset()
     contentCardRealHeight?.let { baseHeight ->
@@ -996,6 +997,27 @@ abstract class BaseEditorActivity :
     content.pageSwitchContainer.translationY = 0f
     updatePageSwitchAnchor()
     updatePageSwitchContainerPosition()
+  }
+
+  private fun setupExternalSymbolImeSync() {
+    if (_binding == null) return
+    ViewCompat.setWindowInsetsAnimationCallback(
+        content.symbolInputPage,
+        object : WindowInsetsAnimationCompat.Callback(
+            WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE
+        ) {
+          override fun onProgress(
+              insets: WindowInsetsCompat,
+              runningAnimations: MutableList<WindowInsetsAnimationCompat>
+          ): WindowInsetsCompat {
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            if (isExternalSymbolPageActive) {
+              content.symbolInputPage.translationY = -imeBottom.toFloat()
+            }
+            return insets
+          }
+        }
+    )
   }
 
   private fun resetEditorSurfaceTransform() {
