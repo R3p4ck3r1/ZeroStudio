@@ -124,6 +124,18 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         // Do nothing. 我们现在依靠自己的手势和 RelativeLayout 机制。
     }
 
+
+    /**
+     * For host IME-inset sync compatibility.
+     */
+    fun setImeBottomInset(inset: Int) {
+        val safeInset = inset.coerceAtLeast(0)
+        if (paddingBottom != safeInset) {
+            setPadding(paddingLeft, paddingTop, paddingRight, safeInset)
+            requestLayout()
+        }
+    }
+
     /**
      * 执行 onHostResume 方法。
      */
