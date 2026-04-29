@@ -103,6 +103,7 @@ constructor(
   private var suppressNextHeaderClickExpand = false
   private var headerExpandEnabled = true
   private var expandBlocked = false
+  private var behaviorCallbackAttached = false
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
 
@@ -199,17 +200,6 @@ constructor(
       insets
     }
 
-    behavior.addBottomSheetCallback(
-        object : BottomSheetBehavior.BottomSheetCallback() {
-          override fun onStateChanged(bottomSheet: View, newState: Int) {
-            if (!canExpandSheet() && newState == BottomSheetBehavior.STATE_EXPANDED) {
-              forceCollapse()
-            }
-          }
-
-          override fun onSlide(bottomSheet: View, slideOffset: Float) = Unit
-        }
-    )
   }
 
   init {
@@ -226,6 +216,27 @@ constructor(
     addView(binding.root)
 
     initialize(context)
+  }
+
+  override fun onAttachedToWindow() {
+    super.onAttachedToWindow()
+    ensureBehaviorCallbackAttached()
+  }
+
+  private fun ensureBehaviorCallbackAttached() {
+    if (behaviorCallbackAttached) return
+    behavior.addBottomSheetCallback(
+        object : BottomSheetBehavior.BottomSheetCallback() {
+          override fun onStateChanged(bottomSheet: View, newState: Int) {
+            if (!canExpandSheet() && newState == BottomSheetBehavior.STATE_EXPANDED) {
+              forceCollapse()
+            }
+          }
+
+          override fun onSlide(bottomSheet: View, slideOffset: Float) = Unit
+        }
+    )
+    behaviorCallbackAttached = true
   }
 
   /** Set whether the input method is visible. */
