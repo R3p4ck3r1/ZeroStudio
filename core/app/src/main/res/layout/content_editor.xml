@@ -152,6 +152,27 @@
           </LinearLayout>
      </com.google.android.material.card.MaterialCardView>
 
+     <com.google.android.material.card.MaterialCardView
+          android:id="@+id/page_switch_gesture_bubble"
+          android:layout_width="34dp"
+          android:layout_height="34dp"
+          app:layout_anchor="@id/page_switch_container"
+          app:layout_anchorGravity="top|start"
+          android:layout_marginTop="-17dp"
+          app:cardBackgroundColor="#CC2E8B"
+          app:cardCornerRadius="17dp"
+          app:cardElevation="6dp">
+
+          <TextView
+               android:layout_width="match_parent"
+               android:layout_height="match_parent"
+               android:gravity="center"
+               android:text="❮"
+               android:textColor="@android:color/white"
+               android:textSize="16sp" />
+     </com.google.android.material.card.MaterialCardView>
+
+
      <FrameLayout
           android:id="@+id/symbol_input_page"
           android:layout_width="match_parent"
