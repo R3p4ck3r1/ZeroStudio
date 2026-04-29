@@ -46,7 +46,6 @@ import com.itsaky.androidide.utils.Environment
 import com.itsaky.androidide.utils.RecyclableObjectPool
 import com.itsaky.androidide.utils.flashError
 import com.termux.app.TermuxApplication
-import com.termux.shared.reflection.ReflectionUtils
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 import java.lang.Thread.UncaughtExceptionHandler
 import kotlin.system.exitProcess
@@ -112,7 +111,6 @@ class IDEApplication : TermuxApplication() {
     EditorColorScheme.setDefault(SchemeAndroidIDE.newInstance(null))
 
     GlobalScope.launch(Dispatchers.IO) {
-      ReflectionUtils.bypassHiddenAPIReflectionRestrictions()
       IDEColorSchemeProvider.init()
       Environment.initSecondaryDirs()
     }
