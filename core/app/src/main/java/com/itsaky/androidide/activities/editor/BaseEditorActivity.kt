@@ -27,7 +27,6 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
@@ -105,7 +104,6 @@ import com.itsaky.androidide.xml.resources.ResourceTableRegistry
 import com.itsaky.androidide.xml.versions.ApiVersionsRegistry
 import com.itsaky.androidide.xml.widgets.WidgetTableRegistry
 import java.io.File
-import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlinx.coroutines.CoroutineScope
@@ -215,7 +213,6 @@ abstract class BaseEditorActivity :
   private var isPageSwitchAnchorUpdatePosted = false
   private var latestImeBottomInset = 0
   private var isPageSwitchContainerCollapsed = true
-  private var pageSwitchBubbleCenterYRatio = 0.35f
 
   companion object {
 
@@ -1038,57 +1035,11 @@ abstract class BaseEditorActivity :
   private fun setupPageSwitchGestureBubble() {
     if (_binding == null) return
     val bubble = content.pageSwitchGestureBubble
+    bubble.dragTopBoundaryProvider = { content.editorAppBarLayout.bottom.toFloat() }
     bubble.setOnClickListener {
       isPageSwitchContainerCollapsed = !isPageSwitchContainerCollapsed
       updatePageSwitchContainerCollapsedState(animated = true)
     }
-    bubble.setOnTouchListener(object : View.OnTouchListener {
-      var downRawX = 0f
-      var downRawY = 0f
-      var startX = 0f
-      var startY = 0f
-      var dragging = false
-      override fun onTouch(v: View, event: MotionEvent): Boolean {
-        val parent = v.parent as? View ?: return false
-        when (event.actionMasked) {
-          MotionEvent.ACTION_DOWN -> {
-            downRawX = event.rawX
-            downRawY = event.rawY
-            startX = v.x
-            startY = v.y
-            dragging = false
-            return true
-          }
-          MotionEvent.ACTION_MOVE -> {
-            val dx = event.rawX - downRawX
-            val dy = event.rawY - downRawY
-            if (!dragging && (abs(dx) > 8f || abs(dy) > 8f)) dragging = true
-            if (dragging) {
-              val minY = content.editorAppBarLayout.bottom.toFloat()
-              val maxY = (parent.height - v.height).toFloat().coerceAtLeast(minY)
-              v.x = (startX + dx).coerceIn(0f, (parent.width - v.width).toFloat())
-              v.y = (startY + dy).coerceIn(minY, maxY)
-            }
-            return true
-          }
-          MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-            if (!dragging) {
-              v.performClick()
-            } else {
-              val snapToLeft = v.x + v.width / 2f < parent.width / 2f
-              val targetX = if (snapToLeft) 0f else (parent.width - v.width).toFloat()
-              val minY = content.editorAppBarLayout.bottom.toFloat()
-              val maxY = (parent.height - v.height).toFloat().coerceAtLeast(minY)
-              val safeY = v.y.coerceIn(minY, maxY)
-              pageSwitchBubbleCenterYRatio = ((safeY + v.height / 2f) / parent.height).coerceIn(0f, 1f)
-              v.animate().x(targetX).y(safeY).setDuration(220L).start()
-            }
-            return true
-          }
-        }
-        return false
-      }
-    })
   }
 
   private fun updatePageSwitchContainerCollapsedState(animated: Boolean) {
@@ -1141,13 +1092,7 @@ abstract class BaseEditorActivity :
       }
       container.bringToFront()
       val bubble = content.pageSwitchGestureBubble
-      val parent = bubble.parent as? View
-      if (parent != null) {
-        val targetCenterY = (parent.height * pageSwitchBubbleCenterYRatio)
-        val minY = content.editorAppBarLayout.bottom.toFloat()
-        val maxY = (parent.height - bubble.height).toFloat().coerceAtLeast(minY)
-        bubble.y = (targetCenterY - bubble.height / 2f).coerceIn(minY, maxY)
-      }
+      bubble.restoreVerticalPosition()
       bubble.bringToFront()
     }
   }
