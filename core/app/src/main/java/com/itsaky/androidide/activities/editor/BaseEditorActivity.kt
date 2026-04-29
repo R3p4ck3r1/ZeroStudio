@@ -992,6 +992,7 @@ abstract class BaseEditorActivity :
   private fun applyExternalSymbolImeInset() {
     if (_binding == null) return
     val targetImeInset = if (isExternalSymbolPageActive) latestImeBottomInset else 0
+    content.externalSymbolInputView.setImeBottomInset(targetImeInset)
     content.symbolInputPage.translationY = -targetImeInset.toFloat()
     content.pageSwitchContainer.translationY = 0f
     updatePageSwitchAnchor()
