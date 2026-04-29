@@ -185,14 +185,19 @@ internal class ToolingServerRunner(
   }
 
   private fun getProcessId(process: Process): Int? {
-    val pidMethod = ReflectionUtils.getDeclaredMethod(Process::class.java, "pid")
-    val javaPid =
-        pidMethod?.let { method -> ReflectionUtils.invokeMethod(method, process).value as? Long }
-    if (javaPid != null && javaPid > 0L) {
-      return javaPid.toInt()
+    try {
+      val directPid = process.pid()
+      if (directPid > 0L) {
+        return directPid.toInt()
+      }
+    } catch (_: Throwable) {
+      // Ignore and fallback.
     }
 
-    return ReflectionUtils.getDeclaredField(process::class.java, "pid")?.get(process) as Int?
+    return runCatching {
+          ReflectionUtils.getDeclaredField(process::class.java, "pid")?.get(process) as? Int
+        }
+        .getOrNull()
   }
 
   interface Observer {
