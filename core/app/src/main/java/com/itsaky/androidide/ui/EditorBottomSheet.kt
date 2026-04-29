@@ -275,6 +275,16 @@ constructor(
     suppressNextHeaderClickExpand = true
   }
 
+  fun setBottomSheetDragEnabled(enabled: Boolean) {
+    behavior.isDraggable = enabled
+  }
+
+  fun forceCollapse() {
+    if (behavior.state != BottomSheetBehavior.STATE_COLLAPSED) {
+      behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+    }
+  }
+
   fun suspendHeaderExpandFor(durationMs: Long) {
     headerExpandEnabled = false
     binding.headerContainer.removeCallbacks(resumeHeaderExpandRunnable)
