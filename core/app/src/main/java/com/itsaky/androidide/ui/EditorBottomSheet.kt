@@ -102,6 +102,7 @@ constructor(
   private var windowInsets: Insets? = null
   private var suppressNextHeaderClickExpand = false
   private var headerExpandEnabled = true
+  private var expandBlocked = false
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
 
@@ -178,6 +179,9 @@ constructor(
     }
 
     binding.headerContainer.setOnClickListener {
+      if (expandBlocked) {
+        return@setOnClickListener
+      }
       if (!headerExpandEnabled) {
         return@setOnClickListener
       }
@@ -277,6 +281,14 @@ constructor(
 
   fun setBottomSheetDragEnabled(enabled: Boolean) {
     behavior.isDraggable = enabled
+  }
+
+  fun setExpandBlocked(blocked: Boolean) {
+    expandBlocked = blocked
+    if (blocked) {
+      suppressNextHeaderExpand()
+      forceCollapse()
+    }
   }
 
   fun forceCollapse() {

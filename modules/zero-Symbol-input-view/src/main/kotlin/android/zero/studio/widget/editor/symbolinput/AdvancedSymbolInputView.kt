@@ -237,6 +237,12 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         applyImeOffset()
     }
 
+    fun getExpansionFraction(): Float {
+        val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+        val range = (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)
+        return ((currentHeight - collapsedHeightPx).toFloat() / range.toFloat()).coerceIn(0f, 1f)
+    }
+
     /**
      * 执行 onInterceptTouchEvent 方法。
      */
