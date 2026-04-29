@@ -36,7 +36,6 @@ import com.itsaky.androidide.events.EditorEventsIndex
 import com.itsaky.androidide.events.LspApiEventsIndex
 import com.itsaky.androidide.events.LspJavaEventsIndex
 import com.itsaky.androidide.events.LspKotlinEventsIndex
-import com.itsaky.androidide.managers.ToolsManager
 import com.itsaky.androidide.preferences.internal.DevOpsPreferences
 import com.itsaky.androidide.preferences.internal.GeneralPreferences
 import com.itsaky.androidide.resources.localization.LocaleProvider
@@ -45,17 +44,14 @@ import com.itsaky.androidide.ui.themes.IDETheme
 import com.itsaky.androidide.ui.themes.IThemeManager
 import com.itsaky.androidide.utils.Environment
 import com.itsaky.androidide.utils.RecyclableObjectPool
-import com.itsaky.androidide.utils.VMUtils
 import com.itsaky.androidide.utils.flashError
 import com.termux.app.TermuxApplication
-import com.termux.shared.reflection.ReflectionUtils
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
 import java.lang.Thread.UncaughtExceptionHandler
 import kotlin.system.exitProcess
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -115,17 +111,10 @@ class IDEApplication : TermuxApplication() {
     EditorColorScheme.setDefault(SchemeAndroidIDE.newInstance(null))
 
     GlobalScope.launch(Dispatchers.IO) {
-      ReflectionUtils.bypassHiddenAPIReflectionRestrictions()
       IDEColorSchemeProvider.init()
+      Environment.initSecondaryDirs()
     }
     
-    GlobalScope.launch(Dispatchers.IO) {
-      delay(3700)
-      if (!VMUtils.isJvm()) {
-        ToolsManager.init(this@IDEApplication, null)
-      }
-    }
-
     Environment.init(this)
 
   }
@@ -218,6 +207,19 @@ class IDEApplication : TermuxApplication() {
     log.info("Stopping logcat reader...")
     ideLogcatReader?.stop()
     ideLogcatReader = null
+  }
+
+  override fun attachBaseContext(base: android.content.Context?) {
+    if (base != null) {
+      val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(base)
+      val selectedLocaleKey = prefs.getString(GeneralPreferences.SELECTED_LOCALE, null)
+      val localeListCompat =
+          selectedLocaleKey?.let { key ->
+            LocaleProvider.getLocale(key)?.let { LocaleListCompat.create(it) }
+          } ?: LocaleListCompat.getEmptyLocaleList()
+      AppCompatDelegate.setApplicationLocales(localeListCompat)
+    }
+    super.attachBaseContext(base)
   }
 
   companion object {

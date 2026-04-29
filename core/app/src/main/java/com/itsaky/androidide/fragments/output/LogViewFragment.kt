@@ -36,6 +36,7 @@ import com.itsaky.androidide.utils.jetbrainsMono
 import io.github.rosemoe.sora.widget.style.CursorAnimator
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.math.min
@@ -53,6 +54,8 @@ abstract class LogViewFragment :
   companion object {
 
     private val log = LoggerFactory.getLogger(LogViewFragment::class.java)
+    private val treeSitterLoaded = AtomicBoolean(false)
+    private val treeSitterLoadError = AtomicReference<Throwable?>(null)
 
     /** The maximum number of characters to append to the editor in case of huge log texts. */
     const val MAX_CHUNK_SIZE = 10000
@@ -221,14 +224,7 @@ abstract class LogViewFragment :
     editor.typefaceText = jetbrainsMono()
     editor.isEnsurePosAnimEnabled = false
 
-    try {
-      // 此处应用libandroid-tree-sitter.so是为了避免该文件不正常的加载导致找不到文件的bug修复
-      // System.loadLibrary("android-tree-sitter")
-      TreeSitter.loadLibrary()
-      log.debug("TreeSitter native library loaded successfully")
-    } catch (e: UnsatisfiedLinkError) {
-      log.error("Failed to load TreeSitter native library", e)
-    }
+    ensureTreeSitterLoadedOnce()
 
     editor.cursorAnimator =
         object : CursorAnimator {
@@ -274,6 +270,22 @@ abstract class LogViewFragment :
       }
 
       editor.applyTreeSitterLang(language, LogLanguage.TS_TYPE, scheme)
+    }
+  }
+
+  private fun ensureTreeSitterLoadedOnce() {
+    if (treeSitterLoaded.get()) return
+    synchronized(treeSitterLoaded) {
+      if (treeSitterLoaded.get()) return
+      try {
+        TreeSitter.loadLibrary()
+        treeSitterLoaded.set(true)
+        treeSitterLoadError.set(null)
+        log.debug("TreeSitter native library loaded successfully")
+      } catch (e: UnsatisfiedLinkError) {
+        treeSitterLoadError.set(e)
+        log.error("Failed to load TreeSitter native library", e)
+      }
     }
   }
 

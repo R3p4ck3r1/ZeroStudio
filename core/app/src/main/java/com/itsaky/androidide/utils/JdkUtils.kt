@@ -25,6 +25,7 @@ import com.itsaky.androidide.shell.executeProcessAsync
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
 import java.io.File
 import java.nio.file.Files
+import java.util.Properties
 import org.slf4j.LoggerFactory
 
 /**
@@ -62,6 +63,10 @@ object JdkUtils {
             return@mapNotNull null
           }
 
+          val releaseDist = readDistFromReleaseFile(dir)
+          if (releaseDist != null) {
+            return@mapNotNull releaseDist
+          }
           return@mapNotNull getDistFromJavaBin(java)
         }
             ?: run {
@@ -139,7 +144,20 @@ object JdkUtils {
    */
   @JvmStatic
   fun getDistFromJavaHome(javaHome: File): JdkDistribution? {
+    readDistFromReleaseFile(javaHome)?.let { return it }
     return getDistFromJavaBin(javaHome.resolve("bin/java"))
+  }
+
+  private fun readDistFromReleaseFile(javaHomeDir: File): JdkDistribution? {
+    val releaseFile = javaHomeDir.resolve("release")
+    if (!releaseFile.exists() || !releaseFile.isFile) return null
+    return try {
+      val props = Properties().apply { releaseFile.inputStream().use(::load) }
+      val rawVersion = props.getProperty("JAVA_VERSION")?.trim()?.trim('"') ?: return null
+      JdkDistribution(rawVersion, javaHomeDir.absolutePath)
+    } catch (_: Throwable) {
+      null
+    }
   }
 
   private fun readProperties(file: File): String? {
