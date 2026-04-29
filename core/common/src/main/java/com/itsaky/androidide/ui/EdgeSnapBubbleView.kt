@@ -46,6 +46,7 @@ class EdgeSnapBubbleView : View {
   private var arrowPath: Path? = null
 
   private var onBackListener: OnBackListener? = null
+  private var side: Side = Side.LEFT
 
   fun setOnBackListener(onBackListener: OnBackListener?) {
     this.onBackListener = onBackListener
@@ -175,7 +176,8 @@ class EdgeSnapBubbleView : View {
     if (onBackListener != null) {
       onBackListener!!.onBack()
     } else {
-      (context as? Activity)?.onBackPressedDispatcher?.onBackPressed()
+      @Suppress("DEPRECATION")
+      (context as? Activity)?.onBackPressed()
       performClick()
     }
   }
