@@ -207,7 +207,6 @@ abstract class BaseEditorActivity :
 
   private var optionsMenuInvalidator: Runnable? = null
   private var isPageSwitchVisibleForCurrentPage = true
-  private var lastPageSwitchVisible: Boolean? = null
   private var lastPageSwitchAlpha = Float.NaN
   private var bottomSheetSlideOffset = 0f
   private var blockBottomSheetExpandForTabSwitch = false
@@ -1038,7 +1037,6 @@ abstract class BaseEditorActivity :
   private fun setupPageSwitchGestureBubble() {
     if (_binding == null) return
     val bubble = content.pageSwitchGestureBubble
-    bubble.dragTopBoundaryProvider = { content.editorAppBarLayout.bottom.toFloat() }
     bubble.attachToSide(EdgeSnapBubbleView.Side.LEFT)
     bubble.setOnClickListener {
       if (isExternalSymbolPageActive) {
@@ -1072,6 +1070,18 @@ abstract class BaseEditorActivity :
     }
   }
 
+  private fun computePageSwitchAlpha(): Float {
+    return if (isExternalSymbolPageActive) {
+      content.externalSymbolInputView.getExpansionFraction().coerceIn(0f, 1f)
+    } else if (bottomSheetSlideOffset < 0f) {
+      (1f + bottomSheetSlideOffset).coerceIn(0f, 1f)
+    } else if (bottomSheetSlideOffset <= 0.5f) {
+      1f
+    } else {
+      (((0.5f - bottomSheetSlideOffset) + 0.5f) * 2f).coerceIn(0f, 1f)
+    }
+  }
+
   private fun updatePageSwitchContainerPosition() {
     if (_binding == null) return
     val container = content.pageSwitchContainer
@@ -1089,21 +1099,9 @@ abstract class BaseEditorActivity :
     }
 
     val shouldShow = !(if (isExternalSymbolPageActive) isSymbolPageSwitchHidden else isBuildPageSwitchHidden)
-    if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {
-      container.visibility = if (shouldShow) View.VISIBLE else View.INVISIBLE
-      lastPageSwitchVisible = shouldShow
-    }
+    container.visibility = if (shouldShow) View.VISIBLE else View.GONE
     if (shouldShow) {
-      val alpha =
-          if (isExternalSymbolPageActive) {
-            1f
-          } else if (bottomSheetSlideOffset < 0f) {
-            (1f + bottomSheetSlideOffset).coerceIn(0f, 1f)
-          } else if (bottomSheetSlideOffset <= 0.5f) {
-            1f
-          } else {
-            (((0.5f - bottomSheetSlideOffset) + 0.5f) * 2f).coerceIn(0f, 1f)
-          }
+      val alpha = computePageSwitchAlpha()
       if (lastPageSwitchAlpha.isNaN() || kotlin.math.abs(lastPageSwitchAlpha - alpha) > 0.01f) {
         container.alpha = alpha
         lastPageSwitchAlpha = alpha
