@@ -43,6 +43,7 @@ import java.util.UUID;
  */
 @SuppressLint("SdCardPath")
 public final class Environment {
+  private static volatile boolean INITIALIZED = false;
 
   public static final String PROJECTS_FOLDER = "AndroidIDEProjects";
   private static final Logger LOG = LoggerFactory.getLogger(Environment.class);
@@ -112,6 +113,9 @@ public final class Environment {
    * @param context Application context
    */
   public static void init(Context context) {
+    if (INITIALIZED && ROOT != null) {
+      return;
+    }
     ROOT = context.getFilesDir();
     PREFIX = mkdirIfNotExits(new File(ROOT, "usr"));
     HOME = mkdirIfNotExits(new File(ROOT, "home"));
@@ -192,7 +196,6 @@ public final class Environment {
     // 如果使用了 Proto 插件，有时需要指定 protoc 路径
     System.setProperty("protoc", new File(PROTOC_BIN, "protoc").getAbsolutePath());
 
-    System.setProperty("java.home", JAVA_HOME.getAbsolutePath());
     System.setProperty("gradle.user.home", GRADLE_USER_HOME.getAbsolutePath());
     System.setProperty("kotlin.home", KOTLINC_HOME.getAbsolutePath());
     System.setProperty("kotlin.lsp.home", KOTLIN_LSP_HOME.getAbsolutePath());
@@ -200,6 +203,7 @@ public final class Environment {
 
     //  注入 Native 环境变量 (供 ProcessBuilder, Runtime.exec, Terminal 使用)
     injectNativeEnvironment();
+    INITIALIZED = true;
   }
 
   public static void initSecondaryDirs() {
@@ -274,7 +278,10 @@ public final class Environment {
     }
 
   public static void setExecutable(@NonNull final File file) {
-    if (!file.setExecutable(true)) {
+    if (!file.exists() || !file.isFile()) {
+      return;
+    }
+    if (!file.canExecute() && !file.setExecutable(true)) {
       LOG.error("Unable to set executable permissions to file: {}", file);
     }
   }
