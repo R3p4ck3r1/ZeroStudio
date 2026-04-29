@@ -1002,6 +1002,10 @@ abstract class BaseEditorActivity :
   private fun updatePageSwitchContainerPosition() {
     if (_binding == null) return
     val container = content.pageSwitchContainer
+    val desiredTranslationY = -(container.height / 2f)
+    if (kotlin.math.abs(container.translationY - desiredTranslationY) > 0.5f) {
+      container.translationY = desiredTranslationY
+    }
 
     val shouldShow = true
     if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {
