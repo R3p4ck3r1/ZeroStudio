@@ -44,6 +44,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -55,39 +58,64 @@ public class ToolsManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(ToolsManager.class);
   private static final Object TOOLING_API_LOCK = new Object();
+  private static final AtomicBoolean INIT_STARTED = new AtomicBoolean(false);
+  private static volatile CompletableFuture<Void> INIT_FUTURE;
+  private static final ExecutorService INIT_EXECUTOR =
+      Executors.newSingleThreadExecutor(r -> new Thread(r, "ToolsManager-LazyInit"));
 
   public static String COMMON_ASSET_DATA_DIR = "data/common";
 
   public static void init(@NonNull BaseApplication app, Runnable onFinish) {
+    initIfNeeded(app, onFinish);
+  }
 
-    if (!IDEBuildConfigProvider.getInstance().supportsCpuAbi()) {
-      LOG.error("Device not supported");
-      return;
-    }
-
-    CompletableFuture.runAsync(() -> {
-      // Load installed JDK distributions
-      IJdkDistributionProvider.getInstance().loadDistributions();
-
-      writeNoMediaFile();
-      extractAapt2();
-      extractToolingApi();
-      extractAndroidJar();
-      extractColorScheme(app);
-      writeInitScript();
-      
-      installExtraTools(); 
-      
-      deleteIdeenv();
-    }).whenComplete((__, error) -> {
-      if (error != null) {
-        LOG.error("Error extracting tools", error);
-      }
-
+  public static CompletableFuture<Void> initIfNeeded(@NonNull BaseApplication app, Runnable onFinish) {
+    if (INIT_FUTURE != null) {
       if (onFinish != null) {
-        onFinish.run();
+        INIT_FUTURE.whenComplete((__, ___) -> onFinish.run());
       }
-    });
+      return INIT_FUTURE;
+    }
+    synchronized (ToolsManager.class) {
+      if (INIT_FUTURE != null) {
+        if (onFinish != null) {
+          INIT_FUTURE.whenComplete((__, ___) -> onFinish.run());
+        }
+        return INIT_FUTURE;
+      }
+
+      if (!IDEBuildConfigProvider.getInstance().supportsCpuAbi()) {
+        LOG.error("Device not supported");
+        final CompletableFuture<Void> f = CompletableFuture.completedFuture(null);
+        if (onFinish != null) onFinish.run();
+        return f;
+      }
+      INIT_STARTED.set(true);
+
+      INIT_FUTURE = CompletableFuture.runAsync(() -> {
+        // Load installed JDK distributions only when tooling is actually initialized.
+        IJdkDistributionProvider.getInstance().loadDistributions();
+
+        writeNoMediaFile();
+        extractAapt2();
+        extractToolingApi();
+        extractAndroidJar();
+        extractColorScheme(app);
+        writeInitScript();
+
+        installExtraTools();
+
+        deleteIdeenv();
+      }, INIT_EXECUTOR).whenComplete((__, error) -> {
+        if (error != null) {
+          LOG.error("Error extracting tools", error);
+        }
+        if (onFinish != null) {
+          onFinish.run();
+        }
+      });
+      return INIT_FUTURE;
+    }
   }
   
     /**

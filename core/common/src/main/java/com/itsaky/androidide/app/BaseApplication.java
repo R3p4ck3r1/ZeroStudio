@@ -20,19 +20,15 @@ import android.app.Application;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
 
 import com.blankj.utilcode.util.ThrowableUtils;
 import com.itsaky.androidide.buildinfo.BuildInfo;
 import com.itsaky.androidide.resources.R;
 import com.itsaky.androidide.managers.PreferenceManager;
-import com.itsaky.androidide.managers.ToolsManager;
 import com.itsaky.androidide.utils.Environment;
 import com.itsaky.androidide.utils.FileUtil;
 import com.itsaky.androidide.utils.FlashbarUtilsKt;
 import com.itsaky.androidide.utils.JavaCharacter;
-import com.itsaky.androidide.utils.VMUtils;
 import java.io.File;
 import com.itsaky.androidide.app.BaseConstants;
 import java.util.concurrent.CountDownLatch;
@@ -78,13 +74,7 @@ public class BaseApplication extends Application {
     
     new Thread(JavaCharacter::initMap, "JavaChar-Init-Thread").start();
 
-    if (!VMUtils.isJvm()) {
-      new Handler(Looper.getMainLooper()).postDelayed(() -> {
-          new Thread(() -> {
-              ToolsManager.init(BaseApplication.this, null);
-          }, "ToolsManager-Init-Thread").start();
-      }, 3000); //延迟3秒运行
-    }
+    // ToolsManager now initializes lazily only when tooling is actually needed.
   }
 
  
