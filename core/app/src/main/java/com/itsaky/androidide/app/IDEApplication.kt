@@ -217,3 +217,15 @@ class IDEApplication : TermuxApplication() {
       private set
   }
 }
+  override fun attachBaseContext(base: android.content.Context?) {
+    if (base != null) {
+      val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(base)
+      val selectedLocaleKey = prefs.getString(GeneralPreferences.SELECTED_LOCALE, null)
+      val localeListCompat =
+          selectedLocaleKey?.let { key ->
+            LocaleProvider.getLocale(key)?.let { LocaleListCompat.create(it) }
+          } ?: LocaleListCompat.getEmptyLocaleList()
+      AppCompatDelegate.setApplicationLocales(localeListCompat)
+    }
+    super.attachBaseContext(base)
+  }
