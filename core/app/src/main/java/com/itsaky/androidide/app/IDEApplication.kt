@@ -209,14 +209,6 @@ class IDEApplication : TermuxApplication() {
     ideLogcatReader = null
   }
 
-  companion object {
-    private val log = LoggerFactory.getLogger(IDEApplication::class.java)
-
-    @JvmStatic
-    lateinit var instance: IDEApplication
-      private set
-  }
-}
   override fun attachBaseContext(base: android.content.Context?) {
     if (base != null) {
       val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(base)
@@ -229,3 +221,12 @@ class IDEApplication : TermuxApplication() {
     }
     super.attachBaseContext(base)
   }
+
+  companion object {
+    private val log = LoggerFactory.getLogger(IDEApplication::class.java)
+
+    @JvmStatic
+    lateinit var instance: IDEApplication
+      private set
+  }
+}

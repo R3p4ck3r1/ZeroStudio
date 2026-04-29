@@ -185,13 +185,10 @@ internal class ToolingServerRunner(
   }
 
   private fun getProcessId(process: Process): Int? {
-    try {
-      val directPid = process.pid()
-      if (directPid > 0L) {
-        return directPid.toInt()
-      }
-    } catch (_: Throwable) {
-      // Ignore and fallback.
+    val directPid =
+        runCatching { process::class.java.getMethod("pid").invoke(process) as? Long }.getOrNull()
+    if (directPid != null && directPid > 0L) {
+      return directPid.toInt()
     }
 
     return runCatching {
