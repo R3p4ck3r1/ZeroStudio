@@ -102,6 +102,7 @@ constructor(
   private var windowInsets: Insets? = null
   private var suppressNextHeaderClickExpand = false
   private var headerExpandEnabled = true
+  private var expandBlocked = false
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
 
@@ -178,6 +179,9 @@ constructor(
     }
 
     binding.headerContainer.setOnClickListener {
+      if (expandBlocked) {
+        return@setOnClickListener
+      }
       if (!headerExpandEnabled) {
         return@setOnClickListener
       }
@@ -186,7 +190,7 @@ constructor(
         return@setOnClickListener
       }
       if (behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
-        behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        tryExpandSheetFromControl()
       }
     }
 
@@ -194,6 +198,18 @@ constructor(
       this.windowInsets = insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
       insets
     }
+
+    behavior.addBottomSheetCallback(
+        object : BottomSheetBehavior.BottomSheetCallback() {
+          override fun onStateChanged(bottomSheet: View, newState: Int) {
+            if (!canExpandSheet() && newState == BottomSheetBehavior.STATE_EXPANDED) {
+              forceCollapse()
+            }
+          }
+
+          override fun onSlide(bottomSheet: View, slideOffset: Float) = Unit
+        }
+    )
   }
 
   init {
@@ -277,6 +293,27 @@ constructor(
 
   fun setBottomSheetDragEnabled(enabled: Boolean) {
     behavior.isDraggable = enabled
+  }
+
+  fun setExpandBlocked(blocked: Boolean) = setExpandAllowed(!blocked)
+
+  fun setExpandAllowed(allowed: Boolean) {
+    expandBlocked = !allowed
+    behavior.isDraggable = allowed
+    if (!allowed) {
+      suppressNextHeaderExpand()
+      forceCollapse()
+    }
+  }
+
+  fun canExpandSheet(): Boolean {
+    return !expandBlocked && headerExpandEnabled
+  }
+
+  fun tryExpandSheetFromControl(): Boolean {
+    if (!canExpandSheet()) return false
+    behavior.state = BottomSheetBehavior.STATE_EXPANDED
+    return true
   }
 
   fun forceCollapse() {

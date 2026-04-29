@@ -19,8 +19,6 @@ import android.widget.GridLayout
 import android.widget.LinearLayout
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsAnimationCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.TextViewCompat
 import androidx.core.widget.NestedScrollView
 import androidx.viewpager.widget.PagerAdapter
@@ -88,15 +86,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         val symbolsPerRow: Int
     )
 
-    // 为兼容 MainActivity 旧代码保留，并实现跟随 IME 顶部
-    var followSystemIme: Boolean = false
-        set(value) {
-            field = value
-            applyImeOffset()
-        }
-    private var imeBottomInsetPx = 0
-    private var imeAnimationBottomInsetPx = 0
-
     init {
         orientation = VERTICAL
         val root = LayoutInflater.from(context).inflate(R.layout.view_advanced_symbol_input, this, true)
@@ -125,34 +114,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         updatePagerHeight(collapsedHeightPx)
         applyTabRowByFraction(0f)
-        ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
-            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-            imeBottomInsetPx = imeInsets.bottom.coerceAtLeast(0)
-            if (imeAnimationBottomInsetPx == 0) {
-                applyImeOffset()
-            }
-            insets
-        }
-        ViewCompat.setWindowInsetsAnimationCallback(
-            this,
-            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
-                override fun onProgress(
-                    insets: WindowInsetsCompat,
-                    runningAnimations: MutableList<WindowInsetsAnimationCompat>
-                ): WindowInsetsCompat {
-                    imeAnimationBottomInsetPx =
-                        insets.getInsets(WindowInsetsCompat.Type.ime()).bottom.coerceAtLeast(0)
-                    applyImeOffset()
-                    return insets
-                }
-
-                override fun onEnd(animation: WindowInsetsAnimationCompat) {
-                    super.onEnd(animation)
-                    imeAnimationBottomInsetPx = 0
-                    applyImeOffset()
-                }
-            }
-        )
         refreshData()
     }
 
@@ -227,14 +188,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
-    private fun applyImeOffset() {
-        val imeBottom = maxOf(imeBottomInsetPx, imeAnimationBottomInsetPx)
-        translationY = if (followSystemIme) -imeBottom.toFloat() else 0f
-    }
-
-    fun setImeBottomInset(bottomInsetPx: Int) {
-        imeBottomInsetPx = bottomInsetPx.coerceAtLeast(0)
-        applyImeOffset()
+    fun getExpansionFraction(): Float {
+        val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+        val range = (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)
+        return ((currentHeight - collapsedHeightPx).toFloat() / range.toFloat()).coerceIn(0f, 1f)
     }
 
     /**
