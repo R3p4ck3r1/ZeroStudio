@@ -20,8 +20,6 @@ package com.itsaky.androidide.editor.ui
 import android.content.Context
 import android.graphics.Rect
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.AttributeSet
 import android.view.inputmethod.EditorInfo
 import androidx.annotation.StringRes
@@ -92,6 +90,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -136,24 +135,26 @@ constructor(
   private var mLastSaveHistoryIndex: Int = 0
   private var mUndoManagerField: Field? = null
 
-  private val selectionChangeHandler = Handler(Looper.getMainLooper())
-  private var selectionChangeRunner: Runnable? = Runnable {
+  @Volatile private var selectionEventVersion = 0L
+  private var selectionChangeJob: Job? = null
+
+  private fun processSelectionChange() {
     // Safe check for language client before accessing
     val client = languageClient
-    if (client == null || isReleased) return@Runnable
+    if (client == null || isReleased) return
 
-    val cursor = this.cursor ?: return@Runnable
+    val cursor = this.cursor ?: return
 
     if (cursor.isSelected || _signatureHelpWindow?.isShowing == true) {
-      return@Runnable
+      return
     }
     diagnosticWindow.showDiagnostic(
         languageClient?.getDiagnosticAt(file, cursor.leftLine, cursor.leftColumn)
     )
 
     // Simple hover tooltip: request hover from server and show as a transient flashbar
-    val server = languageServer ?: return@Runnable
-    val f = file ?: return@Runnable
+    val server = languageServer ?: return
+    val f = file ?: return
     val pos = cursorLSPPosition
     editorScope.launch(Dispatchers.Default) {
       val content =
@@ -170,6 +171,26 @@ constructor(
         (context as? android.app.Activity)?.flashInfo(text)
       }
     }
+  }
+
+  private fun scheduleSelectionChangeProcessing() {
+    selectionEventVersion++
+    if (selectionChangeJob?.isActive == true) return
+    selectionChangeJob =
+        editorScope.launch(Dispatchers.Main.immediate) {
+          var observedVersion = selectionEventVersion
+          while (isActive) {
+            delay(SELECTION_CHANGE_DELAY)
+            if (isReleased) break
+            val latestVersion = selectionEventVersion
+            if (latestVersion != observedVersion) {
+              observedVersion = latestVersion
+              continue
+            }
+            processSelectionChange()
+            break
+          }
+        }
   }
 
   /**
@@ -451,8 +472,8 @@ constructor(
 
     eventDispatcher.destroy()
 
-    selectionChangeRunner?.also { selectionChangeHandler.removeCallbacks(it) }
-    selectionChangeRunner = null
+    selectionChangeJob?.cancel()
+    selectionChangeJob = null
 
     setupTsLanguageJob?.cancel(CancellationException("Editor is releasing resources."))
 
@@ -576,9 +597,8 @@ constructor(
     dispatchDocumentCloseEvent()
 
     _actionsMenu?.unsubscribeEvents()
-    selectionChangeRunner?.also { selectionChangeHandler.removeCallbacks(it) }
-
-    selectionChangeRunner = null
+    selectionChangeJob?.cancel()
+    selectionChangeJob = null
 
     ensureWindowsDismissed()
   }
@@ -777,10 +797,7 @@ constructor(
         _diagnosticWindow?.dismiss()
       }
 
-      selectionChangeRunner?.also {
-        selectionChangeHandler.removeCallbacks(it)
-        selectionChangeHandler.postDelayed(it, SELECTION_CHANGE_DELAY)
-      }
+      scheduleSelectionChangeProcessing()
     }
 
     registerToEventBusIfNeeded()
