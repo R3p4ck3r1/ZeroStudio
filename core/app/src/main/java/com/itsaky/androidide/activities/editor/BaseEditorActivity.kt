@@ -213,6 +213,7 @@ abstract class BaseEditorActivity :
   private var bottomSheetSlideOffset = 0f
   private var blockBottomSheetExpandForTabSwitch = false
   private var isPageSwitchAnchorUpdatePosted = false
+  private var latestImeBottomInset = 0
 
   companion object {
 
@@ -280,11 +281,13 @@ abstract class BaseEditorActivity :
     if (_binding == null) return
     val height = contentCardRealHeight ?: return
     val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+    latestImeBottomInset = imeInsets.bottom
 
     _binding?.content?.bottomSheet?.setImeVisible(imeInsets.bottom > 0)
     _binding?.contentCard?.updateLayoutParams<ViewGroup.LayoutParams> {
-      this.height = height - imeInsets.bottom
+      this.height = if (isExternalSymbolPageActive) height else (height - imeInsets.bottom)
     }
+    applyExternalSymbolImeInset()
 
     val isImeVisible = imeInsets.bottom > 0
     if (this.isImeVisible != isImeVisible) {
@@ -845,7 +848,7 @@ abstract class BaseEditorActivity :
         }
 
     content.apply {
-      externalSymbolInputView.followSystemIme = true
+      externalSymbolInputView.followSystemIme = false
       pageSwitchContainer.bringToFront()
       pageSwitchContainer.post { updatePageSwitchContainerPosition() }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
@@ -858,24 +861,15 @@ abstract class BaseEditorActivity :
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       pageSwitchBuildTab.setOnClickListener {
         blockBottomSheetExpandForTabSwitch = true
-        bottomSheet.suspendHeaderExpandFor(500L)
-        bottomSheet.suppressNextHeaderExpand()
-        if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
-          editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
-        }
+        forceCollapseBottomSheet(lockDurationMs = 500L)
         setExternalSymbolPageActive(false)
         bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
-        editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
         ThreadUtils.runOnUiThreadDelayed({ blockBottomSheetExpandForTabSwitch = false }, 500)
         updateBottomSheetPageSwitch(isBuildStatusPage = true)
       }
       pageSwitchSymbolTab.setOnClickListener {
         blockBottomSheetExpandForTabSwitch = true
-        bottomSheet.suspendHeaderExpandFor(320L)
-        bottomSheet.suppressNextHeaderExpand()
-        if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
-          editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
-        }
+        forceCollapseBottomSheet(lockDurationMs = 320L)
         setExternalSymbolPageActive(true)
         ThreadUtils.runOnUiThreadDelayed({ blockBottomSheetExpandForTabSwitch = false }, 320)
         updateBottomSheetPageSwitch(isBuildStatusPage = false)
@@ -927,6 +921,22 @@ abstract class BaseEditorActivity :
     }
   }
 
+  private fun forceCollapseBottomSheet(lockDurationMs: Long) {
+    if (_binding == null) return
+    content.bottomSheet.suspendHeaderExpandFor(lockDurationMs)
+    content.bottomSheet.suppressNextHeaderExpand()
+    content.bottomSheet.setBottomSheetDragEnabled(false)
+    content.bottomSheet.forceCollapse()
+    editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+    ThreadUtils.runOnUiThreadDelayed(
+        {
+          if (_binding == null || isDestroying) return@runOnUiThreadDelayed
+          content.bottomSheet.setBottomSheetDragEnabled(!isExternalSymbolPageActive)
+        },
+        lockDurationMs
+    )
+  }
+
   private fun setExternalSymbolPageActive(active: Boolean) {
     if (_binding == null) return
     isExternalSymbolPageActive = active
@@ -938,10 +948,18 @@ abstract class BaseEditorActivity :
     if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
       editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
     }
+    content.bottomSheet.forceCollapse()
+    content.bottomSheet.setBottomSheetDragEnabled(!active)
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
+    content.externalSymbolInputView.followSystemIme = false
     updatePageSwitchAnchor()
     applyExternalSymbolImeInset()
+    contentCardRealHeight?.let { baseHeight ->
+      binding.contentCard.updateLayoutParams<ViewGroup.LayoutParams> {
+        height = if (active) baseHeight else (baseHeight - latestImeBottomInset)
+      }
+    }
     updatePageSwitchContainerPosition()
   }
 
@@ -968,7 +986,8 @@ abstract class BaseEditorActivity :
 
   private fun applyExternalSymbolImeInset() {
     if (_binding == null) return
-    content.symbolInputPage.translationY = 0f
+    val targetImeInset = if (isExternalSymbolPageActive) latestImeBottomInset else 0
+    content.symbolInputPage.translationY = -targetImeInset.toFloat()
     content.pageSwitchContainer.translationY = 0f
     updatePageSwitchAnchor()
     updatePageSwitchContainerPosition()
@@ -983,6 +1002,10 @@ abstract class BaseEditorActivity :
   private fun updatePageSwitchContainerPosition() {
     if (_binding == null) return
     val container = content.pageSwitchContainer
+    val desiredTranslationY = -(container.height / 2f)
+    if (kotlin.math.abs(container.translationY - desiredTranslationY) > 0.5f) {
+      container.translationY = desiredTranslationY
+    }
 
     val shouldShow = true
     if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {

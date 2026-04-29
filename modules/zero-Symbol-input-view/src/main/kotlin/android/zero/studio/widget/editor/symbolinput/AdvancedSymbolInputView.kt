@@ -232,6 +232,11 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         translationY = if (followSystemIme) -imeBottom.toFloat() else 0f
     }
 
+    fun setImeBottomInset(bottomInsetPx: Int) {
+        imeBottomInsetPx = bottomInsetPx.coerceAtLeast(0)
+        applyImeOffset()
+    }
+
     /**
      * 执行 onInterceptTouchEvent 方法。
      */
