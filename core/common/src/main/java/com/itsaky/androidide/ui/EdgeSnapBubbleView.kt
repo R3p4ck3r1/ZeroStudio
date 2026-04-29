@@ -47,6 +47,7 @@ class EdgeSnapBubbleView : View {
 
   private var onBackListener: OnBackListener? = null
   private var side: Side = Side.LEFT
+  private var showArrowUp: Boolean = true
 
   fun setOnBackListener(onBackListener: OnBackListener?) {
     this.onBackListener = onBackListener
@@ -211,10 +212,22 @@ class EdgeSnapBubbleView : View {
       backPath!!.quadTo(0f, backViewHeight * 6 / 8 + deltaY, 0f, backViewHeight + deltaY)
       canvas.drawPath(backPath!!, backPaint!!)
 
-      arrowPath!!.moveTo(drawDelta / 6 + 15 * (drawDelta / (mWidth / 6f)), backViewHeight * 15 / 32 + deltaY)
-      arrowPath!!.lineTo(drawDelta / 6, backViewHeight * 16.1f / 32 + deltaY)
-      arrowPath!!.moveTo(drawDelta / 6, backViewHeight * 15.9f / 32 + deltaY)
-      arrowPath!!.lineTo(drawDelta / 6 + 15 * (drawDelta / (mWidth / 6f)), backViewHeight * 17 / 32 + deltaY)
+      val midX = drawDelta / 6f
+      val topY = backViewHeight * 15f / 32f + deltaY
+      val centerY = backViewHeight * 16f / 32f + deltaY
+      val bottomY = backViewHeight * 17f / 32f + deltaY
+      val tipOffset = 15f * (drawDelta / (mWidth / 6f))
+      if (showArrowUp) {
+        arrowPath!!.moveTo(midX, centerY)
+        arrowPath!!.lineTo(midX + tipOffset, topY)
+        arrowPath!!.moveTo(midX, centerY)
+        arrowPath!!.lineTo(midX + tipOffset, bottomY)
+      } else {
+        arrowPath!!.moveTo(midX + tipOffset, centerY)
+        arrowPath!!.lineTo(midX, topY)
+        arrowPath!!.moveTo(midX + tipOffset, centerY)
+        arrowPath!!.lineTo(midX, bottomY)
+      }
       canvas.drawPath(arrowPath!!, arrowPaint!!)
     } else if (deltaX < 0 && right) {
       if (!isOnlyLeftBack) {
@@ -267,6 +280,12 @@ class EdgeSnapBubbleView : View {
   override fun performClick(): Boolean {
     super.performClick()
     return true
+  }
+
+  fun setArrowExpanded(expanded: Boolean) {
+    // expanded=true 表示容器显示中，箭头朝上（点击后收起）
+    showArrowUp = expanded
+    invalidate()
   }
 
   enum class Side { LEFT, RIGHT }

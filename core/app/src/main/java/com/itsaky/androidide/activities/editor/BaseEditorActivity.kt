@@ -988,6 +988,7 @@ abstract class BaseEditorActivity :
     layoutParams.anchorId = targetAnchorId
     layoutParams.anchorGravity = targetAnchorGravity
     container.layoutParams = layoutParams
+    updatePageSwitchBubbleAnchor()
     if (!isPageSwitchAnchorUpdatePosted) {
       isPageSwitchAnchorUpdatePosted = true
       container.post {
@@ -995,6 +996,24 @@ abstract class BaseEditorActivity :
         updatePageSwitchContainerPosition()
       }
     }
+  }
+
+  private fun updatePageSwitchBubbleAnchor() {
+    if (_binding == null) return
+    val bubble = content.pageSwitchGestureBubble
+    val layoutParams = bubble.layoutParams as? CoordinatorLayout.LayoutParams ?: return
+    val shouldHide = if (isExternalSymbolPageActive) isSymbolPageSwitchHidden else isBuildPageSwitchHidden
+    val targetAnchorId =
+        if (shouldHide) {
+          if (isExternalSymbolPageActive) content.symbolInputPage.id else content.bottomSheet.id
+        } else {
+          content.pageSwitchContainer.id
+        }
+    val targetAnchorGravity = Gravity.TOP or Gravity.START
+    if (layoutParams.anchorId == targetAnchorId && layoutParams.anchorGravity == targetAnchorGravity) return
+    layoutParams.anchorId = targetAnchorId
+    layoutParams.anchorGravity = targetAnchorGravity
+    bubble.layoutParams = layoutParams
   }
 
   private fun applyExternalSymbolImeInset() {
@@ -1045,6 +1064,7 @@ abstract class BaseEditorActivity :
         isBuildPageSwitchHidden = !isBuildPageSwitchHidden
       }
       updatePageSwitchContainerCollapsedState(animated = true)
+      updatePageSwitchBubbleAnchor()
     }
   }
 
@@ -1078,6 +1098,8 @@ abstract class BaseEditorActivity :
         container.alpha = 1f
       }
     }
+    content.pageSwitchGestureBubble.setArrowExpanded(!shouldHide)
+    updatePageSwitchBubbleAnchor()
   }
 
   private fun computePageSwitchAlpha(): Float {
@@ -1116,11 +1138,12 @@ abstract class BaseEditorActivity :
         container.alpha = alpha
         lastPageSwitchAlpha = alpha
       }
-      container.bringToFront()
-      val bubble = content.pageSwitchGestureBubble
-      bubble.restorePosition()
-      bubble.bringToFront()
     }
+    container.bringToFront()
+    val bubble = content.pageSwitchGestureBubble
+    bubble.setArrowExpanded(shouldShow)
+    bubble.restorePosition()
+    bubble.bringToFront()
   }
 
   private fun updateBottomSheetPageSwitch(isBuildStatusPage: Boolean) {
