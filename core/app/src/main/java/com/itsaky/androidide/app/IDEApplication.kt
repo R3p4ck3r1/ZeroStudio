@@ -114,6 +114,7 @@ class IDEApplication : TermuxApplication() {
     GlobalScope.launch(Dispatchers.IO) {
       ReflectionUtils.bypassHiddenAPIReflectionRestrictions()
       IDEColorSchemeProvider.init()
+      Environment.initSecondaryDirs()
     }
     
     Environment.init(this)

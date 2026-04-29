@@ -118,24 +118,23 @@ public final class Environment {
     ANDROIDIDE_HOME = mkdirIfNotExits(new File(HOME, ".androidide"));
     TMP_DIR = mkdirIfNotExits(new File(PREFIX, "tmp"));
     BIN_DIR = mkdirIfNotExits(new File(PREFIX, "bin"));
-    LIB_DIR = mkdirIfNotExits(new File(PREFIX, "lib"));
-    PROJETS_JAVA2KOTLIN_BAK = mkdirIfNotExits(new File(PROJECTS_FOLDER, ".j2k_bak"));
+    LIB_DIR = new File(PREFIX, "lib");
+    PROJETS_JAVA2KOTLIN_BAK = new File(PROJECTS_FOLDER, ".j2k_bak");
     PROJECTS_DIR = mkdirIfNotExits(new File(FileUtil.getExternalStorageDir(), PROJECTS_FOLDER));
-    ANDROID_JAR = mkdirIfNotExits(new File(ANDROIDIDE_HOME, "android.jar"));
-    TOOLING_API_JAR = new File(mkdirIfNotExits(new File(ANDROIDIDE_HOME, "tooling-api")),
-      "tooling-api-all.jar");
+    ANDROID_JAR = new File(ANDROIDIDE_HOME, "android.jar");
+    TOOLING_API_JAR = new File(new File(ANDROIDIDE_HOME, "tooling-api"), "tooling-api-all.jar");
     AAPT2 = new File(ANDROIDIDE_HOME, "aapt2");
-    ANDROIDIDE_UI = mkdirIfNotExits(new File(ANDROIDIDE_HOME, "ui"));
-    REALM_DB_DIR = mkdirIfNotExits(new File(ROOT, "realm-dbs"));
-    COMPOSE_HOME = mkdirIfNotExits(new File(ANDROIDIDE_HOME, "compose"));
+    ANDROIDIDE_UI = new File(ANDROIDIDE_HOME, "ui");
+    REALM_DB_DIR = new File(ROOT, "realm-dbs");
+    COMPOSE_HOME = new File(ANDROIDIDE_HOME, "compose");
 
-    INIT_SCRIPT = new File(mkdirIfNotExits(new File(ANDROIDIDE_HOME, "init")), "init.gradle");
+    INIT_SCRIPT = new File(new File(ANDROIDIDE_HOME, "init"), "init.gradle");
     GRADLE_USER_HOME = new File(HOME, ".gradle");
     MAVEN_REPOSITORY = new File(HOME, ".m2");
     
      // 初始化Lottie动画目录
-    LOTTIE_ANIMATION_DIR = mkdirIfNotExits(new File(ANDROIDIDE_HOME, "LottieAnimation"));
-    LOTTIE_EXPORT_DIR = mkdirIfNotExits(new File(PROJECTS_DIR, "LottieAnimation"));
+    LOTTIE_ANIMATION_DIR = new File(ANDROIDIDE_HOME, "LottieAnimation");
+    LOTTIE_EXPORT_DIR = new File(PROJECTS_DIR, "LottieAnimation");
     
      File java17Home = new File(PREFIX, "lib/jvm/java-17-openjdk");
      File java21Home = new File(PREFIX, "lib/jvm/java-21-openjdk");
@@ -152,22 +151,22 @@ public final class Environment {
     PROTOC_BIN = new File(PREFIX, "bin");
 
     
-    KOTLINC_HOME = mkdirIfNotExits(new File(HOME, ".kotlinc"));
+    KOTLINC_HOME = new File(HOME, ".kotlinc");
     
     //plugin
-    File idePluginDir = mkdirIfNotExits(new File(ANDROIDIDE_HOME, "ideplugin"));
-    PLUGIN_HOME = mkdirIfNotExits(new File(ANDROIDIDE_HOME, "plugin"));
+    File idePluginDir = new File(ANDROIDIDE_HOME, "ideplugin");
+    PLUGIN_HOME = new File(ANDROIDIDE_HOME, "plugin");
     
-    KOTLIN_LSP_HOME = mkdirIfNotExits(new File(idePluginDir, "kotlinLanguageServices"));
+    KOTLIN_LSP_HOME = new File(idePluginDir, "kotlinLanguageServices");
     KOTLIN_LSP_LAUNCHER = new File(KOTLIN_LSP_HOME, "bin/kotlin-language-server");
     KOTLIN_LSP_LIBS_JAR_DIR = new File(KOTLIN_LSP_HOME, "lib");
     SERVERS_KOTLIN_DIR = KOTLIN_LSP_HOME;
-    SERVER_CONFIG_DIR = mkdirIfNotExits(new File(HOME, ".config/kotlin-language-server"));
+    SERVER_CONFIG_DIR = new File(HOME, ".config/kotlin-language-server");
     //格式化插件
-    FORMAT_KOTLIN_KTFMT = mkdirIfNotExits(new File(idePluginDir, "ktfmt"));
+    FORMAT_KOTLIN_KTFMT = new File(idePluginDir, "ktfmt");
     
     JAVA_HOME = new File(PREFIX, "opt/openjdk");
-    ANDROIDIDE = createFileIfNotExists(new File(PREFIX, "share/AndroidIDE.properties"));
+    ANDROIDIDE = new File(PREFIX, "share/AndroidIDE.properties");
 
          // SHELL_KOTLIN_LSP = new File(KOTLIN_LSP_HOME, "bin/kotlin-language-server");
     JAVA = new File(JAVA_HOME, "bin/java");
@@ -201,6 +200,21 @@ public final class Environment {
 
     //  注入 Native 环境变量 (供 ProcessBuilder, Runtime.exec, Terminal 使用)
     injectNativeEnvironment();
+  }
+
+  public static void initSecondaryDirs() {
+    mkdirIfNotExits(ANDROIDIDE_UI);
+    mkdirIfNotExits(REALM_DB_DIR);
+    mkdirIfNotExits(COMPOSE_HOME);
+    mkdirIfNotExits(INIT_SCRIPT.getParentFile());
+    mkdirIfNotExits(KOTLINC_HOME);
+    mkdirIfNotExits(PLUGIN_HOME);
+    mkdirIfNotExits(KOTLIN_LSP_HOME);
+    mkdirIfNotExits(SERVER_CONFIG_DIR);
+    mkdirIfNotExits(FORMAT_KOTLIN_KTFMT);
+    mkdirIfNotExits(LOTTIE_ANIMATION_DIR);
+    mkdirIfNotExits(LOTTIE_EXPORT_DIR);
+    createFileIfNotExists(ANDROIDIDE);
   }
 
   /**
