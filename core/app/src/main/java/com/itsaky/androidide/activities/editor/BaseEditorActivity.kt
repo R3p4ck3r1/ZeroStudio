@@ -90,6 +90,7 @@ import com.itsaky.androidide.tasks.cancelIfActive
 import com.itsaky.androidide.ui.CodeEditorView
 import com.itsaky.androidide.ui.ContentTranslatingDrawerLayout
 import com.itsaky.androidide.ui.EditorBottomSheet
+import com.itsaky.androidide.ui.EdgeSnapBubbleView
 import com.itsaky.androidide.ui.SwipeRevealLayout
 import com.itsaky.androidide.utils.ActionMenuUtils.createMenu
 import com.itsaky.androidide.utils.ApkInstallationSessionCallback
@@ -212,6 +213,8 @@ abstract class BaseEditorActivity :
   private var blockBottomSheetExpandForTabSwitch = false
   private var isPageSwitchAnchorUpdatePosted = false
   private var latestImeBottomInset = 0
+  private var isBuildPageSwitchHidden = true
+  private var isSymbolPageSwitchHidden = true
 
   companion object {
 
@@ -848,7 +851,12 @@ abstract class BaseEditorActivity :
     content.apply {
       setupExternalSymbolImeSync()
       pageSwitchContainer.bringToFront()
-      pageSwitchContainer.post { updatePageSwitchContainerPosition() }
+      pageSwitchGestureBubble.bringToFront()
+      pageSwitchContainer.post {
+        setupPageSwitchGestureBubble()
+        updatePageSwitchContainerPosition()
+        updatePageSwitchContainerCollapsedState(animated = false)
+      }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updatePageSwitchContainerPosition()
@@ -966,6 +974,7 @@ abstract class BaseEditorActivity :
       }
     }
     updatePageSwitchContainerPosition()
+    updatePageSwitchContainerCollapsedState(animated = false)
   }
 
   private fun updatePageSwitchAnchor() {
@@ -1026,6 +1035,43 @@ abstract class BaseEditorActivity :
     content.viewContainer.scaleY = 1f
   }
 
+  private fun setupPageSwitchGestureBubble() {
+    if (_binding == null) return
+    val bubble = content.pageSwitchGestureBubble
+    bubble.dragTopBoundaryProvider = { content.editorAppBarLayout.bottom.toFloat() }
+    bubble.attachToSide(EdgeSnapBubbleView.Side.LEFT)
+    bubble.setOnClickListener {
+      if (isExternalSymbolPageActive) {
+        isSymbolPageSwitchHidden = !isSymbolPageSwitchHidden
+      } else {
+        isBuildPageSwitchHidden = !isBuildPageSwitchHidden
+      }
+      updatePageSwitchContainerCollapsedState(animated = true)
+    }
+  }
+
+  private fun updatePageSwitchContainerCollapsedState(animated: Boolean) {
+    if (_binding == null) return
+    val container = content.pageSwitchContainer
+    val shouldHide = if (isExternalSymbolPageActive) isSymbolPageSwitchHidden else isBuildPageSwitchHidden
+    if (shouldHide) {
+      if (animated) {
+        container.animate().alpha(0f).setDuration(160L).withEndAction { container.visibility = View.GONE }.start()
+      } else {
+        container.alpha = 0f
+        container.visibility = View.GONE
+      }
+    } else {
+      container.visibility = View.VISIBLE
+      if (animated) {
+        container.alpha = 0f
+        container.animate().alpha(1f).setDuration(180L).start()
+      } else {
+        container.alpha = 1f
+      }
+    }
+  }
+
   private fun updatePageSwitchContainerPosition() {
     if (_binding == null) return
     val container = content.pageSwitchContainer
@@ -1042,7 +1088,7 @@ abstract class BaseEditorActivity :
       container.translationY = desiredTranslationY
     }
 
-    val shouldShow = true
+    val shouldShow = !(if (isExternalSymbolPageActive) isSymbolPageSwitchHidden else isBuildPageSwitchHidden)
     if (lastPageSwitchVisible == null || lastPageSwitchVisible != shouldShow) {
       container.visibility = if (shouldShow) View.VISIBLE else View.INVISIBLE
       lastPageSwitchVisible = shouldShow
@@ -1063,6 +1109,9 @@ abstract class BaseEditorActivity :
         lastPageSwitchAlpha = alpha
       }
       container.bringToFront()
+      val bubble = content.pageSwitchGestureBubble
+      bubble.restorePosition()
+      bubble.bringToFront()
     }
   }
 
