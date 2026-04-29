@@ -1052,18 +1052,28 @@ abstract class BaseEditorActivity :
     if (_binding == null) return
     val container = content.pageSwitchContainer
     val shouldHide = if (isExternalSymbolPageActive) isSymbolPageSwitchHidden else isBuildPageSwitchHidden
+    val hiddenShift = container.height.toFloat().coerceAtLeast(1f)
     if (shouldHide) {
       if (animated) {
-        container.animate().alpha(0f).setDuration(160L).withEndAction { container.visibility = View.GONE }.start()
+        container
+            .animate()
+            .alpha(0f)
+            .translationY(container.translationY + hiddenShift)
+            .setDuration(200L)
+            .withEndAction { container.visibility = View.GONE }
+            .start()
       } else {
         container.alpha = 0f
+        container.translationY += hiddenShift
         container.visibility = View.GONE
       }
     } else {
       container.visibility = View.VISIBLE
       if (animated) {
+        val targetTranslationY = container.translationY
         container.alpha = 0f
-        container.animate().alpha(1f).setDuration(180L).start()
+        container.translationY = targetTranslationY + hiddenShift
+        container.animate().alpha(1f).translationY(targetTranslationY).setDuration(220L).start()
       } else {
         container.alpha = 1f
       }
