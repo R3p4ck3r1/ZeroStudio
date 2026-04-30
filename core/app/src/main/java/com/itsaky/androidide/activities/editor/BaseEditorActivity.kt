@@ -865,13 +865,11 @@ abstract class BaseEditorActivity :
       pageSwitchGestureBubble.bringToFront()
       symbolInputPage.post {
         setupPageSwitchGestureBubble()
-        syncSymbolInputPageWithBottomSheet()
         updateSymbolInputOverlayPosition()
       }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updateSymbolInputOverlayPosition()
-        syncSymbolInputPageWithBottomSheet()
       }
       symbolInputPage.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updateSymbolInputOverlayPosition()
@@ -1079,16 +1077,6 @@ abstract class BaseEditorActivity :
       container.translationY
     } else {
       0f
-    }
-  }
-
-  private fun syncSymbolInputPageWithBottomSheet() {
-    if (_binding == null) return
-    val lp = content.symbolInputPage.layoutParams as? CoordinatorLayout.LayoutParams ?: return
-    if (lp.anchorId != content.bottomSheet.id) {
-      lp.anchorId = content.bottomSheet.id
-      lp.anchorGravity = Gravity.TOP
-      content.symbolInputPage.layoutParams = lp
     }
   }
 
