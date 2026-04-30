@@ -1033,16 +1033,25 @@ abstract class BaseEditorActivity :
     val alpha = computePageSwitchAlpha()
     val visibility = if (alpha > 0.02f) View.VISIBLE else View.GONE
     val targetVisibility = if (isExternalSymbolPageActive) View.VISIBLE else visibility
+    val symbolExpansion =
+        if (isExternalSymbolPageActive) {
+          content.externalSymbolInputView.getExpansionFraction().coerceIn(0f, 1f)
+        } else {
+          0f
+        }
+    // AdvancedSymbolInputView 正在上下拖拽或已完全展开时，自动隐藏 header 区域，保留 bubble。
+    val hideHeaderBySymbolGesture = symbolExpansion > 0.01f
+    val headerVisibility = if (hideHeaderBySymbolGesture) View.GONE else targetVisibility
     content.symbolInputPage.visibility = targetVisibility
     content.symbolInputPage.alpha = alpha
 
     // 顶部边缘同步：bubble/header/symbol input 在滑动期间统一显隐
     content.pageSwitchGestureBubble.visibility = targetVisibility
-    content.headerContainer.visibility = targetVisibility
+    content.headerContainer.visibility = headerVisibility
     content.externalSymbolInputView.visibility = targetVisibility
-    content.cardView.visibility = targetVisibility
-    content.border.visibility = targetVisibility
-    content.tvCursorPosition.visibility = targetVisibility
+    content.cardView.visibility = headerVisibility
+    content.border.visibility = headerVisibility
+    content.tvCursorPosition.visibility = headerVisibility
 
     content.pageSwitchGestureBubble.setArrowExpanded(!isExternalSymbolPageActive)
     content.pageSwitchGestureBubble.bringToFront()
