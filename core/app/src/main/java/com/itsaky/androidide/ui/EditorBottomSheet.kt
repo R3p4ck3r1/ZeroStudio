@@ -106,6 +106,9 @@ constructor(
   private var behaviorCallbackAttached = false
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
+  var onActionTextChanged: ((CharSequence) -> Unit)? = null
+  var onActionProgressChanged: ((Int) -> Unit)? = null
+  var onStatusChanged: ((CharSequence, Int) -> Unit)? = null
 
   private val insetBottom: Int
     get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
@@ -314,11 +317,11 @@ constructor(
   private val resumeHeaderExpandRunnable = Runnable { headerExpandEnabled = true }
 
   fun setActionText(text: CharSequence) {
-    // moved to content_editor header overlay
+    onActionTextChanged?.invoke(text)
   }
 
   fun setActionProgress(progress: Int) {
-    // moved to content_editor header overlay
+    onActionProgressChanged?.invoke(progress)
   }
 
   fun appendApkLog(line: LogLine) {
@@ -373,7 +376,7 @@ constructor(
   }
 
   fun setStatus(text: CharSequence, @GravityInt gravity: Int) {
-    // moved to content_editor header overlay
+    onStatusChanged?.invoke(text, gravity)
   }
 
   private fun shareFile(file: File) {

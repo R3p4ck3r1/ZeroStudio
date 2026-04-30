@@ -852,14 +852,26 @@ abstract class BaseEditorActivity :
 
     content.apply {
       setupExternalSymbolImeSync()
+      bottomSheet.onActionTextChanged = { text ->
+        content.bottomAction.actionText.text = text
+      }
+      bottomSheet.onActionProgressChanged = { progress ->
+        content.bottomAction.progress.setProgressCompat(progress, true)
+      }
+      bottomSheet.onStatusChanged = { text, gravity ->
+        content.buildStatus.statusText.gravity = gravity
+        content.buildStatus.statusText.text = text
+      }
       pageSwitchGestureBubble.bringToFront()
       symbolInputPage.post {
         setupPageSwitchGestureBubble()
+        syncSymbolInputPageWithBottomSheet()
         updateSymbolInputOverlayPosition()
       }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updateSymbolInputOverlayPosition()
+        syncSymbolInputPageWithBottomSheet()
       }
       symbolInputPage.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updateSymbolInputOverlayPosition()
@@ -1042,17 +1054,42 @@ abstract class BaseEditorActivity :
     val h = container.height.toFloat().coerceAtLeast(1f)
     val targetY = if (expand) 0f else h
     val targetAlpha = if (expand) 1f else 0f
+    container.visibility = View.VISIBLE
     container
         .animate()
         .translationY(targetY)
         .alpha(targetAlpha)
         .setDuration(220L)
+        .withEndAction {
+          container.visibility = if (expand) View.VISIBLE else View.GONE
+          syncBubbleToHeaderTop()
+        }
         .start()
     content.pageSwitchGestureBubble
         .animate()
         .translationY(targetY)
         .setDuration(220L)
         .start()
+  }
+
+  private fun syncBubbleToHeaderTop() {
+    if (_binding == null) return
+    val container = content.headerOverlayContainer
+    content.pageSwitchGestureBubble.translationY = if (container.visibility == View.VISIBLE) {
+      container.translationY
+    } else {
+      0f
+    }
+  }
+
+  private fun syncSymbolInputPageWithBottomSheet() {
+    if (_binding == null) return
+    val lp = content.symbolInputPage.layoutParams as? CoordinatorLayout.LayoutParams ?: return
+    if (lp.anchorId != content.bottomSheet.id) {
+      lp.anchorId = content.bottomSheet.id
+      lp.anchorGravity = Gravity.TOP
+      content.symbolInputPage.layoutParams = lp
+    }
   }
 
   private fun updateSymbolInputOverlayPosition() {
@@ -1077,6 +1114,7 @@ abstract class BaseEditorActivity :
 
     // 顶部边缘同步：bubble/header/symbol input 在滑动期间统一显隐
     content.pageSwitchGestureBubble.visibility = targetVisibility
+    content.headerOverlayContainer.visibility = headerVisibility
     content.headerContainer.visibility = headerVisibility
     content.externalSymbolInputView.visibility = targetVisibility
     content.cardView.visibility = headerVisibility
