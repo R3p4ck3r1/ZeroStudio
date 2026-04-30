@@ -24,9 +24,12 @@ class EdgeSnapBubbleView : View {
   private var backMaxWidth: Float = 0f
 
   private var downY: Float = 0f
+  private var downX: Float = 0f
   private var deltaY: Float = 0f
+  private var deltaX: Float = 0f
   private var tracking = false
   private var triggerDistance: Float = 0f
+  private var dragStartTranslationX: Float = 0f
 
   private var backPaint: Paint? = null
   private var arrowPaint: Paint? = null
@@ -79,8 +82,11 @@ class EdgeSnapBubbleView : View {
     when (ev.action) {
       MotionEvent.ACTION_DOWN -> {
         downY = ev.y
+        downX = ev.x
         deltaY = 0f
+        deltaX = 0f
         tracking = true
+        dragStartTranslationX = translationX
         parent.requestDisallowInterceptTouchEvent(true)
         invalidate()
       }
@@ -88,6 +94,13 @@ class EdgeSnapBubbleView : View {
       MotionEvent.ACTION_MOVE -> {
         if (!tracking) return false
         deltaY = (ev.y - downY).coerceIn(-backMaxWidth, backMaxWidth)
+        deltaX = ev.x - downX
+        val parentView = parent as? View
+        if (parentView != null) {
+          val minX = -left.toFloat()
+          val maxX = (parentView.width - right).toFloat()
+          translationX = (dragStartTranslationX + deltaX).coerceIn(minX, maxX)
+        }
         onDragListener?.onDrag(deltaY / backMaxWidth)
         invalidate()
       }
@@ -120,13 +133,28 @@ class EdgeSnapBubbleView : View {
 
     val w = width.toFloat()
     val h = height.toFloat().coerceAtLeast(1f)
-    val bump = (backMaxWidth * 0.5f + kotlin.math.abs(deltaY) * 0.6f).coerceAtMost(backMaxWidth)
+    val pull = kotlin.math.abs(deltaY).coerceAtMost(backMaxWidth)
+    val bump = (backMaxWidth * 0.35f + pull * 0.95f).coerceAtMost(backMaxWidth)
 
     backPath!!.moveTo(0f, 0f)
     backPath!!.lineTo(w, 0f)
     backPath!!.lineTo(w, h)
-    backPath!!.quadTo(w * 0.75f, h - bump, w * 0.5f, h - bump)
-    backPath!!.quadTo(w * 0.25f, h - bump, 0f, h)
+    backPath!!.cubicTo(
+        w * 0.86f,
+        h - bump * 0.25f,
+        w * 0.68f,
+        h - bump,
+        w * 0.5f,
+        h - bump
+    )
+    backPath!!.cubicTo(
+        w * 0.32f,
+        h - bump,
+        w * 0.14f,
+        h - bump * 0.25f,
+        0f,
+        h
+    )
     backPath!!.close()
     canvas.drawPath(backPath!!, backPaint!!)
 
@@ -169,8 +197,12 @@ class EdgeSnapBubbleView : View {
   }
 
   fun restorePosition() {
+    val parentView = parent as? View
     x = 0f
     y = 0f
+    if (parentView != null) {
+      translationX = translationX.coerceIn(-left.toFloat(), (parentView.width - right).toFloat())
+    }
   }
 
   override fun performClick(): Boolean {

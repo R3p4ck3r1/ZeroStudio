@@ -1016,6 +1016,7 @@ abstract class BaseEditorActivity :
     val offset = (fraction * h).coerceIn(0f, h)
     container.translationY = offset
     container.alpha = (1f - (offset / h)).coerceIn(0f, 1f)
+    content.pageSwitchGestureBubble.translationY = container.translationY
   }
 
   private fun completeHeaderOverlayDrag(fraction: Float) {
@@ -1044,6 +1045,11 @@ abstract class BaseEditorActivity :
         .alpha(targetAlpha)
         .setDuration(220L)
         .start()
+    content.pageSwitchGestureBubble
+        .animate()
+        .translationY(targetY)
+        .setDuration(220L)
+        .start()
   }
 
   private fun updateSymbolInputOverlayPosition() {
@@ -1062,6 +1068,9 @@ abstract class BaseEditorActivity :
     val headerVisibility = if (hideHeaderBySymbolGesture) View.GONE else targetVisibility
     content.symbolInputPage.visibility = targetVisibility
     content.symbolInputPage.alpha = alpha
+    content.symbolInputPage.updateLayoutParams<ViewGroup.LayoutParams> {
+      height = ViewGroup.LayoutParams.WRAP_CONTENT
+    }
 
     // 顶部边缘同步：bubble/header/symbol input 在滑动期间统一显隐
     content.pageSwitchGestureBubble.visibility = targetVisibility
