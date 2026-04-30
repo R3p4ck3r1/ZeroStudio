@@ -1068,7 +1068,7 @@ abstract class BaseEditorActivity :
     content.headerContainer.visibility = headerVisibility
     content.externalSymbolInputView.visibility = targetVisibility
     content.cardView.visibility = headerVisibility
-    content.border.visibility = headerVisibility
+    content.border.root.visibility = headerVisibility
     content.tvCursorPosition.visibility = headerVisibility
 
     content.pageSwitchGestureBubble.setArrowExpanded(!isExternalSymbolPageActive)
