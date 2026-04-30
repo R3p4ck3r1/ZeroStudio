@@ -46,11 +46,49 @@ class EdgeSnapBubbleView : View {
   private var arrowPath: Path? = null
 
   private var onBackListener: OnBackListener? = null
+  private var onBubbleClickListener: OnBubbleClickListener? = null
+  private var onBubbleGestureListener: OnBubbleGestureListener? = null
   private var side: Side = Side.LEFT
+  private var position: Position = Position.LEFT
+  private var orientation: Orientation = Orientation.VERTICAL
+  private var isMirrored: Boolean = false
   private var showArrowUp: Boolean = true
 
   fun setOnBackListener(onBackListener: OnBackListener?) {
     this.onBackListener = onBackListener
+  }
+
+  fun setOnBubbleClickListener(listener: OnBubbleClickListener?) {
+    onBubbleClickListener = listener
+  }
+
+  fun setOnBubbleGestureListener(listener: OnBubbleGestureListener?) {
+    onBubbleGestureListener = listener
+  }
+
+
+  fun setPosition(newPosition: Position) {
+    position = newPosition
+    side = when (newPosition) {
+      Position.LEFT, Position.TOP -> Side.LEFT
+      Position.RIGHT, Position.BOTTOM -> Side.RIGHT
+    }
+    restorePosition()
+  }
+
+  fun setOrientation(newOrientation: Orientation) {
+    orientation = newOrientation
+    applyRenderTransform()
+  }
+
+  fun setMirrored(mirrored: Boolean) {
+    isMirrored = mirrored
+    applyRenderTransform()
+  }
+
+  private fun applyRenderTransform() {
+    rotation = if (orientation == Orientation.VERTICAL) 90f else 0f
+    scaleX = if (isMirrored) -1f else 1f
   }
 
   fun setOnlyLeftBack(onlyLeftBack: Boolean) {
@@ -144,6 +182,7 @@ class EdgeSnapBubbleView : View {
         }
         forwardX = currentX
         if (isEdge) {
+          onBubbleGestureListener?.onDrag(getDragFraction())
           invalidate()
         }
       }
@@ -161,6 +200,7 @@ class EdgeSnapBubbleView : View {
           if (abs(deltaX) < backMaxWidth * 0.2f) {
             performClick()
           }
+          onBubbleGestureListener?.onRelease(getDragFraction())
           deltaX = 0f
           invalidate()
         }
@@ -268,16 +308,40 @@ class EdgeSnapBubbleView : View {
 
   fun attachToSide(newSide: Side) {
     side = newSide
-    val parentView = parent as? View ?: return
-    x = if (side == Side.LEFT) 0f else (parentView.width - width).toFloat()
+    position = if (newSide == Side.LEFT) Position.LEFT else Position.RIGHT
+    restorePosition()
   }
 
   fun restorePosition() {
     val parentView = parent as? View ?: return
-    x = if (side == Side.LEFT) 0f else (parentView.width - width).toFloat()
+    when (position) {
+      Position.LEFT -> {
+        x = 0f
+        y = ((parentView.height - height) / 2f).coerceAtLeast(0f)
+      }
+      Position.RIGHT -> {
+        x = (parentView.width - width).toFloat()
+        y = ((parentView.height - height) / 2f).coerceAtLeast(0f)
+      }
+      Position.TOP -> {
+        x = ((parentView.width - width) / 2f).coerceAtLeast(0f)
+        y = 0f
+      }
+      Position.BOTTOM -> {
+        x = ((parentView.width - width) / 2f).coerceAtLeast(0f)
+        y = (parentView.height - height).toFloat()
+      }
+    }
+    applyRenderTransform()
+  }
+
+  private fun getDragFraction(): Float {
+    if (backMaxWidth <= 0f) return 0f
+    return (deltaX / backMaxWidth).coerceIn(-1f, 1f)
   }
 
   override fun performClick(): Boolean {
+    onBubbleClickListener?.onClick(this)
     super.performClick()
     return true
   }
@@ -290,7 +354,21 @@ class EdgeSnapBubbleView : View {
 
   enum class Side { LEFT, RIGHT }
 
+  enum class Position { LEFT, RIGHT, TOP, BOTTOM }
+
+  enum class Orientation { VERTICAL, HORIZONTAL }
+
   interface OnBackListener {
     fun onBack()
+  }
+
+  fun interface OnBubbleClickListener {
+    fun onClick(view: EdgeSnapBubbleView)
+  }
+
+  interface OnBubbleGestureListener {
+    fun onDrag(fraction: Float)
+
+    fun onRelease(fraction: Float)
   }
 }
