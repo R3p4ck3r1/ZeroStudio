@@ -49,6 +49,9 @@ class EdgeSnapBubbleView : View {
   private var onBubbleClickListener: OnBubbleClickListener? = null
   private var onBubbleGestureListener: OnBubbleGestureListener? = null
   private var side: Side = Side.LEFT
+  private var position: Position = Position.LEFT
+  private var orientation: Orientation = Orientation.VERTICAL
+  private var isMirrored: Boolean = false
   private var showArrowUp: Boolean = true
 
   fun setOnBackListener(onBackListener: OnBackListener?) {
@@ -61,6 +64,31 @@ class EdgeSnapBubbleView : View {
 
   fun setOnBubbleGestureListener(listener: OnBubbleGestureListener?) {
     onBubbleGestureListener = listener
+  }
+
+
+  fun setPosition(newPosition: Position) {
+    position = newPosition
+    side = when (newPosition) {
+      Position.LEFT, Position.TOP -> Side.LEFT
+      Position.RIGHT, Position.BOTTOM -> Side.RIGHT
+    }
+    restorePosition()
+  }
+
+  fun setOrientation(newOrientation: Orientation) {
+    orientation = newOrientation
+    applyRenderTransform()
+  }
+
+  fun setMirrored(mirrored: Boolean) {
+    isMirrored = mirrored
+    applyRenderTransform()
+  }
+
+  private fun applyRenderTransform() {
+    rotation = if (orientation == Orientation.HORIZONTAL) 90f else 0f
+    scaleX = if (isMirrored) -1f else 1f
   }
 
   fun setOnlyLeftBack(onlyLeftBack: Boolean) {
@@ -280,13 +308,31 @@ class EdgeSnapBubbleView : View {
 
   fun attachToSide(newSide: Side) {
     side = newSide
-    val parentView = parent as? View ?: return
-    x = if (side == Side.LEFT) 0f else (parentView.width - width).toFloat()
+    position = if (newSide == Side.LEFT) Position.LEFT else Position.RIGHT
+    restorePosition()
   }
 
   fun restorePosition() {
     val parentView = parent as? View ?: return
-    x = if (side == Side.LEFT) 0f else (parentView.width - width).toFloat()
+    when (position) {
+      Position.LEFT -> {
+        x = 0f
+        y = ((parentView.height - height) / 2f).coerceAtLeast(0f)
+      }
+      Position.RIGHT -> {
+        x = (parentView.width - width).toFloat()
+        y = ((parentView.height - height) / 2f).coerceAtLeast(0f)
+      }
+      Position.TOP -> {
+        x = ((parentView.width - width) / 2f).coerceAtLeast(0f)
+        y = 0f
+      }
+      Position.BOTTOM -> {
+        x = ((parentView.width - width) / 2f).coerceAtLeast(0f)
+        y = (parentView.height - height).toFloat()
+      }
+    }
+    applyRenderTransform()
   }
 
   private fun getDragFraction(): Float {
@@ -307,6 +353,10 @@ class EdgeSnapBubbleView : View {
   }
 
   enum class Side { LEFT, RIGHT }
+
+  enum class Position { LEFT, RIGHT, TOP, BOTTOM }
+
+  enum class Orientation { VERTICAL, HORIZONTAL }
 
   interface OnBackListener {
     fun onBack()
