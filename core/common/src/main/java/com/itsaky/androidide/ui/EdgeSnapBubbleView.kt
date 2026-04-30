@@ -79,6 +79,7 @@ class EdgeSnapBubbleView : View {
   fun setOrientation(newOrientation: Orientation) {
     orientation = newOrientation
     applyRenderTransform()
+    restorePosition()
   }
 
   fun setMirrored(mirrored: Boolean) {
