@@ -34,10 +34,15 @@ class EdgeSnapBubbleView : View {
   private var arrowPath: Path? = null
 
   private var onBackListener: OnBackListener? = null
+  private var onDragListener: OnDragListener? = null
   private var showArrowUp: Boolean = true
 
   fun setOnBackListener(onBackListener: OnBackListener?) {
     this.onBackListener = onBackListener
+  }
+
+  fun setOnDragListener(onDragListener: OnDragListener?) {
+    this.onDragListener = onDragListener
   }
 
   constructor(context: Context) : this(context, null)
@@ -83,6 +88,7 @@ class EdgeSnapBubbleView : View {
       MotionEvent.ACTION_MOVE -> {
         if (!tracking) return false
         deltaY = (ev.y - downY).coerceIn(-backMaxWidth, backMaxWidth)
+        onDragListener?.onDrag(deltaY / backMaxWidth)
         invalidate()
       }
 
@@ -92,6 +98,7 @@ class EdgeSnapBubbleView : View {
           if (draggedEnough || ev.action == MotionEvent.ACTION_UP) {
             performClick()
           }
+          onDragListener?.onRelease(deltaY / backMaxWidth)
           deltaY = 0f
           tracking = false
           parent.requestDisallowInterceptTouchEvent(false)
@@ -181,5 +188,10 @@ class EdgeSnapBubbleView : View {
 
   interface OnBackListener {
     fun onBack()
+  }
+
+  interface OnDragListener {
+    fun onDrag(fraction: Float)
+    fun onRelease(fraction: Float)
   }
 }

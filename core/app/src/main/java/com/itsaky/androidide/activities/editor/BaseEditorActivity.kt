@@ -134,6 +134,7 @@ abstract class BaseEditorActivity :
   private var bottomSheetCardVisibilitySnapshot: Int = View.VISIBLE
   private var bottomSheetHeaderVisibilitySnapshot: Int = View.VISIBLE
   private var isExternalSymbolPageActive = false
+  private var isHeaderOverlayCollapsed = false
 
   var isDestroying = false
     protected set
@@ -969,15 +970,62 @@ abstract class BaseEditorActivity :
     val bubble = content.pageSwitchGestureBubble
     bubble.attachToSide(EdgeSnapBubbleView.Side.LEFT)
     bubble.setOnClickListener {
-      if (isExternalSymbolPageActive) {
-        setExternalSymbolPageActive(false)
-        content.bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
-      } else {
-        setExternalSymbolPageActive(true)
-        content.bottomSheet.showChild(EditorBottomSheet.STATE_EXTERNAL_SYMBOL)
-      }
-      updateSymbolInputOverlayPosition()
+      toggleHeaderOverlay()
     }
+    bubble.setOnDragListener(
+        object : EdgeSnapBubbleView.OnDragListener {
+          override fun onDrag(fraction: Float) {
+            applyHeaderOverlayDrag(fraction)
+          }
+
+          override fun onRelease(fraction: Float) {
+            completeHeaderOverlayDrag(fraction)
+          }
+        }
+    )
+  }
+
+  private fun toggleHeaderOverlay() {
+    if (_binding == null) return
+    isHeaderOverlayCollapsed = !isHeaderOverlayCollapsed
+    animateHeaderOverlay(expand = !isHeaderOverlayCollapsed)
+  }
+
+  private fun applyHeaderOverlayDrag(fraction: Float) {
+    if (_binding == null) return
+    val container = content.headerOverlayContainer
+    val h = container.height.toFloat().coerceAtLeast(1f)
+    val offset = (fraction * h).coerceIn(0f, h)
+    container.translationY = offset
+    container.alpha = (1f - (offset / h)).coerceIn(0f, 1f)
+  }
+
+  private fun completeHeaderOverlayDrag(fraction: Float) {
+    if (_binding == null) return
+    if (!isExternalSymbolPageActive) {
+      if (fraction < -0.35f) {
+        editorBottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
+      } else if (fraction > 0.35f) {
+        editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
+      }
+    }
+    val shouldCollapse = fraction > 0.25f
+    isHeaderOverlayCollapsed = shouldCollapse
+    animateHeaderOverlay(expand = !shouldCollapse)
+  }
+
+  private fun animateHeaderOverlay(expand: Boolean) {
+    if (_binding == null) return
+    val container = content.headerOverlayContainer
+    val h = container.height.toFloat().coerceAtLeast(1f)
+    val targetY = if (expand) 0f else h
+    val targetAlpha = if (expand) 1f else 0f
+    container
+        .animate()
+        .translationY(targetY)
+        .alpha(targetAlpha)
+        .setDuration(220L)
+        .start()
   }
 
   private fun updateSymbolInputOverlayPosition() {
