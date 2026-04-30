@@ -924,6 +924,22 @@ abstract class BaseEditorActivity :
     )
   }
 
+
+  private fun updateSymbolInputPageAnchor(active: Boolean) {
+    if (_binding == null) return
+    content.symbolInputPage.updateLayoutParams<CoordinatorLayout.LayoutParams> {
+      if (active) {
+        anchorId = View.NO_ID
+        anchorGravity = Gravity.NO_GRAVITY
+        gravity = Gravity.BOTTOM
+      } else {
+        anchorId = content.bottomSheet.id
+        anchorGravity = Gravity.TOP
+        gravity = Gravity.BOTTOM
+      }
+    }
+  }
+
   private fun setExternalSymbolPageActive(active: Boolean) {
     if (_binding == null) return
     isExternalSymbolPageActive = active
@@ -937,6 +953,7 @@ abstract class BaseEditorActivity :
     }
     content.bottomSheet.forceCollapse()
     content.bottomSheet.setBottomSheetDragEnabled(!active)
+    updateSymbolInputPageAnchor(active)
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
     applyExternalSymbolImeInset()
@@ -1003,12 +1020,13 @@ abstract class BaseEditorActivity :
   private fun setupPageSwitchGestureBubble() {
     if (_binding == null) return
     val bubble = content.pageSwitchGestureBubble
-    bubble.attachToSide(EdgeSnapBubbleView.Side.LEFT)
-    bubble.setOnClickListener {
+    bubble.setPosition(EdgeSnapBubbleView.Position.TOP)
+    bubble.setOrientation(EdgeSnapBubbleView.Orientation.HORIZONTAL)
+    bubble.setOnBubbleClickListener {
       toggleHeaderOverlay()
     }
-    bubble.setOnDragListener(
-        object : EdgeSnapBubbleView.OnDragListener {
+    bubble.setOnBubbleGestureListener(
+        object : EdgeSnapBubbleView.OnBubbleGestureListener {
           override fun onDrag(fraction: Float) {
             applyHeaderOverlayDrag(fraction)
           }
@@ -1030,8 +1048,8 @@ abstract class BaseEditorActivity :
     if (_binding == null) return
     // 拖拽手势用于控制底部隐藏 tab 抽屉（bottom_sheet），不控制 header_overlay_container。
     // 这里只做 bubble 的轻微跟手反馈。
-    val feedback = (fraction * content.pageSwitchGestureBubble.height).coerceIn(-24f, 24f)
-    content.pageSwitchGestureBubble.translationY = feedback
+    // Bubble 需要始终贴合 header_container 顶部边缘，跟随 overlay 的位移。
+    content.pageSwitchGestureBubble.translationY = content.headerOverlayContainer.translationY
   }
 
   private fun completeHeaderOverlayDrag(fraction: Float) {
@@ -1043,7 +1061,7 @@ abstract class BaseEditorActivity :
         editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
       }
     }
-    content.pageSwitchGestureBubble.animate().translationY(0f).setDuration(120L).start()
+    content.pageSwitchGestureBubble.animate().translationY(content.headerOverlayContainer.translationY).setDuration(120L).start()
   }
 
   private fun animateHeaderOverlay(expand: Boolean) {
@@ -1065,7 +1083,7 @@ abstract class BaseEditorActivity :
         .start()
     content.pageSwitchGestureBubble
         .animate()
-        .translationY(targetY)
+         .translationY(targetY)
         .setDuration(220L)
         .start()
   }
@@ -1073,11 +1091,8 @@ abstract class BaseEditorActivity :
   private fun syncBubbleToHeaderTop() {
     if (_binding == null) return
     val container = content.headerOverlayContainer
-    content.pageSwitchGestureBubble.translationY = if (container.visibility == View.VISIBLE) {
-      container.translationY
-    } else {
-      0f
-    }
+    val targetY = if (isHeaderOverlayCollapsed) container.height.toFloat() else 0f
+    content.pageSwitchGestureBubble.translationY = targetY
   }
 
   private fun updateSymbolInputOverlayPosition() {

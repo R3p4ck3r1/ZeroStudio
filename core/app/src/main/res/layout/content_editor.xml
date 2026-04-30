@@ -127,16 +127,17 @@
           android:elevation="4dp"
           android:visibility="gone">
 
-          <com.itsaky.androidide.ui.EdgeSnapBubbleView
-               android:id="@+id/page_switch_gesture_bubble"
-               android:layout_width="match_parent"
-               android:layout_height="24dp"
-               android:background="@android:color/transparent" />
-
           <RelativeLayout
                android:id="@+id/header_overlay_container"
                android:layout_width="match_parent"
                android:layout_height="wrap_content">
+
+               <com.itsaky.androidide.ui.EdgeSnapBubbleView
+                    android:id="@+id/page_switch_gesture_bubble"
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp"
+                    android:layout_alignParentTop="true"
+                    android:background="@android:color/transparent" />
 
                <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardView"
@@ -157,7 +158,7 @@
                     android:layout_width="match_parent"
                     android:layout_marginBottom="2dp"
                     android:layout_height="0.5dp"
-                    android:layout_alignParentTop="true" />
+                    android:layout_below="@id/page_switch_gesture_bubble" />
 
                <ViewFlipper
                     android:id="@+id/header_container"
