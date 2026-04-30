@@ -46,11 +46,21 @@ class EdgeSnapBubbleView : View {
   private var arrowPath: Path? = null
 
   private var onBackListener: OnBackListener? = null
+  private var onBubbleClickListener: OnBubbleClickListener? = null
+  private var onBubbleGestureListener: OnBubbleGestureListener? = null
   private var side: Side = Side.LEFT
   private var showArrowUp: Boolean = true
 
   fun setOnBackListener(onBackListener: OnBackListener?) {
     this.onBackListener = onBackListener
+  }
+
+  fun setOnBubbleClickListener(listener: OnBubbleClickListener?) {
+    onBubbleClickListener = listener
+  }
+
+  fun setOnBubbleGestureListener(listener: OnBubbleGestureListener?) {
+    onBubbleGestureListener = listener
   }
 
   fun setOnlyLeftBack(onlyLeftBack: Boolean) {
@@ -144,6 +154,7 @@ class EdgeSnapBubbleView : View {
         }
         forwardX = currentX
         if (isEdge) {
+          onBubbleGestureListener?.onDrag(getDragFraction())
           invalidate()
         }
       }
@@ -161,6 +172,7 @@ class EdgeSnapBubbleView : View {
           if (abs(deltaX) < backMaxWidth * 0.2f) {
             performClick()
           }
+          onBubbleGestureListener?.onRelease(getDragFraction())
           deltaX = 0f
           invalidate()
         }
@@ -277,7 +289,13 @@ class EdgeSnapBubbleView : View {
     x = if (side == Side.LEFT) 0f else (parentView.width - width).toFloat()
   }
 
+  private fun getDragFraction(): Float {
+    if (backMaxWidth <= 0f) return 0f
+    return (deltaX / backMaxWidth).coerceIn(-1f, 1f)
+  }
+
   override fun performClick(): Boolean {
+    onBubbleClickListener?.onClick(this)
     super.performClick()
     return true
   }
@@ -292,5 +310,15 @@ class EdgeSnapBubbleView : View {
 
   interface OnBackListener {
     fun onBack()
+  }
+
+  fun interface OnBubbleClickListener {
+    fun onClick(view: EdgeSnapBubbleView)
+  }
+
+  interface OnBubbleGestureListener {
+    fun onDrag(fraction: Float)
+
+    fun onRelease(fraction: Float)
   }
 }
