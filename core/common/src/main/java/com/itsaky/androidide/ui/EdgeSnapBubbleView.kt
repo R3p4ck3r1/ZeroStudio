@@ -13,7 +13,7 @@ import android.view.View
 import kotlin.math.abs
 
 /**
- * SlideBackView 一比一 Kotlin 版（按项目需求做最小改动）。
+ * 小米全面屏手势返回上一级手势同款
  */
 class EdgeSnapBubbleView : View {
 
