@@ -924,6 +924,22 @@ abstract class BaseEditorActivity :
     )
   }
 
+
+  private fun updateSymbolInputPageAnchor(active: Boolean) {
+    if (_binding == null) return
+    content.symbolInputPage.updateLayoutParams<CoordinatorLayout.LayoutParams> {
+      if (active) {
+        anchorId = View.NO_ID
+        anchorGravity = Gravity.NO_GRAVITY
+        gravity = Gravity.BOTTOM
+      } else {
+        anchorId = content.bottomSheet.id
+        anchorGravity = Gravity.TOP
+        gravity = Gravity.BOTTOM
+      }
+    }
+  }
+
   private fun setExternalSymbolPageActive(active: Boolean) {
     if (_binding == null) return
     isExternalSymbolPageActive = active
@@ -937,6 +953,7 @@ abstract class BaseEditorActivity :
     }
     content.bottomSheet.forceCollapse()
     content.bottomSheet.setBottomSheetDragEnabled(!active)
+    updateSymbolInputPageAnchor(active)
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
     applyExternalSymbolImeInset()
