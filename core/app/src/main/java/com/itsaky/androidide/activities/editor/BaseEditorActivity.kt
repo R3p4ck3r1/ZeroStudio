@@ -1020,7 +1020,7 @@ abstract class BaseEditorActivity :
   private fun setupPageSwitchGestureBubble() {
     if (_binding == null) return
     val bubble = content.pageSwitchGestureBubble
-    bubble.setPosition(EdgeSnapBubbleView.Position.TOP)
+    bubble.setPosition(EdgeSnapBubbleView.Position.BOTTOM)
     bubble.setOrientation(EdgeSnapBubbleView.Orientation.HORIZONTAL)
     bubble.setOnBubbleClickListener {
       toggleHeaderOverlay()
