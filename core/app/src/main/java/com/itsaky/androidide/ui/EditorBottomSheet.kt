@@ -239,7 +239,8 @@ constructor(
             view.viewTreeObserver.removeOnGlobalLayoutListener(this)
             anchorOffset = view.height + SizeUtils.dp2px(1f)
 
-            behavior.peekHeight = collapsedHeight.roundToInt()
+            // 默认让 tab 抽屉处于屏幕可见区域外，避免 tabs 指示器露出。
+            behavior.peekHeight = 0
             behavior.expandedOffset = anchorOffset
             behavior.isGestureInsetBottomIgnored = isImeVisible
 
