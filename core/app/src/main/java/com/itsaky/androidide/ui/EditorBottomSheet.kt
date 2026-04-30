@@ -106,6 +106,9 @@ constructor(
   private var behaviorCallbackAttached = false
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
+  var onActionTextChanged: ((CharSequence) -> Unit)? = null
+  var onActionProgressChanged: ((Int) -> Unit)? = null
+  var onStatusChanged: ((CharSequence, Int) -> Unit)? = null
 
   private val insetBottom: Int
     get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
@@ -179,22 +182,6 @@ constructor(
       (fragment as ShareableOutputFragment).clearOutput()
     }
 
-    binding.headerContainer.setOnClickListener {
-      if (expandBlocked) {
-        return@setOnClickListener
-      }
-      if (!headerExpandEnabled) {
-        return@setOnClickListener
-      }
-      if (suppressNextHeaderClickExpand) {
-        suppressNextHeaderClickExpand = false
-        return@setOnClickListener
-      }
-      if (behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
-        tryExpandSheetFromControl()
-      }
-    }
-
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
       this.windowInsets = insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
       insets
@@ -252,17 +239,12 @@ constructor(
             view.viewTreeObserver.removeOnGlobalLayoutListener(this)
             anchorOffset = view.height + SizeUtils.dp2px(1f)
 
-            behavior.peekHeight = collapsedHeight.roundToInt()
+            // 默认让 tab 抽屉处于屏幕可见区域外，避免 tabs 指示器露出。
+            behavior.peekHeight = 0
             behavior.expandedOffset = anchorOffset
             behavior.isGestureInsetBottomIgnored = isImeVisible
 
             binding.root.updatePadding(bottom = anchorOffset + insetBottom)
-            binding.headerContainer.apply {
-              updatePaddingRelative(bottom = paddingBottom + insetBottom)
-              updateLayoutParams<ViewGroup.LayoutParams> {
-                height = (collapsedHeight + insetBottom).roundToInt()
-              }
-            }
           }
         }
 
@@ -285,16 +267,10 @@ constructor(
         }
 
     val padding = insetBottom * paddingScale
-    binding.headerContainer.apply {
-      updateLayoutParams<ViewGroup.LayoutParams> {
-        height = ((collapsedHeight + padding) * heightScale).roundToInt()
-      }
-      updatePaddingRelative(bottom = padding.roundToInt())
-    }
+    binding.root.updatePadding(bottom = (anchorOffset + padding).roundToInt())
   }
 
   fun showChild(index: Int) {
-    binding.headerContainer.displayedChild = if (index == CHILD_ACTION) 1 else 0
     onHeaderPageChanged?.invoke(if (index == CHILD_ACTION) CHILD_ACTION else CHILD_HEADER)
   }
 
@@ -335,18 +311,18 @@ constructor(
 
   fun suspendHeaderExpandFor(durationMs: Long) {
     headerExpandEnabled = false
-    binding.headerContainer.removeCallbacks(resumeHeaderExpandRunnable)
-    binding.headerContainer.postDelayed(resumeHeaderExpandRunnable, durationMs)
+    binding.root.removeCallbacks(resumeHeaderExpandRunnable)
+    binding.root.postDelayed(resumeHeaderExpandRunnable, durationMs)
   }
 
   private val resumeHeaderExpandRunnable = Runnable { headerExpandEnabled = true }
 
   fun setActionText(text: CharSequence) {
-    binding.bottomAction.actionText.text = text
+    onActionTextChanged?.invoke(text)
   }
 
   fun setActionProgress(progress: Int) {
-    binding.bottomAction.progress.setProgressCompat(progress, true)
+    onActionProgressChanged?.invoke(progress)
   }
 
   fun appendApkLog(line: LogLine) {
@@ -396,18 +372,12 @@ constructor(
     if (KeyboardUtils.isSoftInputVisible(activity)) {
       onHeaderPageChanged?.invoke(STATE_EXTERNAL_SYMBOL)
     } else {
-      binding.headerContainer.displayedChild = CHILD_HEADER
       onHeaderPageChanged?.invoke(CHILD_HEADER)
     }
   }
 
   fun setStatus(text: CharSequence, @GravityInt gravity: Int) {
-    runOnUiThread {
-      binding.buildStatus.let {
-        it.statusText.gravity = gravity
-        it.statusText.text = text
-      }
-    }
+    onStatusChanged?.invoke(text, gravity)
   }
 
   private fun shareFile(file: File) {

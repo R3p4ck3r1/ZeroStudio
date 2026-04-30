@@ -104,6 +104,8 @@ import com.itsaky.androidide.viewmodel.EditorViewModel
 import com.itsaky.androidide.xml.resources.ResourceTableRegistry
 import com.itsaky.androidide.xml.versions.ApiVersionsRegistry
 import com.itsaky.androidide.xml.widgets.WidgetTableRegistry
+import io.github.rosemoe.sora.event.SelectionChangeEvent
+import io.github.rosemoe.sora.event.SubscriptionReceipt
 import java.io.File
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -134,6 +136,7 @@ abstract class BaseEditorActivity :
   private var bottomSheetCardVisibilitySnapshot: Int = View.VISIBLE
   private var bottomSheetHeaderVisibilitySnapshot: Int = View.VISIBLE
   private var isExternalSymbolPageActive = false
+  private var isHeaderOverlayCollapsed = false
 
   var isDestroying = false
     protected set
@@ -207,13 +210,11 @@ abstract class BaseEditorActivity :
 
   private var optionsMenuInvalidator: Runnable? = null
   private var isPageSwitchVisibleForCurrentPage = true
-  private var lastPageSwitchAlpha = Float.NaN
   private var bottomSheetSlideOffset = 0f
   private var blockBottomSheetExpandForTabSwitch = false
   private var isPageSwitchAnchorUpdatePosted = false
   private var latestImeBottomInset = 0
-  private var isBuildPageSwitchHidden = true
-  private var isSymbolPageSwitchHidden = true
+  private var cursorPositionReceipt: SubscriptionReceipt<SelectionChangeEvent>? = null
 
   companion object {
 
@@ -317,9 +318,8 @@ abstract class BaseEditorActivity :
       if (_binding == null || isDestroying) return@runOnUiThread
       val wasRemoved = bottomSheetHeaderHideReasons.remove(reason)
       if (!wasRemoved || bottomSheetHeaderHideReasons.isNotEmpty()) return@runOnUiThread
-      val bottomSheetBinding = content.bottomSheet.binding
-      bottomSheetBinding.cardView.visibility = bottomSheetCardVisibilitySnapshot
-      bottomSheetBinding.headerContainer.visibility = bottomSheetHeaderVisibilitySnapshot
+      content.cardView.visibility = bottomSheetCardVisibilitySnapshot
+      content.headerContainer.visibility = bottomSheetHeaderVisibilitySnapshot
     }
   }
 
@@ -328,11 +328,10 @@ abstract class BaseEditorActivity :
       if (_binding == null || isDestroying) return@runOnUiThread
       val wasAdded = bottomSheetHeaderHideReasons.add(reason)
       if (!wasAdded || bottomSheetHeaderHideReasons.size > 1) return@runOnUiThread
-      val bottomSheetBinding = content.bottomSheet.binding
-      bottomSheetCardVisibilitySnapshot = bottomSheetBinding.cardView.visibility
-      bottomSheetHeaderVisibilitySnapshot = bottomSheetBinding.headerContainer.visibility
-      bottomSheetBinding.cardView.visibility = View.INVISIBLE
-      bottomSheetBinding.headerContainer.visibility = View.INVISIBLE
+      bottomSheetCardVisibilitySnapshot = content.cardView.visibility
+      bottomSheetHeaderVisibilitySnapshot = content.headerContainer.visibility
+      content.cardView.visibility = View.INVISIBLE
+      content.headerContainer.visibility = View.INVISIBLE
     }
   }
 
@@ -508,6 +507,8 @@ abstract class BaseEditorActivity :
   override fun onDestroy() {
     checkIsDestroying()
     preDestroy()
+    cursorPositionReceipt?.unsubscribe()
+    cursorPositionReceipt = null
     super.onDestroy()
     postDestroy()
   }
@@ -537,6 +538,8 @@ abstract class BaseEditorActivity :
     EditorLineOperations.applyReadOnlyState(editorView.editor!!, this)
 
     editorView.onEditorSelected()
+    bindCursorPositionSync(editorView)
+    updateCursorPositionIndicator(editorView)
 
     editorViewModel.setCurrentFile(position, editorView.file)
     refreshSymbolInput(editorView)
@@ -815,7 +818,7 @@ abstract class BaseEditorActivity :
             } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
               resetEditorSurfaceTransform()
             }
-            updatePageSwitchContainerPosition()
+            updateSymbolInputOverlayPosition()
           }
 
           override fun onSlide(bottomSheet: View, slideOffset: Float) {
@@ -826,7 +829,7 @@ abstract class BaseEditorActivity :
               this.bottomSheet.onSlide(slideOffset)
               this.viewContainer.scaleX = editorScale
               this.viewContainer.scaleY = editorScale
-              updatePageSwitchContainerPosition()
+              updateSymbolInputOverlayPosition()
             }
           }
         }
@@ -849,64 +852,41 @@ abstract class BaseEditorActivity :
 
     content.apply {
       setupExternalSymbolImeSync()
-      pageSwitchContainer.bringToFront()
+      bottomSheet.onActionTextChanged = { text ->
+        content.bottomAction.actionText.text = text
+      }
+      bottomSheet.onActionProgressChanged = { progress ->
+        content.bottomAction.progress.setProgressCompat(progress, true)
+      }
+      bottomSheet.onStatusChanged = { text, gravity ->
+        content.buildStatus.statusText.gravity = gravity
+        content.buildStatus.statusText.text = text
+      }
       pageSwitchGestureBubble.bringToFront()
-      pageSwitchContainer.post {
+      symbolInputPage.post {
         setupPageSwitchGestureBubble()
-        updatePageSwitchContainerPosition()
-        updatePageSwitchContainerCollapsedState(animated = false)
+        updateSymbolInputOverlayPosition()
       }
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-        updatePageSwitchContainerPosition()
+        updateSymbolInputOverlayPosition()
       }
       symbolInputPage.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-        updatePageSwitchContainerPosition()
+        updateSymbolInputOverlayPosition()
       }
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
-      pageSwitchBuildTab.setOnClickListener {
-        blockBottomSheetExpandForTabSwitch = true
-        bottomSheet.setExpandBlocked(true)
-        forceCollapseBottomSheet(lockDurationMs = 500L)
-        setExternalSymbolPageActive(false)
-        bottomSheet.showChild(EditorBottomSheet.CHILD_HEADER)
-        ThreadUtils.runOnUiThreadDelayed({
-          blockBottomSheetExpandForTabSwitch = false
-          bottomSheet.setExpandBlocked(false)
-        }, 500)
-        updateBottomSheetPageSwitch(isBuildStatusPage = true)
-      }
-      pageSwitchSymbolTab.setOnClickListener {
-        blockBottomSheetExpandForTabSwitch = true
-        bottomSheet.setExpandBlocked(true)
-        forceCollapseBottomSheet(lockDurationMs = 320L)
-        setExternalSymbolPageActive(true)
-        ThreadUtils.runOnUiThreadDelayed({
-          blockBottomSheetExpandForTabSwitch = false
-          bottomSheet.setExpandBlocked(false)
-        }, 320)
-        updateBottomSheetPageSwitch(isBuildStatusPage = false)
-      }
       bottomSheet.onHeaderPageChanged = { page ->
         if (_binding != null) {
-          val isBuildStatusPage = page == EditorBottomSheet.CHILD_HEADER
-          val showPageSwitch = true
-          isPageSwitchVisibleForCurrentPage = showPageSwitch
-          content.pageSwitchBuildTab.isEnabled = showPageSwitch
-          content.pageSwitchSymbolTab.isEnabled = showPageSwitch
-
           when (page) {
             EditorBottomSheet.STATE_EXTERNAL_SYMBOL -> {
               if (!isExternalSymbolPageActive) {
                 setExternalSymbolPageActive(true)
               }
-              updateBottomSheetPageSwitch(isBuildStatusPage = false)
             }
             EditorBottomSheet.CHILD_HEADER -> {
               if (isExternalSymbolPageActive) {
                 setExternalSymbolPageActive(false)
               }
-              updateBottomSheetPageSwitch(isBuildStatusPage = true)
             }
             EditorBottomSheet.CHILD_ACTION -> {
               if (isExternalSymbolPageActive) {
@@ -919,18 +899,12 @@ abstract class BaseEditorActivity :
           if (!enableSwipeReveal && binding.swipeReveal.isOpen) {
             binding.swipeReveal.close()
           }
-          if (!isExternalSymbolPageActive) {
-            updateBottomSheetPageSwitch(isBuildStatusPage)
-          }
-          updatePageSwitchContainerPosition()
+          updateSymbolInputOverlayPosition()
         }
       }
       setExternalSymbolPageActive(false)
       isPageSwitchVisibleForCurrentPage = true
-      content.pageSwitchBuildTab.isEnabled = true
-      content.pageSwitchSymbolTab.isEnabled = true
-      updateBottomSheetPageSwitch(isBuildStatusPage = true)
-      updatePageSwitchContainerPosition()
+      updateSymbolInputOverlayPosition()
     }
   }
 
@@ -965,69 +939,39 @@ abstract class BaseEditorActivity :
     content.bottomSheet.setBottomSheetDragEnabled(!active)
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
-    updatePageSwitchAnchor()
     applyExternalSymbolImeInset()
     contentCardRealHeight?.let { baseHeight ->
       binding.contentCard.updateLayoutParams<ViewGroup.LayoutParams> {
         height = if (active) baseHeight else (baseHeight - latestImeBottomInset)
       }
     }
-    updatePageSwitchContainerPosition()
-    updatePageSwitchContainerCollapsedState(animated = false)
-  }
-
-  private fun updatePageSwitchAnchor() {
-    if (_binding == null) return
-    val container = content.pageSwitchContainer
-    val layoutParams = container.layoutParams as? CoordinatorLayout.LayoutParams ?: return
-    val targetAnchorId = if (isExternalSymbolPageActive) content.symbolInputPage.id else content.bottomSheet.id
-    val targetAnchorGravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-    val anchorChanged =
-        layoutParams.anchorId != targetAnchorId || layoutParams.anchorGravity != targetAnchorGravity
-    if (!anchorChanged) return
-    layoutParams.anchorId = targetAnchorId
-    layoutParams.anchorGravity = targetAnchorGravity
-    container.layoutParams = layoutParams
-    updatePageSwitchBubbleAnchor()
-    if (!isPageSwitchAnchorUpdatePosted) {
-      isPageSwitchAnchorUpdatePosted = true
-      container.post {
-        isPageSwitchAnchorUpdatePosted = false
-        updatePageSwitchContainerPosition()
-      }
-    }
-  }
-
-  private fun updatePageSwitchBubbleAnchor() {
-    if (_binding == null) return
-    val bubble = content.pageSwitchGestureBubble
-    val layoutParams = bubble.layoutParams as? CoordinatorLayout.LayoutParams ?: return
-    val shouldHide = if (isExternalSymbolPageActive) isSymbolPageSwitchHidden else isBuildPageSwitchHidden
-    val targetAnchorId =
-        if (shouldHide) {
-          if (isExternalSymbolPageActive) content.symbolInputPage.id else content.bottomSheet.id
-        } else {
-          content.pageSwitchContainer.id
-        }
-    val targetAnchorGravity = Gravity.TOP or Gravity.START
-    if (layoutParams.anchorId == targetAnchorId && layoutParams.anchorGravity == targetAnchorGravity) return
-    layoutParams.anchorId = targetAnchorId
-    layoutParams.anchorGravity = targetAnchorGravity
-    bubble.layoutParams = layoutParams
+    updateSymbolInputOverlayPosition()
   }
 
   private fun applyExternalSymbolImeInset() {
     if (_binding == null) return
+    // 统一由 setupExternalSymbolImeSync() 的 WindowInsets 监听/动画回调处理位移，
+    // 这里只负责把当前 IME inset 同步给符号输入视图本身。
     val targetImeInset = if (isExternalSymbolPageActive) latestImeBottomInset else 0
     content.externalSymbolInputView.setImeBottomInset(targetImeInset)
-    content.symbolInputPage.translationY = -targetImeInset.toFloat()
-    content.pageSwitchContainer.translationY = 0f
-    updatePageSwitchAnchor()
-    updatePageSwitchContainerPosition()
+    if (!isExternalSymbolPageActive) {
+      content.symbolInputPage.translationY = 0f
+    }
+    updateSymbolInputOverlayPosition()
   }
 
   private fun setupExternalSymbolImeSync() {
     if (_binding == null) return
+    ViewCompat.setOnApplyWindowInsetsListener(content.symbolInputPage) { _, insets ->
+      val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+      latestImeBottomInset = imeBottom
+      val targetImeInset = if (isExternalSymbolPageActive) imeBottom else 0
+      content.externalSymbolInputView.setImeBottomInset(targetImeInset)
+      if (!isExternalSymbolPageActive) {
+        content.symbolInputPage.translationY = 0f
+      }
+      insets
+    }
     ViewCompat.setWindowInsetsAnimationCallback(
         content.symbolInputPage,
         object : WindowInsetsAnimationCompat.Callback(
@@ -1040,7 +984,10 @@ abstract class BaseEditorActivity :
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             if (isExternalSymbolPageActive) {
               content.symbolInputPage.translationY = -imeBottom.toFloat()
+            } else {
+              content.symbolInputPage.translationY = 0f
             }
+            content.externalSymbolInputView.setImeBottomInset(if (isExternalSymbolPageActive) imeBottom else 0)
             return insets
           }
         }
@@ -1058,48 +1005,112 @@ abstract class BaseEditorActivity :
     val bubble = content.pageSwitchGestureBubble
     bubble.attachToSide(EdgeSnapBubbleView.Side.LEFT)
     bubble.setOnClickListener {
-      if (isExternalSymbolPageActive) {
-        isSymbolPageSwitchHidden = !isSymbolPageSwitchHidden
-      } else {
-        isBuildPageSwitchHidden = !isBuildPageSwitchHidden
+      toggleHeaderOverlay()
+    }
+    bubble.setOnDragListener(
+        object : EdgeSnapBubbleView.OnDragListener {
+          override fun onDrag(fraction: Float) {
+            applyHeaderOverlayDrag(fraction)
+          }
+
+          override fun onRelease(fraction: Float) {
+            completeHeaderOverlayDrag(fraction)
+          }
+        }
+    )
+  }
+
+  private fun toggleHeaderOverlay() {
+    if (_binding == null) return
+    isHeaderOverlayCollapsed = !isHeaderOverlayCollapsed
+    animateHeaderOverlay(expand = !isHeaderOverlayCollapsed)
+  }
+
+  private fun applyHeaderOverlayDrag(fraction: Float) {
+    if (_binding == null) return
+    // 拖拽手势用于控制底部隐藏 tab 抽屉（bottom_sheet），不控制 header_overlay_container。
+    // 这里只做 bubble 的轻微跟手反馈。
+    val feedback = (fraction * content.pageSwitchGestureBubble.height).coerceIn(-24f, 24f)
+    content.pageSwitchGestureBubble.translationY = feedback
+  }
+
+  private fun completeHeaderOverlayDrag(fraction: Float) {
+    if (_binding == null) return
+    if (!isExternalSymbolPageActive) {
+      if (fraction < -0.35f) {
+        editorBottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
+      } else if (fraction > 0.35f) {
+        editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
       }
-      updatePageSwitchContainerCollapsedState(animated = true)
-      updatePageSwitchBubbleAnchor()
+    }
+    content.pageSwitchGestureBubble.animate().translationY(0f).setDuration(120L).start()
+  }
+
+  private fun animateHeaderOverlay(expand: Boolean) {
+    if (_binding == null) return
+    val container = content.headerOverlayContainer
+    val h = container.height.toFloat().coerceAtLeast(1f)
+    val targetY = if (expand) 0f else h
+    val targetAlpha = if (expand) 1f else 0f
+    container.visibility = View.VISIBLE
+    container
+        .animate()
+        .translationY(targetY)
+        .alpha(targetAlpha)
+        .setDuration(220L)
+        .withEndAction {
+          container.visibility = if (expand) View.VISIBLE else View.GONE
+          syncBubbleToHeaderTop()
+        }
+        .start()
+    content.pageSwitchGestureBubble
+        .animate()
+        .translationY(targetY)
+        .setDuration(220L)
+        .start()
+  }
+
+  private fun syncBubbleToHeaderTop() {
+    if (_binding == null) return
+    val container = content.headerOverlayContainer
+    content.pageSwitchGestureBubble.translationY = if (container.visibility == View.VISIBLE) {
+      container.translationY
+    } else {
+      0f
     }
   }
 
-  private fun updatePageSwitchContainerCollapsedState(animated: Boolean) {
+  private fun updateSymbolInputOverlayPosition() {
     if (_binding == null) return
-    val container = content.pageSwitchContainer
-    val shouldHide = if (isExternalSymbolPageActive) isSymbolPageSwitchHidden else isBuildPageSwitchHidden
-    val hiddenShift = container.height.toFloat().coerceAtLeast(1f)
-    if (shouldHide) {
-      if (animated) {
-        container
-            .animate()
-            .alpha(0f)
-            .translationY(container.translationY + hiddenShift)
-            .setDuration(200L)
-            .withEndAction { container.visibility = View.GONE }
-            .start()
-      } else {
-        container.alpha = 0f
-        container.translationY += hiddenShift
-        container.visibility = View.GONE
-      }
-    } else {
-      container.visibility = View.VISIBLE
-      if (animated) {
-        val targetTranslationY = container.translationY
-        container.alpha = 0f
-        container.translationY = targetTranslationY + hiddenShift
-        container.animate().alpha(1f).translationY(targetTranslationY).setDuration(220L).start()
-      } else {
-        container.alpha = 1f
-      }
+    val alpha = computePageSwitchAlpha()
+    val visibility = if (alpha > 0.02f) View.VISIBLE else View.GONE
+    val targetVisibility = if (isExternalSymbolPageActive) View.VISIBLE else visibility
+    val symbolExpansion =
+        if (isExternalSymbolPageActive) {
+          content.externalSymbolInputView.getExpansionFraction().coerceIn(0f, 1f)
+        } else {
+          0f
+        }
+    // AdvancedSymbolInputView 正在上下拖拽或已完全展开时，自动隐藏 header 区域，保留 bubble。
+    val hideHeaderBySymbolGesture = symbolExpansion > 0.01f
+    val headerVisibility = if (hideHeaderBySymbolGesture) View.GONE else targetVisibility
+    content.symbolInputPage.visibility = targetVisibility
+    content.symbolInputPage.alpha = alpha
+    content.symbolInputPage.updateLayoutParams<ViewGroup.LayoutParams> {
+      height = ViewGroup.LayoutParams.WRAP_CONTENT
     }
-    content.pageSwitchGestureBubble.setArrowExpanded(!shouldHide)
-    updatePageSwitchBubbleAnchor()
+
+    // 顶部边缘同步：bubble/header/symbol input 在滑动期间统一显隐
+    content.pageSwitchGestureBubble.visibility = targetVisibility
+    content.headerOverlayContainer.visibility = headerVisibility
+    content.headerContainer.visibility = headerVisibility
+    content.externalSymbolInputView.visibility = targetVisibility
+    content.cardView.visibility = headerVisibility
+    content.border.root.visibility = headerVisibility
+    content.tvCursorPosition.visibility = headerVisibility
+
+    content.pageSwitchGestureBubble.setArrowExpanded(!isExternalSymbolPageActive)
+    content.pageSwitchGestureBubble.bringToFront()
   }
 
   private fun computePageSwitchAlpha(): Float {
@@ -1112,44 +1123,6 @@ abstract class BaseEditorActivity :
     } else {
       (((0.5f - bottomSheetSlideOffset) + 0.5f) * 2f).coerceIn(0f, 1f)
     }
-  }
-
-  private fun updatePageSwitchContainerPosition() {
-    if (_binding == null) return
-    val container = content.pageSwitchContainer
-    val baseTranslationY = -(container.height / 2f)
-    val desiredTranslationY =
-        if (isExternalSymbolPageActive) {
-          val symbolExpand = content.externalSymbolInputView.getExpansionFraction()
-          val collapsedOffsetRatio = (1f - symbolExpand).coerceIn(0f, 1f) * 0.4f
-          baseTranslationY + (container.height * collapsedOffsetRatio)
-        } else {
-          baseTranslationY
-        }
-    if (kotlin.math.abs(container.translationY - desiredTranslationY) > 0.5f) {
-      container.translationY = desiredTranslationY
-    }
-
-    val shouldShow = !(if (isExternalSymbolPageActive) isSymbolPageSwitchHidden else isBuildPageSwitchHidden)
-    container.visibility = if (shouldShow) View.VISIBLE else View.GONE
-    if (shouldShow) {
-      val alpha = computePageSwitchAlpha()
-      if (lastPageSwitchAlpha.isNaN() || kotlin.math.abs(lastPageSwitchAlpha - alpha) > 0.01f) {
-        container.alpha = alpha
-        lastPageSwitchAlpha = alpha
-      }
-    }
-    container.bringToFront()
-    val bubble = content.pageSwitchGestureBubble
-    bubble.setArrowExpanded(shouldShow)
-    bubble.restorePosition()
-    bubble.bringToFront()
-  }
-
-  private fun updateBottomSheetPageSwitch(isBuildStatusPage: Boolean) {
-    if (_binding == null) return
-    content.pageSwitchBuildTab.alpha = if (isBuildStatusPage) 1f else 0.55f
-    content.pageSwitchSymbolTab.alpha = if (isBuildStatusPage) 0.55f else 1f
   }
 
   private fun setupDiagnosticInfo() {
@@ -1187,5 +1160,22 @@ abstract class BaseEditorActivity :
 
   open fun installationSessionCallback(): SessionCallback {
     return ApkInstallationSessionCallback(this).also { installationCallback = it }
+  }
+
+  private fun bindCursorPositionSync(editorView: CodeEditorView) {
+    cursorPositionReceipt?.unsubscribe()
+    val soraEditor = editorView.editor ?: return
+    cursorPositionReceipt =
+        soraEditor.subscribeEvent(SelectionChangeEvent::class.java) { _, _ ->
+          if (_binding == null || isDestroying) return@subscribeEvent
+          updateCursorPositionIndicator(editorView)
+        }
+  }
+
+  private fun updateCursorPositionIndicator(editorView: CodeEditorView) {
+    val cursor = editorView.editor?.cursor ?: return
+    val line = cursor.leftLine + 1
+    val column = cursor.leftColumn + 1
+    content.tvCursorPosition.text = "$line:$column"
   }
 }
