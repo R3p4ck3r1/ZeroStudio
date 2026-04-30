@@ -932,14 +932,28 @@ abstract class BaseEditorActivity :
 
   private fun applyExternalSymbolImeInset() {
     if (_binding == null) return
+    // 统一由 setupExternalSymbolImeSync() 的 WindowInsets 监听/动画回调处理位移，
+    // 这里只负责把当前 IME inset 同步给符号输入视图本身。
     val targetImeInset = if (isExternalSymbolPageActive) latestImeBottomInset else 0
     content.externalSymbolInputView.setImeBottomInset(targetImeInset)
-    content.symbolInputPage.translationY = -targetImeInset.toFloat()
+    if (!isExternalSymbolPageActive) {
+      content.symbolInputPage.translationY = 0f
+    }
     updateSymbolInputOverlayPosition()
   }
 
   private fun setupExternalSymbolImeSync() {
     if (_binding == null) return
+    ViewCompat.setOnApplyWindowInsetsListener(content.symbolInputPage) { _, insets ->
+      val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+      latestImeBottomInset = imeBottom
+      val targetImeInset = if (isExternalSymbolPageActive) imeBottom else 0
+      content.externalSymbolInputView.setImeBottomInset(targetImeInset)
+      if (!isExternalSymbolPageActive) {
+        content.symbolInputPage.translationY = 0f
+      }
+      insets
+    }
     ViewCompat.setWindowInsetsAnimationCallback(
         content.symbolInputPage,
         object : WindowInsetsAnimationCompat.Callback(
@@ -952,7 +966,10 @@ abstract class BaseEditorActivity :
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             if (isExternalSymbolPageActive) {
               content.symbolInputPage.translationY = -imeBottom.toFloat()
+            } else {
+              content.symbolInputPage.translationY = 0f
             }
+            content.externalSymbolInputView.setImeBottomInset(if (isExternalSymbolPageActive) imeBottom else 0)
             return insets
           }
         }
