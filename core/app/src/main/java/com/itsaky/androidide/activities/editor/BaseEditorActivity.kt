@@ -984,8 +984,18 @@ abstract class BaseEditorActivity :
     if (_binding == null) return
     val alpha = computePageSwitchAlpha()
     val visibility = if (alpha > 0.02f) View.VISIBLE else View.GONE
-    content.symbolInputPage.visibility = if (isExternalSymbolPageActive) View.VISIBLE else visibility
+    val targetVisibility = if (isExternalSymbolPageActive) View.VISIBLE else visibility
+    content.symbolInputPage.visibility = targetVisibility
     content.symbolInputPage.alpha = alpha
+
+    // 顶部边缘同步：bubble/header/symbol input 在滑动期间统一显隐
+    content.pageSwitchGestureBubble.visibility = targetVisibility
+    content.headerContainer.visibility = targetVisibility
+    content.externalSymbolInputView.visibility = targetVisibility
+    content.cardView.visibility = targetVisibility
+    content.border.visibility = targetVisibility
+    content.tvCursorPosition.visibility = targetVisibility
+
     content.pageSwitchGestureBubble.setArrowExpanded(!isExternalSymbolPageActive)
     content.pageSwitchGestureBubble.bringToFront()
   }
