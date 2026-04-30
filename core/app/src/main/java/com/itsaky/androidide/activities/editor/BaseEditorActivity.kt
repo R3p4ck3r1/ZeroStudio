@@ -104,6 +104,8 @@ import com.itsaky.androidide.viewmodel.EditorViewModel
 import com.itsaky.androidide.xml.resources.ResourceTableRegistry
 import com.itsaky.androidide.xml.versions.ApiVersionsRegistry
 import com.itsaky.androidide.xml.widgets.WidgetTableRegistry
+import io.github.rosemoe.sora.event.SelectionChangeEvent
+import io.github.rosemoe.sora.event.SubscriptionReceipt
 import java.io.File
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -212,6 +214,7 @@ abstract class BaseEditorActivity :
   private var blockBottomSheetExpandForTabSwitch = false
   private var isPageSwitchAnchorUpdatePosted = false
   private var latestImeBottomInset = 0
+  private var cursorPositionReceipt: SubscriptionReceipt<SelectionChangeEvent>? = null
 
   companion object {
 
@@ -504,6 +507,8 @@ abstract class BaseEditorActivity :
   override fun onDestroy() {
     checkIsDestroying()
     preDestroy()
+    cursorPositionReceipt?.unsubscribe()
+    cursorPositionReceipt = null
     super.onDestroy()
     postDestroy()
   }
@@ -533,6 +538,8 @@ abstract class BaseEditorActivity :
     EditorLineOperations.applyReadOnlyState(editorView.editor!!, this)
 
     editorView.onEditorSelected()
+    bindCursorPositionSync(editorView)
+    updateCursorPositionIndicator(editorView)
 
     editorViewModel.setCurrentFile(position, editorView.file)
     refreshSymbolInput(editorView)
@@ -1127,5 +1134,22 @@ abstract class BaseEditorActivity :
 
   open fun installationSessionCallback(): SessionCallback {
     return ApkInstallationSessionCallback(this).also { installationCallback = it }
+  }
+
+  private fun bindCursorPositionSync(editorView: CodeEditorView) {
+    cursorPositionReceipt?.unsubscribe()
+    val soraEditor = editorView.editor ?: return
+    cursorPositionReceipt =
+        soraEditor.subscribeEvent(SelectionChangeEvent::class.java) { _, _ ->
+          if (_binding == null || isDestroying) return@subscribeEvent
+          updateCursorPositionIndicator(editorView)
+        }
+  }
+
+  private fun updateCursorPositionIndicator(editorView: CodeEditorView) {
+    val cursor = editorView.editor?.cursor ?: return
+    val line = cursor.leftLine + 1
+    val column = cursor.leftColumn + 1
+    content.tvCursorPosition.text = "$line:$column"
   }
 }
