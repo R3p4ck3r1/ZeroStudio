@@ -1011,12 +1011,10 @@ abstract class BaseEditorActivity :
 
   private fun applyHeaderOverlayDrag(fraction: Float) {
     if (_binding == null) return
-    val container = content.headerOverlayContainer
-    val h = container.height.toFloat().coerceAtLeast(1f)
-    val offset = (fraction * h).coerceIn(0f, h)
-    container.translationY = offset
-    container.alpha = (1f - (offset / h)).coerceIn(0f, 1f)
-    content.pageSwitchGestureBubble.translationY = container.translationY
+    // 拖拽手势用于控制底部隐藏 tab 抽屉（bottom_sheet），不控制 header_overlay_container。
+    // 这里只做 bubble 的轻微跟手反馈。
+    val feedback = (fraction * content.pageSwitchGestureBubble.height).coerceIn(-24f, 24f)
+    content.pageSwitchGestureBubble.translationY = feedback
   }
 
   private fun completeHeaderOverlayDrag(fraction: Float) {
@@ -1028,9 +1026,7 @@ abstract class BaseEditorActivity :
         editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
       }
     }
-    val shouldCollapse = fraction > 0.25f
-    isHeaderOverlayCollapsed = shouldCollapse
-    animateHeaderOverlay(expand = !shouldCollapse)
+    content.pageSwitchGestureBubble.animate().translationY(0f).setDuration(120L).start()
   }
 
   private fun animateHeaderOverlay(expand: Boolean) {
