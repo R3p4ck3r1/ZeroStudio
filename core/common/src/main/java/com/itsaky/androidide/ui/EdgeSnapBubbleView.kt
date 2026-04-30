@@ -6,30 +6,33 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import kotlin.math.abs
 
 /**
- * 顶部横向 Snap Bubble（用于切换/收起，不再承担系统返回行为）。
+ * 横向顶部吸附的 Snap Bubble。
  */
 class EdgeSnapBubbleView : View {
 
-  /** backView 高度 */
   private var backViewHeight: Float = 0f
-
-  /** 边缘触发距离 */
   private var backEdgeWidth: Float = 0f
-
-  /** 最大返回触发距离 */
   private var backMaxWidth: Float = 0f
 
-  private var downY: Float = 0f
+  private var thresholdLeft: Float = 0f
+  private var thresholdRight: Float = 0f
+
+  private var currentY: Float = 0f
   private var downX: Float = 0f
-  private var deltaY: Float = 0f
+  private var isEdge: Boolean = false
   private var deltaX: Float = 0f
-  private var tracking = false
-  private var triggerDistance: Float = 0f
-  private var dragStartTranslationX: Float = 0f
+  private var mWidth: Int = 0
+  private var isOnlyLeftBack: Boolean = false
+  var left: Boolean = false
+  var right: Boolean = false
+  var forwardX: Float = 0f
+  var bufferX: Float = 0f
 
   private var backPaint: Paint? = null
   private var arrowPaint: Paint? = null
@@ -37,15 +40,14 @@ class EdgeSnapBubbleView : View {
   private var arrowPath: Path? = null
 
   private var onBackListener: OnBackListener? = null
-  private var onDragListener: OnDragListener? = null
   private var showArrowUp: Boolean = true
 
   fun setOnBackListener(onBackListener: OnBackListener?) {
     this.onBackListener = onBackListener
   }
 
-  fun setOnDragListener(onDragListener: OnDragListener?) {
-    this.onDragListener = onDragListener
+  fun setOnlyLeftBack(onlyLeftBack: Boolean) {
+    isOnlyLeftBack = onlyLeftBack
   }
 
   constructor(context: Context) : this(context, null)
@@ -53,12 +55,10 @@ class EdgeSnapBubbleView : View {
   constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
 
   constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
-    // 原始源码通过 styleable/dimen 读取。当前模块未定义对应 attrs，改为等价默认值。
     val density = resources.displayMetrics.density
     backViewHeight = 24f * density
     backEdgeWidth = 12f * density
-    backMaxWidth = 20f * density
-    triggerDistance = 14f * density
+    backMaxWidth = 56f * density
     init()
   }
 
@@ -79,99 +79,128 @@ class EdgeSnapBubbleView : View {
   }
 
   override fun onTouchEvent(ev: MotionEvent): Boolean {
+    val currentX = ev.x
+    currentY = ev.y
     when (ev.action) {
       MotionEvent.ACTION_DOWN -> {
-        downY = ev.y
         downX = ev.x
-        deltaY = 0f
-        deltaX = 0f
-        tracking = true
-        dragStartTranslationX = translationX
-        parent.requestDisallowInterceptTouchEvent(true)
-        invalidate()
+        forwardX = downX
+        isEdge = true
+        left = true
+        right = false
       }
 
       MotionEvent.ACTION_MOVE -> {
-        if (!tracking) return false
-        deltaY = (ev.y - downY).coerceIn(-backMaxWidth, backMaxWidth)
-        deltaX = ev.x - downX
-        val parentView = parent as? View
-        if (parentView != null) {
-          val minX = -left.toFloat()
-          val maxX = (parentView.width - right).toFloat()
-          translationX = (dragStartTranslationX + deltaX).coerceIn(minX, maxX)
+        deltaX = currentX - downX
+        val diff = forwardX - currentX
+        if (diff > 0) {
+          if (currentX < thresholdLeft && left) {
+            deltaX = backMaxWidth
+            deltaX -= (thresholdLeft - currentX) / 2
+            bufferX = deltaX
+            if (deltaX < 0) {
+              deltaX = 0f
+              bufferX = 0f
+            }
+          } else if (currentX > thresholdRight && right) {
+            bufferX -= diff
+            deltaX = bufferX
+          }
+        } else {
+          if (currentX < thresholdLeft && left) {
+            bufferX += abs(diff)
+            deltaX = bufferX
+          } else if (currentX > thresholdRight && right) {
+            deltaX = -backMaxWidth
+            deltaX += (currentX - thresholdRight) / 2
+            bufferX = deltaX
+            if (deltaX < -backMaxWidth) {
+              deltaX = -backMaxWidth
+              bufferX = -backMaxWidth
+            }
+          }
         }
-        onDragListener?.onDrag(deltaY / backMaxWidth)
-        invalidate()
+        forwardX = currentX
+        if (isEdge) invalidate()
       }
 
       MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-        if (tracking) {
-          val draggedEnough = kotlin.math.abs(deltaY) >= triggerDistance
-          if (draggedEnough || ev.action == MotionEvent.ACTION_UP) {
+        if (isEdge) {
+          if (deltaX >= backMaxWidth && left) {
+            back()
+          } else if (abs(deltaX) >= backMaxWidth && right) {
+            if (!isOnlyLeftBack) {
+              back()
+            }
+          }
+          if (abs(deltaX) < backMaxWidth * 0.2f) {
             performClick()
           }
-          onDragListener?.onRelease(deltaY / backMaxWidth)
-          deltaY = 0f
-          tracking = false
-          parent.requestDisallowInterceptTouchEvent(false)
+          deltaX = 0f
           invalidate()
         }
+        left = false
+        right = false
+        isEdge = false
+        bufferX = 0f
       }
     }
-    return true
+    return isEdge
+  }
+
+  private fun back() {
+    // 仅回调业务逻辑，不再触发系统返回上一级。
+    onBackListener?.onBack()
+    performClick()
   }
 
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+    mWidth = MeasureSpec.getSize(widthMeasureSpec) + 1
+    thresholdLeft = (mWidth / 3).toFloat()
+    thresholdRight = thresholdLeft * 2
   }
 
   override fun onDraw(canvas: Canvas) {
     super.onDraw(canvas)
+    if (deltaX > backMaxWidth && left) {
+      deltaX = backMaxWidth
+    } else if (deltaX < -backMaxWidth && right) {
+      deltaX = -backMaxWidth
+    }
+    Log.e("onDraw", "$deltaX")
+
     backPath!!.reset()
     arrowPath!!.reset()
 
-    val w = width.toFloat()
-    val h = height.toFloat().coerceAtLeast(1f)
-    val pull = kotlin.math.abs(deltaY).coerceAtMost(backMaxWidth)
-    val bump = (backMaxWidth * 0.35f + pull * 0.95f).coerceAtMost(backMaxWidth)
+    val drawDelta = if (deltaX == 0f) backMaxWidth * 0.35f else abs(deltaX)
+    val widthF = width.toFloat()
+    val heightF = height.toFloat().coerceAtLeast(1f)
 
+    val humpHeight = (drawDelta / backMaxWidth * (heightF * 0.7f)).coerceAtLeast(heightF * 0.35f)
     backPath!!.moveTo(0f, 0f)
-    backPath!!.lineTo(w, 0f)
-    backPath!!.lineTo(w, h)
-    backPath!!.cubicTo(
-        w * 0.86f,
-        h - bump * 0.25f,
-        w * 0.68f,
-        h - bump,
-        w * 0.5f,
-        h - bump
-    )
-    backPath!!.cubicTo(
-        w * 0.32f,
-        h - bump,
-        w * 0.14f,
-        h - bump * 0.25f,
-        0f,
-        h
-    )
+    backPath!!.lineTo(widthF, 0f)
+    backPath!!.lineTo(widthF, heightF)
+    backPath!!.quadTo(widthF * 0.75f, heightF - humpHeight, widthF * 0.5f, heightF - humpHeight)
+    backPath!!.quadTo(widthF * 0.25f, heightF - humpHeight, 0f, heightF)
     backPath!!.close()
     canvas.drawPath(backPath!!, backPaint!!)
 
-    val cx = w / 2f
-    val cy = h / 2f + bump * 0.15f
-    val arrow = (h * 0.22f).coerceAtLeast(4f)
+    val centerX = widthF / 2f
+    val centerY = heightF / 2f
+    val arrowHalf = (heightF * 0.22f).coerceAtLeast(4f)
     if (showArrowUp) {
-      arrowPath!!.moveTo(cx - arrow, cy + arrow * 0.25f)
-      arrowPath!!.lineTo(cx, cy - arrow)
-      arrowPath!!.lineTo(cx + arrow, cy + arrow * 0.25f)
+      arrowPath!!.moveTo(centerX - arrowHalf, centerY + arrowHalf * 0.35f)
+      arrowPath!!.lineTo(centerX, centerY - arrowHalf)
+      arrowPath!!.lineTo(centerX + arrowHalf, centerY + arrowHalf * 0.35f)
     } else {
-      arrowPath!!.moveTo(cx - arrow, cy - arrow * 0.25f)
-      arrowPath!!.lineTo(cx, cy + arrow)
-      arrowPath!!.lineTo(cx + arrow, cy - arrow * 0.25f)
+      arrowPath!!.moveTo(centerX - arrowHalf, centerY - arrowHalf * 0.35f)
+      arrowPath!!.lineTo(centerX, centerY + arrowHalf)
+      arrowPath!!.lineTo(centerX + arrowHalf, centerY - arrowHalf * 0.35f)
     }
     canvas.drawPath(arrowPath!!, arrowPaint!!)
-    alpha = 1f
+
+    alpha = (drawDelta / backMaxWidth).coerceIn(0.35f, 1f)
   }
 
   fun setBackViewHeight(backViewHeight: Float) {
@@ -197,12 +226,9 @@ class EdgeSnapBubbleView : View {
   }
 
   fun restorePosition() {
-    val parentView = parent as? View
+    // 固定在 header_container 顶部边缘（父容器顶部）
     x = 0f
     y = 0f
-    if (parentView != null) {
-      translationX = translationX.coerceIn(-left.toFloat(), (parentView.width - right).toFloat())
-    }
   }
 
   override fun performClick(): Boolean {
@@ -211,7 +237,6 @@ class EdgeSnapBubbleView : View {
   }
 
   fun setArrowExpanded(expanded: Boolean) {
-    // expanded=true 表示容器显示中，箭头朝上（点击后收起）
     showArrowUp = expanded
     invalidate()
   }
@@ -220,10 +245,5 @@ class EdgeSnapBubbleView : View {
 
   interface OnBackListener {
     fun onBack()
-  }
-
-  interface OnDragListener {
-    fun onDrag(fraction: Float)
-    fun onRelease(fraction: Float)
   }
 }
