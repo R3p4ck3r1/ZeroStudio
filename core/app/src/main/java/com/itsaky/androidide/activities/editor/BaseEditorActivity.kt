@@ -171,7 +171,8 @@ abstract class BaseEditorActivity :
             binding.swipeReveal.close()
           } else {
             doConfirmProjectClose()
-  }
+          }
+        }
       }
 
   private val memoryUsageListener = MemoryUsageWatcher.MemoryUsageListener { memoryUsage ->
