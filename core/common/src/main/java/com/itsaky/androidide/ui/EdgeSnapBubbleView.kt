@@ -40,10 +40,15 @@ class EdgeSnapBubbleView : View {
   private var arrowPath: Path? = null
 
   private var onBackListener: OnBackListener? = null
+  private var onDragListener: OnDragListener? = null
   private var showArrowUp: Boolean = true
 
   fun setOnBackListener(onBackListener: OnBackListener?) {
     this.onBackListener = onBackListener
+  }
+
+  fun setOnDragListener(onDragListener: OnDragListener?) {
+    this.onDragListener = onDragListener
   }
 
   fun setOnlyLeftBack(onlyLeftBack: Boolean) {
@@ -121,6 +126,7 @@ class EdgeSnapBubbleView : View {
           }
         }
         forwardX = currentX
+        onDragListener?.onDrag((deltaX / backMaxWidth).coerceIn(-1f, 1f))
         if (isEdge) invalidate()
       }
 
@@ -136,6 +142,7 @@ class EdgeSnapBubbleView : View {
           if (abs(deltaX) < backMaxWidth * 0.2f) {
             performClick()
           }
+          onDragListener?.onRelease((deltaX / backMaxWidth).coerceIn(-1f, 1f))
           deltaX = 0f
           invalidate()
         }
@@ -245,5 +252,10 @@ class EdgeSnapBubbleView : View {
 
   interface OnBackListener {
     fun onBack()
+  }
+
+  interface OnDragListener {
+    fun onDrag(fraction: Float)
+    fun onRelease(fraction: Float)
   }
 }
