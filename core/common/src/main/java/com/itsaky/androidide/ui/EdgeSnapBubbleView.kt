@@ -87,7 +87,7 @@ class EdgeSnapBubbleView : View {
   }
 
   private fun applyRenderTransform() {
-    rotation = if (orientation == Orientation.HORIZONTAL) 90f else 0f
+    rotation = if (orientation == Orientation.VERTICAL) 90f else 0f
     scaleX = if (isMirrored) -1f else 1f
   }
 
