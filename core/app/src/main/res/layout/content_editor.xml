@@ -132,8 +132,8 @@
                android:id="@+id/header_overlay_container"
                android:layout_width="match_parent"
                android:layout_height="wrap_content"
-               android:elevation="4dp"
-               android:background="?attr/colorSurface">
+               android:elevation="0dp"
+               android:background="@null">
 
                <com.itsaky.androidide.ui.EdgeSnapBubbleView
                     android:id="@+id/page_switch_gesture_bubble"
