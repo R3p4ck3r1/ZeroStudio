@@ -24,7 +24,7 @@
   <TextView
     android:id="@+id/statusText"
     android:layout_width="0dp"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:minHeight="56dp"
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
