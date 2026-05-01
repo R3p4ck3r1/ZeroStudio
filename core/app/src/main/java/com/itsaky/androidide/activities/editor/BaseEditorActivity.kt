@@ -823,9 +823,9 @@ abstract class BaseEditorActivity :
             updateSymbolInputOverlayPosition()
             
             // 确保所有的幽灵错位都被重置清空
-            content.symbolInputPage.translationY = 0f
-            content.headerOverlayContainer.translationY = 0f
-            content.symbolInputPage.requestLayout()
+            // content.symbolInputPage.translationY = 0f
+            // content.headerOverlayContainer.translationY = 0f
+            // content.symbolInputPage.requestLayout()
           }
 
           override fun onSlide(bottomSheet: View, slideOffset: Float) {
@@ -897,9 +897,9 @@ abstract class BaseEditorActivity :
           }
           updateSymbolInputOverlayPosition()
           
-          content.symbolInputPage.translationY = 0f
-          content.headerOverlayContainer.translationY = 0f
-          content.symbolInputPage.requestLayout()
+          // content.symbolInputPage.translationY = 0f
+          // content.headerOverlayContainer.translationY = 0f
+          // content.symbolInputPage.requestLayout()
         }
       }
       setExternalSymbolPageActive(false)
@@ -964,8 +964,8 @@ abstract class BaseEditorActivity :
     updateSymbolInputOverlayPosition()
     
     // 强制归零解决各种异常偏移问题
-    content.symbolInputPage.translationY = 0f
-    content.headerOverlayContainer.translationY = 0f
+    // content.symbolInputPage.translationY = 0f
+    // content.headerOverlayContainer.translationY = 0f
   }
 
   private fun applyExternalSymbolImeInset() {
@@ -974,7 +974,7 @@ abstract class BaseEditorActivity :
     content.symbolInputPage.translationY = 0f
     val targetImeInset = if (isExternalSymbolPageActive) latestImeBottomInset else 0
     content.externalSymbolInputView.setImeBottomInset(targetImeInset)
-    content.symbolInputPage.translationY = 0f
+    // content.symbolInputPage.translationY = 0f
     updateSymbolInputOverlayPosition()
   }
 
@@ -1088,19 +1088,10 @@ abstract class BaseEditorActivity :
              } else if (fraction > 0.15f) { 
                 editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
              }
-             
-             resetGhostOffsets()
+             content.headerContainer.alpha = 1f
           }
         }
     )
-  }
-
-  private fun resetGhostOffsets() {
-    if (_binding == null) return
-    content.symbolInputPage.translationY = 0f
-    content.headerOverlayContainer.translationY = 0f
-    content.headerContainer.alpha = 1f
-    content.symbolInputPage.requestLayout()
   }
 
   private fun updateSymbolInputOverlayPosition() {
@@ -1111,10 +1102,9 @@ abstract class BaseEditorActivity :
     val symbolExpansion =
         if (isExternalSymbolPageActive) {
           content.externalSymbolInputView.getExpansionFraction().coerceIn(0f, 1f)
-        } else {
-          0f
-        }
-    // AdvancedSymbolInputView 正在上下拖拽或已完全展开时，自动隐藏 header 区域，保留 bubble。
+        } else 0f
+    
+    // 当输入符号面板展开时，隐藏无关的 header（保留气泡）
     val hideHeaderBySymbolGesture = symbolExpansion > 0.01f
     val headerVisibility = if (hideHeaderBySymbolGesture || isExternalSymbolPageActive) View.GONE else targetVisibility
     
@@ -1123,7 +1113,7 @@ abstract class BaseEditorActivity :
     content.symbolInputPage.updateLayoutParams<ViewGroup.LayoutParams> {
       height = ViewGroup.LayoutParams.WRAP_CONTENT
     }
-    content.symbolInputPage.requestLayout()
+    // content.symbolInputPage.requestLayout()
 
     // 气泡和容器的根保持跟随 targetVisibility
     content.headerOverlayContainer.visibility = targetVisibility
