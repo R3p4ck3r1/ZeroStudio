@@ -215,16 +215,13 @@ class EdgeSnapBubbleView : View {
     // 保留默认可见山峰，以引导用户进行拖拽
     val drawDelta = if (deltaX == 0f) backMaxWidth * 0.35f else abs(deltaX)
 
-    canvas.save()
-
     if (orientation == Orientation.HORIZONTAL) {
-        // 先移动到中点，容纳驼峰避免被顶边裁掉
-        canvas.translate(width / 2f, backMaxWidth)
-        // 顺时针旋转90度，让向右（正X）画出的曲线变为朝下凸起（位于顶部条可见区域内）
-        canvas.rotate(90f)
-        // 将绘制原点拉回中心对齐
-        canvas.translate(0f, -backViewHeight / 2f)
+      drawHorizontalBubble(canvas, drawDelta)
+      alpha = (drawDelta / backMaxWidth).coerceIn(0.35f, 1f)
+      return
     }
+
+    canvas.save()
 
     if ((deltaX > 0 && left) || (deltaX == 0f && !right)) {
       backPath!!.moveTo(0f, deltaY)
@@ -269,6 +266,43 @@ class EdgeSnapBubbleView : View {
     
     canvas.restore()
     alpha = (drawDelta / backMaxWidth).coerceIn(0.35f, 1f)
+  }
+
+  private fun drawHorizontalBubble(canvas: Canvas, drawDelta: Float) {
+    backPath!!.reset()
+    arrowPath!!.reset()
+
+    val humpDepth = drawDelta.coerceAtMost(height.toFloat())
+    val centerX = width / 2f
+    val baseHalfWidth = (backViewHeight / 4f).coerceAtMost(width / 2f)
+    val leftX = (centerX - baseHalfWidth).coerceAtLeast(0f)
+    val rightX = (centerX + baseHalfWidth).coerceAtMost(width.toFloat())
+    val baseY = 0f
+    val bottomY = height.toFloat()
+
+    backPath!!.moveTo(leftX, baseY)
+    backPath!!.quadTo(centerX - baseHalfWidth * 0.45f, baseY, centerX - humpDepth * 0.45f, bottomY * 0.6f)
+    backPath!!.quadTo(centerX, bottomY, centerX + humpDepth * 0.45f, bottomY * 0.6f)
+    backPath!!.quadTo(centerX + baseHalfWidth * 0.45f, baseY, rightX, baseY)
+    backPath!!.close()
+    canvas.drawPath(backPath!!, backPaint!!)
+
+    val arrowCenterY = bottomY * 0.58f
+    val arrowTopY = arrowCenterY - 8f
+    val arrowBottomY = arrowCenterY + 8f
+    val arrowHalf = 10f
+    if (showArrowUp) {
+      arrowPath!!.moveTo(centerX, arrowCenterY)
+      arrowPath!!.lineTo(centerX - arrowHalf, arrowBottomY)
+      arrowPath!!.moveTo(centerX, arrowCenterY)
+      arrowPath!!.lineTo(centerX + arrowHalf, arrowBottomY)
+    } else {
+      arrowPath!!.moveTo(centerX, arrowCenterY)
+      arrowPath!!.lineTo(centerX - arrowHalf, arrowTopY)
+      arrowPath!!.moveTo(centerX, arrowCenterY)
+      arrowPath!!.lineTo(centerX + arrowHalf, arrowTopY)
+    }
+    canvas.drawPath(arrowPath!!, arrowPaint!!)
   }
 
   fun setBackViewHeight(backViewHeight: Float) {
