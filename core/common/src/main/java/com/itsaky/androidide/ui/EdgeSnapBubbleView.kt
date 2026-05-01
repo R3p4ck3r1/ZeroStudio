@@ -1,13 +1,11 @@
 package com.itsaky.androidide.ui
 
-import android.app.Activity
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import kotlin.math.abs
@@ -47,7 +45,6 @@ class EdgeSnapBubbleView : View {
   private var backPath: Path? = null
   private var arrowPath: Path? = null
 
-  private var onBackListener: OnBackListener? = null
   private var onBubbleClickListener: OnBubbleClickListener? = null
   private var onBubbleGestureListener: OnBubbleGestureListener? = null
   private var side: Side = Side.LEFT
@@ -55,11 +52,6 @@ class EdgeSnapBubbleView : View {
   private var orientation: Orientation = Orientation.VERTICAL
   private var isMirrored: Boolean = false
   private var showArrowUp: Boolean = true
-
-  /** 绑定物理按键返回的事件回调 (保留兼容) */
-  fun setOnBackListener(onBackListener: OnBackListener?) {
-    this.onBackListener = onBackListener
-  }
 
   /** 绑定气泡区域点击事件 */
   fun setOnBubbleClickListener(listener: OnBubbleClickListener?) {
@@ -137,7 +129,7 @@ class EdgeSnapBubbleView : View {
       }
 
       MotionEvent.ACTION_MOVE -> {
-        deltaX = currentTouchX - downX
+        deltaX = downX - currentTouchX
         val diff = forwardX - currentTouchX
         if (diff > 0) {
           if (currentTouchX < thresholdLeft && left) {
@@ -175,13 +167,6 @@ class EdgeSnapBubbleView : View {
 
       MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
         if (isEdge) {
-          if (deltaX >= backMaxWidth && left) {
-            back()
-          } else if (abs(deltaX) >= backMaxWidth && right) {
-            if (!isOnlyLeftBack) {
-              back()
-            }
-          }
           // 轻触作为点击事件响应
           if (abs(deltaX) < backMaxWidth * 0.2f) {
             performClick()
@@ -199,24 +184,15 @@ class EdgeSnapBubbleView : View {
     return isEdge
   }
 
-  private fun back() {
-    if (onBackListener != null) {
-      onBackListener!!.onBack()
-    } else {
-      @Suppress("DEPRECATION")
-      (context as? Activity)?.onBackPressed()
-    }
-  }
-
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
     var finalWidth = MeasureSpec.getSize(widthMeasureSpec)
     var finalHeight = MeasureSpec.getSize(heightMeasureSpec)
 
-    // 自适应调整防止上下拖拽时驼峰山峰被无情裁切
+    // 水平模式本意是让宽度保证足够绘制空间（而不是抬高高度）
     if (orientation == Orientation.HORIZONTAL) {
-        val minHeight = (backMaxWidth * 1.5f).toInt()
-        if (finalHeight < minHeight) {
-            finalHeight = minHeight
+        val minWidth = (backMaxWidth * 1.5f).toInt()
+        if (finalWidth < minWidth) {
+            finalWidth = minWidth
         }
     }
 
@@ -360,10 +336,6 @@ class EdgeSnapBubbleView : View {
   enum class Side { LEFT, RIGHT }
   enum class Position { LEFT, RIGHT, TOP, BOTTOM }
   enum class Orientation { VERTICAL, HORIZONTAL }
-
-  interface OnBackListener {
-    fun onBack()
-  }
 
   fun interface OnBubbleClickListener {
     fun onClick(view: EdgeSnapBubbleView)
