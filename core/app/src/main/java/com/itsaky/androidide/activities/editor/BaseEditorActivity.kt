@@ -170,8 +170,10 @@ abstract class BaseEditorActivity :
 
           if (binding.root.isDrawerOpen(GravityCompat.START)) {
             binding.root.closeDrawer(GravityCompat.START)
+          } else if (isExternalSymbolPageActive) {
+            setExternalSymbolPageActive(false)
           } else if (editorBottomSheet?.state != BottomSheetBehavior.STATE_COLLAPSED) {
-            editorBottomSheet?.setState(BottomSheetBehavior.STATE_COLLAPSED)
+            requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
           } else if (binding.swipeReveal.isOpen) {
             binding.swipeReveal.close()
           } else {
@@ -835,6 +837,7 @@ abstract class BaseEditorActivity :
               resetEditorSurfaceTransform()
             }
             updateSymbolInputOverlayPosition()
+            syncSymbolInputPageToBottomSheet()
             
             // 确保所有的幽灵错位都被重置清空
             // content.symbolInputPage.translationY = 0f
@@ -851,6 +854,7 @@ abstract class BaseEditorActivity :
               this.viewContainer.scaleX = editorScale
               this.viewContainer.scaleY = editorScale
               updateSymbolInputOverlayPosition()
+              syncSymbolInputPageToBottomSheet()
             }
           }
         }
@@ -889,9 +893,11 @@ abstract class BaseEditorActivity :
       viewContainer.viewTreeObserver.addOnGlobalLayoutListener(observer)
       bottomSheet.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updateSymbolInputOverlayPosition()
+        syncSymbolInputPageToBottomSheet()
       }
       symbolInputPage.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updateSymbolInputOverlayPosition()
+        syncSymbolInputPageToBottomSheet()
       }
       bottomSheet.setOffsetAnchor(editorAppBarLayout)
       bottomSheet.onHeaderPageChanged = { page ->
@@ -941,15 +947,13 @@ abstract class BaseEditorActivity :
   private fun updateSymbolInputPageAnchor(active: Boolean) {
     if (_binding == null) return
     content.symbolInputPage.updateLayoutParams<CoordinatorLayout.LayoutParams> {
-      if (active) {
-        anchorId = View.NO_ID
-        anchorGravity = Gravity.NO_GRAVITY
-        gravity = Gravity.BOTTOM
-      } else {
-        anchorId = content.bottomSheet.id
-        anchorGravity = Gravity.TOP
-        gravity = Gravity.BOTTOM
-      }
+      anchorId = View.NO_ID
+      anchorGravity = Gravity.NO_GRAVITY
+      gravity = Gravity.BOTTOM
+    }
+    content.symbolInputPage.requestLayout()
+    if (!active) {
+      content.symbolInputPage.post { syncSymbolInputPageToBottomSheet() }
     }
   }
 
@@ -976,6 +980,7 @@ abstract class BaseEditorActivity :
       }
     }
     updateSymbolInputOverlayPosition()
+    syncSymbolInputPageToBottomSheet()
     
     // 强制归零解决各种异常偏移问题
     // content.symbolInputPage.translationY = 0f
@@ -990,6 +995,18 @@ abstract class BaseEditorActivity :
     content.externalSymbolInputView.setImeBottomInset(targetImeInset)
     // content.symbolInputPage.translationY = 0f
     updateSymbolInputOverlayPosition()
+    syncSymbolInputPageToBottomSheet()
+  }
+
+  private fun syncSymbolInputPageToBottomSheet() {
+    if (_binding == null || isExternalSymbolPageActive) return
+    val page = content.symbolInputPage
+    val sheet = content.bottomSheet
+    if (page.visibility != View.VISIBLE || page.height <= 0) return
+    val targetY = (sheet.top - page.height).toFloat()
+    if (kotlin.math.abs(page.y - targetY) > 0.5f) {
+      page.y = targetY
+    }
   }
 
   /**
