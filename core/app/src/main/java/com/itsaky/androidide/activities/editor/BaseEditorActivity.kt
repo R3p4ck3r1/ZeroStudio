@@ -217,6 +217,7 @@ abstract class BaseEditorActivity :
   private var blockBottomSheetExpandForTabSwitch = false
   private var isPageSwitchAnchorUpdatePosted = false
   private var latestImeBottomInset = 0
+  private var pendingBottomSheetState: Int? = null
   private var cursorPositionReceipt: SubscriptionReceipt<SelectionChangeEvent>? = null
 
   companion object {
@@ -811,8 +812,21 @@ abstract class BaseEditorActivity :
         object : BottomSheetCallback() {
           override fun onStateChanged(bottomSheet: View, newState: Int) {
             if (isDestroying || _binding == null) return
+            if (newState == pendingBottomSheetState) {
+              pendingBottomSheetState = null
+            }
+            val pendingState = pendingBottomSheetState
+            if (
+                pendingState != null &&
+                    newState != BottomSheetBehavior.STATE_SETTLING &&
+                    newState != BottomSheetBehavior.STATE_DRAGGING &&
+                    newState != pendingState
+            ) {
+              editorBottomSheet?.state = pendingState
+              return
+            }
             if (newState == BottomSheetBehavior.STATE_EXPANDED && blockBottomSheetExpandForTabSwitch) {
-              editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
+              requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
               return
             }
             if (newState == BottomSheetBehavior.STATE_EXPANDED) {
@@ -1059,9 +1073,9 @@ abstract class BaseEditorActivity :
     // 点击触发抽屉显示/隐藏
     bubble.setOnBubbleClickListener {
       if (editorBottomSheet?.state == BottomSheetBehavior.STATE_EXPANDED) {
-         editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
+         requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
       } else {
-         editorBottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
+         requestBottomSheetState(BottomSheetBehavior.STATE_EXPANDED)
       }
     }
     
@@ -1084,14 +1098,27 @@ abstract class BaseEditorActivity :
           override fun onRelease(fraction: Float) {
              // 往上滑即 fraction 为负，打开抽屉；往下滑即正，收起抽屉
              if (fraction < -0.15f) { 
-                editorBottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
+                requestBottomSheetState(BottomSheetBehavior.STATE_EXPANDED)
              } else if (fraction > 0.15f) { 
-                editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
+                requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
              }
              content.headerContainer.alpha = 1f
           }
         }
     )
+  }
+
+  private fun requestBottomSheetState(targetState: Int) {
+    val behavior = editorBottomSheet ?: return
+    val currentState = behavior.state
+    if (currentState == targetState) return
+    if (pendingBottomSheetState == targetState) return
+    if (currentState == BottomSheetBehavior.STATE_SETTLING || currentState == BottomSheetBehavior.STATE_DRAGGING) {
+      pendingBottomSheetState = targetState
+      return
+    }
+    pendingBottomSheetState = targetState
+    behavior.state = targetState
   }
 
   private fun updateSymbolInputOverlayPosition() {
