@@ -129,7 +129,7 @@ class EdgeSnapBubbleView : View {
       }
 
       MotionEvent.ACTION_MOVE -> {
-        deltaX = downX - currentTouchX
+        deltaX = if (orientation == Orientation.HORIZONTAL) currentTouchX - downX else downX - currentTouchX
         val diff = forwardX - currentTouchX
         if (diff > 0) {
           if (currentTouchX < thresholdLeft && left) {
@@ -216,7 +216,7 @@ class EdgeSnapBubbleView : View {
     val drawDelta = if (deltaX == 0f) backMaxWidth * 0.35f else abs(deltaX)
 
     if (orientation == Orientation.HORIZONTAL) {
-      drawHorizontalBubble(canvas, drawDelta)
+      drawHorizontalBubble(canvas, deltaX)
       alpha = (drawDelta / backMaxWidth).coerceIn(0.35f, 1f)
       return
     }
@@ -268,38 +268,55 @@ class EdgeSnapBubbleView : View {
     alpha = (drawDelta / backMaxWidth).coerceIn(0.35f, 1f)
   }
 
-  private fun drawHorizontalBubble(canvas: Canvas, drawDelta: Float) {
+  private fun drawHorizontalBubble(canvas: Canvas, dragDelta: Float) {
     backPath!!.reset()
     arrowPath!!.reset()
 
-    val humpDepth = drawDelta.coerceAtMost(height.toFloat())
     val centerX = width / 2f
     val baseHalfWidth = (backViewHeight / 4f).coerceAtMost(width / 2f)
     val leftX = (centerX - baseHalfWidth).coerceAtLeast(0f)
     val rightX = (centerX + baseHalfWidth).coerceAtMost(width.toFloat())
+
+    val baseDepth = (height * 0.32f).coerceAtLeast(6f)
+    val signedOffset = (dragDelta / backMaxWidth).coerceIn(-1f, 1f) * (height * 0.2f)
+    val humpDepth = (baseDepth + signedOffset).coerceIn(height * 0.16f, height * 0.62f)
+
     val baseY = 0f
-    val bottomY = height.toFloat()
+    val tipY = humpDepth
 
     backPath!!.moveTo(leftX, baseY)
-    backPath!!.quadTo(centerX - baseHalfWidth * 0.45f, baseY, centerX - humpDepth * 0.45f, bottomY * 0.6f)
-    backPath!!.quadTo(centerX, bottomY, centerX + humpDepth * 0.45f, bottomY * 0.6f)
-    backPath!!.quadTo(centerX + baseHalfWidth * 0.45f, baseY, rightX, baseY)
+    backPath!!.cubicTo(
+      centerX - baseHalfWidth * 0.55f,
+      baseY,
+      centerX - baseHalfWidth * 0.18f,
+      tipY,
+      centerX,
+      tipY,
+    )
+    backPath!!.cubicTo(
+      centerX + baseHalfWidth * 0.18f,
+      tipY,
+      centerX + baseHalfWidth * 0.55f,
+      baseY,
+      rightX,
+      baseY,
+    )
     backPath!!.close()
     canvas.drawPath(backPath!!, backPaint!!)
 
-    val arrowCenterY = bottomY * 0.58f
-    val arrowTopY = arrowCenterY - 8f
-    val arrowBottomY = arrowCenterY + 8f
-    val arrowHalf = 10f
+    val arrowCenterY = tipY - 4f
+    val arrowTopY = arrowCenterY - 6f
+    val arrowBottomY = arrowCenterY + 4f
+    val arrowHalf = 9f
     if (showArrowUp) {
-      arrowPath!!.moveTo(centerX, arrowCenterY)
+      arrowPath!!.moveTo(centerX, arrowTopY)
       arrowPath!!.lineTo(centerX - arrowHalf, arrowBottomY)
-      arrowPath!!.moveTo(centerX, arrowCenterY)
+      arrowPath!!.moveTo(centerX, arrowTopY)
       arrowPath!!.lineTo(centerX + arrowHalf, arrowBottomY)
     } else {
-      arrowPath!!.moveTo(centerX, arrowCenterY)
+      arrowPath!!.moveTo(centerX, arrowBottomY)
       arrowPath!!.lineTo(centerX - arrowHalf, arrowTopY)
-      arrowPath!!.moveTo(centerX, arrowCenterY)
+      arrowPath!!.moveTo(centerX, arrowBottomY)
       arrowPath!!.lineTo(centerX + arrowHalf, arrowTopY)
     }
     canvas.drawPath(arrowPath!!, arrowPaint!!)
