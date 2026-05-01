@@ -971,9 +971,7 @@ abstract class BaseEditorActivity :
     // 这里只负责把当前 IME inset 同步给符号输入视图本身。
     val targetImeInset = if (isExternalSymbolPageActive) latestImeBottomInset else 0
     content.externalSymbolInputView.setImeBottomInset(targetImeInset)
-    if (!isExternalSymbolPageActive) {
-      content.symbolInputPage.translationY = 0f
-    }
+    content.symbolInputPage.translationY = 0f
     updateSymbolInputOverlayPosition()
   }
 
@@ -999,11 +997,7 @@ abstract class BaseEditorActivity :
               runningAnimations: MutableList<WindowInsetsAnimationCompat>
           ): WindowInsetsCompat {
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            if (isExternalSymbolPageActive) {
-              content.symbolInputPage.translationY = -imeBottom.toFloat()
-            } else {
-              content.symbolInputPage.translationY = 0f
-            }
+            content.symbolInputPage.translationY = 0f
             content.externalSymbolInputView.setImeBottomInset(if (isExternalSymbolPageActive) imeBottom else 0)
             return insets
           }
@@ -1020,8 +1014,8 @@ abstract class BaseEditorActivity :
   private fun setupPageSwitchGestureBubble() {
     if (_binding == null) return
     val bubble = content.pageSwitchGestureBubble
-    bubble.setPosition(EdgeSnapBubbleView.Position.TOP)
     bubble.setOrientation(EdgeSnapBubbleView.Orientation.HORIZONTAL)
+    bubble.setPosition(EdgeSnapBubbleView.Position.TOP)
     bubble.setOnBubbleClickListener {
       toggleHeaderOverlay()
     }
@@ -1114,6 +1108,7 @@ abstract class BaseEditorActivity :
     content.symbolInputPage.updateLayoutParams<ViewGroup.LayoutParams> {
       height = ViewGroup.LayoutParams.WRAP_CONTENT
     }
+    content.symbolInputPage.requestLayout()
 
     // 顶部边缘同步：bubble/header/symbol input 在滑动期间统一显隐
     content.pageSwitchGestureBubble.visibility = targetVisibility
