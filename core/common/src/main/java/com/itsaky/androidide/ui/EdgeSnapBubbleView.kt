@@ -220,8 +220,8 @@ class EdgeSnapBubbleView : View {
     if (orientation == Orientation.HORIZONTAL) {
         // 先移动到中点，容纳驼峰避免被顶边裁掉
         canvas.translate(width / 2f, backMaxWidth)
-        // 逆时针旋转90度，让向右（正X）画出的曲线变为朝上凸起
-        canvas.rotate(-90f)
+        // 顺时针旋转90度，让向右（正X）画出的曲线变为朝下凸起（位于顶部条可见区域内）
+        canvas.rotate(90f)
         // 将绘制原点拉回中心对齐
         canvas.translate(0f, -backViewHeight / 2f)
     }
