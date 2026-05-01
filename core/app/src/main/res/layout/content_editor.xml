@@ -119,18 +119,21 @@
           android:id="@+id/symbol_input_page"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
-          android:background="?attr/colorSurface"
           android:layout_gravity="bottom"
           app:layout_anchor="@id/bottom_sheet"
           app:layout_anchorGravity="top"
           android:orientation="vertical"
-          android:elevation="4dp"
+          android:elevation="0dp"
+          android:background="@null"
+          android:clipChildren="false"
           android:visibility="gone">
 
           <RelativeLayout
                android:id="@+id/header_overlay_container"
                android:layout_width="match_parent"
-               android:layout_height="wrap_content">
+               android:layout_height="wrap_content"
+               android:elevation="4dp"
+               android:background="?attr/colorSurface">
 
                <com.itsaky.androidide.ui.EdgeSnapBubbleView
                     android:id="@+id/page_switch_gesture_bubble"
@@ -199,6 +202,7 @@
                android:id="@+id/external_symbol_input_view"
                android:layout_width="match_parent"
                android:layout_height="wrap_content"
+               android:elevation="4dp"
                android:background="?attr/colorSurface" />
      </LinearLayout>
 

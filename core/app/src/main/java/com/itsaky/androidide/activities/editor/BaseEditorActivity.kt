@@ -87,6 +87,7 @@ import com.itsaky.androidide.models.SearchResult
 import com.itsaky.androidide.preferences.internal.BuildPreferences
 import com.itsaky.androidide.projects.IProjectManager
 import com.itsaky.androidide.tasks.cancelIfActive
+import com.itsaky.androidide.tasks.runOnUiThread
 import com.itsaky.androidide.ui.CodeEditorView
 import com.itsaky.androidide.ui.ContentTranslatingDrawerLayout
 import com.itsaky.androidide.ui.EditorBottomSheet
@@ -111,6 +112,8 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode.MAIN
 import org.slf4j.Logger
@@ -280,19 +283,19 @@ abstract class BaseEditorActivity :
   override fun onApplyWindowInsets(insets: WindowInsetsCompat) {
     super.onApplyWindowInsets(insets)
     if (_binding == null) return
+    
     val height = contentCardRealHeight ?: return
     val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-    latestImeBottomInset = imeInsets.bottom
-
+    
     _binding?.content?.bottomSheet?.setImeVisible(imeInsets.bottom > 0)
     _binding?.contentCard?.updateLayoutParams<ViewGroup.LayoutParams> {
+      // 外部页面启用时占用全高，非启用时减去键盘高度，避免遮挡
       this.height = if (isExternalSymbolPageActive) height else (height - imeInsets.bottom)
     }
-    applyExternalSymbolImeInset()
 
-    val isImeVisible = imeInsets.bottom > 0
-    if (this.isImeVisible != isImeVisible) {
-      this.isImeVisible = isImeVisible
+    val isImeVisibleNow = imeInsets.bottom > 0
+    if (this.isImeVisible != isImeVisibleNow) {
+      this.isImeVisible = isImeVisibleNow
       onSoftInputChanged()
     }
   }
@@ -813,12 +816,16 @@ abstract class BaseEditorActivity :
               return
             }
             if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-              val editor = provideCurrentEditor()
-              editor?.editor?.ensureWindowsDismissed()
+              provideCurrentEditor()?.editor?.ensureWindowsDismissed()
             } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
               resetEditorSurfaceTransform()
             }
             updateSymbolInputOverlayPosition()
+            
+            // 确保所有的幽灵错位都被重置清空
+            content.symbolInputPage.translationY = 0f
+            content.headerOverlayContainer.translationY = 0f
+            content.symbolInputPage.requestLayout()
           }
 
           override fun onSlide(bottomSheet: View, slideOffset: Float) {
@@ -852,16 +859,14 @@ abstract class BaseEditorActivity :
 
     content.apply {
       setupExternalSymbolImeSync()
-      bottomSheet.onActionTextChanged = { text ->
-        content.bottomAction.actionText.text = text
-      }
-      bottomSheet.onActionProgressChanged = { progress ->
-        content.bottomAction.progress.setProgressCompat(progress, true)
-      }
+      bottomSheet.onActionTextChanged = { content.bottomAction.actionText.text = it }
+      bottomSheet.onActionProgressChanged = { content.bottomAction.progress.setProgressCompat(it, true) }
       bottomSheet.onStatusChanged = { text, gravity ->
         content.buildStatus.statusText.gravity = gravity
         content.buildStatus.statusText.text = text
       }
+      
+      // 预先将手柄置顶
       pageSwitchGestureBubble.bringToFront()
       symbolInputPage.post {
         setupPageSwitchGestureBubble()
@@ -879,19 +884,10 @@ abstract class BaseEditorActivity :
         if (_binding != null) {
           when (page) {
             EditorBottomSheet.STATE_EXTERNAL_SYMBOL -> {
-              if (!isExternalSymbolPageActive) {
-                setExternalSymbolPageActive(true)
-              }
+              if (!isExternalSymbolPageActive) setExternalSymbolPageActive(true)
             }
-            EditorBottomSheet.CHILD_HEADER -> {
-              if (isExternalSymbolPageActive) {
-                setExternalSymbolPageActive(false)
-              }
-            }
-            EditorBottomSheet.CHILD_ACTION -> {
-              if (isExternalSymbolPageActive) {
-                setExternalSymbolPageActive(false)
-              }
+            EditorBottomSheet.CHILD_HEADER, EditorBottomSheet.CHILD_ACTION -> {
+              if (isExternalSymbolPageActive) setExternalSymbolPageActive(false)
             }
           }
           val enableSwipeReveal = page == EditorBottomSheet.CHILD_HEADER && !isExternalSymbolPageActive
@@ -900,10 +896,13 @@ abstract class BaseEditorActivity :
             binding.swipeReveal.close()
           }
           updateSymbolInputOverlayPosition()
+          
+          content.symbolInputPage.translationY = 0f
+          content.headerOverlayContainer.translationY = 0f
+          content.symbolInputPage.requestLayout()
         }
       }
       setExternalSymbolPageActive(false)
-      isPageSwitchVisibleForCurrentPage = true
       updateSymbolInputOverlayPosition()
     }
   }
@@ -963,46 +962,85 @@ abstract class BaseEditorActivity :
       }
     }
     updateSymbolInputOverlayPosition()
+    
+    // 强制归零解决各种异常偏移问题
+    content.symbolInputPage.translationY = 0f
+    content.headerOverlayContainer.translationY = 0f
   }
 
   private fun applyExternalSymbolImeInset() {
     if (_binding == null) return
-    // 统一由 setupExternalSymbolImeSync() 的 WindowInsets 监听/动画回调处理位移，
-    // 这里只负责把当前 IME inset 同步给符号输入视图本身。
+    // 强制归零，交由 WindowInsetsAnimationCompat 去接管动画
+    content.symbolInputPage.translationY = 0f
     val targetImeInset = if (isExternalSymbolPageActive) latestImeBottomInset else 0
     content.externalSymbolInputView.setImeBottomInset(targetImeInset)
     content.symbolInputPage.translationY = 0f
     updateSymbolInputOverlayPosition()
   }
 
+  /**
+   * 最核心和官方的 IME 软键盘状态与动画同步方法。
+   * 支持 Android 11+ 实时跟手动效，低版本兼容。
+   */
   private fun setupExternalSymbolImeSync() {
     if (_binding == null) return
-    ViewCompat.setOnApplyWindowInsetsListener(content.symbolInputPage) { _, insets ->
-      val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-      latestImeBottomInset = imeBottom
-      val targetImeInset = if (isExternalSymbolPageActive) imeBottom else 0
-      content.externalSymbolInputView.setImeBottomInset(targetImeInset)
-      if (!isExternalSymbolPageActive) {
-        content.symbolInputPage.translationY = 0f
-      }
-      insets
-    }
+    val symbolInputPage = content.symbolInputPage
+
+    // 1. 设置动画回调 (Android 11+ 实时的平滑推升)
     ViewCompat.setWindowInsetsAnimationCallback(
-        content.symbolInputPage,
-        object : WindowInsetsAnimationCompat.Callback(
-            WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE
-        ) {
-          override fun onProgress(
-              insets: WindowInsetsCompat,
-              runningAnimations: MutableList<WindowInsetsAnimationCompat>
-          ): WindowInsetsCompat {
-            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            content.symbolInputPage.translationY = 0f
-            content.externalSymbolInputView.setImeBottomInset(if (isExternalSymbolPageActive) imeBottom else 0)
-            return insets
-          }
+        symbolInputPage,
+        object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
+            var startTranslationY = 0f
+            var endTranslationY = 0f
+
+            override fun onPrepare(animation: WindowInsetsAnimationCompat) {
+                startTranslationY = symbolInputPage.translationY
+                super.onPrepare(animation)
+            }
+
+            override fun onStart(
+                animation: WindowInsetsAnimationCompat,
+                bounds: WindowInsetsAnimationCompat.BoundsCompat
+            ): WindowInsetsAnimationCompat.BoundsCompat {
+                val insets = ViewCompat.getRootWindowInsets(symbolInputPage)
+                val imeBottom = insets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
+                val navBottom = insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+                
+                // 当键盘弹出时，向上偏移(即负值)，计算差值避免被虚拟按键重复扣除
+                endTranslationY = if (imeBottom > 0) -(imeBottom - navBottom).toFloat().coerceAtMost(0f) else 0f
+                return bounds
+            }
+
+            override fun onProgress(
+                insets: WindowInsetsCompat,
+                runningAnimations: MutableList<WindowInsetsAnimationCompat>
+            ): WindowInsetsCompat {
+                val imeAnimation = runningAnimations.find { it.typeMask and WindowInsetsCompat.Type.ime() != 0 }
+                if (imeAnimation != null) {
+                    val fraction = imeAnimation.interpolatedFraction
+                    symbolInputPage.translationY = startTranslationY + (endTranslationY - startTranslationY) * fraction
+                }
+                return insets
+            }
         }
     )
+
+    // 2. 设置状态监听 (兼容 Android 11 以下，及确保最终状态收敛准确)
+    ViewCompat.setOnApplyWindowInsetsListener(symbolInputPage) { view, insets ->
+        val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+        val navBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+        latestImeBottomInset = imeBottom
+        
+        // 传递高度给符号键盘自身计算其内边距/显示范围
+        content.externalSymbolInputView.setImeBottomInset(if (isExternalSymbolPageActive) imeBottom else 0)
+
+        // 终态设定
+        val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+        val targetTranslationY = if (isImeVisible && imeBottom > 0) -(imeBottom - navBottom).toFloat().coerceAtMost(0f) else 0f
+        view.translationY = targetTranslationY
+
+        insets
+    }
   }
 
   private fun resetEditorSurfaceTransform() {
@@ -1014,79 +1052,55 @@ abstract class BaseEditorActivity :
   private fun setupPageSwitchGestureBubble() {
     if (_binding == null) return
     val bubble = content.pageSwitchGestureBubble
+    // 强制使用水平拖拽方向设置，对应手势为上下滑动（因为已在组件内旋转90度处理过）
     bubble.setOrientation(EdgeSnapBubbleView.Orientation.HORIZONTAL)
     bubble.setPosition(EdgeSnapBubbleView.Position.TOP)
+    
+    // 点击触发抽屉显示/隐藏
     bubble.setOnBubbleClickListener {
-      toggleHeaderOverlay()
+      if (editorBottomSheet?.state == BottomSheetBehavior.STATE_EXPANDED) {
+         editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
+      } else {
+         editorBottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
+      }
     }
+    
     bubble.setOnBubbleGestureListener(
         object : EdgeSnapBubbleView.OnBubbleGestureListener {
           override fun onDrag(fraction: Float) {
-            applyHeaderOverlayDrag(fraction)
+             // 手势上下滑动期间，同步百分比比例显示与隐藏处理
+             // fraction < 0 表示向上拉 (打开底部抽屉)
+             // fraction > 0 表示向下拉 (收起底部抽屉)
+             if (_binding != null) {
+                 val absFrac = Math.abs(fraction)
+                 val alpha = (1f - absFrac * 0.8f).coerceIn(0.2f, 1f)
+                 content.headerContainer.alpha = alpha
+                 
+                 // 如果需要联动 bottomSheet 的视觉，由于 Behavior 无法通过 API 直接指定拖拽位置（除 setPeekHeight 外），
+                 // 这里通过 alpha 和气泡手势的视觉反馈满足需求。
+             }
           }
 
           override fun onRelease(fraction: Float) {
-            completeHeaderOverlayDrag(fraction)
+             // 往上滑即 fraction 为负，打开抽屉；往下滑即正，收起抽屉
+             if (fraction < -0.15f) { 
+                editorBottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
+             } else if (fraction > 0.15f) { 
+                editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
+             }
+             
+             resetGhostOffsets()
           }
         }
     )
   }
 
-  private fun toggleHeaderOverlay() {
+  private fun resetGhostOffsets() {
     if (_binding == null) return
-    isHeaderOverlayCollapsed = !isHeaderOverlayCollapsed
-    animateHeaderOverlay(expand = !isHeaderOverlayCollapsed)
-  }
-
-  private fun applyHeaderOverlayDrag(fraction: Float) {
-    if (_binding == null) return
-    // 拖拽手势用于控制底部隐藏 tab 抽屉（bottom_sheet），不控制 header_overlay_container。
-    // 这里只做 bubble 的轻微跟手反馈。
-    // Bubble 需要始终贴合 header_container 顶部边缘，跟随 overlay 的位移。
-    content.pageSwitchGestureBubble.translationY = content.headerOverlayContainer.translationY
-  }
-
-  private fun completeHeaderOverlayDrag(fraction: Float) {
-    if (_binding == null) return
-    if (!isExternalSymbolPageActive) {
-      if (fraction < -0.35f) {
-        editorBottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
-      } else if (fraction > 0.35f) {
-        editorBottomSheet?.state = BottomSheetBehavior.STATE_COLLAPSED
-      }
-    }
-    content.pageSwitchGestureBubble.animate().translationY(content.headerOverlayContainer.translationY).setDuration(120L).start()
-  }
-
-  private fun animateHeaderOverlay(expand: Boolean) {
-    if (_binding == null) return
-    val container = content.headerOverlayContainer
-    val h = container.height.toFloat().coerceAtLeast(1f)
-    val targetY = if (expand) 0f else h
-    val targetAlpha = if (expand) 1f else 0f
-    container.visibility = View.VISIBLE
-    container
-        .animate()
-        .translationY(targetY)
-        .alpha(targetAlpha)
-        .setDuration(220L)
-        .withEndAction {
-          container.visibility = if (expand) View.VISIBLE else View.GONE
-          syncBubbleToHeaderTop()
-        }
-        .start()
-    content.pageSwitchGestureBubble
-        .animate()
-         .translationY(targetY)
-        .setDuration(220L)
-        .start()
-  }
-
-  private fun syncBubbleToHeaderTop() {
-    if (_binding == null) return
-    val container = content.headerOverlayContainer
-    val targetY = if (isHeaderOverlayCollapsed) container.height.toFloat() else 0f
-    content.pageSwitchGestureBubble.translationY = targetY
+    content.symbolInputPage.translationY = 0f
+    content.headerOverlayContainer.translationY = 0f
+    content.headerContainer.alpha = 1f
+    content.symbolInputPage.requestLayout()
   }
 
   private fun updateSymbolInputOverlayPosition() {
@@ -1102,7 +1116,8 @@ abstract class BaseEditorActivity :
         }
     // AdvancedSymbolInputView 正在上下拖拽或已完全展开时，自动隐藏 header 区域，保留 bubble。
     val hideHeaderBySymbolGesture = symbolExpansion > 0.01f
-    val headerVisibility = if (hideHeaderBySymbolGesture) View.GONE else targetVisibility
+    val headerVisibility = if (hideHeaderBySymbolGesture || isExternalSymbolPageActive) View.GONE else targetVisibility
+    
     content.symbolInputPage.visibility = targetVisibility
     content.symbolInputPage.alpha = alpha
     content.symbolInputPage.updateLayoutParams<ViewGroup.LayoutParams> {
@@ -1110,11 +1125,12 @@ abstract class BaseEditorActivity :
     }
     content.symbolInputPage.requestLayout()
 
-    // 顶部边缘同步：bubble/header/symbol input 在滑动期间统一显隐
+    // 气泡和容器的根保持跟随 targetVisibility
+    content.headerOverlayContainer.visibility = targetVisibility
     content.pageSwitchGestureBubble.visibility = targetVisibility
-    content.headerOverlayContainer.visibility = headerVisibility
+    
+    // 仅仅隐藏实际的 Header 内容，从而在隐藏时，气泡能自然贴合到 AdvancedSymbolInputView 顶部
     content.headerContainer.visibility = headerVisibility
-    content.externalSymbolInputView.visibility = targetVisibility
     content.cardView.visibility = headerVisibility
     content.border.root.visibility = headerVisibility
     content.tvCursorPosition.visibility = headerVisibility
@@ -1157,15 +1173,6 @@ abstract class BaseEditorActivity :
       invalidateOptionsMenu()
       if (_binding != null) content.bottomSheet.onSoftInputChanged()
     }
-  }
-
-  private fun showNeedHelpDialog() {
-    if (isDestroying || isFinishing) return
-    val builder = newMaterialDialogBuilder(this)
-    builder.setTitle(string.need_help)
-    builder.setMessage(string.msg_need_help)
-    builder.setPositiveButton(android.R.string.ok, null)
-    builder.create().show()
   }
 
   open fun installationSessionCallback(): SessionCallback {

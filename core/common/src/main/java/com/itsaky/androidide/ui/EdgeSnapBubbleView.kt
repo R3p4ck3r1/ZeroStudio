@@ -13,7 +13,9 @@ import android.view.View
 import kotlin.math.abs
 
 /**
- * 小米全面屏手势返回上一级手势同款
+ * 屏幕边缘滑动与返回上一级气泡手势控件。
+ * 
+ * 作者：android_zero
  */
 class EdgeSnapBubbleView : View {
 
@@ -54,18 +56,20 @@ class EdgeSnapBubbleView : View {
   private var isMirrored: Boolean = false
   private var showArrowUp: Boolean = true
 
+  /** 绑定物理按键返回的事件回调 (保留兼容) */
   fun setOnBackListener(onBackListener: OnBackListener?) {
     this.onBackListener = onBackListener
   }
 
+  /** 绑定气泡区域点击事件 */
   fun setOnBubbleClickListener(listener: OnBubbleClickListener?) {
     onBubbleClickListener = listener
   }
 
+  /** 绑定气泡上下/左右触摸拖拽的完整手势事件 */
   fun setOnBubbleGestureListener(listener: OnBubbleGestureListener?) {
     onBubbleGestureListener = listener
   }
-
 
   fun setPosition(newPosition: Position) {
     position = newPosition
@@ -78,18 +82,10 @@ class EdgeSnapBubbleView : View {
 
   fun setOrientation(newOrientation: Orientation) {
     orientation = newOrientation
-    applyRenderTransform()
-    restorePosition()
   }
 
   fun setMirrored(mirrored: Boolean) {
     isMirrored = mirrored
-    applyRenderTransform()
-  }
-
-  private fun applyRenderTransform() {
-    rotation = if (orientation == Orientation.VERTICAL) 90f else 0f
-    scaleX = if (isMirrored) -1f else 1f
   }
 
   fun setOnlyLeftBack(onlyLeftBack: Boolean) {
@@ -101,7 +97,6 @@ class EdgeSnapBubbleView : View {
   constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
 
   constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
-    // 原始源码通过 styleable/dimen 读取。当前模块未定义对应 attrs，改为等价默认值。
     val density = resources.displayMetrics.density
     backViewHeight = 220f * density
     backEdgeWidth = 12f * density
@@ -126,54 +121,44 @@ class EdgeSnapBubbleView : View {
   }
 
   override fun onTouchEvent(ev: MotionEvent): Boolean {
-    val currentX = ev.x
-    currentY = ev.y
+    // 兼容上下拖拽手势。由于组件在 HORIZONTAL 模式下已被逻辑旋转，Y轴移动其实对应原生态X轴拉伸
+    val currentTouchX = if (orientation == Orientation.HORIZONTAL) ev.y else ev.x
+    // 固定绘制锚点，保障拖拽手势时视觉驼峰完美居中
+    currentY = if (orientation == Orientation.HORIZONTAL) backViewHeight / 2f else ev.y
+    
     when (ev.action) {
       MotionEvent.ACTION_DOWN -> {
-        downX = ev.x
+        downX = currentTouchX
         forwardX = downX
-        // 原始逻辑保留：边缘触发。
-        if (downX <= backEdgeWidth) {
-          isEdge = true
-          left = true
-          right = false
-        } else if (downX >= width - backEdgeWidth) {
-          isEdge = true
-          right = true
-          left = false
-        }
-        // 项目需求：固定吸附在 page_switch_container 顶部边缘可直接显示与点击。
-        // 因此若未命中边缘，也允许进入左侧形态绘制和点击，不隐藏。
-        if (!isEdge) {
-          isEdge = true
-          left = true
-          right = false
-        }
+        
+        isEdge = true
+        left = true
+        right = false
       }
 
       MotionEvent.ACTION_MOVE -> {
-        deltaX = currentX - downX
-        val diff = forwardX - currentX
+        deltaX = currentTouchX - downX
+        val diff = forwardX - currentTouchX
         if (diff > 0) {
-          if (currentX < thresholdLeft && left) {
+          if (currentTouchX < thresholdLeft && left) {
             deltaX = backMaxWidth
-            deltaX -= (thresholdLeft - currentX) / 2
+            deltaX -= (thresholdLeft - currentTouchX) / 2
             bufferX = deltaX
             if (deltaX < 0) {
               deltaX = 0f
               bufferX = 0f
             }
-          } else if (currentX > thresholdRight && right) {
+          } else if (currentTouchX > thresholdRight && right) {
             bufferX -= diff
             deltaX = bufferX
           }
         } else {
-          if (currentX < thresholdLeft && left) {
+          if (currentTouchX < thresholdLeft && left) {
             bufferX += abs(diff)
             deltaX = bufferX
-          } else if (currentX > thresholdRight && right) {
+          } else if (currentTouchX > thresholdRight && right) {
             deltaX = -backMaxWidth
-            deltaX += (currentX - thresholdRight) / 2
+            deltaX += (currentTouchX - thresholdRight) / 2
             bufferX = deltaX
             if (deltaX < -backMaxWidth) {
               deltaX = -backMaxWidth
@@ -181,7 +166,7 @@ class EdgeSnapBubbleView : View {
             }
           }
         }
-        forwardX = currentX
+        forwardX = currentTouchX
         if (isEdge) {
           onBubbleGestureListener?.onDrag(getDragFraction())
           invalidate()
@@ -197,7 +182,7 @@ class EdgeSnapBubbleView : View {
               back()
             }
           }
-          // 轻触也触发点击切换。
+          // 轻触作为点击事件响应
           if (abs(deltaX) < backMaxWidth * 0.2f) {
             performClick()
           }
@@ -220,31 +205,50 @@ class EdgeSnapBubbleView : View {
     } else {
       @Suppress("DEPRECATION")
       (context as? Activity)?.onBackPressed()
-      performClick()
     }
   }
 
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-    super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-    mWidth = MeasureSpec.getSize(widthMeasureSpec) + 1
+    var finalWidth = MeasureSpec.getSize(widthMeasureSpec)
+    var finalHeight = MeasureSpec.getSize(heightMeasureSpec)
+
+    // 自适应调整防止上下拖拽时驼峰山峰被无情裁切
+    if (orientation == Orientation.HORIZONTAL) {
+        val minHeight = (backMaxWidth * 1.5f).toInt()
+        if (finalHeight < minHeight) {
+            finalHeight = minHeight
+        }
+    }
+
+    setMeasuredDimension(finalWidth, finalHeight)
+    mWidth = finalWidth + 1
     thresholdLeft = (mWidth / 3).toFloat()
     thresholdRight = thresholdLeft * 2
   }
 
   override fun onDraw(canvas: Canvas) {
-    super.onDraw(canvas)
     if (deltaX > backMaxWidth && left) {
       deltaX = backMaxWidth
     } else if (deltaX < -backMaxWidth && right) {
       deltaX = -backMaxWidth
     }
-    Log.e("onDraw", "" + deltaX)
     val deltaY = currentY - backViewHeight / 2
     backPath!!.reset()
     arrowPath!!.reset()
 
-    // 保留默认可见山峰（无拖动时）
+    // 保留默认可见山峰，以引导用户进行拖拽
     val drawDelta = if (deltaX == 0f) backMaxWidth * 0.35f else abs(deltaX)
+
+    canvas.save()
+
+    if (orientation == Orientation.HORIZONTAL) {
+        // 先移动到中点，容纳驼峰避免被顶边裁掉
+        canvas.translate(width / 2f, backMaxWidth)
+        // 逆时针旋转90度，让向右（正X）画出的曲线变为朝上凸起
+        canvas.rotate(-90f)
+        // 将绘制原点拉回中心对齐
+        canvas.translate(0f, -backViewHeight / 2f)
+    }
 
     if ((deltaX > 0 && left) || (deltaX == 0f && !right)) {
       backPath!!.moveTo(0f, deltaY)
@@ -286,6 +290,8 @@ class EdgeSnapBubbleView : View {
         canvas.drawPath(arrowPath!!, arrowPaint!!)
       }
     }
+    
+    canvas.restore()
     alpha = (drawDelta / backMaxWidth).coerceIn(0.35f, 1f)
   }
 
@@ -333,7 +339,6 @@ class EdgeSnapBubbleView : View {
         y = (parentView.height - height).toFloat()
       }
     }
-    applyRenderTransform()
   }
 
   private fun getDragFraction(): Float {
@@ -348,15 +353,12 @@ class EdgeSnapBubbleView : View {
   }
 
   fun setArrowExpanded(expanded: Boolean) {
-    // expanded=true 表示容器显示中，箭头朝上（点击后收起）
     showArrowUp = expanded
     invalidate()
   }
 
   enum class Side { LEFT, RIGHT }
-
   enum class Position { LEFT, RIGHT, TOP, BOTTOM }
-
   enum class Orientation { VERTICAL, HORIZONTAL }
 
   interface OnBackListener {
@@ -368,8 +370,9 @@ class EdgeSnapBubbleView : View {
   }
 
   interface OnBubbleGestureListener {
+    /** 拖拽实时回调：返回值为 [-1.0, 1.0] 拉伸进度的百分比。负数代表拉向内层，正数拉向外层。 */
     fun onDrag(fraction: Float)
-
+    /** 拖拽放开回调：判断手势距离以执行对应动作。 */
     fun onRelease(fraction: Float)
   }
 }
