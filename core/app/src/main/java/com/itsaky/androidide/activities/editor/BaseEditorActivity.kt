@@ -945,16 +945,16 @@ abstract class BaseEditorActivity :
 
 
   private fun updateSymbolInputPageAnchor(active: Boolean) {
-    if (_binding == null) return
-    content.symbolInputPage.updateLayoutParams<CoordinatorLayout.LayoutParams> {
-      anchorId = View.NO_ID
-      anchorGravity = Gravity.NO_GRAVITY
-      gravity = Gravity.BOTTOM
-    }
-    content.symbolInputPage.requestLayout()
-    if (!active) {
-      content.symbolInputPage.post { syncSymbolInputPageToBottomSheet() }
-    }
+    // if (_binding == null) return
+    // content.symbolInputPage.updateLayoutParams<CoordinatorLayout.LayoutParams> {
+      // anchorId = View.NO_ID
+      // anchorGravity = Gravity.NO_GRAVITY
+      // gravity = Gravity.BOTTOM
+    // }
+    // content.symbolInputPage.requestLayout()
+    // if (!active) {
+      // content.symbolInputPage.post { syncSymbolInputPageToBottomSheet() }
+    // }
   }
 
   private fun setExternalSymbolPageActive(active: Boolean) {
@@ -999,14 +999,14 @@ abstract class BaseEditorActivity :
   }
 
   private fun syncSymbolInputPageToBottomSheet() {
-    if (_binding == null || isExternalSymbolPageActive) return
-    val page = content.symbolInputPage
-    val sheet = content.bottomSheet
-    if (page.visibility != View.VISIBLE || page.height <= 0) return
-    val targetY = (sheet.top - page.height).toFloat()
-    if (kotlin.math.abs(page.y - targetY) > 0.5f) {
-      page.y = targetY
-    }
+    // if (_binding == null || isExternalSymbolPageActive) return
+    // val page = content.symbolInputPage
+    // val sheet = content.bottomSheet
+    // if (page.visibility != View.VISIBLE || page.height <= 0) return
+    // val targetY = (sheet.top - page.height).toFloat()
+    // if (kotlin.math.abs(page.y - targetY) > 0.5f) {
+      // page.y = targetY
+    // }
   }
 
   /**
@@ -1080,10 +1080,10 @@ abstract class BaseEditorActivity :
     content.viewContainer.scaleY = 1f
   }
 
-  private fun setupPageSwitchGestureBubble() {
+private fun setupPageSwitchGestureBubble() {
     if (_binding == null) return
     val bubble = content.pageSwitchGestureBubble
-    // 强制使用水平拖拽方向设置，对应手势为上下滑动（因为已在组件内旋转90度处理过）
+    // 强制使用水平拖拽方向设置，对应手势为上下滑动
     bubble.setOrientation(EdgeSnapBubbleView.Orientation.HORIZONTAL)
     bubble.setPosition(EdgeSnapBubbleView.Position.TOP)
     
@@ -1095,6 +1095,28 @@ abstract class BaseEditorActivity :
          requestBottomSheetState(BottomSheetBehavior.STATE_EXPANDED)
       }
     }
+    
+    bubble.setOnBubbleGestureListener(
+        object : EdgeSnapBubbleView.OnBubbleGestureListener {
+          override fun onDrag(fraction: Float) {
+             if (_binding != null) {
+                 val absFrac = Math.abs(fraction)
+                 val alpha = (1f - absFrac * 0.8f).coerceIn(0.2f, 1f)
+                 content.headerContainer.alpha = alpha
+             }
+          }
+
+          override fun onRelease(fraction: Float) {
+             if (fraction > 0.15f) { 
+                requestBottomSheetState(BottomSheetBehavior.STATE_EXPANDED)
+             } else if (fraction < -0.15f) { 
+                requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
+             }
+             content.headerContainer.alpha = 1f
+          }
+        }
+    )
+  }
     
     bubble.setOnBubbleGestureListener(
         object : EdgeSnapBubbleView.OnBubbleGestureListener {
