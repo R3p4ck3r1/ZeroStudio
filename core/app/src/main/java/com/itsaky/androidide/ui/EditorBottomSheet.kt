@@ -242,7 +242,8 @@ constructor(
             view.viewTreeObserver.removeOnGlobalLayoutListener(this)
             anchorOffset = view.height + SizeUtils.dp2px(1f)
 
-            behavior.peekHeight = collapsedHeight.roundToInt()
+            // 设置 peekHeight 为 0，当折叠时完全隐藏 sheet，只显示锚定在其上方的 symbol_input_page
+            behavior.peekHeight = 0
             behavior.expandedOffset = anchorOffset
             behavior.isGestureInsetBottomIgnored = isImeVisible
 
@@ -377,8 +378,8 @@ constructor(
     runOnUiThread { pagerAdapter.searchResultFragment?.setAdapter(adapter) }
   }
 
-  fun refreshSymbolInput(editor: CodeEditorView) {
-    // AdvancedSymbolInputView 绑定处理由 BaseEditorActivity 管理
+  fun refreshSymbolInput(@Suppress("UNUSED_PARAMETER") editor: CodeEditorView) {
+    // Symbol input is managed externally by BaseEditorActivity.
   }
 
   fun onSoftInputChanged() {

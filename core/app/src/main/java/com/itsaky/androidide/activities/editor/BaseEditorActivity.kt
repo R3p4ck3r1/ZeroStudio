@@ -38,6 +38,7 @@ import androidx.annotation.GravityInt
 import androidx.annotation.StringRes
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.collection.MutableIntIntMap
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.graphics.Insets
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
@@ -143,7 +144,6 @@ abstract class BaseEditorActivity :
   var isDestroying = false
     protected set
 
-  /** Editor activity's [CoroutineScope] for executing tasks in the background. */
   protected val editorActivityScope = CoroutineScope(Dispatchers.Default)
 
   internal var installationCallback: ApkInstallationSessionCallback? = null
@@ -222,42 +222,29 @@ abstract class BaseEditorActivity :
   companion object {
 
     @JvmStatic protected val PROC_IDE = "IDE"
-
     @JvmStatic protected val PROC_GRADLE_TOOLING = "Gradle Tooling"
-
     @JvmStatic protected val PROC_GRADLE_DAEMON = "Gradle Daemon"
-
     @JvmStatic protected val log: Logger = LoggerFactory.getLogger(BaseEditorActivity::class.java)
 
     private const val OPTIONS_MENU_INVALIDATION_DELAY = 150L
-
     const val EDITOR_CONTAINER_SCALE_FACTOR = 0.87f
     const val KEY_BOTTOM_SHEET_SHOWN = "editor_bottomSheetShown"
     const val KEY_PROJECT_PATH = "saved_projectPath"
   }
 
   protected abstract fun provideCurrentEditor(): CodeEditorView?
-
   protected abstract fun provideEditorAt(index: Int): CodeEditorView?
-
   protected abstract fun doOpenFile(file: File, selection: Range?)
-
   protected abstract fun doDismissSearchProgress()
-
   protected abstract fun getOpenedFiles(): List<OpenedFile>
-
   internal abstract fun doConfirmProjectClose()
 
   protected open fun preDestroy() {
     _binding = null
-
     optionsMenuInvalidator?.also { ThreadUtils.getMainHandler().removeCallbacks(it) }
-
     optionsMenuInvalidator = null
-
     installationCallback?.destroy()
     installationCallback = null
-
     if (isDestroying) {
       memoryUsageWatcher.stopWatching(true)
       memoryUsageWatcher.listener = null
@@ -289,7 +276,6 @@ abstract class BaseEditorActivity :
     
     _binding?.content?.bottomSheet?.setImeVisible(imeInsets.bottom > 0)
     _binding?.contentCard?.updateLayoutParams<ViewGroup.LayoutParams> {
-      // 外部页面启用时占用全高，非启用时减去键盘高度，避免遮挡
       this.height = if (isExternalSymbolPageActive) height else (height - imeInsets.bottom)
     }
 
@@ -399,17 +385,14 @@ abstract class BaseEditorActivity :
   private fun setupMemUsageChart() {
     binding.memUsageView.chart.apply {
       val colorAccent = resolveAttr(R.attr.colorAccent)
-
       isDragEnabled = false
       description.isEnabled = false
       xAxis.axisLineColor = colorAccent
       axisRight.axisLineColor = colorAccent
-
       setPinchZoom(false)
       setBackgroundColor(editorSurfaceContainerBackground)
       setDrawGridBackground(true)
       setScaleEnabled(true)
-
       axisLeft.isEnabled = false
       axisRight.valueFormatter =
           object : IAxisValueFormatter {
@@ -536,8 +519,6 @@ abstract class BaseEditorActivity :
     editorViewModel.displayedFileIndex = position
 
     val editorView = provideEditorAt(position)!!
-    // 中文注释: 每当一个标签被选中时，应用持久化的只读状态。
-    // English annotation: Apply the persisted read-only state whenever a tab is selected.
     EditorLineOperations.applyReadOnlyState(editorView.editor!!, this)
 
     editorView.onEditorSelected()
@@ -585,7 +566,6 @@ abstract class BaseEditorActivity :
           hideBottomSheet()
         }
     )
-
     showSearchResults()
     doDismissSearchProgress()
   }
@@ -700,9 +680,6 @@ abstract class BaseEditorActivity :
 
   private fun onBuildStatusChanged() {
     if (isDestroying || _binding == null) return
-    log.debug(
-        "onBuildStatusChanged: isInitializing: ${editorViewModel.isInitializing}, isBuildInProgress: ${editorViewModel.isBuildInProgress}"
-    )
     val visible = editorViewModel.isBuildInProgress || editorViewModel.isInitializing
     content.progressIndicator.visibility = if (visible) View.VISIBLE else View.GONE
     invalidateOptionsMenu()
@@ -728,7 +705,6 @@ abstract class BaseEditorActivity :
           viewContainer.displayedChild = 0
         }
       }
-
       invalidateOptionsMenu()
     }
 
@@ -791,7 +767,6 @@ abstract class BaseEditorActivity :
     val str = getString(textRes)
     val split = str.split("@@", limit = 3)
     if (split.size != 3) {
-      // Not a valid format
       sb.append(str)
       sb.append('\n')
       return
@@ -872,7 +847,6 @@ abstract class BaseEditorActivity :
         content.buildStatus.statusText.text = text
       }
       
-      // 预先将手柄置顶
       pageSwitchGestureBubble.bringToFront()
       symbolInputPage.post {
         setupPageSwitchGestureBubble()
@@ -919,6 +893,21 @@ abstract class BaseEditorActivity :
     )
   }
 
+  private fun updateSymbolInputPageAnchor(active: Boolean) {
+    if (_binding == null) return
+    val params = content.symbolInputPage.layoutParams as CoordinatorLayout.LayoutParams
+    if (active) {
+      params.anchorId = View.NO_ID
+      params.anchorGravity = Gravity.NO_GRAVITY
+      params.gravity = Gravity.BOTTOM
+    } else {
+      params.anchorId = R.id.bottom_sheet
+      params.anchorGravity = Gravity.TOP
+      params.gravity = Gravity.NO_GRAVITY
+    }
+    content.symbolInputPage.layoutParams = params
+  }
+
   private fun setExternalSymbolPageActive(active: Boolean) {
     if (_binding == null) return
     isExternalSymbolPageActive = active
@@ -952,10 +941,13 @@ abstract class BaseEditorActivity :
       content.tvCursorPosition.visibility = View.GONE
       content.externalSymbolInputView.visibility = View.VISIBLE
       
+      updateSymbolInputPageAnchor(true)
       applyExternalSymbolImeInset()
       
     } else {
       content.bottomSheet.setBottomSheetDragEnabled(true)
+      
+      content.symbolInputPage.visibility = View.VISIBLE
       
       content.headerOverlayContainer.visibility = View.VISIBLE
       content.pageSwitchGestureBubble.visibility = View.VISIBLE
@@ -968,6 +960,8 @@ abstract class BaseEditorActivity :
       content.externalSymbolInputView.visibility = View.GONE
       
       content.symbolInputPage.translationY = 0f
+      
+      updateSymbolInputPageAnchor(false)
       content.bottomSheet.resetSymbolInputPageHeight()
     }
     

@@ -114,16 +114,16 @@ class EdgeSnapBubbleView : View {
 
   override fun onTouchEvent(ev: MotionEvent): Boolean {
     if (orientation == Orientation.HORIZONTAL) {
-        val currentTouchY = ev.y
         when (ev.action) {
           MotionEvent.ACTION_DOWN -> {
-            downX = currentTouchY
+            downX = ev.y 
             isEdge = true
             deltaX = 0f
           }
           MotionEvent.ACTION_MOVE -> {
-            // 上滑 ev.y 变小，downX - currentTouchY 为正
-            deltaX = downX - currentTouchY
+            // Y 变小为上滑 (正数=拉伸)，Y 变大为下滑 (负数=压缩)
+            deltaX = downX - ev.y
+            
             if (deltaX > backMaxWidth) deltaX = backMaxWidth
             if (deltaX < -backMaxWidth) deltaX = -backMaxWidth
             
@@ -146,7 +146,7 @@ class EdgeSnapBubbleView : View {
         }
         return true
     } else {
-        // 保留原有的 VERTICAL 逻辑，以免破坏侧边返回功能
+        // 保留原有的 VERTICAL 逻辑
         val currentTouchX = ev.x
         currentY = ev.y
         when (ev.action) {
@@ -215,7 +215,6 @@ class EdgeSnapBubbleView : View {
     var finalWidth = MeasureSpec.getSize(widthMeasureSpec)
     var finalHeight = MeasureSpec.getSize(heightMeasureSpec)
 
-    // 水平模式本意是让宽度保证足够绘制空间（而不是抬高高度）
     if (orientation == Orientation.HORIZONTAL) {
         val minWidth = (backMaxWidth * 1.5f).toInt()
         if (finalWidth < minWidth) {
@@ -239,7 +238,6 @@ class EdgeSnapBubbleView : View {
     backPath!!.reset()
     arrowPath!!.reset()
 
-    // 保留默认可见山峰，以引导用户进行拖拽
     val drawDelta = if (deltaX == 0f) backMaxWidth * 0.35f else abs(deltaX)
 
     if (orientation == Orientation.HORIZONTAL) {
@@ -308,9 +306,9 @@ class EdgeSnapBubbleView : View {
     val signedOffset = (dragDelta / backMaxWidth).coerceIn(-1f, 1f) * (height * 0.2f)
     val humpDepth = (baseDepth + signedOffset).coerceIn(height * 0.16f, height * 0.62f)
 
-    // 基准线设为View底部，驼峰向屏幕上方（Y变小）突出
-    val baseY = height.toFloat()
-    val tipY = height.toFloat() - humpDepth
+    // 锚定于当前 View 的顶部(Y=0)，驼峰由上方向下（Y变大）凸出
+    val baseY = 0f
+    val tipY = humpDepth
 
     backPath!!.moveTo(leftX, baseY)
     backPath!!.cubicTo(
@@ -326,19 +324,16 @@ class EdgeSnapBubbleView : View {
     backPath!!.close()
     canvas.drawPath(backPath!!, backPaint!!)
 
-    // 根据高度自适应重新绘制标准 V / ^ 箭头
-    val arrowCenterY = tipY + if(showArrowUp) 6f else 2f
+    val arrowCenterY = tipY - if(showArrowUp) 6f else 2f
     val arrowTopY = arrowCenterY - 4f
     val arrowBottomY = arrowCenterY + 4f
     val arrowHalf = 10f
     
     if (showArrowUp) {
-      // 向上箭头 ^
       arrowPath!!.moveTo(centerX - arrowHalf, arrowBottomY)
       arrowPath!!.lineTo(centerX, arrowTopY)
       arrowPath!!.lineTo(centerX + arrowHalf, arrowBottomY)
     } else {
-      // 向下箭头 v
       arrowPath!!.moveTo(centerX - arrowHalf, arrowTopY)
       arrowPath!!.lineTo(centerX, arrowBottomY)
       arrowPath!!.lineTo(centerX + arrowHalf, arrowTopY)
