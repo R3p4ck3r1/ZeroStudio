@@ -927,7 +927,7 @@ abstract class BaseEditorActivity :
     }
   }
 
-  private fun forceCollapseBottomSheet(lockDurationMs: Long) {
+private fun forceCollapseBottomSheet(lockDurationMs: Long) {
     if (_binding == null) return
     content.bottomSheet.suspendHeaderExpandFor(lockDurationMs)
     content.bottomSheet.suppressNextHeaderExpand()
@@ -943,18 +943,8 @@ abstract class BaseEditorActivity :
     )
   }
 
-
   private fun updateSymbolInputPageAnchor(active: Boolean) {
-    // if (_binding == null) return
-    // content.symbolInputPage.updateLayoutParams<CoordinatorLayout.LayoutParams> {
-      // anchorId = View.NO_ID
-      // anchorGravity = Gravity.NO_GRAVITY
-      // gravity = Gravity.BOTTOM
-    // }
-    // content.symbolInputPage.requestLayout()
-    // if (!active) {
-      // content.symbolInputPage.post { syncSymbolInputPageToBottomSheet() }
-    // }
+      // 废弃不用，防止 CoordinatorLayout 与 WindowInsets 发生冲突
   }
 
   private fun setExternalSymbolPageActive(active: Boolean) {
@@ -970,7 +960,7 @@ abstract class BaseEditorActivity :
     }
     content.bottomSheet.forceCollapse()
     content.bottomSheet.setBottomSheetDragEnabled(!active)
-    updateSymbolInputPageAnchor(active)
+    
     content.symbolInputPage.visibility = if (active) View.VISIBLE else View.GONE
     content.bottomSheet.visibility = if (active) View.INVISIBLE else View.VISIBLE
     applyExternalSymbolImeInset()
@@ -980,44 +970,24 @@ abstract class BaseEditorActivity :
       }
     }
     updateSymbolInputOverlayPosition()
-    syncSymbolInputPageToBottomSheet()
-    
-    // 强制归零解决各种异常偏移问题
-    // content.symbolInputPage.translationY = 0f
-    // content.headerOverlayContainer.translationY = 0f
   }
 
   private fun applyExternalSymbolImeInset() {
     if (_binding == null) return
-    // 强制归零，交由 WindowInsetsAnimationCompat 去接管动画
     content.symbolInputPage.translationY = 0f
     val targetImeInset = if (isExternalSymbolPageActive) latestImeBottomInset else 0
     content.externalSymbolInputView.setImeBottomInset(targetImeInset)
-    // content.symbolInputPage.translationY = 0f
     updateSymbolInputOverlayPosition()
-    syncSymbolInputPageToBottomSheet()
   }
 
   private fun syncSymbolInputPageToBottomSheet() {
-    // if (_binding == null || isExternalSymbolPageActive) return
-    // val page = content.symbolInputPage
-    // val sheet = content.bottomSheet
-    // if (page.visibility != View.VISIBLE || page.height <= 0) return
-    // val targetY = (sheet.top - page.height).toFloat()
-    // if (kotlin.math.abs(page.y - targetY) > 0.5f) {
-      // page.y = targetY
-    // }
+      // 废弃不用，防止 CoordinatorLayout 与 WindowInsets 发生冲突
   }
 
-  /**
-   * 最核心和官方的 IME 软键盘状态与动画同步方法。
-   * 支持 Android 11+ 实时跟手动效，低版本兼容。
-   */
   private fun setupExternalSymbolImeSync() {
     if (_binding == null) return
     val symbolInputPage = content.symbolInputPage
 
-    // 1. 设置动画回调 (Android 11+ 实时的平滑推升)
     ViewCompat.setWindowInsetsAnimationCallback(
         symbolInputPage,
         object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
@@ -1037,7 +1007,6 @@ abstract class BaseEditorActivity :
                 val imeBottom = insets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
                 val navBottom = insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
                 
-                // 当键盘弹出时，向上偏移(即负值)，计算差值避免被虚拟按键重复扣除
                 endTranslationY = if (imeBottom > 0) -(imeBottom - navBottom).toFloat().coerceAtMost(0f) else 0f
                 return bounds
             }
@@ -1056,16 +1025,13 @@ abstract class BaseEditorActivity :
         }
     )
 
-    // 2. 设置状态监听 (兼容 Android 11 以下，及确保最终状态收敛准确)
     ViewCompat.setOnApplyWindowInsetsListener(symbolInputPage) { view, insets ->
         val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
         val navBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
         latestImeBottomInset = imeBottom
         
-        // 传递高度给符号键盘自身计算其内边距/显示范围
         content.externalSymbolInputView.setImeBottomInset(if (isExternalSymbolPageActive) imeBottom else 0)
 
-        // 终态设定
         val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
         val targetTranslationY = if (isImeVisible && imeBottom > 0) -(imeBottom - navBottom).toFloat().coerceAtMost(0f) else 0f
         view.translationY = targetTranslationY
@@ -1080,14 +1046,12 @@ abstract class BaseEditorActivity :
     content.viewContainer.scaleY = 1f
   }
 
-private fun setupPageSwitchGestureBubble() {
+  private fun setupPageSwitchGestureBubble() {
     if (_binding == null) return
     val bubble = content.pageSwitchGestureBubble
-    // 强制使用水平拖拽方向设置，对应手势为上下滑动
     bubble.setOrientation(EdgeSnapBubbleView.Orientation.HORIZONTAL)
     bubble.setPosition(EdgeSnapBubbleView.Position.TOP)
     
-    // 点击触发抽屉显示/隐藏
     bubble.setOnBubbleClickListener {
       if (editorBottomSheet?.state == BottomSheetBehavior.STATE_EXPANDED) {
          requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
@@ -1110,35 +1074,6 @@ private fun setupPageSwitchGestureBubble() {
              if (fraction > 0.15f) { 
                 requestBottomSheetState(BottomSheetBehavior.STATE_EXPANDED)
              } else if (fraction < -0.15f) { 
-                requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
-             }
-             content.headerContainer.alpha = 1f
-          }
-        }
-    )
-  }
-    
-    bubble.setOnBubbleGestureListener(
-        object : EdgeSnapBubbleView.OnBubbleGestureListener {
-          override fun onDrag(fraction: Float) {
-             // 手势上下滑动期间，同步百分比比例显示与隐藏处理
-             // fraction < 0 表示向上拉 (打开底部抽屉)
-             // fraction > 0 表示向下拉 (收起底部抽屉)
-             if (_binding != null) {
-                 val absFrac = Math.abs(fraction)
-                 val alpha = (1f - absFrac * 0.8f).coerceIn(0.2f, 1f)
-                 content.headerContainer.alpha = alpha
-                 
-                 // 如果需要联动 bottomSheet 的视觉，由于 Behavior 无法通过 API 直接指定拖拽位置（除 setPeekHeight 外），
-                 // 这里通过 alpha 和气泡手势的视觉反馈满足需求。
-             }
-          }
-
-          override fun onRelease(fraction: Float) {
-             // 往上滑即 fraction 为负，打开抽屉；往下滑即正，收起抽屉
-             if (fraction < -0.15f) { 
-                requestBottomSheetState(BottomSheetBehavior.STATE_EXPANDED)
-             } else if (fraction > 0.15f) { 
                 requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
              }
              content.headerContainer.alpha = 1f
@@ -1170,7 +1105,6 @@ private fun setupPageSwitchGestureBubble() {
           content.externalSymbolInputView.getExpansionFraction().coerceIn(0f, 1f)
         } else 0f
     
-    // 当输入符号面板展开时，隐藏无关的 header（保留气泡）
     val hideHeaderBySymbolGesture = symbolExpansion > 0.01f
     val headerVisibility = if (hideHeaderBySymbolGesture || isExternalSymbolPageActive) View.GONE else targetVisibility
     
@@ -1179,13 +1113,10 @@ private fun setupPageSwitchGestureBubble() {
     content.symbolInputPage.updateLayoutParams<ViewGroup.LayoutParams> {
       height = ViewGroup.LayoutParams.WRAP_CONTENT
     }
-    // content.symbolInputPage.requestLayout()
 
-    // 气泡和容器的根保持跟随 targetVisibility
     content.headerOverlayContainer.visibility = targetVisibility
     content.pageSwitchGestureBubble.visibility = targetVisibility
     
-    // 仅仅隐藏实际的 Header 内容，从而在隐藏时，气泡能自然贴合到 AdvancedSymbolInputView 顶部
     content.headerContainer.visibility = headerVisibility
     content.cardView.visibility = headerVisibility
     content.border.root.visibility = headerVisibility
