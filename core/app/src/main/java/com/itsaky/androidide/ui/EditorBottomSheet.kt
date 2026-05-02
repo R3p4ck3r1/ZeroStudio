@@ -104,6 +104,9 @@ constructor(
   private var headerExpandEnabled = true
   private var expandBlocked = false
   private var behaviorCallbackAttached = false
+  
+  private var symbolInputPage: View? = null
+  var isExternalSymbolMode = false
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
   var onActionTextChanged: ((CharSequence) -> Unit)? = null
@@ -186,7 +189,6 @@ constructor(
       this.windowInsets = insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
       insets
     }
-
   }
 
   init {
@@ -232,26 +234,42 @@ constructor(
     behavior.isGestureInsetBottomIgnored = isVisible
   }
 
-  fun setOffsetAnchor(view: View) {
+  fun setOffsetAnchor(view: View, symbolInputPage: View) {
+    this.symbolInputPage = symbolInputPage
     val listener =
         object : ViewTreeObserver.OnGlobalLayoutListener {
           override fun onGlobalLayout() {
             view.viewTreeObserver.removeOnGlobalLayoutListener(this)
             anchorOffset = view.height + SizeUtils.dp2px(1f)
 
-            // 默认让 tab 抽屉处于屏幕可见区域外，避免 tabs 指示器露出。
-            behavior.peekHeight = 0
+            behavior.peekHeight = collapsedHeight.roundToInt()
             behavior.expandedOffset = anchorOffset
             behavior.isGestureInsetBottomIgnored = isImeVisible
 
             binding.root.updatePadding(bottom = anchorOffset + insetBottom)
+            
+            resetSymbolInputPageHeight()
           }
         }
 
     view.viewTreeObserver.addOnGlobalLayoutListener(listener)
   }
 
+  fun resetSymbolInputPageHeight() {
+      if (!isExternalSymbolMode) {
+          symbolInputPage?.apply {
+              updatePaddingRelative(bottom = paddingBottom + insetBottom)
+              updateLayoutParams<ViewGroup.LayoutParams> {
+                  height = (collapsedHeight + insetBottom).roundToInt()
+              }
+              alpha = 1f
+          }
+      }
+  }
+
   fun onSlide(sheetOffset: Float) {
+    if (isExternalSymbolMode) return
+
     val heightScale =
         if (sheetOffset >= COLLAPSE_HEADER_AT_OFFSET) {
           ((COLLAPSE_HEADER_AT_OFFSET - sheetOffset) + COLLAPSE_HEADER_AT_OFFSET) * 2f
@@ -267,7 +285,13 @@ constructor(
         }
 
     val padding = insetBottom * paddingScale
-    binding.root.updatePadding(bottom = (anchorOffset + padding).roundToInt())
+    symbolInputPage?.apply {
+      updateLayoutParams<ViewGroup.LayoutParams> {
+        height = ((collapsedHeight + padding) * heightScale).roundToInt()
+      }
+      updatePaddingRelative(bottom = padding.roundToInt())
+      alpha = heightScale
+    }
   }
 
   fun showChild(index: Int) {
@@ -353,8 +377,8 @@ constructor(
     runOnUiThread { pagerAdapter.searchResultFragment?.setAdapter(adapter) }
   }
 
-  fun refreshSymbolInput(@Suppress("UNUSED_PARAMETER") editor: CodeEditorView) {
-    // Symbol input is managed externally by BaseEditorActivity.
+  fun refreshSymbolInput(editor: CodeEditorView) {
+    // AdvancedSymbolInputView 绑定处理由 BaseEditorActivity 管理
   }
 
   fun onSoftInputChanged() {
@@ -412,7 +436,6 @@ constructor(
   }
 
   private fun writeTempFile(text: String, type: String): File {
-    // use a common name to avoid multiple files
     val file: Path = context.filesDir.toPath().resolve("$type.txt")
     try {
       if (Files.exists(file)) {

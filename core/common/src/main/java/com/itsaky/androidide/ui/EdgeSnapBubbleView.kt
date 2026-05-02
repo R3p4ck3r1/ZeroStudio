@@ -112,125 +112,103 @@ class EdgeSnapBubbleView : View {
     arrowPaint!!.strokeJoin = Paint.Join.ROUND
   }
 
-override fun onTouchEvent(ev: MotionEvent): Boolean {
-    // 兼容水平模式下的垂直拖拽手势
-    val currentTouchX = if (orientation == Orientation.HORIZONTAL) ev.y else ev.x
-    // 固定绘制锚点，保障拖拽手势时视觉驼峰完美居中
-    currentY = if (orientation == Orientation.HORIZONTAL) backViewHeight / 2f else ev.y
-    
-    when (ev.action) {
-      MotionEvent.ACTION_DOWN -> {
-        downX = currentTouchX
-        forwardX = downX
-        
-        isEdge = true
-        left = true
-        right = false
-      }
-
-      MotionEvent.ACTION_MOVE -> {
-        deltaX = downX - currentTouchX
-        val diff = forwardX - currentTouchX
-        if (diff > 0) {
-          if (currentTouchX < thresholdLeft && left) {
-            deltaX = backMaxWidth
-            deltaX -= (thresholdLeft - currentTouchX) / 2
-            bufferX = deltaX
-            if (deltaX < 0) {
+  override fun onTouchEvent(ev: MotionEvent): Boolean {
+    if (orientation == Orientation.HORIZONTAL) {
+        val currentTouchY = ev.y
+        when (ev.action) {
+          MotionEvent.ACTION_DOWN -> {
+            downX = currentTouchY
+            isEdge = true
+            deltaX = 0f
+          }
+          MotionEvent.ACTION_MOVE -> {
+            // 上滑 ev.y 变小，downX - currentTouchY 为正
+            deltaX = downX - currentTouchY
+            if (deltaX > backMaxWidth) deltaX = backMaxWidth
+            if (deltaX < -backMaxWidth) deltaX = -backMaxWidth
+            
+            if (isEdge) {
+              onBubbleGestureListener?.onDrag(getDragFraction())
+              invalidate()
+            }
+          }
+          MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+            if (isEdge) {
+              if (abs(deltaX) < backMaxWidth * 0.2f) {
+                performClick()
+              }
+              onBubbleGestureListener?.onRelease(getDragFraction())
               deltaX = 0f
-              bufferX = 0f
+              invalidate()
             }
-          } else if (currentTouchX > thresholdRight && right) {
-            bufferX -= diff
-            deltaX = bufferX
-          }
-        } else {
-          if (currentTouchX < thresholdLeft && left) {
-            bufferX += abs(diff)
-            deltaX = bufferX
-          } else if (currentTouchX > thresholdRight && right) {
-            deltaX = -backMaxWidth
-            deltaX += (currentTouchX - thresholdRight) / 2
-            bufferX = deltaX
-            if (deltaX < -backMaxWidth) {
-              deltaX = -backMaxWidth
-              bufferX = -backMaxWidth
-            }
+            isEdge = false
           }
         }
-        forwardX = currentTouchX
-        if (isEdge) {
-          onBubbleGestureListener?.onDrag(getDragFraction())
-          invalidate()
-        }
-      }
-
-      MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-        if (isEdge) {
-          // 轻触作为点击事件响应
-          if (abs(deltaX) < backMaxWidth * 0.2f) {
-            performClick()
-          }
-          onBubbleGestureListener?.onRelease(getDragFraction())
-          deltaX = 0f
-          invalidate()
-        }
-        left = false
-        right = false
-        isEdge = false
-        bufferX = 0f
-      }
-    }
-    return isEdge
-  }
-
-  private fun drawHorizontalBubble(canvas: Canvas, dragDelta: Float) {
-    backPath!!.reset()
-    arrowPath!!.reset()
-
-    val centerX = width / 2f
-    val baseHalfWidth = (backViewHeight / 4f).coerceAtMost(width / 2f)
-    val leftX = (centerX - baseHalfWidth).coerceAtLeast(0f)
-    val rightX = (centerX + baseHalfWidth).coerceAtMost(width.toFloat())
-
-    val baseDepth = (height * 0.32f).coerceAtLeast(6f)
-    val signedOffset = (dragDelta / backMaxWidth).coerceIn(-1f, 1f) * (height * 0.2f)
-    val humpDepth = (baseDepth + signedOffset).coerceIn(height * 0.16f, height * 0.62f)
-
-    val baseY = height.toFloat()
-    val tipY = height.toFloat() - humpDepth
-
-    backPath!!.moveTo(leftX, baseY)
-    backPath!!.cubicTo(
-      centerX - baseHalfWidth * 0.55f, baseY,
-      centerX - baseHalfWidth * 0.18f, tipY,
-      centerX, tipY,
-    )
-    backPath!!.cubicTo(
-      centerX + baseHalfWidth * 0.18f, tipY,
-      centerX + baseHalfWidth * 0.55f, baseY,
-      rightX, baseY,
-    )
-    backPath!!.close()
-    canvas.drawPath(backPath!!, backPaint!!)
-
-    val arrowCenterY = tipY + if(showArrowUp) 6f else 2f
-    val arrowTopY = arrowCenterY - 4f
-    val arrowBottomY = arrowCenterY + 4f
-    val arrowHalf = 10f
-    
-    if (showArrowUp) {
-      // 向上箭头 ^
-      arrowPath!!.moveTo(centerX - arrowHalf, arrowBottomY)
-      arrowPath!!.lineTo(centerX, arrowTopY)
-      arrowPath!!.lineTo(centerX + arrowHalf, arrowBottomY)
+        return true
     } else {
-      // 向下箭头 v
-      arrowPath!!.moveTo(centerX - arrowHalf, arrowTopY)
-      arrowPath!!.lineTo(centerX, arrowBottomY)
-      arrowPath!!.lineTo(centerX + arrowHalf, arrowTopY)
+        // 保留原有的 VERTICAL 逻辑，以免破坏侧边返回功能
+        val currentTouchX = ev.x
+        currentY = ev.y
+        when (ev.action) {
+          MotionEvent.ACTION_DOWN -> {
+            downX = currentTouchX
+            forwardX = downX
+            isEdge = true
+            left = true
+            right = false
+          }
+          MotionEvent.ACTION_MOVE -> {
+            val diff = forwardX - currentTouchX
+            if (diff > 0) {
+              if (currentTouchX < thresholdLeft && left) {
+                deltaX = backMaxWidth
+                deltaX -= (thresholdLeft - currentTouchX) / 2
+                bufferX = deltaX
+                if (deltaX < 0) {
+                  deltaX = 0f
+                  bufferX = 0f
+                }
+              } else if (currentTouchX > thresholdRight && right) {
+                bufferX -= diff
+                deltaX = bufferX
+              }
+            } else {
+              if (currentTouchX < thresholdLeft && left) {
+                bufferX += abs(diff)
+                deltaX = bufferX
+              } else if (currentTouchX > thresholdRight && right) {
+                deltaX = -backMaxWidth
+                deltaX += (currentTouchX - thresholdRight) / 2
+                bufferX = deltaX
+                if (deltaX < -backMaxWidth) {
+                  deltaX = -backMaxWidth
+                  bufferX = -backMaxWidth
+                }
+              }
+            }
+            forwardX = currentTouchX
+            if (isEdge) {
+              onBubbleGestureListener?.onDrag(getDragFraction())
+              invalidate()
+            }
+          }
+          MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+            if (isEdge) {
+              if (abs(deltaX) < backMaxWidth * 0.2f) {
+                performClick()
+              }
+              onBubbleGestureListener?.onRelease(getDragFraction())
+              deltaX = 0f
+              invalidate()
+            }
+            left = false
+            right = false
+            isEdge = false
+            bufferX = 0f
+          }
+        }
+        return isEdge
     }
-    canvas.drawPath(arrowPath!!, arrowPaint!!)
   }
 
   override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -317,59 +295,56 @@ override fun onTouchEvent(ev: MotionEvent): Boolean {
     alpha = (drawDelta / backMaxWidth).coerceIn(0.35f, 1f)
   }
 
-  // private fun drawHorizontalBubble(canvas: Canvas, dragDelta: Float) {
-    // backPath!!.reset()
-    // arrowPath!!.reset()
+  private fun drawHorizontalBubble(canvas: Canvas, dragDelta: Float) {
+    backPath!!.reset()
+    arrowPath!!.reset()
 
-    // val centerX = width / 2f
-    // val baseHalfWidth = (backViewHeight / 4f).coerceAtMost(width / 2f)
-    // val leftX = (centerX - baseHalfWidth).coerceAtLeast(0f)
-    // val rightX = (centerX + baseHalfWidth).coerceAtMost(width.toFloat())
+    val centerX = width / 2f
+    val baseHalfWidth = (backViewHeight / 4f).coerceAtMost(width / 2f)
+    val leftX = (centerX - baseHalfWidth).coerceAtLeast(0f)
+    val rightX = (centerX + baseHalfWidth).coerceAtMost(width.toFloat())
 
-    // val baseDepth = (height * 0.32f).coerceAtLeast(6f)
-    // val signedOffset = (dragDelta / backMaxWidth).coerceIn(-1f, 1f) * (height * 0.2f)
-    // val humpDepth = (baseDepth + signedOffset).coerceIn(height * 0.16f, height * 0.62f)
+    val baseDepth = (height * 0.32f).coerceAtLeast(6f)
+    val signedOffset = (dragDelta / backMaxWidth).coerceIn(-1f, 1f) * (height * 0.2f)
+    val humpDepth = (baseDepth + signedOffset).coerceIn(height * 0.16f, height * 0.62f)
 
-    // val baseY = 0f
-    // val tipY = humpDepth
+    // 基准线设为View底部，驼峰向屏幕上方（Y变小）突出
+    val baseY = height.toFloat()
+    val tipY = height.toFloat() - humpDepth
 
-    // backPath!!.moveTo(leftX, baseY)
-    // backPath!!.cubicTo(
-      // centerX - baseHalfWidth * 0.55f,
-      // baseY,
-      // centerX - baseHalfWidth * 0.18f,
-      // tipY,
-      // centerX,
-      // tipY,
-    // )
-    // backPath!!.cubicTo(
-      // centerX + baseHalfWidth * 0.18f,
-      // tipY,
-      // centerX + baseHalfWidth * 0.55f,
-      // baseY,
-      // rightX,
-      // baseY,
-    // )
-    // backPath!!.close()
-    // canvas.drawPath(backPath!!, backPaint!!)
+    backPath!!.moveTo(leftX, baseY)
+    backPath!!.cubicTo(
+      centerX - baseHalfWidth * 0.55f, baseY,
+      centerX - baseHalfWidth * 0.18f, tipY,
+      centerX, tipY,
+    )
+    backPath!!.cubicTo(
+      centerX + baseHalfWidth * 0.18f, tipY,
+      centerX + baseHalfWidth * 0.55f, baseY,
+      rightX, baseY,
+    )
+    backPath!!.close()
+    canvas.drawPath(backPath!!, backPaint!!)
 
-    // val arrowCenterY = tipY - 4f
-    // val arrowTopY = arrowCenterY - 6f
-    // val arrowBottomY = arrowCenterY + 4f
-    // val arrowHalf = 9f
-    // if (showArrowUp) {
-      // arrowPath!!.moveTo(centerX, arrowTopY)
-      // arrowPath!!.lineTo(centerX - arrowHalf, arrowBottomY)
-      // arrowPath!!.moveTo(centerX, arrowTopY)
-      // arrowPath!!.lineTo(centerX + arrowHalf, arrowBottomY)
-    // } else {
-      // arrowPath!!.moveTo(centerX, arrowBottomY)
-      // arrowPath!!.lineTo(centerX - arrowHalf, arrowTopY)
-      // arrowPath!!.moveTo(centerX, arrowBottomY)
-      // arrowPath!!.lineTo(centerX + arrowHalf, arrowTopY)
-    // }
-    // canvas.drawPath(arrowPath!!, arrowPaint!!)
-  // }
+    // 根据高度自适应重新绘制标准 V / ^ 箭头
+    val arrowCenterY = tipY + if(showArrowUp) 6f else 2f
+    val arrowTopY = arrowCenterY - 4f
+    val arrowBottomY = arrowCenterY + 4f
+    val arrowHalf = 10f
+    
+    if (showArrowUp) {
+      // 向上箭头 ^
+      arrowPath!!.moveTo(centerX - arrowHalf, arrowBottomY)
+      arrowPath!!.lineTo(centerX, arrowTopY)
+      arrowPath!!.lineTo(centerX + arrowHalf, arrowBottomY)
+    } else {
+      // 向下箭头 v
+      arrowPath!!.moveTo(centerX - arrowHalf, arrowTopY)
+      arrowPath!!.lineTo(centerX, arrowBottomY)
+      arrowPath!!.lineTo(centerX + arrowHalf, arrowTopY)
+    }
+    canvas.drawPath(arrowPath!!, arrowPaint!!)
+  }
 
   fun setBackViewHeight(backViewHeight: Float) {
     this.backViewHeight = backViewHeight
