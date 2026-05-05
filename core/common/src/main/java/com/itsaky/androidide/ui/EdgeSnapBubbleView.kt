@@ -113,22 +113,33 @@ class EdgeSnapBubbleView : View {
   }
 
 override fun onTouchEvent(ev: MotionEvent): Boolean {
-    // 兼容水平模式下的垂直拖拽手势
+    // 水平模式用垂直坐标：只响应“向上拖拽”
     val currentTouchX = if (orientation == Orientation.HORIZONTAL) ev.y else ev.x
     // 固定绘制锚点，保障拖拽手势时视觉驼峰完美居中
     currentY = if (orientation == Orientation.HORIZONTAL) backViewHeight / 2f else ev.y
-    
+
     when (ev.action) {
       MotionEvent.ACTION_DOWN -> {
         downX = currentTouchX
         forwardX = downX
-        
+
         isEdge = true
         left = true
         right = false
       }
 
       MotionEvent.ACTION_MOVE -> {
+        if (orientation == Orientation.HORIZONTAL) {
+          val upwardDelta = (downX - currentTouchX).coerceAtLeast(0f)
+          deltaX = upwardDelta.coerceAtMost(backMaxWidth)
+          if (isEdge) {
+            onBubbleGestureListener?.onDrag(getDragFraction())
+            invalidate()
+          }
+          forwardX = currentTouchX
+          return isEdge
+        }
+
         deltaX = downX - currentTouchX
         val diff = forwardX - currentTouchX
         if (diff > 0) {
@@ -218,7 +229,7 @@ override fun onTouchEvent(ev: MotionEvent): Boolean {
     val arrowTopY = arrowCenterY - 4f
     val arrowBottomY = arrowCenterY + 4f
     val arrowHalf = 10f
-    
+
     if (showArrowUp) {
       // 向上箭头 ^
       arrowPath!!.moveTo(centerX - arrowHalf, arrowBottomY)
@@ -312,7 +323,7 @@ override fun onTouchEvent(ev: MotionEvent): Boolean {
         canvas.drawPath(arrowPath!!, arrowPaint!!)
       }
     }
-    
+
     canvas.restore()
     alpha = (drawDelta / backMaxWidth).coerceIn(0.35f, 1f)
   }

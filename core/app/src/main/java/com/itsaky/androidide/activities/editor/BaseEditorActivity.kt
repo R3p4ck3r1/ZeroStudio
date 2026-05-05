@@ -1067,19 +1067,23 @@ abstract class BaseEditorActivity :
         object : EdgeSnapBubbleView.OnBubbleGestureListener {
           override fun onDrag(fraction: Float) {
              if (_binding != null) {
-                 val absFrac = abs(fraction)
-                 val alpha = (1f - absFrac * 0.8f).coerceIn(0.2f, 1f)
+                 val progress = fraction.coerceIn(0f, 1f)
+                 val alpha = (1f - progress * 0.8f).coerceIn(0.2f, 1f)
                  content.headerContainer.alpha = alpha
+                 content.cardView.alpha = alpha
+                 content.pageSwitchGestureBubble.alpha = (0.6f + 0.4f * (1f - progress)).coerceIn(0.4f, 1f)
              }
           }
 
           override fun onRelease(fraction: Float) {
-             if (fraction > 0.15f) { 
+             if (fraction > 0.15f) {
                 requestBottomSheetState(BottomSheetBehavior.STATE_EXPANDED)
-             } else if (fraction < -0.15f) { 
+             } else {
                 requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
              }
              content.headerContainer.alpha = 1f
+             content.cardView.alpha = 1f
+             content.pageSwitchGestureBubble.alpha = 1f
           }
         }
     )
