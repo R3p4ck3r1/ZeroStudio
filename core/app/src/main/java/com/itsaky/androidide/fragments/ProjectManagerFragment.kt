@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.system.Os
 import android.util.Xml
+import android.widget.Toast
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -110,7 +111,7 @@ class ProjectManagerFragment : BaseFragment() {
       tabState.add(tab)
       selectedTabIndexState = tabState.lastIndex
       persistTabs(requireContext())
-      loadTabProjects(viewLifecycleScope, tab, true)
+      reloadProjectList(viewLifecycleScope, tab, true)
     }
   }
 
@@ -132,7 +133,7 @@ class ProjectManagerFragment : BaseFragment() {
   @OptIn(ExperimentalFoundationApi::class)
   @Composable
   private fun ProjectManagerScreen() {
-    val scope = remember { viewLifecycleScope }
+    val scope = viewLifecycleScope
     var menuProjectPath by remember { mutableStateOf<String?>(null) }
     var showPropertiesFor by remember { mutableStateOf<String?>(null) }
     var renameTarget by remember { mutableStateOf<String?>(null) }
@@ -146,7 +147,7 @@ class ProjectManagerFragment : BaseFragment() {
       val tab = selectedTab ?: return@LaunchedEffect
       val key = tab.stableKey()
       if (!tabProjectsState.containsKey(key) && loadingState[key] != true) {
-        loadTabProjects(scope, tab, false)
+        reloadProjectList(scope, tab, false)
       }
     }
 
@@ -171,7 +172,13 @@ class ProjectManagerFragment : BaseFragment() {
         }
       }
 
-        if (selectedTab == null) return
+        if (selectedTab == null) {
+          Text(
+            text = stringResource(R.string.project_manager_path_not_exists),
+            style = MaterialTheme.typography.bodyMedium,
+          )
+          return
+        }
         val key = selectedTab.stableKey()
         val projects = tabProjectsState[key].orEmpty()
         val isLoading = loadingState[key] == true
@@ -185,7 +192,7 @@ class ProjectManagerFragment : BaseFragment() {
           }
         }
 
-      PullToRefreshBox(isRefreshing = isLoading, onRefresh = { loadTabProjects(scope, selectedTab, true) }) {
+      PullToRefreshBox(isRefreshing = isLoading, onRefresh = { reloadProjectList(scope, selectedTab, true) }) {
         LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
           items(projects, key = { it }) { projectPath ->
             val displayInfo = remember(projectPath) { parseProjectDisplayInfo(File(projectPath)) }
@@ -322,7 +329,7 @@ class ProjectManagerFragment : BaseFragment() {
       val dst = File(targetRoot, src.name)
       if (src.exists() && src.absolutePath != dst.absolutePath && !dst.exists()) src.renameTo(dst)
       clipboardState = null
-      withContext(Dispatchers.Main) { loadTabProjects(this@launch, tab, true) }
+      withContext(Dispatchers.Main) { reloadProjectList(this@launch, tab, true) }
     }
   }
 
@@ -339,7 +346,7 @@ class ProjectManagerFragment : BaseFragment() {
   private fun deleteProject(scope: CoroutineScope, tab: ProjectTab, path: String) {
     scope.launch(Dispatchers.IO) {
       File(path).deleteRecursively()
-      withContext(Dispatchers.Main) { loadTabProjects(this@launch, tab, true) }
+      withContext(Dispatchers.Main) { reloadProjectList(this@launch, tab, true) }
     }
   }
 
@@ -348,12 +355,22 @@ class ProjectManagerFragment : BaseFragment() {
     if (!forceRefresh) readCache(requireContext(), key).takeIf { it.isNotEmpty() }?.let { tabProjectsState[key] = it }
     scope.launch {
       loadingState[key] = true
-      val merged = withContext(Dispatchers.IO) { scanTopLevelProjects(tab).filter { File(it).exists() }.sortedBy { File(it).name.lowercase() } }
-      tabProjectsState[key] = merged
-      writeCache(requireContext(), key, merged)
-      loadManifestMetaAsync(merged)
+      runCatching {
+        val merged = withContext(Dispatchers.IO) { scanTopLevelProjects(tab).filter { File(it).exists() }.sortedBy { File(it).name.lowercase() } }
+        tabProjectsState[key] = merged
+        writeCache(requireContext(), key, merged)
+        loadManifestMetaAsync(merged)
+        val tip = if (merged.isEmpty()) "Refresh done: no projects found." else "Refresh done: ${merged.size} project(s)."
+        Toast.makeText(requireContext(), tip, Toast.LENGTH_SHORT).show()
+      }.onFailure {
+        Toast.makeText(requireContext(), "Refresh failed: ${it.message ?: "unknown error"}", Toast.LENGTH_SHORT).show()
+      }
       loadingState[key] = false
     }
+  }
+
+  private fun reloadProjectList(scope: CoroutineScope, tab: ProjectTab, forceRefresh: Boolean = true) {
+    loadTabProjects(scope, tab, forceRefresh)
   }
 
   private fun scanTopLevelProjects(tab: ProjectTab): List<String> {
@@ -505,7 +522,12 @@ class ProjectManagerFragment : BaseFragment() {
       val docId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return null
       val parts = docId.split(':', limit = 2)
       if (parts.size < 2) return null
-      return "/storage/${parts[0]}/${parts[1]}"
+      val volume = parts[0]
+      val relPath = parts[1]
+      return when {
+        volume.equals("primary", ignoreCase = true) -> "/storage/emulated/0/$relPath"
+        else -> "/storage/$volume/$relPath"
+      }
     }
   }
 }
