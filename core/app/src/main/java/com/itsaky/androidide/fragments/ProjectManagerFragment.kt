@@ -131,8 +131,9 @@ class ProjectManagerFragment : BaseFragment() {
     var renameTarget by remember { mutableStateOf<String?>(null) }
     var renameInput by remember { mutableStateOf("") }
 
-    val safeIndex = selectedTabIndexState.coerceIn(0, tabState.lastIndex.coerceAtLeast(0))
-    val selectedTab = tabState.getOrNull(safeIndex)
+    val hasTabs = tabState.isNotEmpty()
+    val safeIndex = if (hasTabs) selectedTabIndexState.coerceIn(0, tabState.lastIndex) else 0
+    val selectedTab = if (hasTabs) tabState[safeIndex] else null
 
     LaunchedEffect(tabState.size, selectedTabIndexState) {
       if (selectedTabIndexState != safeIndex) selectedTabIndexState = safeIndex
@@ -148,7 +149,7 @@ class ProjectManagerFragment : BaseFragment() {
 
     Box(modifier = Modifier.fillMaxSize()) {
       Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ScrollableTabRow(selectedTabIndex = safeIndex) {
+        ScrollableTabRow(selectedTabIndex = safeIndex, modifier = Modifier.fillMaxWidth(), edgePadding = 0.dp) {
           tabState.forEachIndexed { index, tab ->
             Tab(selected = safeIndex == index, onClick = {
               selectedTabIndexState = index
@@ -226,7 +227,7 @@ class ProjectManagerFragment : BaseFragment() {
 
       FloatingActionButton(
           onClick = { folderPicker.launch(null) },
-          modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+          modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 2.dp).size(28.dp),
       ) {
         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_manager_add_folder))
       }
