@@ -436,17 +436,21 @@ class ProjectManagerFragment : BaseFragment() {
   companion object {
     private fun parseProjectDisplayInfo(projectDir: File): ProjectDisplayInfo {
       val appModule = findApplicationModule(projectDir) ?: return ProjectDisplayInfo(projectDir.name, null)
-      val manifest = File(appModule, "src/main/AndroidManifest.xml")
-      if (!manifest.exists()) return ProjectDisplayInfo(projectDir.name, null)
-
-      val doc = runCatching { DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(manifest) }.getOrNull()
-      val appNode = doc?.getElementsByTagName("application")?.item(0) ?: return ProjectDisplayInfo(projectDir.name, null)
-      val iconRef = appNode.attributes?.getNamedItem("android:icon")?.nodeValue
-      val labelRef = appNode.attributes?.getNamedItem("android:label")?.nodeValue
+      val meta = parseManifestMetaForAppModule(appModule)
       val resDir = File(appModule, "src/main/res")
-      val iconFile = iconRef?.let { resolveDrawableResourceFile(resDir, it) }
-      val label = resolveLabel(projectDir.name, resDir, labelRef)
-      return ProjectDisplayInfo(label, iconFile)
+      val iconFile = resolveIconByMeta(resDir, meta)
+      val visibleLabel = if (meta?.label.isNullOrBlank()) projectDir.name else "${projectDir.name} : ${meta?.label}"
+      return ProjectDisplayInfo(visibleLabel, iconFile)
+    }
+
+    private fun parseManifestMetaForAppModule(appModule: File): ProjectAppMeta? {
+      val manifest = File(appModule, "src/main/AndroidManifest.xml")
+      if (!manifest.exists()) return null
+      val xml = manifest.readText()
+      val icon = Regex("android:icon=\"([^\"]+)\"").find(xml)?.groupValues?.getOrNull(1)
+      val labelValue = Regex("android:label=\"([^\"]+)\"").find(xml)?.groupValues?.getOrNull(1)
+      val label = resolveLabel(appModule.parentFile?.name ?: "app", File(appModule, "src/main/res"), labelValue)
+      return ProjectAppMeta(label = label, iconResName = icon?.removePrefix("@"), iconFilePath = null)
     }
 
     private fun findApplicationModule(projectDir: File): File? {
@@ -471,6 +475,18 @@ class ProjectManagerFragment : BaseFragment() {
       return resDir.listFiles { f -> f.isDirectory && f.name.startsWith(type) }?.flatMap { dir ->
         dir.listFiles()?.toList().orEmpty()
       }?.firstOrNull { f -> f.nameWithoutExtension == name }
+    }
+
+    private fun resolveIconByMeta(resDir: File, meta: ProjectAppMeta?): File? {
+      val iconResName = meta?.iconResName ?: return null
+      val parts = iconResName.split("/")
+      if (parts.size != 2) return null
+      val type = parts[0]
+      val name = parts[1]
+      val dirs = resDir.listFiles { f -> f.isDirectory && f.name.startsWith("$type-") }?.toList().orEmpty()
+      val exact = dirs.flatMap { it.listFiles()?.toList().orEmpty() }.firstOrNull { it.nameWithoutExtension == name }
+      if (exact != null) return exact
+      return dirs.flatMap { it.listFiles()?.toList().orEmpty() }.firstOrNull()
     }
 
     private fun resolveLabel(defaultLabel: String, resDir: File, labelRef: String?): String {
