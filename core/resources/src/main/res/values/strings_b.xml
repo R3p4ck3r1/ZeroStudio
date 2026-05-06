@@ -72,6 +72,7 @@
      <string name="main_action_open">Open</string>
      <string name="main_nav_home">Home</string>
      <string name="main_nav_history">History</string>
+    <string name="main_nav_projects">Projects</string>
      <string name="main_nav_tools">Tools</string>
      <string name="main_nav_mine">Me</string>
      <string name="msg_unimplemented_feature">This feature is not yet available, coming soon</string>
