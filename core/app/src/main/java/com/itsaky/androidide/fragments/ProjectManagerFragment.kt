@@ -48,6 +48,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -130,10 +131,15 @@ class ProjectManagerFragment : BaseFragment() {
     var renameTarget by remember { mutableStateOf<String?>(null) }
     var renameInput by remember { mutableStateOf("") }
 
-    if (selectedTabIndexState > tabState.lastIndex) selectedTabIndexState = 0
-    val selectedTab = tabState.getOrNull(selectedTabIndexState)
+    val safeIndex = selectedTabIndexState.coerceIn(0, tabState.lastIndex.coerceAtLeast(0))
+    val selectedTab = tabState.getOrNull(safeIndex)
 
-    selectedTab?.let { tab ->
+    LaunchedEffect(tabState.size, selectedTabIndexState) {
+      if (selectedTabIndexState != safeIndex) selectedTabIndexState = safeIndex
+    }
+
+    LaunchedEffect(selectedTab?.stableKey()) {
+      val tab = selectedTab ?: return@LaunchedEffect
       val key = tab.stableKey()
       if (!tabProjectsState.containsKey(key) && loadingState[key] != true) {
         loadTabProjects(scope, tab, false)
@@ -142,9 +148,9 @@ class ProjectManagerFragment : BaseFragment() {
 
     Box(modifier = Modifier.fillMaxSize()) {
       Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ScrollableTabRow(selectedTabIndex = selectedTabIndexState) {
+        ScrollableTabRow(selectedTabIndex = safeIndex) {
           tabState.forEachIndexed { index, tab ->
-            Tab(selected = selectedTabIndexState == index, onClick = {
+            Tab(selected = safeIndex == index, onClick = {
               selectedTabIndexState = index
               persistTabs(requireContext())
             }, text = {
