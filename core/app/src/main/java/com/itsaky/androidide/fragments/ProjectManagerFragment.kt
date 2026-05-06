@@ -213,9 +213,9 @@ class ProjectManagerFragment : BaseFragment() {
             TextButton(onClick = {
               renameProject(path, renameInput)
               renameTarget = null
-            }) { Text(stringResource(R.string.confirm)) }
+            }) { Text(stringResource(android.R.string.ok)) }
           },
-          dismissButton = { TextButton(onClick = { renameTarget = null }) { Text(stringResource(R.string.cancel)) } },
+          dismissButton = { TextButton(onClick = { renameTarget = null }) { Text(stringResource(android.R.string.cancel)) } },
           title = { Text(stringResource(R.string.project_manager_rename)) },
           text = { TextField(value = renameInput, onValueChange = { renameInput = it }) },
       )
