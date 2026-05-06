@@ -52,10 +52,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.viewModels
+import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.utils.Environment
 import com.itsaky.androidide.viewmodel.MainViewModel
 import java.io.File
@@ -87,7 +89,7 @@ class ProjectManagerFragment : BaseFragment() {
     uri ?: return@registerForActivityResult
     val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
     runCatching { requireContext().contentResolver.takePersistableUriPermission(uri, flags) }
-    val tabName = DocumentFile.fromTreeUri(requireContext(), uri)?.name ?: "Folder"
+    val tabName = DocumentFile.fromTreeUri(requireContext(), uri)?.name ?: getString(R.string.project_manager_folder)
     val filePath = uriToPath(uri)
     val tab = ProjectTab(tabName, filePath, uri)
     if (tabState.none { it.stableKey() == tab.stableKey() }) tabState.add(tab)
@@ -137,7 +139,7 @@ class ProjectManagerFragment : BaseFragment() {
           }
         }
         FloatingActionButton(onClick = { folderPicker.launch(null) }, modifier = Modifier.padding(start = 8.dp)) {
-          Icon(Icons.Default.Add, contentDescription = "Add folder")
+          Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_manager_add_folder))
         }
       }
 
@@ -152,7 +154,7 @@ class ProjectManagerFragment : BaseFragment() {
             moveClipboardToTab(scope, selectedTab)
           }) {
             Icon(Icons.Default.ContentPaste, null)
-            Text("粘贴到当前Tab", modifier = Modifier.padding(start = 6.dp))
+            Text(stringResource(R.string.project_manager_paste_current_tab), modifier = Modifier.padding(start = 6.dp))
           }
         }
       }
@@ -175,25 +177,25 @@ class ProjectManagerFragment : BaseFragment() {
                     }
                   }
               DropdownMenu(expanded = menuProjectPath == projectPath, onDismissRequest = { menuProjectPath = null }) {
-                DropdownMenuItem(text = { Text("重命名") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_rename)) }, onClick = {
                   renameTarget = projectPath
                   renameInput = File(projectPath).name
                   menuProjectPath = null
                 })
-                DropdownMenuItem(text = { Text("剪切") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_cut)) }, onClick = {
                   clipboardState = ClipboardProject(projectPath)
                   menuProjectPath = null
                 })
-                DropdownMenuItem(text = { Text("移动到...") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_move_to)) }, onClick = {
                   clipboardState = ClipboardProject(projectPath)
                   moveClipboardToTab(scope, selectedTab)
                   menuProjectPath = null
                 })
-                DropdownMenuItem(text = { Text("删除") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_delete)) }, onClick = {
                   deleteProject(scope, selectedTab, projectPath)
                   menuProjectPath = null
                 })
-                DropdownMenuItem(text = { Text("属性") }, onClick = {
+                DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_properties)) }, onClick = {
                   showPropertiesFor = projectPath
                   menuProjectPath = null
                 })
@@ -211,10 +213,10 @@ class ProjectManagerFragment : BaseFragment() {
             TextButton(onClick = {
               renameProject(path, renameInput)
               renameTarget = null
-            }) { Text("确定") }
+            }) { Text(stringResource(R.string.confirm)) }
           },
-          dismissButton = { TextButton(onClick = { renameTarget = null }) { Text("取消") } },
-          title = { Text("重命名") },
+          dismissButton = { TextButton(onClick = { renameTarget = null }) { Text(stringResource(R.string.cancel)) } },
+          title = { Text(stringResource(R.string.project_manager_rename)) },
           text = { TextField(value = renameInput, onValueChange = { renameInput = it }) },
       )
     }
@@ -223,8 +225,8 @@ class ProjectManagerFragment : BaseFragment() {
       val props = remember(path) { collectProperties(path) }
       AlertDialog(
           onDismissRequest = { showPropertiesFor = null },
-          confirmButton = { TextButton(onClick = { showPropertiesFor = null }) { Text("关闭") } },
-          title = { Text("属性") },
+          confirmButton = { TextButton(onClick = { showPropertiesFor = null }) { Text(stringResource(R.string.project_manager_close)) } },
+          title = { Text(stringResource(R.string.project_manager_properties)) },
           text = { Text(props) },
       )
     }
@@ -306,15 +308,15 @@ class ProjectManagerFragment : BaseFragment() {
 
   private fun collectProperties(path: String): String {
     val file = File(path)
-    if (!file.exists()) return "路径不存在"
+    if (!file.exists()) return getString(R.string.project_manager_path_not_exists)
     val size = folderSize(file)
     val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(file.lastModified()))
     val md5 = digest("MD5", path)
     val sha1 = digest("SHA-1", path)
     val sha256 = digest("SHA-256", path)
     val perms = (if (file.canRead()) "r" else "-") + (if (file.canWrite()) "w" else "-") + (if (file.canExecute()) "x" else "-")
-    val uidGid = runCatching { Os.stat(path) }.getOrNull()?.let { "uid=${it.st_uid}, gid=${it.st_gid}" } ?: "uid/gid: unknown"
-    return "路径: ${file.absolutePath}\n类型: 文件夹\n大小: $size bytes\n修改时间: $time\n权限: $perms\n$uidGid\nMD5: $md5\nSHA1: $sha1\nSHA256: $sha256"
+    val uidGid = runCatching { Os.stat(path) }.getOrNull()?.let { "uid=${it.st_uid}, gid=${it.st_gid}" } ?: getString(R.string.project_manager_uid_gid_unknown)
+    return getString(R.string.project_manager_properties_template, file.absolutePath, getString(R.string.project_manager_type_folder), size, time, perms, uidGid, md5, sha1, sha256)
   }
 
   private fun folderSize(file: File): Long = file.walkTopDown().filter { it.isFile }.sumOf { it.length() }

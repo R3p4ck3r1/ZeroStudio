@@ -288,4 +288,25 @@
      <string name="template_support_toml">Поддержка TOML</string>
      <string name="title_template_native_build_imgui_description">Нативный графический пользовательский интерфейс Android</string>
      <string name="title_template_no_activity_desc">У него нет активности</string>
+    <string name="project_manager_folder">Folder</string>
+    <string name="project_manager_add_folder">Add folder</string>
+    <string name="project_manager_paste_current_tab">Paste to current tab</string>
+    <string name="project_manager_rename">Rename</string>
+    <string name="project_manager_cut">Cut</string>
+    <string name="project_manager_move_to">Move to...</string>
+    <string name="project_manager_delete">Delete</string>
+    <string name="project_manager_properties">Properties</string>
+    <string name="project_manager_close">Close</string>
+    <string name="project_manager_path_not_exists">Path does not exist</string>
+    <string name="project_manager_uid_gid_unknown">uid/gid: unknown</string>
+    <string name="project_manager_type_folder">Folder</string>
+    <string name="project_manager_properties_template">Path: %1$s
+Type: %2$s
+Size: %3$d bytes
+Modified: %4$s
+Permission: %5$s
+%6$s
+MD5: %7$s
+SHA1: %8$s
+SHA256: %9$s</string>
 </resources>
