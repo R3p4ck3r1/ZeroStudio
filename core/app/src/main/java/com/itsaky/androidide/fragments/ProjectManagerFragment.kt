@@ -329,7 +329,7 @@ class ProjectManagerFragment : BaseFragment() {
       val dst = File(targetRoot, src.name)
       if (src.exists() && src.absolutePath != dst.absolutePath && !dst.exists()) src.renameTo(dst)
       clipboardState = null
-      withContext(Dispatchers.Main) { reloadProjectList(this@launch, tab, true) }
+      withContext(Dispatchers.Main) { reloadProjectList(viewLifecycleScope, tab, true) }
     }
   }
 
@@ -346,14 +346,14 @@ class ProjectManagerFragment : BaseFragment() {
   private fun deleteProject(scope: CoroutineScope, tab: ProjectTab, path: String) {
     scope.launch(Dispatchers.IO) {
       File(path).deleteRecursively()
-      withContext(Dispatchers.Main) { reloadProjectList(this@launch, tab, true) }
+      withContext(Dispatchers.Main) { reloadProjectList(viewLifecycleScope, tab, true) }
     }
   }
 
   private fun loadTabProjects(scope: CoroutineScope, tab: ProjectTab, forceRefresh: Boolean) {
     val key = tab.stableKey()
     if (!forceRefresh) readCache(requireContext(), key).takeIf { it.isNotEmpty() }?.let { tabProjectsState[key] = it }
-    scope.launch {
+    scope.launch(Dispatchers.Main) {
       loadingState[key] = true
       runCatching {
         val merged = withContext(Dispatchers.IO) { scanTopLevelProjects(tab).filter { File(it).exists() }.sortedBy { File(it).name.lowercase() } }
