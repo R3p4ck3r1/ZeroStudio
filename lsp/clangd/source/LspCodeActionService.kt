@@ -1,0 +1,347 @@
+package com.wuxianggujun.tinaide.core.lsp
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.eclipse.lsp4j.*
+import org.eclipse.lsp4j.jsonrpc.messages.Either
+import org.eclipse.lsp4j.jsonrpc.messages.Either3
+import java.io.File
+import timber.log.Timber
+import com.wuxianggujun.tinaide.core.i18n.Strings
+import com.wuxianggujun.tinaide.core.i18n.str
+
+/**
+ * LSP 代码操作服务
+ *
+ * 封装 clangd 的 Code Actions 和 Rename 功能
+ */
+class LspCodeActionService {
+
+    companion object {
+        private const val TAG = "LspCodeAction"
+        private const val TIMEOUT_SECONDS = 10L
+    }
+
+    /**
+     * 代码操作项
+     */
+    data class CodeActionItem(
+        val title: String,
+        val kind: String?,
+        val isPreferred: Boolean,
+        val diagnostics: List<String>,
+        internal val action: Either<Command, CodeAction>
+    )
+
+    /**
+     * 重命名结果
+     */
+    data class RenameResult(
+        val success: Boolean,
+        val changedFiles: List<String> = emptyList(),
+        val error: String? = null
+    )
+
+    /**
+     * 请求代码操作列表
+     */
+    suspend fun requestCodeActions(
+        documentUri: String,
+        startLine: Int,
+        startColumn: Int,
+        endLine: Int,
+        endColumn: Int,
+        codeActionRequest: suspend (CodeActionParams, Long) -> List<Either<Command, CodeAction>>?,
+    ): List<CodeActionItem> = withContext(Dispatchers.IO) {
+        try {
+            val params = CodeActionParams().apply {
+                textDocument = TextDocumentIdentifier(documentUri)
+                range = Range(
+                    Position(startLine, startColumn),
+                    Position(endLine, endColumn)
+                )
+                context = CodeActionContext().apply {
+                    diagnostics = emptyList()
+                }
+            }
+
+            val result = codeActionRequest(params, TIMEOUT_SECONDS)
+                ?: return@withContext emptyList()
+
+            result.mapNotNull { item ->
+                val title: String
+                val kind: String?
+                val isPreferred: Boolean
+                val diagnosticsList: List<String>
+
+                when {
+                    item.isRight -> {
+                        val codeAction = item.right
+                        title = codeAction.title
+                        kind = codeAction.kind
+                        isPreferred = codeAction.isPreferred == true
+                        diagnosticsList = codeAction.diagnostics?.map { it.message } ?: emptyList()
+                    }
+                    item.isLeft -> {
+                        val command = item.left
+                        title = command.title
+                        kind = null
+                        isPreferred = false
+                        diagnosticsList = emptyList()
+                    }
+                    else -> return@mapNotNull null
+                }
+
+                CodeActionItem(
+                    title = title,
+                    kind = kind,
+                    isPreferred = isPreferred,
+                    diagnostics = diagnosticsList,
+                    action = item
+                )
+            }
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to get code actions: ${e.message}")
+            emptyList()
+        }
+    }
+
+    /**
+     * 执行代码操作
+     */
+    suspend fun executeCodeAction(
+        item: CodeActionItem,
+        resolveCodeActionRequest: suspend (CodeAction, Long) -> CodeAction?,
+        executeCommandRequest: suspend (ExecuteCommandParams, Long) -> Any?,
+        onApplyEdit: suspend (WorkspaceEdit) -> Boolean
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val action = item.action
+
+            when {
+                action.isRight -> {
+                    val codeAction = action.right
+
+                    // 如果有 edit，直接应用
+                    codeAction.edit?.let { edit ->
+                        return@withContext onApplyEdit(edit)
+                    }
+
+                    // 如果有 command，执行命令
+                    codeAction.command?.let { command ->
+                        return@withContext executeCommand(executeCommandRequest, command)
+                    }
+
+                    // 如果需要 resolve
+                    val resolved = resolveCodeActionRequest(codeAction, TIMEOUT_SECONDS)
+
+                    resolved?.edit?.let { edit ->
+                        return@withContext onApplyEdit(edit)
+                    }
+
+                    resolved?.command?.let { command ->
+                        return@withContext executeCommand(executeCommandRequest, command)
+                    }
+                }
+
+                action.isLeft -> {
+                    return@withContext executeCommand(executeCommandRequest, action.left)
+                }
+            }
+
+            false
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to execute code action: ${e.message}")
+            false
+        }
+    }
+
+    private suspend fun executeCommand(
+        executeCommandRequest: suspend (ExecuteCommandParams, Long) -> Any?,
+        command: Command
+    ): Boolean {
+        return try {
+            executeCommandRequest(
+                ExecuteCommandParams(command.command, command.arguments),
+                TIMEOUT_SECONDS
+            )
+            true
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to execute command: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * 准备重命名（检查是否可以重命名）
+     */
+    suspend fun prepareRename(
+        documentUri: String,
+        line: Int,
+        column: Int,
+        prepareRenameRequest: suspend (PrepareRenameParams, Long) -> Any?,
+    ): PrepareRenameResult? = withContext(Dispatchers.IO) {
+        try {
+            val params = PrepareRenameParams().apply {
+                textDocument = TextDocumentIdentifier(documentUri)
+                position = Position(line, column)
+            }
+
+            val result = prepareRenameRequest(params, TIMEOUT_SECONDS)
+
+            parsePrepareRenameResult(result)
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to prepare rename: ${e.message}")
+            null
+        }
+    }
+
+    data class PrepareRenameResult(
+        val canRename: Boolean,
+        val range: Range?,
+        val placeholder: String?
+    )
+
+    /**
+     * 执行重命名
+     */
+    suspend fun rename(
+        documentUri: String,
+        line: Int,
+        column: Int,
+        newName: String,
+        renameRequest: suspend (RenameParams, Long) -> WorkspaceEdit?,
+        onApplyEdit: suspend (WorkspaceEdit) -> Boolean
+    ): RenameResult = withContext(Dispatchers.IO) {
+        try {
+            val params = RenameParams().apply {
+                textDocument = TextDocumentIdentifier(documentUri)
+                position = Position(line, column)
+                this.newName = newName
+            }
+
+            val edit = renameRequest(params, TIMEOUT_SECONDS)
+                ?: return@withContext RenameResult(false, error = Strings.lsp_error_rename_failed.str())
+
+            val changedFiles = mutableListOf<String>()
+
+            // 收集变更的文件
+            edit.changes?.keys?.forEach { uri ->
+                changedFiles.add(File(java.net.URI(uri).path).name)
+            }
+            edit.documentChanges?.forEach { change ->
+                if (change.isLeft) {
+                    val textEdit = change.left
+                    changedFiles.add(File(java.net.URI(textEdit.textDocument.uri).path).name)
+                }
+            }
+
+            val success = onApplyEdit(edit)
+
+            RenameResult(
+                success = success,
+                changedFiles = changedFiles.distinct(),
+                error = if (!success) Strings.lsp_error_apply_edit_failed.str() else null
+            )
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to rename: ${e.message}")
+            RenameResult(false, error = e.message)
+        }
+    }
+
+    private fun parsePrepareRenameResult(result: Any?): PrepareRenameResult? {
+        return when (result) {
+            null -> null
+            is Range -> PrepareRenameResult(canRename = true, range = result, placeholder = null)
+            is org.eclipse.lsp4j.PrepareRenameResult -> {
+                PrepareRenameResult(
+                    canRename = true,
+                    range = result.range,
+                    placeholder = result.placeholder
+                )
+            }
+            is org.eclipse.lsp4j.PrepareRenameDefaultBehavior -> {
+                PrepareRenameResult(canRename = true, range = null, placeholder = null)
+            }
+            is Either3<*, *, *> -> parseEither3PrepareRenameResult(result)
+            is Either<*, *> -> parseEitherPrepareRenameResult(result)
+            else -> null
+        }
+    }
+
+    private fun parseEither3PrepareRenameResult(result: Either3<*, *, *>): PrepareRenameResult? {
+        return when {
+            result.isFirst -> {
+                val range = result.first as? Range ?: return null
+                PrepareRenameResult(canRename = true, range = range, placeholder = null)
+            }
+
+            result.isSecond -> {
+                val renameResult = result.second as? org.eclipse.lsp4j.PrepareRenameResult
+                    ?: return null
+                PrepareRenameResult(
+                    canRename = true,
+                    range = renameResult.range,
+                    placeholder = renameResult.placeholder
+                )
+            }
+
+            result.isThird -> {
+                PrepareRenameResult(canRename = true, range = null, placeholder = null)
+            }
+
+            else -> null
+        }
+    }
+
+    private fun parseEitherPrepareRenameResult(result: Either<*, *>): PrepareRenameResult? {
+        return when {
+            result.isLeft -> {
+                val range = result.left as? Range ?: return null
+                PrepareRenameResult(canRename = true, range = range, placeholder = null)
+            }
+
+            result.isRight -> {
+                val right = result.right
+                when (right) {
+                    is org.eclipse.lsp4j.PrepareRenameResult -> {
+                        PrepareRenameResult(
+                            canRename = true,
+                            range = right.range,
+                            placeholder = right.placeholder
+                        )
+                    }
+
+                    is org.eclipse.lsp4j.PrepareRenameDefaultBehavior -> {
+                        PrepareRenameResult(canRename = true, range = null, placeholder = null)
+                    }
+
+                    is Either<*, *> -> parseNestedPrepareRenameResult(right)
+                    else -> null
+                }
+            }
+
+            else -> null
+        }
+    }
+
+    private fun parseNestedPrepareRenameResult(result: Either<*, *>): PrepareRenameResult? {
+        return when {
+            result.isLeft -> {
+                val renameResult = result.left as? org.eclipse.lsp4j.PrepareRenameResult
+                    ?: return null
+                PrepareRenameResult(
+                    canRename = true,
+                    range = renameResult.range,
+                    placeholder = renameResult.placeholder
+                )
+            }
+
+            result.isRight -> {
+                PrepareRenameResult(canRename = true, range = null, placeholder = null)
+            }
+
+            else -> null
+        }
+    }
+}

@@ -23,7 +23,6 @@ import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.RelativeLayout
 import androidx.annotation.GravityInt
@@ -31,9 +30,7 @@ import androidx.appcompat.widget.TooltipCompat
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
-import androidx.core.view.updatePaddingRelative
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.transition.TransitionManager
@@ -66,31 +63,26 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption.CREATE_NEW
 import java.nio.file.StandardOpenOption.WRITE
 import java.util.concurrent.Callable
-import kotlin.math.roundToInt
 import org.slf4j.LoggerFactory
 
 /**
  * Bottom sheet shown in editor activity.
  *
  * @author Akash Yadav
+ * @author android_zero
  */
-class EditorBottomSheet
-@JvmOverloads
-constructor(
+class EditorBottomSheet @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
     defStyleRes: Int = 0,
 ) : RelativeLayout(context, attrs, defStyleAttr, defStyleRes) {
 
-  private val collapsedHeight: Float by lazy {
-    val localContext = getContext() ?: return@lazy 0f
-    localContext.resources.getDimension(R.dimen.editor_sheet_collapsed_height)
-  }
   private val behavior: BottomSheetBehavior<EditorBottomSheet> by lazy {
     BottomSheetBehavior.from(this).apply {
       isFitToContents = false
       skipCollapsed = true
+      peekHeight = 0 // 完全交由手势或 Activity 主动控制
     }
   }
 
@@ -117,7 +109,6 @@ constructor(
     get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
 
   companion object {
-
     private val log = LoggerFactory.getLogger(EditorBottomSheet::class.java)
     private const val COLLAPSE_HEADER_AT_OFFSET = 0.5f
 
@@ -135,7 +126,7 @@ constructor(
 
     mediator.attach()
     binding.pager.isUserInputEnabled = false
-    binding.pager.offscreenPageLimit = pagerAdapter.itemCount - 1 // Do not remove any views
+    binding.pager.offscreenPageLimit = pagerAdapter.itemCount - 1
 
     binding.tabs.addOnTabSelectedListener(
         object : OnTabSelectedListener {
@@ -151,7 +142,6 @@ constructor(
           }
 
           override fun onTabUnselected(tab: Tab) {}
-
           override fun onTabReselected(tab: Tab) {}
         }
     )
@@ -182,7 +172,7 @@ constructor(
         log.error("Unknown fragment: {}", fragment)
         return@setOnClickListener
       }
-      (fragment as ShareableOutputFragment).clearOutput()
+      fragment.clearOutput()
     }
 
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
@@ -221,7 +211,6 @@ constructor(
               forceCollapse()
             }
           }
-
           override fun onSlide(bottomSheet: View, slideOffset: Float) = Unit
         }
     )
@@ -242,55 +231,45 @@ constructor(
             view.viewTreeObserver.removeOnGlobalLayoutListener(this)
             anchorOffset = view.height + SizeUtils.dp2px(1f)
 
-            // 设置 peekHeight 为 0，当折叠时完全隐藏 sheet，只显示锚定在其上方的 symbol_input_page
+            // PeekHeight 严格置 0，让底栏纯净隐藏
             behavior.peekHeight = 0
             behavior.expandedOffset = anchorOffset
             behavior.isGestureInsetBottomIgnored = isImeVisible
 
             binding.root.updatePadding(bottom = anchorOffset + insetBottom)
-            
             resetSymbolInputPageHeight()
           }
         }
-
     view.viewTreeObserver.addOnGlobalLayoutListener(listener)
   }
 
   fun resetSymbolInputPageHeight() {
       if (!isExternalSymbolMode) {
+          // 不再使用低效的 layoutParams 和 padding 变更
           symbolInputPage?.apply {
-              updatePaddingRelative(bottom = paddingBottom + insetBottom)
-              updateLayoutParams<ViewGroup.LayoutParams> {
-                  height = (collapsedHeight + insetBottom).roundToInt()
-              }
+              scaleY = 1f
               alpha = 1f
+              translationY = 0f
           }
       }
   }
 
+  /**
+   * 采用硬件加速处理动画，避免触发布局测量 (Layout Trashing) 卡顿。
+   */
   fun onSlide(sheetOffset: Float) {
-    if (isExternalSymbolMode) return
+    if (isExternalSymbolMode || symbolInputPage == null) return
 
-    val heightScale =
-        if (sheetOffset >= COLLAPSE_HEADER_AT_OFFSET) {
-          ((COLLAPSE_HEADER_AT_OFFSET - sheetOffset) + COLLAPSE_HEADER_AT_OFFSET) * 2f
-        } else {
-          1f
-        }
-
-    val paddingScale =
-        if (!isImeVisible && sheetOffset <= COLLAPSE_HEADER_AT_OFFSET) {
-          ((1f - sheetOffset) * 2f) - 1f
-        } else {
-          0f
-        }
-
-    val padding = insetBottom * paddingScale
+    val heightScale = if (sheetOffset >= COLLAPSE_HEADER_AT_OFFSET) {
+      (1f - (sheetOffset - COLLAPSE_HEADER_AT_OFFSET) / (1f - COLLAPSE_HEADER_AT_OFFSET)).coerceIn(0f, 1f)
+    } else {
+      1f
+    }
+    
+    // 使用 pivot 配合 scaleY 达到类似高度缩减的效果，不触发 requestLayout
     symbolInputPage?.apply {
-      updateLayoutParams<ViewGroup.LayoutParams> {
-        height = ((collapsedHeight + padding) * heightScale).roundToInt()
-      }
-      updatePaddingRelative(bottom = padding.roundToInt())
+      pivotY = height.toFloat()
+      scaleY = heightScale
       alpha = heightScale
     }
   }

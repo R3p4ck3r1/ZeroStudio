@@ -27,10 +27,13 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
-import android.view.Gravity
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.viewModels
@@ -50,6 +53,7 @@ import androidx.core.view.updatePaddingRelative
 import com.blankj.utilcode.constant.MemoryConstants
 import com.blankj.utilcode.util.ConvertUtils.byte2MemorySize
 import com.blankj.utilcode.util.FileUtils
+import com.blankj.utilcode.util.SizeUtils
 import com.blankj.utilcode.util.ThreadUtils
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.data.Entry
@@ -66,6 +70,7 @@ import com.itsaky.androidide.R.string
 import com.itsaky.androidide.actions.ActionItem.Location.EDITOR_FILE_TABS
 import com.itsaky.androidide.actions.menu.EditorLineOperations
 import com.itsaky.androidide.adapters.DiagnosticsAdapter
+import com.itsaky.androidide.adapters.EditorBottomSheetTabAdapter
 import com.itsaky.androidide.adapters.SearchListAdapter
 import com.itsaky.androidide.app.EdgeToEdgeIDEActivity
 import com.itsaky.androidide.databinding.ActivityEditorBinding
@@ -90,8 +95,8 @@ import com.itsaky.androidide.tasks.cancelIfActive
 import com.itsaky.androidide.tasks.runOnUiThread
 import com.itsaky.androidide.ui.CodeEditorView
 import com.itsaky.androidide.ui.ContentTranslatingDrawerLayout
-import com.itsaky.androidide.ui.EditorBottomSheet
 import com.itsaky.androidide.ui.EdgeSnapBubbleView
+import com.itsaky.androidide.ui.EditorBottomSheet
 import com.itsaky.androidide.ui.SwipeRevealLayout
 import com.itsaky.androidide.utils.ActionMenuUtils.createMenu
 import com.itsaky.androidide.utils.ApkInstallationSessionCallback
@@ -99,7 +104,6 @@ import com.itsaky.androidide.utils.DialogUtils.newMaterialDialogBuilder
 import com.itsaky.androidide.utils.InstallationResultHandler.onResult
 import com.itsaky.androidide.utils.IntentUtils
 import com.itsaky.androidide.utils.MemoryUsageWatcher
-import com.itsaky.androidide.utils.flashError
 import com.itsaky.androidide.utils.resolveAttr
 import com.itsaky.androidide.viewmodel.EditorViewModel
 import com.itsaky.androidide.xml.resources.ResourceTableRegistry
@@ -108,13 +112,12 @@ import com.itsaky.androidide.xml.widgets.WidgetTableRegistry
 import io.github.rosemoe.sora.event.SelectionChangeEvent
 import io.github.rosemoe.sora.event.SubscriptionReceipt
 import java.io.File
-import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode.MAIN
 import org.slf4j.Logger
@@ -140,6 +143,9 @@ abstract class BaseEditorActivity :
   private var bottomSheetCardVisibilitySnapshot: Int = View.VISIBLE
   private var bottomSheetHeaderVisibilitySnapshot: Int = View.VISIBLE
   private var isExternalSymbolPageActive = false
+  
+  // 记录 Header 的状态，以供点击 Bubble 进行 3D 动画切换
+  private var isHeaderVisible = true
 
   var isDestroying = false
     protected set
@@ -275,6 +281,7 @@ abstract class BaseEditorActivity :
     val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
     
     _binding?.content?.bottomSheet?.setImeVisible(imeInsets.bottom > 0)
+    // 只有非外挂符号模式（键盘没开起这个界面时）才计算整体 Card 的高度修剪
     _binding?.contentCard?.updateLayoutParams<ViewGroup.LayoutParams> {
       this.height = if (isExternalSymbolPageActive) height else (height - imeInsets.bottom)
     }
@@ -942,7 +949,6 @@ abstract class BaseEditorActivity :
       content.externalSymbolInputView.visibility = View.VISIBLE
       
       updateSymbolInputPageAnchor(true)
-      applyExternalSymbolImeInset()
       
     } else {
       content.bottomSheet.setBottomSheetDragEnabled(true)
@@ -959,7 +965,8 @@ abstract class BaseEditorActivity :
       content.tvCursorPosition.visibility = View.VISIBLE
       content.externalSymbolInputView.visibility = View.GONE
       
-      content.symbolInputPage.translationY = 0f
+      // 清空外挂符号输入框的 padding，使其归还空间给原生布局流
+      content.externalSymbolInputView.updatePadding(bottom = 0)
       
       updateSymbolInputPageAnchor(false)
       content.bottomSheet.resetSymbolInputPageHeight()
@@ -974,71 +981,39 @@ abstract class BaseEditorActivity :
     }
   }
 
-  private fun applyExternalSymbolImeInset() {
-    if (_binding == null) return
-    content.symbolInputPage.translationY = 0f
-    val targetImeInset = if (isExternalSymbolPageActive) latestImeBottomInset else 0
-    content.externalSymbolInputView.setImeBottomInset(targetImeInset)
-  }
-
   private fun setupExternalSymbolImeSync() {
     if (_binding == null) return
-    val symbolInputPage = content.symbolInputPage
+    // 关键修正：直接让 external_symbol_input_view 去响应 IME 高度，而非 translationY
+    val externalSymbolView = content.externalSymbolInputView
 
     ViewCompat.setWindowInsetsAnimationCallback(
-        symbolInputPage,
+        externalSymbolView,
         object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
-            var startTranslationY = 0f
-            var endTranslationY = 0f
-
-            override fun onPrepare(animation: WindowInsetsAnimationCompat) {
-                startTranslationY = symbolInputPage.translationY
-                super.onPrepare(animation)
-            }
-
-            override fun onStart(
-                animation: WindowInsetsAnimationCompat,
-                bounds: WindowInsetsAnimationCompat.BoundsCompat
-            ): WindowInsetsAnimationCompat.BoundsCompat {
-                val insets = ViewCompat.getRootWindowInsets(symbolInputPage)
-                val imeBottom = insets?.getInsets(WindowInsetsCompat.Type.ime())?.bottom ?: 0
-                val navBottom = insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
-                
-                endTranslationY = if (imeBottom > 0) -(imeBottom - navBottom).toFloat().coerceAtMost(0f) else 0f
-                return bounds
-            }
-
             override fun onProgress(
                 insets: WindowInsetsCompat,
                 runningAnimations: MutableList<WindowInsetsAnimationCompat>
             ): WindowInsetsCompat {
                 if (!isExternalSymbolPageActive) return insets
-
-                val imeAnimation = runningAnimations.find { it.typeMask and WindowInsetsCompat.Type.ime() != 0 }
-                if (imeAnimation != null) {
-                    val fraction = imeAnimation.interpolatedFraction
-                    symbolInputPage.translationY = startTranslationY + (endTranslationY - startTranslationY) * fraction
-                }
+                val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+                val navBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+                val pad = max(0, imeBottom - navBottom)
+                externalSymbolView.updatePadding(bottom = pad)
                 return insets
             }
         }
     )
 
-    ViewCompat.setOnApplyWindowInsetsListener(symbolInputPage) { view, insets ->
+    ViewCompat.setOnApplyWindowInsetsListener(externalSymbolView) { view, insets ->
         val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
         val navBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
         latestImeBottomInset = imeBottom
         
-        content.externalSymbolInputView.setImeBottomInset(if (isExternalSymbolPageActive) imeBottom else 0)
-
-        val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
         if (isExternalSymbolPageActive) {
-            val targetTranslationY = if (isImeVisible && imeBottom > 0) -(imeBottom - navBottom).toFloat().coerceAtMost(0f) else 0f
-            view.translationY = targetTranslationY
+            val pad = max(0, imeBottom - navBottom)
+            view.updatePadding(bottom = pad)
         } else {
-            view.translationY = 0f
+            view.updatePadding(bottom = 0)
         }
-
         insets
     }
   }
@@ -1048,6 +1023,36 @@ abstract class BaseEditorActivity :
     content.viewContainer.scaleX = 1f
     content.viewContainer.scaleY = 1f
   }
+  
+  // 采用全新的 3D 抽屉隐藏显示动画
+  private fun toggleHeaderContainerVisibility() {
+      if (_binding == null) return
+      val header = content.headerContainer
+      isHeaderVisible = !isHeaderVisible
+      
+      if (isHeaderVisible) {
+          header.visibility = View.VISIBLE
+          header.animate()
+              .translationY(0f)
+              .alpha(1f)
+              .scaleX(1f)
+              .scaleY(1f)
+              .setDuration(250)
+              .setInterpolator(DecelerateInterpolator())
+              .withEndAction(null)
+              .start()
+      } else {
+          header.animate()
+              .translationY(header.height.toFloat() * 0.5f)
+              .alpha(0f)
+              .scaleX(0.9f)
+              .scaleY(0.9f)
+              .setDuration(250)
+              .setInterpolator(AccelerateInterpolator())
+              .withEndAction { header.visibility = View.GONE }
+              .start()
+      }
+  }
 
   private fun setupPageSwitchGestureBubble() {
     if (_binding == null) return
@@ -1056,34 +1061,36 @@ abstract class BaseEditorActivity :
     bubble.setPosition(EdgeSnapBubbleView.Position.TOP)
     
     bubble.setOnBubbleClickListener {
-      if (editorBottomSheet?.state == BottomSheetBehavior.STATE_EXPANDED) {
-         requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
-      } else {
-         requestBottomSheetState(BottomSheetBehavior.STATE_EXPANDED)
-      }
+        // 点击进行实体隐显切换
+        toggleHeaderContainerVisibility()
     }
     
     bubble.setOnBubbleGestureListener(
         object : EdgeSnapBubbleView.OnBubbleGestureListener {
           override fun onDrag(fraction: Float) {
-             if (_binding != null) {
-                 val progress = fraction.coerceIn(0f, 1f)
-                 val alpha = (1f - progress * 0.8f).coerceIn(0.2f, 1f)
-                 content.headerContainer.alpha = alpha
-                 content.cardView.alpha = alpha
-                 content.pageSwitchGestureBubble.alpha = (0.6f + 0.4f * (1f - progress)).coerceIn(0.4f, 1f)
+             if (_binding == null) return
+             val sheet = content.bottomSheet
+             val behavior = editorBottomSheet ?: return
+             
+             // 在手势滑动期间动态调节 bottom_sheet 的位置以完成联动
+             if (behavior.state == BottomSheetBehavior.STATE_COLLAPSED && fraction < 0) {
+                 sheet.translationY = fraction * (sheet.height * 0.5f)
+             } else if (behavior.state == BottomSheetBehavior.STATE_EXPANDED && fraction > 0) {
+                 sheet.translationY = fraction * (sheet.height * 0.5f)
              }
           }
 
           override fun onRelease(fraction: Float) {
-             if (fraction > 0.15f) {
+             if (_binding == null) return
+             val sheet = content.bottomSheet
+             // 重置偏移动画
+             sheet.animate().translationY(0f).setDuration(150).start()
+             
+             if (fraction < -0.15f) { 
                 requestBottomSheetState(BottomSheetBehavior.STATE_EXPANDED)
-             } else {
+             } else if (fraction > 0.15f) { 
                 requestBottomSheetState(BottomSheetBehavior.STATE_COLLAPSED)
              }
-             content.headerContainer.alpha = 1f
-             content.cardView.alpha = 1f
-             content.pageSwitchGestureBubble.alpha = 1f
           }
         }
     )
