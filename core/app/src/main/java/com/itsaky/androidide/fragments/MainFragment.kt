@@ -51,6 +51,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.fragment.app.commit
+import android.widget.FrameLayout
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.fragment.app.viewModels
 import com.itsaky.androidide.activities.MainActivity
 import com.itsaky.androidide.activities.PreferencesActivity
@@ -96,6 +100,7 @@ class MainFragment : BaseFragment() {
   @Composable
   private fun ZeroStudioMainLayout() {
     val scrollState = rememberScrollState()
+    var selectedNav by rememberSaveable { mutableIntStateOf(0) }
 
     Scaffold(
         topBar = {
@@ -125,38 +130,32 @@ class MainFragment : BaseFragment() {
         bottomBar = {
           NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
             NavigationBarItem(
-                selected = true,
-                onClick = {},
+                selected = selectedNav == 0,
+                onClick = { selectedNav = 0 },
                 icon = { Icon(Icons.Default.Home, null) },
                 label = { Text(stringResource(R.string.main_nav_home)) },
             )
             NavigationBarItem(
-                selected = false,
-                onClick = {
-                  parentFragmentManager
-                      .beginTransaction()
-                      .replace(id, ProjectManagerFragment())
-                      .addToBackStack(ProjectManagerFragment::class.java.simpleName)
-                      .commit()
-                },
+                selected = selectedNav == 1,
+                onClick = { selectedNav = 1 },
                 icon = { Icon(Icons.Default.Folder, null) },
                 label = { Text(stringResource(R.string.main_nav_projects)) },
             )
             NavigationBarItem(
-                selected = false,
-                onClick = {},
+                selected = selectedNav == 2,
+                onClick = { selectedNav = 2 },
                 icon = { Icon(Icons.Default.History, null) },
                 label = { Text(stringResource(R.string.main_nav_history)) },
             )
             NavigationBarItem(
-                selected = false,
-                onClick = {},
+                selected = selectedNav == 3,
+                onClick = { selectedNav = 3 },
                 icon = { Icon(Icons.Default.Build, null) },
                 label = { Text(stringResource(R.string.main_nav_tools)) },
             )
             NavigationBarItem(
-                selected = false,
-                onClick = {},
+                selected = selectedNav == 4,
+                onClick = { selectedNav = 4 },
                 icon = { Icon(Icons.Default.Person, null) },
                 label = { Text(stringResource(R.string.main_nav_mine)) },
             )
@@ -164,6 +163,20 @@ class MainFragment : BaseFragment() {
         },
     ) { padding ->
       Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        if (selectedNav == 1) {
+          AndroidView(factory = { ctx ->
+            FrameLayout(ctx).apply { id = View.generateViewId() }
+          }, modifier = Modifier.fillMaxSize(), update = { container ->
+            val existing = childFragmentManager.findFragmentByTag("project_manager_embedded")
+            if (existing == null) {
+              childFragmentManager.commit {
+                replace(container.id, ProjectManagerFragment(), "project_manager_embedded")
+              }
+            }
+          })
+          return@Scaffold
+        }
+
         Column(
             modifier =
                 Modifier.fillMaxSize()
