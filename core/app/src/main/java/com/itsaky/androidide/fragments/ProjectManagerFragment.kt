@@ -374,6 +374,10 @@ class ProjectManagerFragment : BaseFragment() {
     loadTabProjects(viewLifecycleScope, selectedTab, forceRefresh)
   }
 
+  private fun reloadProjectList(scope: CoroutineScope, tab: ProjectTab, forceRefresh: Boolean = true) {
+    loadTabProjects(scope, tab, forceRefresh)
+  }
+
   private fun scanTopLevelProjects(tab: ProjectTab): List<String> {
     tab.filePath?.let { root ->
       return File(root).listFiles { file -> file.isDirectory }?.map { it.absolutePath }.orEmpty()
@@ -442,14 +446,25 @@ class ProjectManagerFragment : BaseFragment() {
   private fun digest(alg: String, text: String): String = MessageDigest.getInstance(alg).digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
 
   companion object {
+    private data class ManifestMetaRefs(val iconRef: String?, val labelRef: String?)
+
     private fun parseProjectDisplayInfo(projectDir: File): ProjectDisplayInfo {
       val appModule = findApplicationModule(projectDir) ?: return ProjectDisplayInfo(projectDir.name, null)
       val meta = parseManifestMetaForAppModule(appModule)
       val resDir = File(appModule, "src/main/res")
-      val iconFile = iconRef?.let { resolveDrawableResourceFile(resDir, it) }
-      val resolvedLabel = resolveLabel(projectDir.name, resDir, labelRef)
+      val iconFile = meta.iconRef?.let { resolveDrawableResourceFile(resDir, it) }
+      val resolvedLabel = resolveLabel(projectDir.name, resDir, meta.labelRef)
       val label = "${projectDir.name} : $resolvedLabel"
       return ProjectDisplayInfo(label, iconFile)
+    }
+
+    private fun parseManifestMetaForAppModule(appModule: File): ManifestMetaRefs {
+      val manifest = File(appModule, "src/main/AndroidManifest.xml")
+      if (!manifest.exists()) return ManifestMetaRefs(iconRef = null, labelRef = null)
+      val xml = runCatching { manifest.readText() }.getOrDefault("")
+      val iconRef = Regex("android:icon=\"([^\"]+)\"").find(xml)?.groupValues?.getOrNull(1)
+      val labelRef = Regex("android:label=\"([^\"]+)\"").find(xml)?.groupValues?.getOrNull(1)
+      return ManifestMetaRefs(iconRef = iconRef, labelRef = labelRef)
     }
 
     private fun findApplicationModule(projectDir: File): File? {
