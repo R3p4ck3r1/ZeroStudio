@@ -104,6 +104,7 @@ import com.itsaky.androidide.utils.DialogUtils.newMaterialDialogBuilder
 import com.itsaky.androidide.utils.InstallationResultHandler.onResult
 import com.itsaky.androidide.utils.IntentUtils
 import com.itsaky.androidide.utils.MemoryUsageWatcher
+import com.itsaky.androidide.utils.flashError
 import com.itsaky.androidide.utils.resolveAttr
 import com.itsaky.androidide.viewmodel.EditorViewModel
 import com.itsaky.androidide.xml.resources.ResourceTableRegistry
