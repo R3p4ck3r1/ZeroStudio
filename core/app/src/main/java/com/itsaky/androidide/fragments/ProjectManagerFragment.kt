@@ -89,6 +89,7 @@ class ProjectManagerFragment : BaseFragment() {
 
   private data class ClipboardProject(val sourcePath: String)
   private data class ProjectDisplayInfo(val label: String, val iconFile: File?)
+  private data class ProjectAppMeta(val label: String?, val iconResName: String?, val iconFilePath: String?)
 
   private val viewModel by viewModels<MainViewModel>(ownerProducer = { requireActivity() })
   private val tabState = mutableStateListOf<ProjectTab>()
@@ -137,8 +138,8 @@ class ProjectManagerFragment : BaseFragment() {
     var renameTarget by remember { mutableStateOf<String?>(null) }
     var renameInput by remember { mutableStateOf("") }
 
-    val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, tabState.lastIndex.coerceAtLeast(0))
-    if (selectedTabIndex != safeSelectedTabIndex) selectedTabIndex = safeSelectedTabIndex
+    val safeSelectedTabIndex = selectedTabIndexState.coerceIn(0, tabState.lastIndex.coerceAtLeast(0))
+    if (selectedTabIndexState != safeSelectedTabIndex) selectedTabIndexState = safeSelectedTabIndex
     val selectedTab = tabState.getOrNull(safeSelectedTabIndex)
 
     LaunchedEffect(selectedTab?.stableKey()) {
@@ -153,7 +154,7 @@ class ProjectManagerFragment : BaseFragment() {
       Box(modifier = Modifier.fillMaxWidth()) {
         ScrollableTabRow(selectedTabIndex = safeSelectedTabIndex, modifier = Modifier.fillMaxWidth().padding(end = 24.dp)) {
           tabState.forEachIndexed { index, tab ->
-            Tab(selected = safeSelectedTabIndex == index, onClick = { selectedTabIndex = index }, text = {
+            Tab(selected = safeSelectedTabIndex == index, onClick = { selectedTabIndexState = index }, text = {
               Text(tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
             })
           }
@@ -232,7 +233,7 @@ class ProjectManagerFragment : BaseFragment() {
 
       FloatingActionButton(
           onClick = { folderPicker.launch(null) },
-          modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 2.dp).size(28.dp),
+          modifier = Modifier.align(Alignment.End).padding(top = 8.dp, end = 2.dp).size(28.dp),
       ) {
         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_manager_add_folder))
       }
