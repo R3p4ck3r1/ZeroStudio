@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.system.Os
 import android.util.Xml
+import android.widget.Toast
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -89,6 +90,7 @@ class ProjectManagerFragment : BaseFragment() {
 
   private data class ClipboardProject(val sourcePath: String)
   private data class ProjectDisplayInfo(val label: String, val iconFile: File?)
+  private data class ProjectAppMeta(val label: String?, val iconResName: String?, val iconFilePath: String?)
 
   private val viewModel by viewModels<MainViewModel>(ownerProducer = { requireActivity() })
   private val tabState = mutableStateListOf<ProjectTab>()
@@ -109,7 +111,7 @@ class ProjectManagerFragment : BaseFragment() {
       tabState.add(tab)
       selectedTabIndexState = tabState.lastIndex
       persistTabs(requireContext())
-      loadTabProjects(viewLifecycleScope, tab, true)
+      reloadProjectList(viewLifecycleScope, tab, true)
     }
   }
 
@@ -131,21 +133,21 @@ class ProjectManagerFragment : BaseFragment() {
   @OptIn(ExperimentalFoundationApi::class)
   @Composable
   private fun ProjectManagerScreen() {
-    val scope = remember { viewLifecycleScope }
+    val scope = viewLifecycleScope
     var menuProjectPath by remember { mutableStateOf<String?>(null) }
     var showPropertiesFor by remember { mutableStateOf<String?>(null) }
     var renameTarget by remember { mutableStateOf<String?>(null) }
     var renameInput by remember { mutableStateOf("") }
 
-    val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, tabState.lastIndex.coerceAtLeast(0))
-    if (selectedTabIndex != safeSelectedTabIndex) selectedTabIndex = safeSelectedTabIndex
+    val safeSelectedTabIndex = selectedTabIndexState.coerceIn(0, tabState.lastIndex.coerceAtLeast(0))
+    if (selectedTabIndexState != safeSelectedTabIndex) selectedTabIndexState = safeSelectedTabIndex
     val selectedTab = tabState.getOrNull(safeSelectedTabIndex)
 
     LaunchedEffect(selectedTab?.stableKey()) {
       val tab = selectedTab ?: return@LaunchedEffect
       val key = tab.stableKey()
       if (!tabProjectsState.containsKey(key) && loadingState[key] != true) {
-        loadTabProjects(scope, tab, false)
+        reloadProjectList(scope, tab, false)
       }
     }
 
@@ -153,7 +155,7 @@ class ProjectManagerFragment : BaseFragment() {
       Box(modifier = Modifier.fillMaxWidth()) {
         ScrollableTabRow(selectedTabIndex = safeSelectedTabIndex, modifier = Modifier.fillMaxWidth().padding(end = 24.dp)) {
           tabState.forEachIndexed { index, tab ->
-            Tab(selected = safeSelectedTabIndex == index, onClick = { selectedTabIndex = index }, text = {
+            Tab(selected = safeSelectedTabIndex == index, onClick = { selectedTabIndexState = index }, text = {
               Text(tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
             })
           }
@@ -170,7 +172,13 @@ class ProjectManagerFragment : BaseFragment() {
         }
       }
 
-        if (selectedTab == null) return
+        if (selectedTab == null) {
+          Text(
+            text = stringResource(R.string.project_manager_path_not_exists),
+            style = MaterialTheme.typography.bodyMedium,
+          )
+          return
+        }
         val key = selectedTab.stableKey()
         val projects = tabProjectsState[key].orEmpty()
         val isLoading = loadingState[key] == true
@@ -184,7 +192,7 @@ class ProjectManagerFragment : BaseFragment() {
           }
         }
 
-      PullToRefreshBox(isRefreshing = isLoading, onRefresh = { loadTabProjects(scope, selectedTab, true) }) {
+      PullToRefreshBox(isRefreshing = isLoading, onRefresh = { reloadProjectList(scope, selectedTab, true) }) {
         LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
           items(projects, key = { it }) { projectPath ->
             val displayInfo = remember(projectPath) { parseProjectDisplayInfo(File(projectPath)) }
@@ -232,7 +240,7 @@ class ProjectManagerFragment : BaseFragment() {
 
       FloatingActionButton(
           onClick = { folderPicker.launch(null) },
-          modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 2.dp).size(28.dp),
+          modifier = Modifier.align(Alignment.End).padding(top = 8.dp, end = 2.dp).size(28.dp),
       ) {
         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_manager_add_folder))
       }
@@ -321,7 +329,7 @@ class ProjectManagerFragment : BaseFragment() {
       val dst = File(targetRoot, src.name)
       if (src.exists() && src.absolutePath != dst.absolutePath && !dst.exists()) src.renameTo(dst)
       clipboardState = null
-      withContext(Dispatchers.Main) { loadTabProjects(this@launch, tab, true) }
+      withContext(Dispatchers.Main) { reloadProjectList(viewLifecycleScope, tab, true) }
     }
   }
 
@@ -338,21 +346,31 @@ class ProjectManagerFragment : BaseFragment() {
   private fun deleteProject(scope: CoroutineScope, tab: ProjectTab, path: String) {
     scope.launch(Dispatchers.IO) {
       File(path).deleteRecursively()
-      withContext(Dispatchers.Main) { loadTabProjects(this@launch, tab, true) }
+      withContext(Dispatchers.Main) { reloadProjectList(viewLifecycleScope, tab, true) }
     }
   }
 
   private fun loadTabProjects(scope: CoroutineScope, tab: ProjectTab, forceRefresh: Boolean) {
     val key = tab.stableKey()
     if (!forceRefresh) readCache(requireContext(), key).takeIf { it.isNotEmpty() }?.let { tabProjectsState[key] = it }
-    scope.launch {
+    scope.launch(Dispatchers.Main) {
       loadingState[key] = true
-      val merged = withContext(Dispatchers.IO) { scanTopLevelProjects(tab).filter { File(it).exists() }.sortedBy { File(it).name.lowercase() } }
-      tabProjectsState[key] = merged
-      writeCache(requireContext(), key, merged)
-      loadManifestMetaAsync(merged)
+      runCatching {
+        val merged = withContext(Dispatchers.IO) { scanTopLevelProjects(tab).filter { File(it).exists() }.sortedBy { File(it).name.lowercase() } }
+        tabProjectsState[key] = merged
+        writeCache(requireContext(), key, merged)
+        loadManifestMetaAsync(merged)
+        val tip = if (merged.isEmpty()) "Refresh done: no projects found." else "Refresh done: ${merged.size} project(s)."
+        Toast.makeText(requireContext(), tip, Toast.LENGTH_SHORT).show()
+      }.onFailure {
+        Toast.makeText(requireContext(), "Refresh failed: ${it.message ?: "unknown error"}", Toast.LENGTH_SHORT).show()
+      }
       loadingState[key] = false
     }
+  }
+
+  private fun reloadProjectList(scope: CoroutineScope, tab: ProjectTab, forceRefresh: Boolean = true) {
+    loadTabProjects(scope, tab, forceRefresh)
   }
 
   private fun scanTopLevelProjects(tab: ProjectTab): List<String> {
@@ -418,17 +436,21 @@ class ProjectManagerFragment : BaseFragment() {
   companion object {
     private fun parseProjectDisplayInfo(projectDir: File): ProjectDisplayInfo {
       val appModule = findApplicationModule(projectDir) ?: return ProjectDisplayInfo(projectDir.name, null)
-      val manifest = File(appModule, "src/main/AndroidManifest.xml")
-      if (!manifest.exists()) return ProjectDisplayInfo(projectDir.name, null)
-
-      val doc = runCatching { DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(manifest) }.getOrNull()
-      val appNode = doc?.getElementsByTagName("application")?.item(0) ?: return ProjectDisplayInfo(projectDir.name, null)
-      val iconRef = appNode.attributes?.getNamedItem("android:icon")?.nodeValue
-      val labelRef = appNode.attributes?.getNamedItem("android:label")?.nodeValue
+      val meta = parseManifestMetaForAppModule(appModule)
       val resDir = File(appModule, "src/main/res")
-      val iconFile = iconRef?.let { resolveDrawableResourceFile(resDir, it) }
-      val label = resolveLabel(projectDir.name, resDir, labelRef)
-      return ProjectDisplayInfo(label, iconFile)
+      val iconFile = resolveIconByMeta(resDir, meta)
+      val visibleLabel = if (meta?.label.isNullOrBlank()) projectDir.name else "${projectDir.name} : ${meta?.label}"
+      return ProjectDisplayInfo(visibleLabel, iconFile)
+    }
+
+    private fun parseManifestMetaForAppModule(appModule: File): ProjectAppMeta? {
+      val manifest = File(appModule, "src/main/AndroidManifest.xml")
+      if (!manifest.exists()) return null
+      val xml = manifest.readText()
+      val icon = Regex("android:icon=\"([^\"]+)\"").find(xml)?.groupValues?.getOrNull(1)
+      val labelValue = Regex("android:label=\"([^\"]+)\"").find(xml)?.groupValues?.getOrNull(1)
+      val label = resolveLabel(appModule.parentFile?.name ?: "app", File(appModule, "src/main/res"), labelValue)
+      return ProjectAppMeta(label = label, iconResName = icon?.removePrefix("@"), iconFilePath = null)
     }
 
     private fun findApplicationModule(projectDir: File): File? {
@@ -453,6 +475,18 @@ class ProjectManagerFragment : BaseFragment() {
       return resDir.listFiles { f -> f.isDirectory && f.name.startsWith(type) }?.flatMap { dir ->
         dir.listFiles()?.toList().orEmpty()
       }?.firstOrNull { f -> f.nameWithoutExtension == name }
+    }
+
+    private fun resolveIconByMeta(resDir: File, meta: ProjectAppMeta?): File? {
+      val iconResName = meta?.iconResName ?: return null
+      val parts = iconResName.split("/")
+      if (parts.size != 2) return null
+      val type = parts[0]
+      val name = parts[1]
+      val dirs = resDir.listFiles { f -> f.isDirectory && f.name.startsWith("$type-") }?.toList().orEmpty()
+      val exact = dirs.flatMap { it.listFiles()?.toList().orEmpty() }.firstOrNull { it.nameWithoutExtension == name }
+      if (exact != null) return exact
+      return dirs.flatMap { it.listFiles()?.toList().orEmpty() }.firstOrNull()
     }
 
     private fun resolveLabel(defaultLabel: String, resDir: File, labelRef: String?): String {
@@ -504,7 +538,12 @@ class ProjectManagerFragment : BaseFragment() {
       val docId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return null
       val parts = docId.split(':', limit = 2)
       if (parts.size < 2) return null
-      return "/storage/${parts[0]}/${parts[1]}"
+      val volume = parts[0]
+      val relPath = parts[1]
+      return when {
+        volume.equals("primary", ignoreCase = true) -> "/storage/emulated/0/$relPath"
+        else -> "/storage/$volume/$relPath"
+      }
     }
   }
 }
