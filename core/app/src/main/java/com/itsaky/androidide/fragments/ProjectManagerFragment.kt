@@ -123,6 +123,11 @@ class ProjectManagerFragment : BaseFragment() {
     }
   }
 
+
+  override fun onResume() {
+    super.onResume()
+    reloadProjectList(forceRefresh = false)
+  }
   override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
     return ComposeView(requireContext()).apply {
       setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -355,27 +360,30 @@ class ProjectManagerFragment : BaseFragment() {
     if (!forceRefresh) readCache(requireContext(), key).takeIf { it.isNotEmpty() }?.let { tabProjectsState[key] = it }
     scope.launch(Dispatchers.Main) {
       loadingState[key] = true
-      runCatching {
-        val merged = withContext(Dispatchers.IO) { scanTopLevelProjects(tab).filter { File(it).exists() }.sortedBy { File(it).name.lowercase() } }
-        tabProjectsState[key] = merged
-        writeCache(requireContext(), key, merged)
-        loadManifestMetaAsync(merged)
-        val tip = if (merged.isEmpty()) "Refresh done: no projects found." else "Refresh done: ${merged.size} project(s)."
-        Toast.makeText(requireContext(), tip, Toast.LENGTH_SHORT).show()
-      }.onFailure {
-        Toast.makeText(requireContext(), "Refresh failed: ${it.message ?: "unknown error"}", Toast.LENGTH_SHORT).show()
-      }
+      val merged = withContext(Dispatchers.IO) { scanTopLevelProjects(tab).distinct().sortedBy { File(it).name.lowercase() } }
+      tabProjectsState[key] = merged
+      writeCache(requireContext(), key, merged)
+      loadManifestMetaAsync(merged)
       loadingState[key] = false
+      Toast.makeText(requireContext(), if (merged.isEmpty()) "刷新完成：未找到项目" else "刷新成功：${merged.size} 个项目", Toast.LENGTH_SHORT).show()
     }
   }
 
-  private fun reloadProjectList(scope: CoroutineScope, tab: ProjectTab, forceRefresh: Boolean = true) {
-    loadTabProjects(scope, tab, forceRefresh)
+  fun reloadProjectList(forceRefresh: Boolean = true) {
+    val selectedTab = tabState.getOrNull(selectedTabIndexState) ?: return
+    loadTabProjects(viewLifecycleScope, selectedTab, forceRefresh)
   }
 
   private fun scanTopLevelProjects(tab: ProjectTab): List<String> {
-    val root = tab.rootPathOrNull() ?: return emptyList()
-    return File(root).listFiles { file -> file.isDirectory }?.map { it.absolutePath }.orEmpty()
+    tab.filePath?.let { root ->
+      return File(root).listFiles { file -> file.isDirectory }?.map { it.absolutePath }.orEmpty()
+    }
+    val uri = tab.treeUri ?: return emptyList()
+    val context = context ?: return emptyList()
+    val rootDoc = DocumentFile.fromTreeUri(context, uri) ?: return emptyList()
+    return rootDoc.listFiles().filter { it.isDirectory }.mapNotNull { doc ->
+      doc.uri?.let(::uriToPath)
+    }
   }
 
   private fun persistTabs(context: Context) {
@@ -438,19 +446,10 @@ class ProjectManagerFragment : BaseFragment() {
       val appModule = findApplicationModule(projectDir) ?: return ProjectDisplayInfo(projectDir.name, null)
       val meta = parseManifestMetaForAppModule(appModule)
       val resDir = File(appModule, "src/main/res")
-      val iconFile = resolveIconByMeta(resDir, meta)
-      val visibleLabel = if (meta?.label.isNullOrBlank()) projectDir.name else "${projectDir.name} : ${meta?.label}"
-      return ProjectDisplayInfo(visibleLabel, iconFile)
-    }
-
-    private fun parseManifestMetaForAppModule(appModule: File): ProjectAppMeta? {
-      val manifest = File(appModule, "src/main/AndroidManifest.xml")
-      if (!manifest.exists()) return null
-      val xml = manifest.readText()
-      val icon = Regex("android:icon=\"([^\"]+)\"").find(xml)?.groupValues?.getOrNull(1)
-      val labelValue = Regex("android:label=\"([^\"]+)\"").find(xml)?.groupValues?.getOrNull(1)
-      val label = resolveLabel(appModule.parentFile?.name ?: "app", File(appModule, "src/main/res"), labelValue)
-      return ProjectAppMeta(label = label, iconResName = icon?.removePrefix("@"), iconFilePath = null)
+      val iconFile = iconRef?.let { resolveDrawableResourceFile(resDir, it) }
+      val resolvedLabel = resolveLabel(projectDir.name, resDir, labelRef)
+      val label = "${projectDir.name} : $resolvedLabel"
+      return ProjectDisplayInfo(label, iconFile)
     }
 
     private fun findApplicationModule(projectDir: File): File? {
@@ -472,7 +471,7 @@ class ProjectManagerFragment : BaseFragment() {
       if (parts.size != 2) return null
       val type = parts[0]
       val name = parts[1]
-      return resDir.listFiles { f -> f.isDirectory && f.name.startsWith(type) }?.flatMap { dir ->
+      return resDir.listFiles { f -> f.isDirectory && f.name.startsWith("$type-") }?.flatMap { dir ->
         dir.listFiles()?.toList().orEmpty()
       }?.firstOrNull { f -> f.nameWithoutExtension == name }
     }
