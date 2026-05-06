@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.system.Os
+import android.util.Xml
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -55,12 +57,16 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.viewModels
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.AppCompatImageView
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.utils.Environment
 import com.itsaky.androidide.viewmodel.MainViewModel
 import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -78,6 +84,7 @@ class ProjectManagerFragment : BaseFragment() {
   }
 
   private data class ClipboardProject(val sourcePath: String)
+  private data class ProjectDisplayInfo(val label: String, val iconFile: File?)
 
   private val viewModel by viewModels<MainViewModel>(ownerProducer = { requireActivity() })
   private val tabState = mutableStateListOf<ProjectTab>()
@@ -119,8 +126,9 @@ class ProjectManagerFragment : BaseFragment() {
     var renameTarget by remember { mutableStateOf<String?>(null) }
     var renameInput by remember { mutableStateOf("") }
 
-    if (selectedTabIndex > tabState.lastIndex) selectedTabIndex = 0
-    val selectedTab = tabState.getOrNull(selectedTabIndex)
+    val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, tabState.lastIndex.coerceAtLeast(0))
+    if (selectedTabIndex != safeSelectedTabIndex) selectedTabIndex = safeSelectedTabIndex
+    val selectedTab = tabState.getOrNull(safeSelectedTabIndex)
 
     selectedTab?.let { tab ->
       val key = tab.stableKey()
@@ -130,16 +138,23 @@ class ProjectManagerFragment : BaseFragment() {
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-      Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        ScrollableTabRow(selectedTabIndex = selectedTabIndex, modifier = Modifier.weight(1f)) {
+      Box(modifier = Modifier.fillMaxWidth()) {
+        ScrollableTabRow(selectedTabIndex = safeSelectedTabIndex, modifier = Modifier.fillMaxWidth().padding(end = 24.dp)) {
           tabState.forEachIndexed { index, tab ->
-            Tab(selected = selectedTabIndex == index, onClick = { selectedTabIndex = index }, text = {
+            Tab(selected = safeSelectedTabIndex == index, onClick = { selectedTabIndex = index }, text = {
               Text(tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
             })
           }
         }
-        FloatingActionButton(onClick = { folderPicker.launch(null) }, modifier = Modifier.padding(start = 8.dp)) {
-          Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_manager_add_folder))
+        FloatingActionButton(
+            onClick = { folderPicker.launch(null) },
+            modifier = Modifier.align(Alignment.TopEnd).size(28.dp),
+        ) {
+          Icon(
+              Icons.Default.Add,
+              contentDescription = stringResource(R.string.project_manager_add_folder),
+              modifier = Modifier.size(14.dp),
+          )
         }
       }
 
@@ -162,7 +177,7 @@ class ProjectManagerFragment : BaseFragment() {
       PullToRefreshBox(isRefreshing = isLoading, onRefresh = { loadTabProjects(scope, selectedTab, true) }) {
         LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
           items(projects, key = { it }) { projectPath ->
-            val name = File(projectPath).name
+            val displayInfo = remember(projectPath) { parseProjectDisplayInfo(File(projectPath)) }
             Box {
               Card(
                   modifier =
@@ -172,8 +187,8 @@ class ProjectManagerFragment : BaseFragment() {
                       ),
                   elevation = CardDefaults.cardElevation(2.dp)) {
                     Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                      Icon(Icons.Default.Folder, null)
-                      Text(name, modifier = Modifier.padding(start = 10.dp), style = MaterialTheme.typography.titleMedium)
+                      ProjectIconPreview(displayInfo.iconFile)
+                      Text(displayInfo.label, modifier = Modifier.padding(start = 10.dp), style = MaterialTheme.typography.titleMedium)
                     }
                   }
               DropdownMenu(expanded = menuProjectPath == projectPath, onDismissRequest = { menuProjectPath = null }) {
@@ -327,6 +342,90 @@ class ProjectManagerFragment : BaseFragment() {
   }
 
   companion object {
+    private fun parseProjectDisplayInfo(projectDir: File): ProjectDisplayInfo {
+      val appModule = findApplicationModule(projectDir) ?: return ProjectDisplayInfo(projectDir.name, null)
+      val manifest = File(appModule, "src/main/AndroidManifest.xml")
+      if (!manifest.exists()) return ProjectDisplayInfo(projectDir.name, null)
+
+      val doc = runCatching { DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(manifest) }.getOrNull()
+      val appNode = doc?.getElementsByTagName("application")?.item(0) ?: return ProjectDisplayInfo(projectDir.name, null)
+      val iconRef = appNode.attributes?.getNamedItem("android:icon")?.nodeValue
+      val labelRef = appNode.attributes?.getNamedItem("android:label")?.nodeValue
+      val resDir = File(appModule, "src/main/res")
+      val iconFile = iconRef?.let { resolveDrawableResourceFile(resDir, it) }
+      val label = resolveLabel(projectDir.name, resDir, labelRef)
+      return ProjectDisplayInfo(label, iconFile)
+    }
+
+    private fun findApplicationModule(projectDir: File): File? {
+      return projectDir.listFiles { f -> f.isDirectory }?.firstOrNull { module ->
+        val gradleKts = File(module, "build.gradle.kts")
+        val gradle = File(module, "build.gradle")
+        val text = when {
+          gradleKts.exists() -> gradleKts.readText()
+          gradle.exists() -> gradle.readText()
+          else -> ""
+        }
+        text.contains("com.android.application")
+      }
+    }
+
+    private fun resolveDrawableResourceFile(resDir: File, value: String): File? {
+      if (!value.startsWith("@")) return null
+      val parts = value.removePrefix("@").split("/")
+      if (parts.size != 2) return null
+      val type = parts[0]
+      val name = parts[1]
+      return resDir.listFiles { f -> f.isDirectory && f.name.startsWith(type) }?.flatMap { dir ->
+        dir.listFiles()?.toList().orEmpty()
+      }?.firstOrNull { f -> f.nameWithoutExtension == name }
+    }
+
+    private fun resolveLabel(defaultLabel: String, resDir: File, labelRef: String?): String {
+      if (labelRef.isNullOrBlank()) return defaultLabel
+      if (!labelRef.startsWith("@string/")) return labelRef
+      val key = labelRef.removePrefix("@string/")
+      val valuesXml = resDir.listFiles { f -> f.isDirectory && f.name.startsWith("values") }
+        ?.map { File(it, "strings.xml") }
+        ?.firstOrNull { it.exists() } ?: return defaultLabel
+      val doc = runCatching { DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(valuesXml) }.getOrNull() ?: return defaultLabel
+      val nodes = doc.getElementsByTagName("string")
+      for (i in 0 until nodes.length) {
+        val node = nodes.item(i)
+        if (node.attributes?.getNamedItem("name")?.nodeValue == key) return node.textContent ?: defaultLabel
+      }
+      return defaultLabel
+    }
+
+    @Composable
+    private fun ProjectIconPreview(iconFile: File?) {
+      if (iconFile == null || !iconFile.exists()) {
+        Icon(Icons.Default.Folder, null)
+        return
+      }
+      AndroidView(
+          factory = { context ->
+            AppCompatImageView(context).apply {
+              scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+            }
+          },
+          update = { imageView ->
+            val drawable = when (iconFile.extension.lowercase()) {
+              "png", "jpg", "jpeg", "webp" -> android.graphics.drawable.Drawable.createFromPath(iconFile.absolutePath)
+              "xml" -> runCatching {
+                val parser = Xml.newPullParser().apply { setInput(iconFile.inputStream(), "utf-8") }
+                while (parser.eventType != org.xmlpull.v1.XmlPullParser.START_TAG && parser.eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) parser.next()
+                AppCompatResources.getDrawable(imageView.context, android.R.drawable.picture_frame)
+                android.graphics.drawable.Drawable.createFromXml(imageView.resources, parser)
+              }.getOrNull()
+              else -> null
+            }
+            imageView.setImageDrawable(drawable ?: AppCompatResources.getDrawable(imageView.context, R.drawable.ic_android))
+          },
+          modifier = Modifier.size(40.dp),
+      )
+    }
+
     private fun uriToPath(uri: Uri): String? {
       val docId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return null
       val parts = docId.split(':', limit = 2)
