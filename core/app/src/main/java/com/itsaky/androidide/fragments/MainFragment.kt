@@ -132,6 +132,18 @@ class MainFragment : BaseFragment() {
             )
             NavigationBarItem(
                 selected = false,
+                onClick = {
+                  parentFragmentManager
+                      .beginTransaction()
+                      .replace(id, ProjectManagerFragment())
+                      .addToBackStack(ProjectManagerFragment::class.java.simpleName)
+                      .commit()
+                },
+                icon = { Icon(Icons.Default.Folder, null) },
+                label = { Text(stringResource(R.string.main_nav_projects)) },
+            )
+            NavigationBarItem(
+                selected = false,
                 onClick = {},
                 icon = { Icon(Icons.Default.History, null) },
                 label = { Text(stringResource(R.string.main_nav_history)) },
