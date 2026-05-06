@@ -2,12 +2,10 @@ package com.itsaky.androidide.fragments
 
 import android.content.Context
 import android.content.Intent
-import android.content.res.Resources
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.system.Os
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Folder
@@ -56,12 +55,14 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.viewModels
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.utils.Environment
 import com.itsaky.androidide.viewmodel.MainViewModel
+import android.graphics.BitmapFactory
 import java.io.File
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
@@ -80,7 +81,7 @@ class ProjectManagerFragment : BaseFragment() {
   }
 
   private data class ClipboardProject(val sourcePath: String)
-  private data class ProjectAppMeta(val label: String? = null, val iconResName: String? = null)
+  private data class ProjectAppMeta(val label: String? = null, val iconResName: String? = null, val iconFilePath: String? = null)
 
   private val viewModel by viewModels<MainViewModel>(ownerProducer = { requireActivity() })
   private val tabState = mutableStateListOf<ProjectTab>()
@@ -179,7 +180,10 @@ class ProjectManagerFragment : BaseFragment() {
                     ),
                     elevation = CardDefaults.cardElevation(2.dp)) {
                       Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (meta?.iconResName != null) Icon(Icons.Default.Android, null) else Icon(Icons.Default.Folder, null)
+                        val bitmap = meta?.iconFilePath?.let { path -> BitmapFactory.decodeFile(path)?.asImageBitmap() }
+                        if (bitmap != null) {
+                          Image(bitmap = bitmap, contentDescription = null)
+                        } else if (meta?.iconResName != null) Icon(Icons.Default.Android, null) else Icon(Icons.Default.Folder, null)
                         val line = if (meta?.label.isNullOrBlank()) name else "$name : ${meta?.label}"
                         Text(line, modifier = Modifier.padding(start = 10.dp), style = MaterialTheme.typography.titleMedium)
                       }
@@ -240,9 +244,13 @@ class ProjectManagerFragment : BaseFragment() {
   private fun loadManifestMetaAsync(projectPaths: List<String>) {
     projectPaths.forEach { path ->
       if (appMetaState.containsKey(path)) return@forEach
+      readMetaCache(requireContext(), path)?.let { appMetaState[path] = it; return@forEach }
       viewLifecycleScope.launch(Dispatchers.IO) {
         val meta = parseManifestMeta(path)
-        if (meta != null) withContext(Dispatchers.Main) { appMetaState[path] = meta }
+        if (meta != null) withContext(Dispatchers.Main) {
+          appMetaState[path] = meta
+          writeMetaCache(requireContext(), path, meta)
+        }
       }
     }
   }
@@ -256,12 +264,31 @@ class ProjectManagerFragment : BaseFragment() {
     val labelValue = Regex("android:label=\"([^\"]+)\"").find(xml)?.groupValues?.getOrNull(1)
     val label = resolveLabel(appModule, labelValue)
     val iconName = resolveIconName(icon)
-    return ProjectAppMeta(label = label, iconResName = iconName)
+    val iconFilePath = resolveIconFilePath(appModule, iconName)
+    return ProjectAppMeta(label = label, iconResName = iconName, iconFilePath = iconFilePath)
   }
 
   private fun resolveIconName(iconValue: String?): String? {
     if (iconValue.isNullOrBlank() || !iconValue.startsWith("@")) return null
     return iconValue.removePrefix("@")
+  }
+
+
+  private fun resolveIconFilePath(appModule: File, iconResName: String?): String? {
+    if (iconResName.isNullOrBlank()) return null
+    val parts = iconResName.split('/')
+    if (parts.size != 2) return null
+    val type = parts[0]
+    val name = parts[1]
+    val resRoot = appModule.resolve("src/main/res")
+    if (!resRoot.exists()) return null
+    val dirs = resRoot.listFiles { f -> f.isDirectory && f.name.startsWith(type) }?.toList().orEmpty()
+    val exts = listOf("png", "webp", "jpg", "jpeg", "xml")
+    for (d in dirs) for (ext in exts) {
+      val f = d.resolve("$name.$ext")
+      if (f.exists()) return f.absolutePath
+    }
+    return null
   }
 
   private fun resolveLabel(appModule: File, labelValue: String?): String? {
@@ -349,6 +376,25 @@ class ProjectManagerFragment : BaseFragment() {
       }
       selectedTabIndexState = context.getSharedPreferences("project_manager_tabs", Context.MODE_PRIVATE).getInt("selected", 0)
     }
+  }
+
+
+
+  private fun readMetaCache(context: Context, projectPath: String): ProjectAppMeta? {
+    val sp = context.getSharedPreferences("project_manager_meta", Context.MODE_PRIVATE)
+    val raw = sp.getString(projectPath, null) ?: return null
+    return runCatching {
+      val arr = JSONArray(raw)
+      ProjectAppMeta(arr.optString(0).ifBlank { null }, arr.optString(1).ifBlank { null }, arr.optString(2).ifBlank { null })
+    }.getOrNull()
+  }
+
+  private fun writeMetaCache(context: Context, projectPath: String, meta: ProjectAppMeta) {
+    val arr = JSONArray()
+    arr.put(meta.label)
+    arr.put(meta.iconResName)
+    arr.put(meta.iconFilePath)
+    context.getSharedPreferences("project_manager_meta", Context.MODE_PRIVATE).edit().putString(projectPath, arr.toString()).apply()
   }
 
   private fun readCache(context: Context, key: String): List<String> { val raw = context.getSharedPreferences("project_manager_cache", Context.MODE_PRIVATE).getString(key, null) ?: return emptyList(); return runCatching { val arr = JSONArray(raw); buildList { for (i in 0 until arr.length()) arr.optString(i).takeIf { it.isNotBlank() }?.let(::add) } }.getOrDefault(emptyList()).distinct() }
