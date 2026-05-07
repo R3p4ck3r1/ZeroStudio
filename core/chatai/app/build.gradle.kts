@@ -6,9 +6,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   alias(libs.plugins.android.application)
   // alias(libs.plugins.android.library)
-  alias(libs.plugins.kotlin.serialization)
-  alias(libs.plugins.kotlin.compose)
-  alias(libs.plugins.ksp)
+  alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
+  alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
+  alias(libs.plugins.com.google.devtools.ksp)
 }
 
 android {
