@@ -16,15 +16,17 @@
   ~   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
   -->
 
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+     xmlns:android="http://schemas.android.com/apk/res/android"
      xmlns:app="http://schemas.android.com/apk/res-auto"
      xmlns:tools="http://schemas.android.com/tools"
      android:id="@+id/realContainer"
      android:layout_width="match_parent"
-     android:background="?attr/colorSurface"
      android:layout_height="match_parent"
-     android:animateLayoutChanges="false">
+     android:background="?attr/colorSurface"
+     android:animateLayoutChanges="true">
 
+     <!-- 顶部 AppBar 区域 -->
      <com.google.android.material.appbar.AppBarLayout
           android:id="@+id/editor_appBarLayout"
           android:layout_width="match_parent"
@@ -57,14 +59,14 @@
 
      </com.google.android.material.appbar.AppBarLayout>
 
+     <!-- 编辑器核心内容容器 -->
      <ViewFlipper
           android:id="@+id/view_container"
           android:layout_width="match_parent"
           android:layout_height="match_parent"
-          android:layout_marginBottom="16dp"
           app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior">
 
-          <!--Views in this flipper are dynamically added and must be instances of CodeEditorView-->
+          <!-- Views in this flipper are dynamically added and must be instances of CodeEditorView -->
           <ViewFlipper
                android:id="@+id/editor_container"
                android:layout_width="match_parent"
@@ -104,108 +106,16 @@
           </androidx.constraintlayout.widget.ConstraintLayout>
 
      </ViewFlipper>
-
+     
      <com.itsaky.androidide.ui.EditorBottomSheet
           android:id="@+id/bottom_sheet"
           android:layout_width="match_parent"
-          android:layout_height="match_parent"
+          android:layout_height="wrap_content"
           app:behavior_hideable="false"
-          android:clipToPadding="true"
-          app:behavior_peekHeight="0dp"
+          android:clipToPadding="false"
           app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior" />
 
-     <LinearLayout
-          android:id="@+id/symbol_input_page"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:layout_gravity="bottom"
-          app:layout_anchorGravity="top"
-          android:orientation="vertical"
-          android:elevation="20dp"
-          android:background="@null"
-          android:clipChildren="false"
-          android:visibility="gone">
-
-          <RelativeLayout
-               android:id="@+id/header_overlay_container"
-               android:layout_width="match_parent"
-               android:layout_height="wrap_content"
-               android:elevation="0dp"
-               android:background="@null">
-
-               <com.itsaky.androidide.ui.EdgeSnapBubbleView
-                    android:id="@+id/page_switch_gesture_bubble"
-                    android:layout_width="match_parent"
-                    android:layout_height="24dp"
-                    android:layout_alignParentTop="true"
-                    android:background="@android:color/transparent" />
-
-               <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:cardCornerRadius="24dp"
-                    android:layout_marginLeft="16dp"
-                    android:layout_marginRight="16dp"
-                    app:strokeWidth="0dp"
-                    app:cardElevation="0dp"
-                    android:scaleX="0.9"
-                    android:scaleY="0.9"
-                    app:cardBackgroundColor="?attr/colorSurface" />
-
-               <include
-                    android:id="@+id/border"
-                    layout="@layout/layout_divider_horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_marginBottom="0dp"
-                    android:layout_height="0.1dp"
-                    android:layout_below="@id/page_switch_gesture_bubble" />
-
-               <ViewFlipper
-                    android:id="@+id/header_container"
-                    android:layout_width="match_parent"
-                    android:layout_below="@id/border"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/colorSurface">
-
-                    <include
-                         layout="@layout/layout_editor_build_status"
-                         android:id="@+id/build_status" />
-
-                    <include
-                         layout="@layout/layout_editor_bottom_action"
-                         android:id="@+id/bottom_action" />
-
-               </ViewFlipper>
-
-               <TextView
-                    android:id="@+id/tv_cursor_position"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignTop="@id/header_container"
-                    android:layout_alignBottom="@id/header_container"
-                    android:layout_alignEnd="@id/header_container"
-                    android:gravity="center_vertical"
-                    android:layout_marginEnd="16dp"
-                    android:text="1:1"
-                    android:fontFamily="monospace"
-                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                    android:textColor="?attr/colorOutline" />
-          </RelativeLayout>
-
-          <View
-               android:layout_width="match_parent"
-               android:layout_height="0.5dp"
-               android:background="?attr/colorOutlineVariant" />
-
-          <android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
-               android:id="@+id/external_symbol_input_view"
-               android:layout_width="match_parent"
-               android:layout_height="wrap_content"
-               android:elevation="4dp"
-               android:background="?attr/colorSurface" />
-     </LinearLayout>
-
+     <!-- 悬浮诊断信息 -->
      <include
           android:id="@+id/diagnosticInfo"
           layout="@layout/layout_diagnostic_info" />

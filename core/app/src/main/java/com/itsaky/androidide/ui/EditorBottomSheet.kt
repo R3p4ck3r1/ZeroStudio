@@ -23,25 +23,20 @@ import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewTreeObserver
-import android.widget.RelativeLayout
+import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.annotation.GravityInt
 import androidx.appcompat.widget.TooltipCompat
-import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.transition.TransitionManager
-import com.blankj.utilcode.util.KeyboardUtils
-import com.blankj.utilcode.util.SizeUtils
 import com.blankj.utilcode.util.ThreadUtils.runOnUiThread
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayout.Tab
 import com.google.android.material.tabs.TabLayoutMediator
-import com.google.android.material.transition.MaterialSharedAxis
 import com.itsaky.androidide.R
 import com.itsaky.androidide.adapters.DiagnosticsAdapter
 import com.itsaky.androidide.adapters.EditorBottomSheetTabAdapter
@@ -63,6 +58,7 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption.CREATE_NEW
 import java.nio.file.StandardOpenOption.WRITE
 import java.util.concurrent.Callable
+import kotlin.math.abs
 import org.slf4j.LoggerFactory
 
 /**
@@ -76,49 +72,60 @@ class EditorBottomSheet @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
     defStyleRes: Int = 0,
-) : RelativeLayout(context, attrs, defStyleAttr, defStyleRes) {
-
-  private val behavior: BottomSheetBehavior<EditorBottomSheet> by lazy {
-    BottomSheetBehavior.from(this).apply {
-      isFitToContents = false
-      skipCollapsed = true
-      peekHeight = 0 // 完全交由手势或 Activity 主动控制
-    }
-  }
+) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
 
   @JvmField var binding: LayoutEditorBottomSheetBinding
   val pagerAdapter: EditorBottomSheetTabAdapter
 
-  private var anchorOffset = 0
-  private var isImeVisible = false
-  private var windowInsets: Insets? = null
+  private val behavior: BottomSheetBehavior<EditorBottomSheet> by lazy {
+    BottomSheetBehavior.from(this).apply {
+      isFitToContents = false
+      skipCollapsed = false
+      isHideable = false
+    }
+  }
+
   private var suppressNextHeaderClickExpand = false
   private var headerExpandEnabled = true
   private var expandBlocked = false
   private var behaviorCallbackAttached = false
-  
-  private var symbolInputPage: View? = null
-  var isExternalSymbolMode = false
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
   var onActionTextChanged: ((CharSequence) -> Unit)? = null
   var onActionProgressChanged: ((Int) -> Unit)? = null
   var onStatusChanged: ((CharSequence, Int) -> Unit)? = null
+  var onSlideAction: ((Float) -> Unit)? = null
 
-  private val insetBottom: Int
-    get() = if (isImeVisible) 0 else windowInsets?.bottom ?: 0
+  // 软键盘底部安全区域补丁
+  private var currentBottomInset = 0
+
+  var isExternalSymbolMode = false
 
   companion object {
     private val log = LoggerFactory.getLogger(EditorBottomSheet::class.java)
-    private const val COLLAPSE_HEADER_AT_OFFSET = 0.5f
 
     const val CHILD_HEADER = 0
     const val CHILD_ACTION = 1
     const val STATE_EXTERNAL_SYMBOL = -1
   }
 
-  private fun initialize(context: FragmentActivity) {
+  init {
+    if (context !is FragmentActivity) {
+      throw IllegalArgumentException("EditorBottomSheet must be set up with a FragmentActivity")
+    }
 
+    orientation = VERTICAL
+    val inflater = LayoutInflater.from(context)
+    binding = LayoutEditorBottomSheetBinding.inflate(inflater, this, true)
+    
+    pagerAdapter = EditorBottomSheetTabAdapter(context)
+    binding.pager.adapter = pagerAdapter
+
+    initialize(context)
+    setupDynamicPeekHeightAndIME()
+  }
+
+  private fun initialize(context: FragmentActivity) {
     val mediator =
         TabLayoutMediator(binding.tabs, binding.pager, true, true) { tab, position ->
           tab.text = pagerAdapter.getTitle(position)
@@ -172,29 +179,87 @@ class EditorBottomSheet @JvmOverloads constructor(
         log.error("Unknown fragment: {}", fragment)
         return@setOnClickListener
       }
-      fragment.clearOutput()
+      (fragment as ShareableOutputFragment).clearOutput()
     }
 
-    ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
-      this.windowInsets = insets.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures())
-      insets
+    // 延迟初始化触摸气泡以防止宽高校准错误挤压
+    binding.pageSwitchGestureBubble.post {
+      setupPageSwitchGestureBubble()
     }
   }
 
-  init {
-    if (context !is FragmentActivity) {
-      throw IllegalArgumentException("EditorBottomSheet must be set up with a FragmentActivity")
+  /**
+   * 处理软键盘 (IME) 同步和 PeekHeight 自动适配。
+   * 让 CoordinatorLayout 与系统的 WindowInsets 联合接管所有位移交互。
+   */
+  private fun setupDynamicPeekHeightAndIME() {
+    // 监听浮动头部的高度变动，更新 BottomSheet 的露头高度
+    binding.floatingHeaderArea.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+        val newHeight = bottom - top
+        if (newHeight > 0 && newHeight != (oldBottom - oldTop)) {
+            updatePeekHeight()
+        }
     }
 
-    val inflater = LayoutInflater.from(context)
-    binding = LayoutEditorBottomSheetBinding.inflate(inflater)
-    pagerAdapter = EditorBottomSheetTabAdapter(context)
-    binding.pager.adapter = pagerAdapter
+    // 将 WindowInsets 拦截用于 IME 同步
+    ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
+        val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+        val navInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+        val isImeVisibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
 
-    removeAllViews()
-    addView(binding.root)
+        val targetBottomPadding = if (isImeVisibleNow) imeInsets.bottom else navInsets.bottom
 
-    initialize(context)
+        if (currentBottomInset != targetBottomPadding) {
+            currentBottomInset = targetBottomPadding
+            view.updatePadding(bottom = targetBottomPadding)
+            
+            // 告知 AdvancedSymbolInputView 我们底部有了 Inset（让其内部处理可能需要的适配）
+            binding.externalSymbolInputView.setImeBottomInset(if (isImeVisibleNow) imeInsets.bottom else 0)
+            
+            // 因为 BottomSheet 自己被垫高了，PeekHeight 需要加上这部分垫高的数值，才能确保 Header 留在视图上方
+            updatePeekHeight()
+        }
+
+        // 让行为不被系统默认的 IME 手势拦截机制破坏
+        behavior.isGestureInsetBottomIgnored = true
+        insets
+    }
+  }
+
+  private fun updatePeekHeight() {
+      behavior.peekHeight = binding.floatingHeaderArea.height + currentBottomInset
+  }
+
+  private fun setupPageSwitchGestureBubble() {
+      binding.pageSwitchGestureBubble.setOrientation(com.itsaky.androidide.ui.EdgeSnapBubbleView.Orientation.HORIZONTAL)
+      binding.pageSwitchGestureBubble.setPosition(com.itsaky.androidide.ui.EdgeSnapBubbleView.Position.TOP)
+      
+      binding.pageSwitchGestureBubble.setOnBubbleClickListener {
+          if (behavior.state == BottomSheetBehavior.STATE_EXPANDED) {
+              forceCollapse()
+          } else {
+              tryExpandSheetFromControl()
+          }
+      }
+      
+      binding.pageSwitchGestureBubble.setOnBubbleGestureListener(
+          object : com.itsaky.androidide.ui.EdgeSnapBubbleView.OnBubbleGestureListener {
+              override fun onDrag(fraction: Float) {
+                  val absFrac = abs(fraction)
+                  val alpha = (1f - absFrac * 0.8f).coerceIn(0.2f, 1f)
+                  binding.headerContainer.alpha = alpha
+              }
+
+              override fun onRelease(fraction: Float) {
+                  if (fraction > 0.15f) {
+                      tryExpandSheetFromControl()
+                  } else if (fraction < -0.15f) {
+                      forceCollapse()
+                  }
+                  binding.headerContainer.alpha = 1f
+              }
+          }
+      )
   }
 
   override fun onAttachedToWindow() {
@@ -211,70 +276,17 @@ class EditorBottomSheet @JvmOverloads constructor(
               forceCollapse()
             }
           }
-          override fun onSlide(bottomSheet: View, slideOffset: Float) = Unit
+
+          override fun onSlide(bottomSheet: View, slideOffset: Float) {
+            onSlideAction?.invoke(slideOffset)
+          }
         }
     )
     behaviorCallbackAttached = true
   }
 
-  /** Set whether the input method is visible. */
-  fun setImeVisible(isVisible: Boolean) {
-    isImeVisible = isVisible
-    behavior.isGestureInsetBottomIgnored = isVisible
-  }
-
-  fun setOffsetAnchor(view: View, symbolInputPage: View) {
-    this.symbolInputPage = symbolInputPage
-    val listener =
-        object : ViewTreeObserver.OnGlobalLayoutListener {
-          override fun onGlobalLayout() {
-            view.viewTreeObserver.removeOnGlobalLayoutListener(this)
-            anchorOffset = view.height + SizeUtils.dp2px(1f)
-
-            // PeekHeight 严格置 0，让底栏纯净隐藏
-            behavior.peekHeight = 0
-            behavior.expandedOffset = anchorOffset
-            behavior.isGestureInsetBottomIgnored = isImeVisible
-
-            binding.root.updatePadding(bottom = anchorOffset + insetBottom)
-            resetSymbolInputPageHeight()
-          }
-        }
-    view.viewTreeObserver.addOnGlobalLayoutListener(listener)
-  }
-
-  fun resetSymbolInputPageHeight() {
-      if (!isExternalSymbolMode) {
-          // 不再使用低效的 layoutParams 和 padding 变更
-          symbolInputPage?.apply {
-              scaleY = 1f
-              alpha = 1f
-              translationY = 0f
-          }
-      }
-  }
-
-  /**
-   * 采用硬件加速处理动画，避免触发布局测量 (Layout Trashing) 卡顿。
-   */
-  fun onSlide(sheetOffset: Float) {
-    if (isExternalSymbolMode || symbolInputPage == null) return
-
-    val heightScale = if (sheetOffset >= COLLAPSE_HEADER_AT_OFFSET) {
-      (1f - (sheetOffset - COLLAPSE_HEADER_AT_OFFSET) / (1f - COLLAPSE_HEADER_AT_OFFSET)).coerceIn(0f, 1f)
-    } else {
-      1f
-    }
-    
-    // 使用 pivot 配合 scaleY 达到类似高度缩减的效果，不触发 requestLayout
-    symbolInputPage?.apply {
-      pivotY = height.toFloat()
-      scaleY = heightScale
-      alpha = heightScale
-    }
-  }
-
   fun showChild(index: Int) {
+    binding.headerContainer.displayedChild = index
     onHeaderPageChanged?.invoke(if (index == CHILD_ACTION) CHILD_ACTION else CHILD_HEADER)
   }
 
@@ -323,10 +335,12 @@ class EditorBottomSheet @JvmOverloads constructor(
 
   fun setActionText(text: CharSequence) {
     onActionTextChanged?.invoke(text)
+    binding.bottomAction.actionText.text = text
   }
 
   fun setActionProgress(progress: Int) {
     onActionProgressChanged?.invoke(progress)
+    binding.bottomAction.progress.setProgressCompat(progress, true)
   }
 
   fun appendApkLog(line: LogLine) {
@@ -357,31 +371,10 @@ class EditorBottomSheet @JvmOverloads constructor(
     runOnUiThread { pagerAdapter.searchResultFragment?.setAdapter(adapter) }
   }
 
-  fun refreshSymbolInput(@Suppress("UNUSED_PARAMETER") editor: CodeEditorView) {
-    // Symbol input is managed externally by BaseEditorActivity.
-  }
-
-  fun onSoftInputChanged() {
-    if (context !is Activity) {
-      log.error("Bottom sheet is not attached to an activity!")
-      return
-    }
-
-    TransitionManager.beginDelayedTransition(
-        binding.root,
-        MaterialSharedAxis(MaterialSharedAxis.Y, false),
-    )
-
-    val activity = context as Activity
-    if (KeyboardUtils.isSoftInputVisible(activity)) {
-      onHeaderPageChanged?.invoke(STATE_EXTERNAL_SYMBOL)
-    } else {
-      onHeaderPageChanged?.invoke(CHILD_HEADER)
-    }
-  }
-
   fun setStatus(text: CharSequence, @GravityInt gravity: Int) {
     onStatusChanged?.invoke(text, gravity)
+    binding.buildStatus.statusText.gravity = gravity
+    binding.buildStatus.statusText.text = text
   }
 
   private fun shareFile(file: File) {
@@ -427,4 +420,29 @@ class EditorBottomSheet @JvmOverloads constructor(
     }
     return file.toFile()
   }
+
+  // =========================================================================
+  // =     DEPRECATED COMPATIBILITY STUBS FOR BaseEditorActivity             =
+  // =     DO NOT USE in new code! To be removed in next refactor step.      =
+  // =========================================================================
+
+  @Deprecated("No longer needed in unified floating architecture")
+  fun setOffsetAnchor(view: View, symbolInputPage: View) {}
+
+  @Deprecated("No longer needed in unified floating architecture")
+  fun resetSymbolInputPageHeight() {}
+  
+  @Deprecated("No longer needed in unified floating architecture")
+  fun setImeVisible(isVisible: Boolean) {}
+
+  @Deprecated("No longer needed in unified floating architecture")
+  fun onSoftInputChanged() {}
+
+  @Deprecated("No longer needed in unified floating architecture")
+  fun onSlide(sheetOffset: Float) {
+      onSlideAction?.invoke(sheetOffset)
+  }
+
+  @Deprecated("No longer needed in unified floating architecture")
+  fun refreshSymbolInput(editor: CodeEditorView) {}
 }

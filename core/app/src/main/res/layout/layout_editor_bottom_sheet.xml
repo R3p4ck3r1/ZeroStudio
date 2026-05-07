@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <!--
   ~  This file is part of AndroidIDE.
   ~
@@ -17,56 +16,175 @@
   ~   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
   -->
 
-<RelativeLayout
-  xmlns:android="http://schemas.android.com/apk/res/android"
-  xmlns:tools="http://schemas.android.com/tools"
-  xmlns:app="http://schemas.android.com/apk/res-auto"
-  android:layout_width="match_parent"
-  android:layout_height="match_parent"
-  android:background="?attr/colorSurface">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:tools="http://schemas.android.com/tools"
+     xmlns:app="http://schemas.android.com/apk/res-auto"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:orientation="vertical"
+     android:background="@android:color/transparent"
+     android:clipChildren="false"
+     android:clipToPadding="false">
 
-  <com.google.android.material.tabs.TabLayout
-    android:id="@+id/tabs"
-    style="@style/AppTheme.TabLayout"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content" />
+     <!-- 
+      ==== Floating Header Area ====
+      This entire block acts as the "peek" area of the BottomSheet.
+      It holds the gesture bubble, status indicators, and the symbol input bar.
+      When the BottomSheet is collapsed, only this area remains visible.
+      When IME pops up, the BottomSheet padding is adjusted, pushing this area above the keyboard.
+    -->
+     <LinearLayout
+          android:id="@+id/floating_header_area"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:background="@android:color/transparent"
+          android:clipChildren="false">
 
-  <androidx.legacy.widget.Space
-    android:id="@+id/space_bottom"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_alignParentBottom="true"
-    tools:layout_height="56dp" />
+          <RelativeLayout
+               android:id="@+id/header_overlay_container"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:elevation="0dp"
+               android:background="@android:color/transparent">
 
-  <androidx.viewpager2.widget.ViewPager2
-    android:id="@+id/pager"
-    android:background="?android:attr/colorBackground"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_above="@id/space_bottom"
-    android:layout_below="@id/tabs"
-    android:clickable="true"
-    android:focusable="false" />
+               <!-- 顶部手势控制区 -->
+               <com.itsaky.androidide.ui.EdgeSnapBubbleView
+                    android:id="@+id/page_switch_gesture_bubble"
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp"
+                    android:layout_alignParentTop="true"
+                    android:background="@android:color/transparent" />
 
-  <com.google.android.material.floatingactionbutton.FloatingActionButton
-    android:id="@+id/clear_fab"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_above="@id/space_bottom"
-    android:layout_alignParentEnd="true"
-    android:layout_margin="16dp"
-    android:src="@drawable/ic_sweep_delete" />
+               <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="24dp"
+                    android:layout_marginLeft="16dp"
+                    android:layout_marginRight="16dp"
+                    app:strokeWidth="0dp"
+                    app:cardElevation="0dp"
+                    android:scaleX="0.9"
+                    android:scaleY="0.9"
+                    app:cardBackgroundColor="?attr/colorSurface" />
 
-  <com.google.android.material.floatingactionbutton.FloatingActionButton
-    android:id="@+id/share_output_fab"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_above="@id/clear_fab"
-    android:layout_alignParentEnd="true"
-    android:layout_marginStart="16dp"
-    android:layout_marginTop="16dp"
-    android:layout_marginEnd="16dp"
-    android:layout_marginBottom="16dp"
-    android:src="@drawable/ic_share" />
+               <!-- 分隔线 -->
+               <include
+                    android:id="@+id/border"
+                    layout="@layout/layout_divider_horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_marginBottom="0dp"
+                    android:layout_height="0.1dp"
+                    android:layout_below="@id/page_switch_gesture_bubble" />
 
-</RelativeLayout>
+               <!-- 构建状态与动作区域 -->
+               <ViewFlipper
+                    android:id="@+id/header_container"
+                    android:layout_width="match_parent"
+                    android:layout_below="@id/border"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/colorSurface">
+
+                    <include
+                         layout="@layout/layout_editor_build_status"
+                         android:id="@+id/build_status" />
+
+                    <include
+                         layout="@layout/layout_editor_bottom_action"
+                         android:id="@+id/bottom_action" />
+
+               </ViewFlipper>
+
+               <!-- 光标位置显示 -->
+               <TextView
+                    android:id="@+id/tv_cursor_position"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignTop="@id/header_container"
+                    android:layout_alignBottom="@id/header_container"
+                    android:layout_alignEnd="@id/header_container"
+                    android:gravity="center_vertical"
+                    android:layout_marginEnd="16dp"
+                    tools:text="1:1"
+                    android:fontFamily="monospace"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOutline" />
+          </RelativeLayout>
+
+          <!-- 细分隔线 -->
+          <View
+               android:layout_width="match_parent"
+               android:layout_height="0.5dp"
+               android:background="?attr/colorOutlineVariant" />
+
+          <!-- 符号输入工具栏 (AdvancedSymbolInputView) -->
+          <android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
+               android:id="@+id/external_symbol_input_view"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:elevation="4dp"
+               android:background="?attr/colorSurface" />
+
+     </LinearLayout>
+
+     <!-- 
+      ==== Drawer Content Area ====
+      This block represents the actual "opened" content of the bottom sheet.
+      It contains the Tabs and ViewPager for Logs, Terminals, Diagnostics, etc.
+    -->
+     <RelativeLayout
+          android:id="@+id/drawer_content_area"
+          android:layout_width="match_parent"
+          android:layout_height="match_parent"
+          android:background="?attr/colorSurface">
+
+          <com.google.android.material.tabs.TabLayout
+               android:id="@+id/tabs"
+               style="@style/AppTheme.TabLayout"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content" />
+
+          <androidx.legacy.widget.Space
+               android:id="@+id/space_bottom"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:layout_alignParentBottom="true"
+               tools:layout_height="56dp" />
+
+          <androidx.viewpager2.widget.ViewPager2
+               android:id="@+id/pager"
+               android:background="?android:attr/colorBackground"
+               android:layout_width="match_parent"
+               android:layout_height="match_parent"
+               android:layout_above="@id/space_bottom"
+               android:layout_below="@id/tabs"
+               android:clickable="true"
+               android:focusable="false" />
+
+          <com.google.android.material.floatingactionbutton.FloatingActionButton
+               android:id="@+id/clear_fab"
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:layout_above="@id/space_bottom"
+               android:layout_alignParentEnd="true"
+               android:layout_margin="16dp"
+               android:src="@drawable/ic_sweep_delete"
+               app:fabSize="normal" />
+
+          <com.google.android.material.floatingactionbutton.FloatingActionButton
+               android:id="@+id/share_output_fab"
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:layout_above="@id/clear_fab"
+               android:layout_alignParentEnd="true"
+               android:layout_marginStart="16dp"
+               android:layout_marginTop="16dp"
+               android:layout_marginEnd="16dp"
+               android:layout_marginBottom="16dp"
+               android:src="@drawable/ic_share"
+               app:fabSize="normal" />
+
+     </RelativeLayout>
+
+</LinearLayout>
