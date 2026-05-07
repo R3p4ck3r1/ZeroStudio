@@ -265,6 +265,7 @@ abstract class BaseEditorActivity :
     if (this.isImeVisible != isImeVisibleNow) {
       this.isImeVisible = isImeVisibleNow
       onSoftInputChanged()
+      invalidateOptionsMenu()
     }
   }
 

@@ -17,15 +17,18 @@
 
 package com.itsaky.androidide.ui
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ObjectAnimator
 import android.app.Activity
 import android.content.Context
 import android.text.TextUtils
 import android.util.AttributeSet
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
+import android.view.animation.DecelerateInterpolator
+import android.widget.LinearLayout
 import androidx.annotation.GravityInt
 import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.ViewCompat
@@ -33,11 +36,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.interpolator.view.animation.FastOutSlowInInterpolator
-import androidx.transition.Fade
-import androidx.transition.Slide
-import androidx.transition.TransitionManager
-import androidx.transition.TransitionSet
 import com.blankj.utilcode.util.ThreadUtils.runOnUiThread
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
@@ -64,23 +62,22 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption.CREATE_NEW
 import java.nio.file.StandardOpenOption.WRITE
 import java.util.concurrent.Callable
+import kotlin.math.max
 import org.slf4j.LoggerFactory
 
 /**
  * Bottom sheet shown in editor activity.
- *
- * Refactored to support Unified Floating Bottom Bar, precise 3D toggle animations,
- * IME (Soft Keyboard) native syncing, and proportional slide transitions.
+ * Refactored to coordinate smoothly with Unified Floating Bottom Bar Architecture.
  *
  * @author Akash Yadav
- * @author android_zero (Unified Architecture, IME Sync & Animation Fixes)
+ * @author android_zero (Unified Architecture & Animations & IME Sync)
  */
 class EditorBottomSheet @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
     defStyleRes: Int = 0,
-) : FrameLayout(context, attrs, defStyleAttr, defStyleRes) {
+) : LinearLayout(context, attrs, defStyleAttr, defStyleRes) {
 
   @JvmField var binding: LayoutEditorBottomSheetBinding
   val pagerAdapter: EditorBottomSheetTabAdapter
@@ -104,19 +101,17 @@ class EditorBottomSheet @JvmOverloads constructor(
   var onStatusChanged: ((CharSequence, Int) -> Unit)? = null
   var onSlideAction: ((Float) -> Unit)? = null
 
-  // 软键盘安全区域及状态管理
+  // 软键盘底部安全区域补丁
   private var currentBottomInset = 0
-  private var isHeaderVisible = true
   
-  // 占位符变量（在新的统一架构中，不再需要独立控制该模式，保留以防外部崩溃）
-  var isExternalSymbolMode = false
+  // Header 区域是否可见(供 3D 滑出动画使用)
+  private var isHeaderVisible = true
 
   companion object {
     private val log = LoggerFactory.getLogger(EditorBottomSheet::class.java)
 
     const val CHILD_HEADER = 0
     const val CHILD_ACTION = 1
-    const val STATE_EXTERNAL_SYMBOL = -1
   }
 
   init {
@@ -124,9 +119,10 @@ class EditorBottomSheet @JvmOverloads constructor(
       throw IllegalArgumentException("EditorBottomSheet must be set up with a FragmentActivity")
     }
 
+    orientation = VERTICAL
     val inflater = LayoutInflater.from(context)
     binding = LayoutEditorBottomSheetBinding.inflate(inflater, this, true)
-
+    
     pagerAdapter = EditorBottomSheetTabAdapter(context)
     binding.pager.adapter = pagerAdapter
 
@@ -156,6 +152,7 @@ class EditorBottomSheet @JvmOverloads constructor(
               binding.shareOutputFab.hide()
             }
           }
+
           override fun onTabUnselected(tab: Tab) {}
           override fun onTabReselected(tab: Tab) {}
         }
@@ -163,11 +160,14 @@ class EditorBottomSheet @JvmOverloads constructor(
 
     binding.shareOutputFab.setOnClickListener {
       val fragment = pagerAdapter.getFragmentAtIndex(binding.tabs.selectedTabPosition)
+
       if (fragment !is ShareableOutputFragment) {
         log.error("Unknown fragment: {}", fragment)
         return@setOnClickListener
       }
+
       val filename = fragment.getFilename()
+
       @Suppress("DEPRECATION")
       val progress =
           android.app.ProgressDialog.show(context, null, context.getString(string.please_wait))
@@ -181,117 +181,138 @@ class EditorBottomSheet @JvmOverloads constructor(
     binding.clearFab.setOnClickListener {
       val fragment: Fragment = pagerAdapter.getFragmentAtIndex(binding.tabs.selectedTabPosition)
       if (fragment !is ShareableOutputFragment) {
+        log.error("Unknown fragment: {}", fragment)
         return@setOnClickListener
       }
       (fragment as ShareableOutputFragment).clearOutput()
     }
 
-    // 延迟初始化触摸气泡：等布局测量完成后恢复坐标，解决首次启动变形挤压 BUG
-    binding.pageSwitchGestureBubble.post {
-      setupPageSwitchGestureBubble()
-      binding.pageSwitchGestureBubble.restorePosition()
-      binding.pageSwitchGestureBubble.invalidate()
-    }
-  }
-
-  /**
-   * 核心重构：接管 IME 与 PeekHeight，消除双模态与撕裂 Bug。
-   */
-  private fun setupDynamicPeekHeightAndIME() {
-    // 1. 监听浮动头部的高度变动，更新 BottomSheet 的露头高度 (PeekHeight)
-    binding.floatingHeaderArea.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
-      val newHeight = bottom - top
-      if (newHeight > 0 && newHeight != (oldBottom - oldTop)) {
-        updatePeekHeight()
-      }
-    }
-
-    // 2. 原生软键盘同步：将 IME 映射为 BottomSheet 的 BottomPadding
-    ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
-      val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-      val navInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-      val isImeVisibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
-
-      val targetBottomPadding = if (isImeVisibleNow) imeInsets.bottom else navInsets.bottom
-
-      if (currentBottomInset != targetBottomPadding) {
-        currentBottomInset = targetBottomPadding
-        view.updatePadding(bottom = targetBottomPadding)
-
-        // 告知内部工具栏进行辅助处理
-        binding.externalSymbolInputView.setImeBottomInset(if (isImeVisibleNow) imeInsets.bottom else 0)
-        
-        // 软键盘弹起导致总高度增加，需要即时同步 PeekHeight 使得 Toolbar 升起
-        updatePeekHeight()
-      }
-
-      behavior.isGestureInsetBottomIgnored = true
-      insets
-    }
-  }
-
-  private fun updatePeekHeight() {
-    behavior.peekHeight = binding.floatingHeaderArea.height + currentBottomInset
-  }
-
-  /**
-   * 配置气泡手势：
-   * - 点击时：立体 3D 动画显隐 Header
-   * - 滑动时：上下拖拽抽屉
-   */
-  private fun setupPageSwitchGestureBubble() {
-    binding.pageSwitchGestureBubble.setOrientation(com.itsaky.androidide.ui.EdgeSnapBubbleView.Orientation.VERTICAL)
-    binding.pageSwitchGestureBubble.setPosition(com.itsaky.androidide.ui.EdgeSnapBubbleView.Position.TOP)
-
-    binding.pageSwitchGestureBubble.setOnBubbleClickListener {
-      toggleHeaderVisibility()
-    }
-
-    binding.pageSwitchGestureBubble.setOnBubbleGestureListener(
-        object : com.itsaky.androidide.ui.EdgeSnapBubbleView.OnBubbleGestureListener {
-          override fun onDrag(fraction: Float) {
-            // Fraction < 0 (向上滑), Fraction > 0 (向下滑)
-            // 可选的额外视觉反馈
-          }
-
-          override fun onRelease(fraction: Float) {
-            if (fraction < -0.15f) {
-              // 向上拉 -> 展开 BottomSheet
-              tryExpandSheetFromControl()
-            } else if (fraction > 0.15f) {
-              // 向下拉 -> 折叠 BottomSheet
-              forceCollapse()
+    // 解决气泡启动时错位：延时并在 Layout 完成后重置气泡形态
+    binding.pageSwitchGestureBubble.viewTreeObserver.addOnGlobalLayoutListener(
+        object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                binding.pageSwitchGestureBubble.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                // 确保视图宽高校准后，才应用初始形态
+                setupPageSwitchGestureBubble()
+                binding.pageSwitchGestureBubble.invalidate()
             }
-          }
         }
     )
   }
 
   /**
-   * 采用 3D 平移+透明度动画 隐藏/显示 Header 区域，实现“从 AdvancedSymbolInputView 背部抽插”的立体效果。
+   * 处理软键盘 (IME) 同步和 PeekHeight 自动适配。
+   * 让 CoordinatorLayout 与系统的 WindowInsets 联合接管所有位移交互。
    */
-  private fun toggleHeaderVisibility() {
-    val transition = TransitionSet().apply {
-      addTransition(Slide(Gravity.BOTTOM))
-      addTransition(Fade())
-      duration = 250
-      interpolator = FastOutSlowInInterpolator()
-      ordering = TransitionSet.ORDERING_TOGETHER
+  private fun setupDynamicPeekHeightAndIME() {
+    // 监听浮动头部的高度变动，更新 BottomSheet 的露头高度 (peekHeight)
+    binding.floatingHeaderArea.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+        val newHeight = bottom - top
+        if (newHeight > 0 && newHeight != (oldBottom - oldTop)) {
+            updatePeekHeight()
+        }
     }
 
-    // 将动画挂载在 Overlay 容器上
-    TransitionManager.beginDelayedTransition(binding.headerOverlayContainer, transition)
+    // 将 WindowInsets 拦截用于 IME 同步
+    ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
+        val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+        val navInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+        val isImeVisibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
 
-    isHeaderVisible = !isHeaderVisible
-    val visibility = if (isHeaderVisible) View.VISIBLE else View.GONE
+        val targetBottomPadding = if (isImeVisibleNow) imeInsets.bottom else navInsets.bottom
 
-    // 控制 Header 组件，但保留 pageSwitchGestureBubble 让其永远可以被再次点击
-    binding.headerContainer.visibility = visibility
-    binding.cardView.visibility = visibility
-    binding.border.root.visibility = visibility
+        if (currentBottomInset != targetBottomPadding) {
+            currentBottomInset = targetBottomPadding
+            view.updatePadding(bottom = targetBottomPadding)
+            
+            // 告知 AdvancedSymbolInputView 底部有了 Inset（让其内部处理可能需要的安全区适配）
+            binding.externalSymbolInputView.setImeBottomInset(if (isImeVisibleNow) imeInsets.bottom else 0)
+            
+            // 因为 BottomSheet 自己被垫高了，PeekHeight 需要加上这部分垫高数值，确保 Header 留在视图上方
+            updatePeekHeight()
+        }
 
-    // 触发布局改变监听，重新修正 PeekHeight
-    binding.floatingHeaderArea.post { updatePeekHeight() }
+        // 让该行为不被系统默认的 IME 手势拦截机制破坏
+        behavior.isGestureInsetBottomIgnored = true
+        insets
+    }
+  }
+
+  private fun updatePeekHeight() {
+      // 只有在 Header 显示时（未被 3D 隐藏），PeekHeight 才包含它
+      behavior.peekHeight = binding.floatingHeaderArea.height + currentBottomInset
+  }
+
+  private fun setupPageSwitchGestureBubble() {
+      val bubble = binding.pageSwitchGestureBubble
+      bubble.setOrientation(com.itsaky.androidide.ui.EdgeSnapBubbleView.Orientation.HORIZONTAL)
+      bubble.setPosition(com.itsaky.androidide.ui.EdgeSnapBubbleView.Position.TOP)
+      
+      // 需求：点击事件切换 Header 区域的显示/隐藏（通过 3D 上下平移立体隐藏）
+      bubble.setOnBubbleClickListener {
+          toggleHeaderVisibilityWithAnimation()
+      }
+      
+      // 需求：手势滑动打开/关闭整个 BottomSheet 抽屉
+      bubble.setOnBubbleGestureListener(
+          object : com.itsaky.androidide.ui.EdgeSnapBubbleView.OnBubbleGestureListener {
+              override fun onDrag(fraction: Float) {
+                  // Fraction 为负时表示向上拉（打开抽屉），为正时向下拉（无动作或尝试关闭已经关闭的抽屉）
+                  // 注意：拖拽期间主要依赖 BottomSheet 自身的滚动响应
+                  // 如果想强制映射 fraction 到 BottomSheet state 也可以，但容易与原生滑动手势冲突
+              }
+
+              override fun onRelease(fraction: Float) {
+                  if (fraction < -0.15f) { // 向上滑动
+                      tryExpandSheetFromControl()
+                  } else if (fraction > 0.15f) { // 向下滑动
+                      forceCollapse()
+                  }
+              }
+          }
+      )
+  }
+
+  /**
+   * 使用属性动画模拟物理层级（Header 被符号栏遮挡向下/向上滑动隐藏）
+   */
+  private fun toggleHeaderVisibilityWithAnimation() {
+      val contentWrapper = binding.headerContentWrapper
+      val innerContent = binding.headerInnerContent
+      
+      if (innerContent.height <= 0) return // 视图未测量完成时不执行
+      
+      val contentHeight = innerContent.height.toFloat()
+      
+      // 如果当前是可见状态，执行隐藏动画：将 innerContent 向下平移，并利用 wrapper 的 clipChildren 进行裁切
+      if (isHeaderVisible) {
+          val anim = ObjectAnimator.ofFloat(innerContent, View.TRANSLATION_Y, 0f, contentHeight)
+          anim.duration = 250
+          anim.interpolator = DecelerateInterpolator()
+          anim.addListener(object: AnimatorListenerAdapter(){
+              override fun onAnimationEnd(animation: Animator) {
+                  contentWrapper.visibility = View.GONE
+                  isHeaderVisible = false
+                  updatePeekHeight() // 高度改变，刷新 Peek
+              }
+          })
+          anim.start()
+          binding.pageSwitchGestureBubble.setArrowExpanded(false) // 箭头朝下指示可以展开
+      } else {
+          // 如果是隐藏状态，执行显示动画：从下方拉起
+          contentWrapper.visibility = View.VISIBLE
+          val anim = ObjectAnimator.ofFloat(innerContent, View.TRANSLATION_Y, contentHeight, 0f)
+          anim.duration = 250
+          anim.interpolator = DecelerateInterpolator()
+          anim.addListener(object: AnimatorListenerAdapter(){
+              override fun onAnimationEnd(animation: Animator) {
+                  isHeaderVisible = true
+                  updatePeekHeight() // 高度改变，刷新 Peek
+              }
+          })
+          anim.start()
+          binding.pageSwitchGestureBubble.setArrowExpanded(true) // 箭头朝上指示可以收起
+      }
   }
 
   override fun onAttachedToWindow() {
@@ -310,18 +331,19 @@ class EditorBottomSheet @JvmOverloads constructor(
           }
 
           override fun onSlide(bottomSheet: View, slideOffset: Float) {
-            // 解决上下平移时的同步百分比隐藏与显示
-            val headerArea = binding.floatingHeaderArea
-            val contentArea = binding.drawerContentArea
+            // 需求：抽屉滑动期间，按照百分比同步隐藏/显示气泡与 Header（避免占满空间）
+            // 当 slideOffset 从 0 到 1 变化时（从折叠到展开）
+            // slideOffset = 0: 完全折叠, Alpha = 1
+            // slideOffset = 1: 完全展开, Alpha = 0
             
-            // 将浮动头部根据展开进度向上移出屏幕外，并让抽屉内容补位
-            val shift = headerArea.height * slideOffset
-            headerArea.translationY = -shift
-            contentArea.translationY = -shift
+            // 为了视觉体验，我们让 Header 提前消失（例如滑到一半 0.5 时就全透）
+            val alphaValue = max(0f, 1f - (slideOffset * 2f))
             
-            // 按比例淡出（加快速率，使得滑动到半程即可完全透明）
-            headerArea.alpha = (1f - slideOffset * 2f).coerceIn(0f, 1f)
-
+            binding.headerContentWrapper.alpha = alphaValue
+            binding.pageSwitchGestureBubble.alpha = alphaValue
+            
+            // 当完全展开且全透时，可以设置 GONE 彻底不阻挡点击，但这由底层事件接管也可以。
+            
             onSlideAction?.invoke(slideOffset)
           }
         }
@@ -464,24 +486,4 @@ class EditorBottomSheet @JvmOverloads constructor(
     }
     return file.toFile()
   }
-
-  // =========================================================================
-  // =     DEPRECATED COMPATIBILITY STUBS FOR BaseEditorActivity             =
-  // =     DO NOT USE in new code! Kept to avoid crashes in old activities.  =
-  // =========================================================================
-
-  @Deprecated("No longer needed in unified floating architecture")
-  fun setOffsetAnchor(view: View, symbolInputPage: View) {}
-
-  @Deprecated("No longer needed in unified floating architecture")
-  fun resetSymbolInputPageHeight() {}
-  
-  @Deprecated("No longer needed in unified floating architecture")
-  fun setImeVisible(isVisible: Boolean) {}
-
-  @Deprecated("No longer needed in unified floating architecture")
-  fun onSoftInputChanged() {}
-
-  @Deprecated("No longer needed in unified floating architecture")
-  fun refreshSymbolInput(editor: CodeEditorView) {}
 }

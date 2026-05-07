@@ -199,17 +199,22 @@ override fun onTouchEvent(ev: MotionEvent): Boolean {
     backPath!!.reset()
     arrowPath!!.reset()
 
-    val centerX = width / 2f
-    val baseHalfWidth = (backViewHeight / 4f).coerceAtMost(width / 2f)
+    // 保护：防止宽度无效时计算坐标产生绘制扭曲
+    val w = width.toFloat()
+    val h = height.toFloat()
+    if (w <= 0f || h <= 0f) return
+
+    val centerX = w / 2f
+    val baseHalfWidth = (backViewHeight / 4f).coerceAtMost(w / 2f)
     val leftX = (centerX - baseHalfWidth).coerceAtLeast(0f)
-    val rightX = (centerX + baseHalfWidth).coerceAtMost(width.toFloat())
+    val rightX = (centerX + baseHalfWidth).coerceAtMost(w)
 
-    val baseDepth = (height * 0.32f).coerceAtLeast(6f)
-    val signedOffset = (dragDelta / backMaxWidth).coerceIn(-1f, 1f) * (height * 0.2f)
-    val humpDepth = (baseDepth + signedOffset).coerceIn(height * 0.16f, height * 0.62f)
+    val baseDepth = (h * 0.32f).coerceAtLeast(6f)
+    val signedOffset = (dragDelta / backMaxWidth).coerceIn(-1f, 1f) * (h * 0.2f)
+    val humpDepth = (baseDepth + signedOffset).coerceIn(h * 0.16f, h * 0.62f)
 
-    val baseY = height.toFloat()
-    val tipY = height.toFloat() - humpDepth
+    val baseY = h
+    val tipY = h - humpDepth
 
     backPath!!.moveTo(leftX, baseY)
     backPath!!.cubicTo(
@@ -251,7 +256,7 @@ override fun onTouchEvent(ev: MotionEvent): Boolean {
     // 水平模式本意是让宽度保证足够绘制空间（而不是抬高高度）
     if (orientation == Orientation.HORIZONTAL) {
         val minWidth = (backMaxWidth * 1.5f).toInt()
-        if (finalWidth < minWidth) {
+        if (finalWidth < minWidth && finalWidth > 0) {
             finalWidth = minWidth
         }
     }
