@@ -1,12 +1,10 @@
 import java.io.FileInputStream
 import java.util.Properties
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   alias(libs.plugins.android.application)
   // alias(libs.plugins.android.library)
-  alias(libs.plugins.kotlin.android)
   alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
   alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
   alias(libs.plugins.com.google.devtools.ksp)
@@ -135,7 +133,6 @@ tasks.register("buildAll") {
 
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
-kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 
 dependencies {
   implementation(libs.androidx.core.ktx)
