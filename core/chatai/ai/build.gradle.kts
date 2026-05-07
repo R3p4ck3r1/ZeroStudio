@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   alias(libs.plugins.android.library)
-  alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
-  alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
+  alias(libs.plugins.kotlin.serialization)
+  alias(libs.plugins.kotlin.compose)
 }
 
 android {
