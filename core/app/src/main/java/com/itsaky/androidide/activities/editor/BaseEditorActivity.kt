@@ -20,6 +20,7 @@ package com.itsaky.androidide.activities.editor
 import android.content.Intent
 import android.content.pm.PackageInstaller.SessionCallback
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Process
 import android.text.SpannableStringBuilder
@@ -619,7 +620,8 @@ abstract class BaseEditorActivity :
 
   fun refreshSymbolInput(editor: CodeEditorView) {
     if (isDestroying || _binding == null) return
-    content.bottomSheet.binding.externalSymbolInputView.bindEditor(editor.editor)
+    val codeEditor = editor.editor ?: return
+    content.bottomSheet.binding.externalSymbolInputView.bindEditor(codeEditor)
   }
 
   private fun checkIsDestroying() {
