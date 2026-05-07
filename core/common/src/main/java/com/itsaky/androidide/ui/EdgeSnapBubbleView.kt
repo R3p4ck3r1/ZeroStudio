@@ -263,6 +263,8 @@ override fun onTouchEvent(ev: MotionEvent): Boolean {
   }
 
   override fun onDraw(canvas: Canvas) {
+    if (width <= 0 || height <= 0) return // 防止第一次测量没好时渲染出错
+
     if (deltaX > backMaxWidth && left) {
       deltaX = backMaxWidth
     } else if (deltaX < -backMaxWidth && right) {
@@ -408,6 +410,21 @@ override fun onTouchEvent(ev: MotionEvent): Boolean {
 
   fun restorePosition() {
     val parentView = parent as? View ?: return
+    
+    // 首次启动防挤压：如果父容器还没测量出来尺寸，就在消息队列中重试
+    if (width == 0 || parentView.width == 0) {
+        parentView.post { restorePosition() }
+        return
+    }
+
+    // 防挤压关键2：既然在 LinearLayout/FrameLayout 做了 match_parent
+    // 就不应该强制改它 X 导致脱轨
+    if (orientation == Orientation.HORIZONTAL) {
+        x = 0f
+        y = 0f
+        return
+    }
+
     when (position) {
       Position.LEFT -> {
         x = 0f

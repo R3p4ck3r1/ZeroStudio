@@ -256,8 +256,7 @@ abstract class BaseEditorActivity :
     val navInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
     val isImeVisibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
     
-    // 我们只需让 ContentCard 腾出安全距离，保证编辑光标能滚动到可视区。
-    // 而 BottomSheet 内部会自动根据 IME 高度设置 padding 并浮动在上方。
+    // 只需给内容卡片留出软键盘的空间即可，底层悬浮条会自动在 EditorBottomSheet 中处理。
     val bottomInset = if (isImeVisibleNow) imeInsets.bottom else navInsets.bottom
     _binding?.contentCard?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
       this.bottomMargin = bottomInset
@@ -621,6 +620,7 @@ abstract class BaseEditorActivity :
   fun refreshSymbolInput(editor: CodeEditorView) {
     if (isDestroying || _binding == null) return
     val codeEditor = editor.editor ?: return
+    // 直接指向底栏内部绑定的符号工具栏
     content.bottomSheet.binding.externalSymbolInputView.bindEditor(codeEditor)
   }
 
