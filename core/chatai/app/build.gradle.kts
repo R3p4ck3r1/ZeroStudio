@@ -134,7 +134,6 @@ tasks.register("buildAll") {
 
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
-kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 
 dependencies {
   implementation(libs.androidx.core.ktx)
@@ -273,7 +272,6 @@ dependencies {
   implementation(projects.core.chatai.search)
   implementation(projects.core.chatai.tts)
   implementation(projects.core.common)
-  implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
   implementation(libs.org.jetbrains.kotlin.reflect)
 
   // Leak Canary
