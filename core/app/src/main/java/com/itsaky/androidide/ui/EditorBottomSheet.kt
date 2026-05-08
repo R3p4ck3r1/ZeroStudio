@@ -345,7 +345,7 @@ class EditorBottomSheet @JvmOverloads constructor(
               binding.headerContentWrapper,
               binding.headerInnerContent,
               binding.headerDivider,
-              binding.border,
+              binding.border.root,
               binding.cardView,
               binding.pageSwitchGestureBubble,
             )
