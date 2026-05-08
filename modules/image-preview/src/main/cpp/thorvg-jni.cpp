@@ -33,7 +33,7 @@
 struct TvgContext {
     std::unique_ptr<tvg::SwCanvas> canvas;  ///< Software rasterizer canvas
     std::unique_ptr<tvg::Animation> animation; ///< Animation controller (Lottie/GIF), nullable if static
-    std::unique_ptr<tvg::Picture> ownedPicture; ///< Owned static picture (for non-animation assets)
+    tvg::Picture* ownedPicture = nullptr;       ///< Owned static picture (for non-animation assets)
     tvg::Picture* picture = nullptr;             ///< Active picture pointer (ownedPicture or animation->picture())
     
     // Original dimensions
@@ -146,8 +146,8 @@ Java_android_zero_studio_images_preview_ThorVG_nativeLoad(JNIEnv* env, jobject t
         }
     } else {
         // Static image (SVG, PNG, JPG, WebP, etc.)
-        ctx->ownedPicture = std::unique_ptr<tvg::Picture>(tvg::Picture::gen());
-        ctx->picture = ctx->ownedPicture.get();
+        ctx->ownedPicture = tvg::Picture::gen();
+        ctx->picture = ctx->ownedPicture;
         res = ctx->picture ? ctx->picture->load(filePath) : tvg::Result::Unknown;
         ctx->isAnimation = false;
     }
