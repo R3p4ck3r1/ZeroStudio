@@ -39,7 +39,8 @@ add_definitions(
     -DJERRY_ES2015=1
 )
 
-set(THORVG_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/thorvg)
+set(CPP_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp)
+set(THORVG_ROOT ${CPP_ROOT}/thorvg)
 
 include_directories(
     # ThorVG 公共头文件
@@ -78,7 +79,7 @@ list(FILTER THORVG_SOURCES EXCLUDE REGEX "/bindings/")
 message(STATUS "ThorVG Sources Count: " ${THORVG_SOURCES})
 
 add_library(image-preview SHARED
-    thorvg-jni.cpp
+    ${CPP_ROOT}/thorvg-jni.cpp
     
     # ThorVG 源码
     ${THORVG_SOURCES}
