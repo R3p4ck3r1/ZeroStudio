@@ -353,9 +353,10 @@ class EditorBottomSheet @JvmOverloads constructor(
               view.alpha = alphaValue
               view.translationY = translateY
             }
-            binding.externalSymbolInputView.applyBottomSheetGestureProgress(slideOffset)
 
-            // 当完全展开且全透时，可以设置 GONE 彻底不阻挡点击，但这由底层事件接管也可以。
+            val hideHeaderArea = slideOffset >= 1f
+            binding.floatingHeaderArea.visibility = if (hideHeaderArea) View.GONE else View.VISIBLE
+            binding.externalSymbolInputView.applyBottomSheetGestureProgress(slideOffset)
 
             onSlideAction?.invoke(slideOffset)
           }
