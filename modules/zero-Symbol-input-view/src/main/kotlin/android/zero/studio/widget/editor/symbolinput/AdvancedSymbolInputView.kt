@@ -26,6 +26,7 @@ import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import io.github.rosemoe.sora.widget.CodeEditor
 import kotlin.math.roundToInt
+import kotlin.math.max
 
 /**
  * AdvancedSymbolInputView 的核心实现。
@@ -204,6 +205,16 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
         val range = (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)
         return ((currentHeight - collapsedHeightPx).toFloat() / range.toFloat()).coerceIn(0f, 1f)
+    }
+
+    /**
+     * 跟随 BottomSheet 的 slideOffset（0~1）执行与 Header/Bubble 一致的渐隐与上下平移动画参数。
+     */
+    fun applyBottomSheetGestureProgress(slideOffset: Float) {
+        val clampedOffset = slideOffset.coerceIn(0f, 1f)
+        val alphaValue = max(0f, 1f - (clampedOffset * 2f))
+        alpha = alphaValue
+        translationY = clampedOffset * 8f * resources.displayMetrics.density
     }
 
     /**

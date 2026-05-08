@@ -338,9 +338,13 @@ class EditorBottomSheet @JvmOverloads constructor(
             
             // 为了视觉体验，我们让 Header 提前消失（例如滑到一半 0.5 时就全透）
             val alphaValue = max(0f, 1f - (slideOffset * 2f))
+            val translateY = slideOffset.coerceIn(0f, 1f) * 8f * resources.displayMetrics.density
             
             binding.headerContentWrapper.alpha = alphaValue
+            binding.headerContentWrapper.translationY = translateY
             binding.pageSwitchGestureBubble.alpha = alphaValue
+            binding.pageSwitchGestureBubble.translationY = translateY
+            binding.externalSymbolInputView.applyBottomSheetGestureProgress(slideOffset)
             
             // 当完全展开且全透时，可以设置 GONE 彻底不阻挡点击，但这由底层事件接管也可以。
             
