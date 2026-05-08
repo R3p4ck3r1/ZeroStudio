@@ -340,14 +340,23 @@ class EditorBottomSheet @JvmOverloads constructor(
             val alphaValue = max(0f, 1f - (slideOffset * 2f))
             val translateY = slideOffset.coerceIn(0f, 1f) * 8f * resources.displayMetrics.density
             
-            binding.headerContentWrapper.alpha = alphaValue
-            binding.headerContentWrapper.translationY = translateY
-            binding.pageSwitchGestureBubble.alpha = alphaValue
-            binding.pageSwitchGestureBubble.translationY = translateY
+            val syncedHeaderViews = listOf(
+              binding.floatingHeaderArea,
+              binding.headerContentWrapper,
+              binding.headerInnerContent,
+              binding.headerDivider,
+              binding.border,
+              binding.cardView,
+              binding.pageSwitchGestureBubble,
+            )
+            syncedHeaderViews.forEach { view ->
+              view.alpha = alphaValue
+              view.translationY = translateY
+            }
             binding.externalSymbolInputView.applyBottomSheetGestureProgress(slideOffset)
-            
+
             // 当完全展开且全透时，可以设置 GONE 彻底不阻挡点击，但这由底层事件接管也可以。
-            
+
             onSlideAction?.invoke(slideOffset)
           }
         }
