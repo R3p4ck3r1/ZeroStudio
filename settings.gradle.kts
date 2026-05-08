@@ -222,7 +222,7 @@ include(
     ":modules:thinkmap-treeview",
     ":modules:compose-preview",
     ":modules:colorpicker",
-    ":modules:image-preview",
+  //  ":modules:image-preview",
     ":modules:kotlinc",
 
 )
