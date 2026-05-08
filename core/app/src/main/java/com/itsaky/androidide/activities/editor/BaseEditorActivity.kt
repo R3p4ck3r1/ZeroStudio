@@ -22,6 +22,7 @@ import android.content.pm.PackageInstaller.SessionCallback
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.zero.studio.widget.editor.symbolinput.SymbolManagerActivity
 import android.os.Process
 import android.text.SpannableStringBuilder
 import android.text.Spanned
@@ -623,6 +624,9 @@ abstract class BaseEditorActivity :
     val codeEditor = editor.editor ?: return
     // 直接指向底栏内部绑定的符号工具栏
     content.bottomSheet.binding.externalSymbolInputView.bindEditor(codeEditor)
+    content.bottomSheet.binding.externalSymbolInputView.onOpenManagerListener = {
+      startActivity(Intent(this, SymbolManagerActivity::class.java))
+    }
   }
 
   private fun checkIsDestroying() {
@@ -753,8 +757,23 @@ abstract class BaseEditorActivity :
 
   private fun setupBottomSheet() {
     if (_binding == null) return
-    editorBottomSheet = BottomSheetBehavior.from<View>(content.bottomSheet)
-    
+    val behavior = BottomSheetBehavior.from<View>(content.bottomSheet)
+    editorBottomSheet = behavior
+
+    val applyExpandedOffset = {
+      val progressBottom = content.progressIndicator.bottom
+      if (progressBottom > 0) {
+        behavior.expandedOffset = progressBottom
+      }
+    }
+    content.progressIndicator.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+      applyExpandedOffset()
+    }
+    content.editorAppBarLayout.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+      applyExpandedOffset()
+    }
+    content.realContainer.post { applyExpandedOffset() }
+
     content.bottomSheet.onSlideAction = { slideOffset ->
       if (!isDestroying && _binding != null) {
           val editorScale = 1 - slideOffset * (1 - EDITOR_CONTAINER_SCALE_FACTOR)
