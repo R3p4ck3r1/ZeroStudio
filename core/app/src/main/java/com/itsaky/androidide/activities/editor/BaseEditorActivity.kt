@@ -22,6 +22,7 @@ import android.content.pm.PackageInstaller.SessionCallback
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.zero.studio.widget.editor.symbolinput.SymbolManagerActivity
 import android.os.Process
 import android.text.SpannableStringBuilder
 import android.text.Spanned
@@ -623,6 +624,9 @@ abstract class BaseEditorActivity :
     val codeEditor = editor.editor ?: return
     // 直接指向底栏内部绑定的符号工具栏
     content.bottomSheet.binding.externalSymbolInputView.bindEditor(codeEditor)
+    content.bottomSheet.binding.externalSymbolInputView.onOpenManagerListener = {
+      startActivity(Intent(this, SymbolManagerActivity::class.java))
+    }
   }
 
   private fun checkIsDestroying() {
