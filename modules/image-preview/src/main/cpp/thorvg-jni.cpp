@@ -33,7 +33,8 @@
 struct TvgContext {
     std::unique_ptr<tvg::SwCanvas> canvas;  ///< Software rasterizer canvas
     std::unique_ptr<tvg::Animation> animation; ///< Animation controller (Lottie/GIF), nullable if static
-    std::unique_ptr<tvg::Picture> picture;     ///< Static picture (SVG/Images) or underlying picture of animation
+    std::unique_ptr<tvg::Picture> ownedPicture; ///< Owned static picture (for non-animation assets)
+    tvg::Picture* picture = nullptr;             ///< Active picture pointer (ownedPicture or animation->picture())
     
     // Original dimensions
     float width = 0.0f;
@@ -47,7 +48,7 @@ struct TvgContext {
 
     TvgContext() {
         // Initialize the canvas using Software Engine
-        canvas = tvg::SwCanvas::gen();
+        canvas = std::unique_ptr<tvg::SwCanvas>(tvg::SwCanvas::gen());
     }
 };
 
@@ -58,7 +59,7 @@ struct TvgContext {
 extern "C" JNIEXPORT void JNICALL
 Java_android_zero_studio_images_preview_ThorVG_nativeInit(JNIEnv* env, jclass clazz) {
     // Initialize ThorVG with Software Engine. 0 threads means auto-detect.
-    if (tvg::Initializer::init(tvg::CanvasEngine::Sw, 0) != tvg::Result::Success) {
+    if (tvg::Initializer::init(0) != tvg::Result::Success) {
         LOGE("Failed to initialize ThorVG engine");
     } else {
         LOGI("ThorVG engine initialized successfully");
@@ -70,7 +71,7 @@ Java_android_zero_studio_images_preview_ThorVG_nativeInit(JNIEnv* env, jclass cl
  */
 extern "C" JNIEXPORT void JNICALL
 Java_android_zero_studio_images_preview_ThorVG_nativeTerm(JNIEnv* env, jclass clazz) {
-    tvg::Initializer::term(tvg::CanvasEngine::Sw);
+    tvg::Initializer::term();
     LOGI("ThorVG engine terminated");
 }
 
@@ -128,8 +129,8 @@ Java_android_zero_studio_images_preview_ThorVG_nativeLoad(JNIEnv* env, jobject t
     tvg::Result res;
 
     if (isLottie) {
-        ctx->animation = tvg::Animation::gen();
-        ctx->picture = ctx->animation->picture();
+        ctx->animation = std::unique_ptr<tvg::Animation>(tvg::Animation::gen());
+        ctx->picture = ctx->animation ? ctx->animation->picture() : nullptr;
         
         if (!ctx->picture) {
             LOGE("Failed to generate picture for animation");
@@ -145,8 +146,9 @@ Java_android_zero_studio_images_preview_ThorVG_nativeLoad(JNIEnv* env, jobject t
         }
     } else {
         // Static image (SVG, PNG, JPG, WebP, etc.)
-        ctx->picture = tvg::Picture::gen();
-        res = ctx->picture->load(filePath);
+        ctx->ownedPicture = std::unique_ptr<tvg::Picture>(tvg::Picture::gen());
+        ctx->picture = ctx->ownedPicture.get();
+        res = ctx->picture ? ctx->picture->load(filePath) : tvg::Result::Unknown;
         ctx->isAnimation = false;
     }
 
@@ -161,7 +163,7 @@ Java_android_zero_studio_images_preview_ThorVG_nativeLoad(JNIEnv* env, jobject t
     ctx->picture->size(&ctx->width, &ctx->height);
 
     // Push the picture into the canvas scene
-    if (ctx->canvas->push(ctx->picture.get()) != tvg::Result::Success) {
+    if (ctx->canvas->push(ctx->picture) != tvg::Result::Success) {
         LOGE("Failed to push picture to canvas");
         return JNI_FALSE;
     }
@@ -184,7 +186,7 @@ Java_android_zero_studio_images_preview_ThorVG_nativeLoad(JNIEnv* env, jobject t
 extern "C" JNIEXPORT jboolean JNICALL
 Java_android_zero_studio_images_preview_ThorVG_nativeRender(JNIEnv* env, jobject thiz, jlong handle, jobject bitmap, jint bgColor) {
     auto* ctx = reinterpret_cast<TvgContext*>(handle);
-    if (!ctx || !ctx->picture) return JNI_FALSE;
+    if (!ctx || ctx->picture == nullptr) return JNI_FALSE;
 
     AndroidBitmapInfo info;
     if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) {

@@ -42,6 +42,9 @@ add_definitions(
 set(CPP_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp)
 set(THORVG_ROOT ${CPP_ROOT}/thorvg)
 
+# ThorVG expects generated config.h from its Meson build; provide equivalent for CMake build
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/config.h "#pragma once\n#define THORVG_SW_RASTER_SUPPORT 1\n#define THORVG_SVG_LOADER_SUPPORT 1\n#define THORVG_PNG_LOADER_SUPPORT 1\n#define THORVG_JPG_LOADER_SUPPORT 1\n#define THORVG_WEBP_LOADER_SUPPORT 1\n#define THORVG_LOTTIE_LOADER_SUPPORT 1\n#define THORVG_TTF_LOADER_SUPPORT 1\n#define THORVG_GIF_SAVER_SUPPORT 1\n#define THORVG_THREAD_SUPPORT 1\n#define THORVG_FILE_IO_SUPPORT 1\n#define THORVG_LOG_ENABLED 1\n#define THORVG_LOTTIE_EXPRESSIONS_SUPPORT 1\n#define THORVG_VERSION_STRING "0.0-cmake"\n")
+
 include_directories(
     # ThorVG 公共头文件
     ${THORVG_ROOT}/inc
@@ -63,6 +66,7 @@ include_directories(
     # 第三方依赖路径 (Lottie 依赖)
     ${THORVG_ROOT}/src/loaders/lottie/rapidjson
     ${THORVG_ROOT}/src/loaders/lottie/jerryscript/jerry-core/include
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 file(GLOB_RECURSE THORVG_SOURCES "${THORVG_ROOT}/src/*.cpp")
@@ -74,7 +78,10 @@ list(FILTER THORVG_SOURCES EXCLUDE REGEX "/test/")
 
 list(FILTER THORVG_SOURCES EXCLUDE REGEX "/examples/")
 
-list(FILTER THORVG_SOURCES EXCLUDE REGEX "/bindings/") 
+list(FILTER THORVG_SOURCES EXCLUDE REGEX "/bindings/")
+list(FILTER THORVG_SOURCES EXCLUDE REGEX "/external_jpg/")
+list(FILTER THORVG_SOURCES EXCLUDE REGEX "/external_png/")
+list(FILTER THORVG_SOURCES EXCLUDE REGEX "/external_webp/") 
 
 message(STATUS "ThorVG Sources Count: " ${THORVG_SOURCES})
 
