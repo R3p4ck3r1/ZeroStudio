@@ -753,8 +753,23 @@ abstract class BaseEditorActivity :
 
   private fun setupBottomSheet() {
     if (_binding == null) return
-    editorBottomSheet = BottomSheetBehavior.from<View>(content.bottomSheet)
-    
+    val behavior = BottomSheetBehavior.from<View>(content.bottomSheet)
+    editorBottomSheet = behavior
+
+    val applyExpandedOffset = {
+      val progressBottom = content.progressIndicator.bottom
+      if (progressBottom > 0) {
+        behavior.expandedOffset = progressBottom
+      }
+    }
+    content.progressIndicator.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+      applyExpandedOffset()
+    }
+    content.editorAppBarLayout.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+      applyExpandedOffset()
+    }
+    content.realContainer.post { applyExpandedOffset() }
+
     content.bottomSheet.onSlideAction = { slideOffset ->
       if (!isDestroying && _binding != null) {
           val editorScale = 1 - slideOffset * (1 - EDITOR_CONTAINER_SCALE_FACTOR)
