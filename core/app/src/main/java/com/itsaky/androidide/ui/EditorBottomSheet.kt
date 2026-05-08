@@ -340,7 +340,7 @@ class EditorBottomSheet @JvmOverloads constructor(
             val alphaValue = max(0f, 1f - (slideOffset * 2f))
             val translateY = slideOffset.coerceIn(0f, 1f) * 8f * resources.displayMetrics.density
             
-            val syncedHeaderViews = listOf(
+            val syncedHeaderViews = listOf<View>(
               binding.floatingHeaderArea,
               binding.headerContentWrapper,
               binding.headerInnerContent,
