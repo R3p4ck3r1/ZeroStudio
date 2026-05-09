@@ -170,7 +170,7 @@ include(
     ":java:lsp",
     ":lsp:kotlin",
     ":lsp:toml",
-    // ":lsp:clangd",
+    ":lsp:clangd",
     // ":lsp:smali",
     // ":lsp:groovy",
     ":logging:idestats",
