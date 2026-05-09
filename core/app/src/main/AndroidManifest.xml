@@ -70,7 +70,6 @@
           <activity android:name=".activities.AboutActivity" />
           <activity android:name=".activities.LottieAnimationSelectorActivity" />
           <activity android:name=".activities.ContributorsActivity" />
-          <activity android:name=".activities.editor.ColorPickerQueryActivity" android:exported="false" />
           <activity
                android:name=".activities.TerminalActivity"
                android:windowSoftInputMode="adjustResize" />

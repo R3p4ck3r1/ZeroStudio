@@ -1,0 +1,37 @@
+package android.zero.studio.ui.colorpicker.selector.gradient
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import android.zero.studio.ui.colorpicker.model.GradientColorState
+import android.zero.studio.ui.colorpicker.ui.Pink400
+import android.zero.studio.ui.colorpicker.widget.ExpandableColumnWithTitle
+
+@Composable
+internal fun SweepGradientSelection(
+    gradientColorState: GradientColorState,
+    onCenterChange: (Offset) -> Unit,
+) {
+  var centerX by remember { mutableStateOf(gradientColorState.centerFriction.x) }
+  var centerY by remember { mutableStateOf(gradientColorState.centerFriction.y) }
+
+  onCenterChange(Offset(centerX, centerY))
+
+  ExpandableColumnWithTitle(
+      title = "Gradient Center",
+      color = Pink400,
+      initialExpandState = false,
+  ) {
+    Column {
+      SliderWithPercent(modifier = Modifier.fillMaxWidth(), title = "CenterX", value = centerX) {
+        centerX = it
+      }
+
+      SliderWithPercent(modifier = Modifier.fillMaxWidth(), title = "CenterY", value = centerY) {
+        centerY = it
+      }
+    }
+  }
+}
