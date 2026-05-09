@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.view.Window
 import androidx.activity.ComponentDialog
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -14,6 +14,7 @@ import com.itsaky.androidide.actions.ActionItem
 import com.itsaky.androidide.actions.BaseEditorAction
 import com.itsaky.androidide.actions.EditorActivityAction
 import com.itsaky.androidide.resources.R
+import androidx.core.content.ContextCompat
 
 private fun resolveSelection(data: ActionData): String? {
   val editor = data.get(com.itsaky.androidide.editor.ui.IDEEditor::class.java) ?: return null
