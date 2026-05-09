@@ -212,7 +212,7 @@ dependencies {
   implementation(projects.java.lsp)
   implementation(projects.lsp.kotlin)
   implementation(projects.lsp.toml)
-  // implementation(projects.lsp.clangd)
+  implementation(projects.lsp.clangd)
   implementation(projects.logging.idestats)
   implementation(projects.logging.logsender)
   implementation(projects.termux.application)

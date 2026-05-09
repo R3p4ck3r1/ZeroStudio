@@ -87,6 +87,8 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.slf4j.LoggerFactory
 
+import android.zero.studio.lsp.clangd.ClangdLanguageServer
+
 /**
  * A view that handles opened code editor.
  *
@@ -517,6 +519,7 @@ class CodeEditorView(context: Context, file: File, selection: Range) :
           "kt",
           "kts" -> KotlinLanguageServerImpl.SERVER_ID
           "toml" -> TomlServer.SERVER_ID
+          "c", "C", "cpp", "Cpp", "cPp", "cpP", "CPp", "CpP", "cPP", "CPP", "cc", "Cc", "cC", "CC", "cxx", "Cxx", "cXx", "cxX", "CXX", "CxX", "cXX", "CPar", "c++", "C++", "h", "H", "hpp", "Hpp", "hPp", "hpP", "HPp", "HpP", "hPP", "HPP", "hxx", "Hxx", "in" ,"hXx", "hxX", "HXX", "HxX", "hXX", "HXX", "hh", "Hh", "hH", "HH", "m", "M", "mm", "Mm", "mM", "MM" -> ClangdLanguageServer.SERVER_ID
           else -> return null
         }
     return ILanguageServerRegistry.getDefault().getServer(serverID)

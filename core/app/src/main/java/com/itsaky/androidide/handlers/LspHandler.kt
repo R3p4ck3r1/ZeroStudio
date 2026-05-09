@@ -24,7 +24,7 @@ import com.itsaky.androidide.lsp.java.JavaLanguageServer
 import com.itsaky.androidide.lsp.kotlin.KotlinLanguageServerImpl
 import com.itsaky.androidide.lsp.servers.toml.TomlServer
 import com.itsaky.androidide.lsp.xml.XMLLanguageServer
-
+import android.zero.studio.lsp.clangd.ClangdLanguageServer
 /** @author Akash Yadav */
 object LspHandler {
 
@@ -37,6 +37,7 @@ object LspHandler {
       // Avoid eager bootstrap here to prevent duplicate processes and uninitialized sessions.
       getServer(KotlinLanguageServerImpl.SERVER_ID)
       getServer(TomlServer.SERVER_ID) ?: register(TomlServer())
+      getServer(ClangdLanguageServer.SERVER_ID) ?: register(ClangdLanguageServer())
     }
   }
 
