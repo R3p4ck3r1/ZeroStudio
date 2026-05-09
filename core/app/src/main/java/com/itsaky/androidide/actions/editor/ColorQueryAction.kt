@@ -21,6 +21,7 @@ class ColorQueryTextAction(context: Context, override val order: Int) : BaseEdit
   override val id: String = "ide.editor.color.query.text"
 
   init {
+    icon = ContextCompat.getDrawable(context, R.drawable.ic_color_palette)
     label = context.getString(R.string.action_color_query)
     location = ActionItem.Location.EDITOR_TEXT_ACTIONS
   }
@@ -36,6 +37,7 @@ class ColorQueryToolbarAction(private val context: Context, override val order: 
   override val id: String = "ide.editor.color.query.toolbar"
 
   init {
+      icon = ContextCompat.getDrawable(context, R.drawable.ic_color_palette)
     label = context.getString(R.string.action_color_query)
     location = ActionItem.Location.EDITOR_TOOLBAR
   }
