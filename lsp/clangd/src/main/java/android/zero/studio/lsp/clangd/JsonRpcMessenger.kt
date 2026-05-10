@@ -99,7 +99,12 @@ class JsonRpcMessenger(
   private fun handleMessage(message: JSONObject) {
     val id = message.optLong("id", Long.MIN_VALUE)
     if (id != Long.MIN_VALUE && (message.has("result") || message.has("error"))) {
-      pending.remove(id)?.complete(message)
+      val future = pending.remove(id)
+      if (message.has("error")) {
+        future?.completeExceptionally(IllegalStateException(message.optJSONObject("error")?.optString("message") ?: message.optString("error")))
+      } else {
+        future?.complete(message)
+      }
       return
     }
     val method = message.optString("method", "")

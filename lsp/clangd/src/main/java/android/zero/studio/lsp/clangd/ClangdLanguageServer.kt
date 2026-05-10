@@ -22,6 +22,8 @@ class ClangdLanguageServer : ILanguageServer {
   private var settings = ClangdServerSettings()
   private var workspaceRoot: java.io.File? = null
   private val documents = mutableMapOf<Path, String>()
+  private val publishedDiagnostics = mutableMapOf<Path, List<DiagnosticItem>>()
+  private var lastActiveFile: Path? = null
 
   override val serverId: String = SERVER_ID
   override var client: ILanguageClient? = null
@@ -44,11 +46,11 @@ class ClangdLanguageServer : ILanguageServer {
     try {
       val toolchain = ClangdSysrootResolver.resolve(root, settings)
       val compileCommandsDir = CompileDatabaseProvider.ensureCompileCommandsDir(root, toolchain)
-      val args = settings.clangdSettings.buildCommandArgs(compileCommandsDir)
+      val args = settings.clangdSettings.buildCommandArgs(compileCommandsDir, toolchain)
       val startedConnection = TermuxClangdConnection(root, toolchain, args).also { it.start() }
       val messenger = JsonRpcMessenger(startedConnection.inputStream, startedConnection.outputStream) { method, params ->
         when (method) {
-          "textDocument/publishDiagnostics" -> if (settings.diagnosticsEnabled()) ClangdDiagnosticsManager.publish(client, params)
+          "textDocument/publishDiagnostics" -> if (settings.diagnosticsEnabled()) publishDiagnostics(params)
           "window/logMessage" -> client?.logMessage(LogMessageParams(messageType(params.optInt("type", 3)), params.optString("message", "")))
           "window/showMessage" -> client?.showMessage(ShowMessageParams(messageType(params.optInt("type", 3)), params.optString("message", "")))
         }
@@ -100,11 +102,13 @@ class ClangdLanguageServer : ILanguageServer {
   }
 
   override fun didOpen(params: DidOpenTextDocumentParams) {
+    lastActiveFile = params.file
     documents[params.file] = params.text
     rpc?.sendNotification("textDocument/didOpen", JSONObject().put("textDocument", JSONObject().put("uri", ClangdProtocol.uri(params.file)).put("languageId", params.languageId).put("version", params.version).put("text", params.text)))
   }
 
   override fun didChange(params: DidChangeTextDocumentParams) {
+    lastActiveFile = params.file
     val text = params.contentChanges.lastOrNull()?.text ?: return
     documents[params.file] = text
     rpc?.sendNotification("textDocument/didChange", JSONObject().put("textDocument", JSONObject().put("uri", ClangdProtocol.uri(params.file)).put("version", params.version)).put("contentChanges", JSONArray().put(JSONObject().put("text", text))))
@@ -112,10 +116,12 @@ class ClangdLanguageServer : ILanguageServer {
 
   override fun didClose(params: DidCloseTextDocumentParams) {
     documents.remove(params.file)
+    publishedDiagnostics.remove(params.file)
     rpc?.sendNotification("textDocument/didClose", JSONObject().put("textDocument", ClangdProtocol.textDocument(params.file)))
   }
 
   override fun didSave(params: DidSaveTextDocumentParams) {
+    lastActiveFile = params.file
     params.text?.let { documents[params.file] = it }
     rpc?.sendNotification("textDocument/didSave", JSONObject().put("textDocument", ClangdProtocol.textDocument(params.file)).also { if (params.text != null) it.put("text", params.text) })
   }
@@ -130,16 +136,20 @@ class ClangdLanguageServer : ILanguageServer {
         else -> JSONArray()
       }
       CompletionResult((0 until items.length()).mapNotNull { items.optJSONObject(it) }.map { item ->
+        val textEdit = ClangdProtocol.textEdit(item.optJSONObject("textEdit"))
+        val additionalEdits = item.optJSONArray("additionalTextEdits")?.let { edits ->
+          (0 until edits.length()).mapNotNull { index -> ClangdProtocol.textEdit(edits.optJSONObject(index)) }
+        }.orEmpty()
         CompletionItem(
             item.optString("label", ""),
-            item.optString("detail", ""),
-            item.optString("insertText", item.optString("label", "")),
+            item.optString("detail", item.optString("documentation", "")),
+            textEdit?.newText ?: item.optString("insertText", item.optString("label", "")),
             if (item.optInt("insertTextFormat", 1) == 2) InsertTextFormat.SNIPPET else InsertTextFormat.PLAIN_TEXT,
             if (item.has("sortText")) item.optString("sortText") else null,
-            null,
+            ClangdProtocol.command(item.optJSONObject("command")),
             ClangdProtocol.completionKind(item.optInt("kind", 0)),
             MatchLevel.CASE_INSENSITIVE_PREFIX,
-            emptyList(),
+            additionalEdits,
             null,
         )
       })
@@ -150,15 +160,42 @@ class ClangdLanguageServer : ILanguageServer {
   override suspend fun findDefinition(params: DefinitionParams) = DefinitionResult(requestLocations("textDocument/definition", ClangdProtocol.textPosition(params.file, params.position)))
   override suspend fun hover(params: DefinitionParams) = runCatching { requireFeatures().hover(params) }.getOrDefault(MarkupContent())
   override suspend fun signatureHelp(params: SignatureHelpParams) = runCatching { requireFeatures().signatureHelp(params) }.getOrDefault(SignatureHelp(emptyList(), 0, 0))
-  override suspend fun analyze(file: Path) = DiagnosticResult.NO_UPDATE
-  override fun formatCode(params: FormatCodeParams?) = CodeFormatResult.NONE
+  override suspend fun analyze(file: Path) = DiagnosticResult(file, publishedDiagnostics[file].orEmpty())
+
+  override fun supportsDocumentDiagnostics(): Boolean = true
+
+  override suspend fun documentDiagnostics(params: DocumentDiagnosticParams): DocumentDiagnosticReport = DocumentDiagnosticReport(
+      kind = DocumentDiagnosticReportKind.FULL,
+      diagnostics = publishedDiagnostics[params.file].orEmpty(),
+  )
+
+  override fun formatCode(params: FormatCodeParams?): CodeFormatResult {
+    val file = lastActiveFile ?: return CodeFormatResult.NONE
+    return runCatching { CodeFormatResult(false, requireFeatures().format(file).toMutableList(), mutableListOf()) }.getOrDefault(CodeFormatResult.NONE)
+  }
   override suspend fun documentSymbols(file: Path) = runCatching { requireFeatures().documentSymbols(file) }.getOrDefault(DocumentSymbolsResult())
+  override suspend fun prepareRename(params: DefinitionParams): PrepareRenameResult? = runCatching { requireFeatures().prepareRename(params) }.getOrNull()
+  override suspend fun rename(params: RenameParams): WorkspaceEdit = runCatching { requireFeatures().rename(params) }.getOrDefault(WorkspaceEdit())
+  override suspend fun foldingRanges(file: Path): List<FoldingRange> = runCatching { requireFeatures().foldingRanges(file) }.getOrDefault(emptyList())
+  override suspend fun selectionRanges(params: SelectionRangesParams): List<SelectionRange> = runCatching { requireFeatures().selectionRanges(params) }.getOrDefault(emptyList())
   override suspend fun semanticTokensFull(params: SemanticTokensParams) = runCatching { requireFeatures().semanticTokensFull(params) }.getOrDefault(SemanticTokens())
   override suspend fun semanticTokensRange(params: SemanticTokensParams) = runCatching { requireFeatures().semanticTokensRange(params) }.getOrDefault(SemanticTokens())
   override suspend fun inlayHints(params: InlayHintParams) = runCatching { requireFeatures().inlayHints(params) }.getOrDefault(emptyList())
+  override suspend fun documentLinks(file: Path): List<DocumentLink> = runCatching { requireFeatures().documentLinks(file) }.getOrDefault(emptyList())
+  override suspend fun codeLens(file: Path): List<CodeLens> = runCatching { requireFeatures().codeLens(file) }.getOrDefault(emptyList())
+  override suspend fun executeCommand(params: ExecuteCommandParams): Any? = runCatching { requireFeatures().executeCommand(params) }.getOrNull()
+  override suspend fun resolveCodeAction(action: CodeActionItem): CodeActionItem = runCatching { requireFeatures().resolveCodeAction(action) }.getOrDefault(action)
   override suspend fun expandSelection(params: ExpandSelectionParams): Range = params.selection
 
   private fun requestLocations(method: String, params: JSONObject) = runCatching { ClangdProtocol.locations(requireRpc().sendRequest(method, params).get(5, TimeUnit.SECONDS).opt("result")) }.getOrDefault(emptyList())
+
+  private fun publishDiagnostics(params: JSONObject) {
+    val uri = params.optString("uri", "")
+    val file = runCatching { ClangdProtocol.path(uri) }.getOrNull() ?: return
+    val diagnostics = ClangdDiagnosticsManager.parse(file, params)
+    publishedDiagnostics[file] = diagnostics
+    client?.publishDiagnostics(DiagnosticResult(file, diagnostics))
+  }
   private fun messageType(type: Int): MessageType = when (type) { 1 -> MessageType.Error; 2 -> MessageType.Warning; 4 -> MessageType.Log; 5 -> MessageType.Debug; else -> MessageType.Info }
   private fun requireRpc() = rpc ?: throw IllegalStateException("clangd is not running")
   private fun requireFeatures() = features ?: throw IllegalStateException("clangd is not running")

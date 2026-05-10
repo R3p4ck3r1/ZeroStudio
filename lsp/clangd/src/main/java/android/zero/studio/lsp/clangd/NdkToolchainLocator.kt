@@ -65,16 +65,24 @@ object NdkToolchainLocator {
   fun resolve(projectDir: File, settings: ClangdServerSettings = ClangdServerSettings()): Toolchain {
     val gradleVersion = GradleNdkVersionParser.findNdkVersion(projectDir)
     val userVersion = settings.targetNdkVersion?.takeIf { it.isNotBlank() }
-    return resolve(listOfNotNull(gradleVersion, userVersion), if (gradleVersion != null) SelectionSource.GRADLE_NDK_VERSION else SelectionSource.USER_SETTING)
+    val requested = mutableListOf<Pair<String, SelectionSource>>()
+    gradleVersion?.let { requested += it to SelectionSource.GRADLE_NDK_VERSION }
+    userVersion?.let { requested += it to SelectionSource.USER_SETTING }
+    return resolveRequests(requested)
   }
 
-  fun resolve(preferredVersions: List<String> = emptyList(), preferredSource: SelectionSource = SelectionSource.USER_SETTING): Toolchain {
+  fun resolve(preferredVersions: List<String> = emptyList(), preferredSource: SelectionSource = SelectionSource.USER_SETTING): Toolchain =
+      resolveRequests(preferredVersions.map { it to preferredSource })
+
+  private fun resolveRequests(preferredVersions: List<Pair<String, SelectionSource>>): Toolchain {
     val installs = installedNdks()
     if (installs.isEmpty()) throw IllegalStateException("No Android NDK versions found in ${ndkHome().absolutePath}")
 
-    for (version in preferredVersions.distinct()) {
+    val seen = mutableSetOf<String>()
+    for ((version, source) in preferredVersions) {
+      if (!seen.add(version)) continue
       val install = installs.firstOrNull { it.version == version } ?: continue
-      return resolveInstall(install, preferredSource)
+      if (install.usable) return resolveInstall(install, source)
     }
 
     installs.firstOrNull { it.usable }?.let { return resolveInstall(it, SelectionSource.FIRST_USABLE) }

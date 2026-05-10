@@ -11,15 +11,19 @@ data class ClangdSettings(
     val functionArgPlaceholders: Boolean = true,
     val pchStorage: String = "memory",
 ) {
-  fun buildCommandArgs(compileCommandsDir: File?): List<String> = buildList {
-    add("--background-index=${if (backgroundIndex) "true" else "false"}")
-    add("--clang-tidy=${if (clangTidy) "true" else "false"}")
-    add("--completion-style=$completionStyle")
-    add("--header-insertion=$headerInsertion")
-    add("--function-arg-placeholders=${if (functionArgPlaceholders) "true" else "false"}")
-    add("--pch-storage=$pchStorage")
-    add("--log=error")
-    compileCommandsDir?.takeIf { it.isDirectory }?.let { add("--compile-commands-dir=${it.absolutePath}") }
+  fun buildCommandArgs(compileCommandsDir: File?, toolchain: NdkToolchainLocator.Toolchain? = null): List<String> {
+    val args = mutableListOf<String>()
+    args += "--background-index=${if (backgroundIndex) "true" else "false"}"
+    args += "--clang-tidy=${if (clangTidy) "true" else "false"}"
+    args += "--completion-style=$completionStyle"
+    args += "--header-insertion=$headerInsertion"
+    args += "--function-arg-placeholders=${if (functionArgPlaceholders) "true" else "false"}"
+    args += "--pch-storage=$pchStorage"
+    args += "--log=error"
+    args += "--offset-encoding=utf-16"
+    compileCommandsDir?.takeIf { it.isDirectory }?.let { args += "--compile-commands-dir=${it.absolutePath}" }
+    toolchain?.binDir?.takeIf { it.isDirectory }?.let { args += "--query-driver=${File(it, "*-clang*").absolutePath}" }
+    return args
   }
 }
 
