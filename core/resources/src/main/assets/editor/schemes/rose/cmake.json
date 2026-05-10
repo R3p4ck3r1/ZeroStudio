@@ -1,0 +1,115 @@
+{
+  "types":[
+  "cmake",
+  "cpack",
+  "cbp",
+  "ctest",
+  "cmake.in",
+  "CMakeCache.txt",
+  "CMakeLists.txt"
+  ],
+  "styles": {
+    "keyword": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "keyword.control": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "keyword.function": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "keyword.operator": {
+      "fg": "@operator",
+      "bold": true
+    },
+    "function.builtin": {
+      "fg": "@func.decl",
+      "italic": true
+    },
+    "function.call": {
+      "fg": "@func.call"
+    },
+    "variable": {
+      "fg": "@variable"
+    },
+    "variable.parameter": {
+      "fg": "@field",
+      "italic": true
+    },
+    "constant": {
+      "fg": "@constant"
+    },
+    "constant.builtin": {
+      "fg": "@field",
+      "bold": true
+    },
+    "string": {
+      "fg": "@string"
+    },
+    "string.special": {
+      "fg": "@string",
+      "italic": true
+    },
+    "string.escape": {
+      "fg": "@func.decl",
+      "bold": true
+    },
+    "comment": {
+      "fg": "@comment",
+      "italic": true
+    },
+    "punctuation.bracket": {
+      "fg": "@variable",
+      "bold": true
+    },
+    "punctuation.special": {
+      "fg": "@keyword"
+    },
+    "module": {
+      "fg": "@type",
+      "bold": true
+    },
+    "none": "@onSurface",
+    "spell": "@onSurface",
+    "nospell": "@onSurface",
+    "function": {
+      "fg": "@func.call",
+      "bold": true
+    },
+    "keyword.conditional": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "keyword.repeat": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "keyword.return": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "function.macro": {
+      "fg": "@func.decl",
+      "italic": true
+    },
+    "boolean": {
+      "fg": "@constant",
+      "bold": true
+    },
+    "keyword.modifier": {
+      "fg": "@attribute",
+      "italic": true
+    },
+    "type": {
+      "fg": "@type",
+      "bold": true
+    },
+    "keyword.directive": {
+      "fg": "@comment",
+      "bold": true
+    }
+  }
+}

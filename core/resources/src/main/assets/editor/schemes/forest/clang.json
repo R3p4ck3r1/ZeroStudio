@@ -1,0 +1,51 @@
+{
+  "types": [
+    "c",
+    "m",
+    "M",
+    "h",
+    "H"
+  ],
+  "styles": {
+    "variable": "@variable",
+    "constant": "@constant",
+    "keyword": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "operator": {
+      "fg": "@operator",
+      "bold": true
+    },
+    "delimiter": {
+      "fg": "@operator"
+    },
+    "string": {
+      "fg": "@string",
+      "maybeHexColor": true
+    },
+    "number": "@number",
+    "property": "@field",
+    "label": {
+      "fg": "@keyword",
+      "italic": true
+    },
+    "type": {
+      "fg": "@type",
+      "bold": true
+    },
+    "function": {
+      "fg": "@func.call",
+      "bold": true
+    },
+    "function.special": {
+      "fg": "@func.decl",
+      "bold": true,
+      "italic": true
+    },
+    "comment": {
+      "fg": "@comment",
+      "italic": true
+    }
+  }
+}

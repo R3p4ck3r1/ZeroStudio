@@ -1,0 +1,27 @@
+{
+  "types": ["properties", "prop", "config", "cfg"],
+  "styles": {
+    "prop.key": { 
+      "fg": "@field", 
+      "bold": true 
+    },
+    "prop.separator": { 
+      "fg": "@operator" 
+    },
+    "prop.value": { 
+      "fg": "@string" 
+    },
+    "prop.value.continuation": { 
+      "fg": "@kt.preproc", 
+      "italic": true 
+    },
+    "prop.escape": { 
+      "fg": "@func.decl", 
+      "bold": true 
+    },
+    "comment": { 
+      "fg": "@comment", 
+      "italic": true 
+    }
+  }
+}

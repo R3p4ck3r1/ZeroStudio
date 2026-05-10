@@ -1,0 +1,43 @@
+{
+  "types":["cpp", "c", "h", "hpp", "cc", "cxx", "c++", "cppm"],
+  "styles": {
+    "keyword": { "fg": "@keyword", "bold": true },
+    "keyword.control": { "fg": "@keyword", "bold": true },
+    "keyword.modifier": { "fg": "@keyword", "italic": true },
+    "keyword.visibility": { "fg": "@keyword", "bold": true },
+    "keyword.cast": { "fg": "@keyword" },
+    
+    "keyword.directive": { "fg": "@kt.preproc", "bold": true },
+    
+    "namespace": { "fg": "@java.package" },
+    
+    "type": { "fg": "@type", "bold": true },
+    "type.builtin": { "fg": "@keyword", "bold": true },
+    
+    "function": { "fg": "@func.decl" },
+    "function.call": { "fg": "@func.call" },
+    "function.method": { "fg": "@func.decl", "italic": true },
+    "function.method.call": { "fg": "@func.call", "italic": true },
+    "function.macro": { "fg": "@func.call", "bold": true },
+    
+    "variable": { "fg": "@onSurface" },
+    "variable.field": { "fg": "@field" },
+    "variable.builtin": { "fg": "@keyword", "bold": true },
+    
+    "constant.builtin": { "fg": "@keyword", "bold": true },
+    "constant.macro": { "fg": "@constant", "bold": true },
+    
+    "string": { "fg": "@string" },
+    "string.special": { "fg": "@string", "bold": true },
+    "string.special.system": { "fg": "@string", "bold": true },
+    "string.escape": { "fg": "@func.decl" },
+    
+    "number": { "fg": "@number" },
+    "comment": { "fg": "@comment", "italic": true },
+    
+    "operator": { "fg": "@operator" },
+    "punctuation.special": { "fg": "@kt.punctuation.special" },
+    "punctuation.bracket": { "fg": "@outline" },
+    "punctuation.delimiter": { "fg": "@onSurfaceVariant" }
+  }
+}

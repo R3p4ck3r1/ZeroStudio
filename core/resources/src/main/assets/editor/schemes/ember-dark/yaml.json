@@ -1,0 +1,21 @@
+{
+  "types":["yaml", "yml"],
+  "styles": {
+    "boolean": { "fg": "@keyword", "bold": true },
+    "constant.builtin": { "fg": "@keyword", "bold": true },
+    
+    "string": { "fg": "@string" },
+    "number": { "fg": "@number" },
+    "comment": { "fg": "@comment", "italic": true },
+    
+    "label": { "fg": "@func.decl", "bold": true },
+    "type": { "fg": "@type", "italic": true },
+    "attribute": { "fg": "@attribute", "bold": true },
+    
+    "property": { "fg": "@field" },
+    
+    "punctuation.delimiter": { "fg": "@onSurfaceVariant" },
+    "punctuation.bracket": { "fg": "@outline" },
+    "punctuation.special": { "fg": "@operator", "bold": true }
+  }
+}

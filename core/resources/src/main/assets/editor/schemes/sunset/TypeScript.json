@@ -1,0 +1,10 @@
+{
+  "types": ["ts", "tsx", "mts", "cts"],
+  "styles": {
+    "type": { "fg": "@type", "bold": true },
+    "type.builtin": { "fg": "@keyword", "bold": true },
+    "variable.parameter": { "fg": "@variable" },
+    "keyword": { "fg": "@keyword", "bold": true },
+    "punctuation.bracket": { "fg": "@outline" }
+  }
+}
