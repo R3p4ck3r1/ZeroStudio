@@ -18,7 +18,10 @@
 package android.zero.studio.lsp.clangd
 
 import android.content.Context
+import android.os.Parcel
+import android.os.Parcelable
 import androidx.preference.Preference
+import com.itsaky.androidide.lsp.clangd.R
 import com.itsaky.androidide.app.BaseApplication
 import com.itsaky.androidide.preferences.IPreference
 import com.itsaky.androidide.preferences.IPreferenceScreen
@@ -35,8 +38,7 @@ object ClangdPreferences : IPreferenceScreen() {
 
     override val key: String = "screen_clangd_preferences"
     
-    // AndroidIDE 默认取 string resource ID，为了灵活这里用 0，在 onCreateView 重写 title
-    override val title: Int = 0 
+    override val title: Int = R.string.clangd_preferences_title
 
     override val children: List<IPreference> = listOf(
         NdkVersionSelectorPreference
@@ -44,10 +46,22 @@ object ClangdPreferences : IPreferenceScreen() {
 
     override fun onCreateView(context: Context): Preference {
         val pref = super.onCreateView(context)
-        pref.title = "Clangd (C/C++) LSP Settings"
+        pref.title = context.getString(title)
         pref.summary = "Configure NDK toolchain and Clangd behavior"
         return pref
     }
+
+    override fun describeContents(): Int = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) {}
+
+    @JvmField
+    val CREATOR =
+        object : Parcelable.Creator<ClangdPreferences> {
+            override fun createFromParcel(source: Parcel?): ClangdPreferences = ClangdPreferences
+
+            override fun newArray(size: Int): Array<ClangdPreferences> = Array(size) { ClangdPreferences }
+        }
 }
 
 /**
@@ -57,11 +71,11 @@ object ClangdPreferences : IPreferenceScreen() {
 object NdkVersionSelectorPreference : SingleChoicePreference() {
     
     override val key: String = ClangdServerSettings.KEY_TARGET_NDK_VERSION
-    override val title: Int = 0 
+    override val title: Int = R.string.clangd_ndk_version_title
 
     override fun onCreateView(context: Context): Preference {
         val pref = super.onCreateView(context)
-        pref.title = "NDK Toolchain Version"
+        pref.title = context.getString(title)
         
         val currentVersion = BaseApplication.getBaseInstance().prefManager.getString(key, "")
         pref.summary = if (currentVersion.isNullOrBlank()) {
@@ -101,4 +115,16 @@ object NdkVersionSelectorPreference : SingleChoicePreference() {
             "Selected: $selectedVersion"
         }
     }
+
+    override fun describeContents(): Int = 0
+
+    override fun writeToParcel(dest: Parcel, flags: Int) {}
+
+    @JvmField
+    val CREATOR =
+        object : Parcelable.Creator<NdkVersionSelectorPreference> {
+            override fun createFromParcel(source: Parcel?): NdkVersionSelectorPreference = NdkVersionSelectorPreference
+
+            override fun newArray(size: Int): Array<NdkVersionSelectorPreference> = Array(size) { NdkVersionSelectorPreference }
+        }
 }

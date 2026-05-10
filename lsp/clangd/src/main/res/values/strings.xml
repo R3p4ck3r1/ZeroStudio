@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="clangd_preferences_title">Clangd (C/C++) LSP Settings</string>
+    <string name="clangd_ndk_version_title">NDK Toolchain Version</string>
+</resources>
