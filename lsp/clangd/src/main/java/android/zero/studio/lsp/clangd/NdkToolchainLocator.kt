@@ -1,142 +1,148 @@
-/*
- *  This file is part of AndroidIDE.
- *
- *  AndroidIDE is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  AndroidIDE is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package android.zero.studio.lsp.clangd
 
 import android.os.Build
 import com.itsaky.androidide.utils.Environment
 import java.io.File
-import org.slf4j.LoggerFactory
 
-/**
- * AndroidIDE NDK 工具链探测器。
- *
- * 用途与功能：
- * 负责在 AndroidIDE 的 SDK 目录中寻找合适的 NDK 版本，并根据当前设备的 CPU ABI 
- * 智能解析出 llvm 工具链中 `clangd` 二进制文件的绝对路径。
- *
- * 具备降级机制：
- * 1. 优先使用用户配置的特定 NDK 版本。
- * 2. 匹配当前设备的首选 CPU ABI（如 `linux-aarch64`）。
- * 3. 若当前 ABI 缺失，自动降级探测该 NDK 下其他可用的 Linux ABI 目录。
- * 4. 彻底缺失时抛出明确异常。
- *
- * @author android_zero
- */
+/** Resolves Android NDK clang toolchains from ANDROID_HOME/ANDROID_NDK_HOME. */
 object NdkToolchainLocator {
+  private const val PREBUILT_RELATIVE = "toolchains/llvm/prebuilt"
 
-    private val log = LoggerFactory.getLogger(NdkToolchainLocator::class.java)
+  data class NdkInstall(
+      val version: String,
+      val root: File,
+      val usable: Boolean,
+      val toolchains: List<File>,
+      val problem: String? = null,
+  )
 
-    private const val LLVM_TOOLCHAIN_REL_PATH = "toolchains/llvm/prebuilt"
-    private const val CLANGD_BIN_NAME = "clangd"
+  data class Toolchain(
+      val ndkVersion: String,
+      val ndkRoot: File,
+      val prebuiltDir: File,
+      val binDir: File,
+      val clangd: File,
+      val clang: File,
+      val clangxx: File,
+      val clangFormat: File,
+      val clangTidy: File,
+      val llvmAr: File,
+      val selectedBy: SelectionSource,
+  )
 
-    /**
-     * 获取系统中已安装的所有 NDK 版本列表。
-     *
-     * @return 包含所有可用 NDK 版本号（文件夹名称）的列表，若无则返回空列表。
-     */
-    @JvmStatic
-    fun getAvailableNdkVersions(): List<String> {
-        val ndkDir = File(Environment.ANDROID_HOME, "ndk")
-        if (!ndkDir.exists() || !ndkDir.isDirectory) {
-            return emptyList()
+  enum class SelectionSource { GRADLE_NDK_VERSION, USER_SETTING, FIRST_USABLE, FIRST_DETECTED }
+
+  fun ndkHome(): File = Environment.ANDROID_NDK_HOME ?: File(Environment.ANDROID_HOME, "ndk")
+
+  fun installedNdks(): List<NdkInstall> {
+    val root = ndkHome()
+    if (!root.isDirectory) return emptyList()
+    return root.listFiles { file -> file.isDirectory }
+        ?.map { dir ->
+          val toolchains = File(dir, PREBUILT_RELATIVE)
+              .listFiles { file -> file.isDirectory && file.name.startsWith("linux-") }
+              ?.sortedWith(prebuiltComparator())
+              .orEmpty()
+          val usableToolchains = toolchains.filter { File(it, "bin/clangd").isFile }
+          NdkInstall(
+              version = dir.name,
+              root = dir,
+              usable = usableToolchains.isNotEmpty(),
+              toolchains = toolchains,
+              problem = when {
+                toolchains.isEmpty() -> "missing $PREBUILT_RELATIVE/linux-*"
+                usableToolchains.isEmpty() -> "missing bin/clangd"
+                else -> null
+              },
+          )
         }
-        return ndkDir.listFiles { file -> file.isDirectory }
-            ?.map { it.name }
-            ?.sortedDescending() ?: emptyList()
+        ?.sortedWith(compareByDescending<NdkInstall> { VersionKey.parse(it.version) }.thenBy { it.version })
+        .orEmpty()
+  }
+
+  @JvmStatic fun getAvailableNdkVersions(): List<String> = installedNdks().map { it.version }
+
+  fun resolve(projectDir: File, settings: ClangdServerSettings = ClangdServerSettings()): Toolchain {
+    val gradleVersion = GradleNdkVersionParser.findNdkVersion(projectDir)
+    val userVersion = settings.targetNdkVersion?.takeIf { it.isNotBlank() }
+    return resolve(listOfNotNull(gradleVersion, userVersion), if (gradleVersion != null) SelectionSource.GRADLE_NDK_VERSION else SelectionSource.USER_SETTING)
+  }
+
+  fun resolve(preferredVersions: List<String> = emptyList(), preferredSource: SelectionSource = SelectionSource.USER_SETTING): Toolchain {
+    val installs = installedNdks()
+    if (installs.isEmpty()) throw IllegalStateException("No Android NDK versions found in ${ndkHome().absolutePath}")
+
+    for (version in preferredVersions.distinct()) {
+      val install = installs.firstOrNull { it.version == version } ?: continue
+      return resolveInstall(install, preferredSource)
     }
 
-    /**
-     * 探测并获取指定 NDK 版本下的 `clangd` 二进制文件。
-     *
-     * @param targetNdkVersion 目标 NDK 版本（如 "27.1.12297006"）。若为空，则自动选择最新版本。
-     * @return 指向 `clangd` 的 File 对象。
-     * @throws IllegalStateException 当无法找到有效的 NDK 或 clangd 文件时抛出。
-     */
-    @JvmStatic
-    fun resolveClangdExecutable(targetNdkVersion: String?): File {
-        val ndkDir = File(Environment.ANDROID_HOME, "ndk")
-        if (!ndkDir.exists() || !ndkDir.isDirectory) {
-            throw IllegalStateException("Android NDK directory not found at: ${ndkDir.absolutePath}")
-        }
+    installs.firstOrNull { it.usable }?.let { return resolveInstall(it, SelectionSource.FIRST_USABLE) }
+    return resolveInstall(installs.first(), SelectionSource.FIRST_DETECTED)
+  }
 
-        // 决定使用的 NDK 版本
-        val versionToUse = targetNdkVersion?.takeIf { it.isNotBlank() && File(ndkDir, it).exists() }
-            ?: getAvailableNdkVersions().firstOrNull()
-            ?: throw IllegalStateException("No valid NDK versions found in ${ndkDir.absolutePath}")
+  private fun resolveInstall(install: NdkInstall, source: SelectionSource): Toolchain {
+    val prebuiltRoot = File(install.root, PREBUILT_RELATIVE)
+    val prebuilt = selectPrebuilt(prebuiltRoot)
+    val bin = File(prebuilt, "bin")
+    val clangd = executable(bin, "clangd", required = true)
+    return Toolchain(
+        ndkVersion = install.version,
+        ndkRoot = install.root,
+        prebuiltDir = prebuilt,
+        binDir = bin,
+        clangd = clangd,
+        clang = executable(bin, "clang", required = false),
+        clangxx = executable(bin, "clang++", required = false),
+        clangFormat = executable(bin, "clang-format", required = false),
+        clangTidy = executable(bin, "clang-tidy", required = false),
+        llvmAr = executable(bin, "llvm-ar", required = false),
+        selectedBy = source,
+    )
+  }
 
-        val selectedNdkRoot = File(ndkDir, versionToUse)
-        val prebuiltDir = File(selectedNdkRoot, LLVM_TOOLCHAIN_REL_PATH)
+  private fun selectPrebuilt(prebuiltRoot: File): File {
+    if (!prebuiltRoot.isDirectory) throw IllegalStateException("LLVM prebuilt directory not found: ${prebuiltRoot.absolutePath}")
+    val candidates = prebuiltRoot.listFiles { file -> file.isDirectory && file.name.startsWith("linux-") }.orEmpty()
+    if (candidates.isEmpty()) throw IllegalStateException("No linux-{cpu abi} toolchain directory found in ${prebuiltRoot.absolutePath}")
+    val sorted = candidates.sortedWith(prebuiltComparator())
+    return sorted.firstOrNull { File(it, "bin/clangd").isFile } ?: sorted.first()
+  }
 
-        if (!prebuiltDir.exists() || !prebuiltDir.isDirectory) {
-            throw IllegalStateException("LLVM toolchain directory missing: ${prebuiltDir.absolutePath}")
-        }
+  private fun prebuiltComparator(): Comparator<File> {
+    val order = preferredLinuxPrebuilts()
+    return compareBy<File> { file -> order.indexOf(file.name).let { if (it >= 0) it else Int.MAX_VALUE } }.thenBy { it.name }
+  }
 
-        // 将 Android ABI 映射为 Linux NDK 工具链目录格式
-        val targetLinuxAbiDirName = mapAndroidAbiToLinuxAbiDir(Build.SUPPORTED_ABIS)
-        var targetPrebuiltDir = File(prebuiltDir, targetLinuxAbiDirName)
-
-        // 降级方案：如果首选 ABI 目录不存在，探测其他存在的 linux-{abi} 目录
-        if (!targetPrebuiltDir.exists() || !targetPrebuiltDir.isDirectory) {
-            log.warn("Preferred toolchain dir {} not found, attempting fallback...", targetPrebuiltDir.absolutePath)
-            val fallbackDir = prebuiltDir.listFiles { file -> 
-                file.isDirectory && file.name.startsWith("linux-") 
-            }?.firstOrNull()
-
-            if (fallbackDir != null) {
-                log.info("Fallback toolchain dir found: {}", fallbackDir.absolutePath)
-                targetPrebuiltDir = fallbackDir
-            } else {
-                throw IllegalStateException("No valid linux-{cpu_abi} toolchain found in ${prebuiltDir.absolutePath}")
-            }
-        }
-
-        val binDir = File(targetPrebuiltDir, "bin")
-        val clangdBin = File(binDir, CLANGD_BIN_NAME)
-
-        if (!clangdBin.exists() || !clangdBin.isFile) {
-            throw IllegalStateException("clangd executable not found at: ${clangdBin.absolutePath}")
-        }
-
-        // 确保文件具有可执行权限
-        if (!clangdBin.canExecute()) {
-            clangdBin.setExecutable(true)
-        }
-
-        log.info("Successfully resolved clangd executable: {}", clangdBin.absolutePath)
-        return clangdBin
+  private fun preferredLinuxPrebuilts(): List<String> {
+    val mapped = Build.SUPPORTED_ABIS.mapNotNull { abi ->
+      when (abi) {
+        "arm64-v8a" -> "linux-aarch64"
+        "x86_64" -> "linux-x86_64"
+        "armeabi-v7a", "armeabi" -> "linux-arm"
+        "x86" -> "linux-x86"
+        else -> null
+      }
     }
+    return (mapped + listOf("linux-aarch64", "linux-x86_64", "linux-arm", "linux-x86")).distinct()
+  }
 
-    /**
-     * 将设备的 Android ABI 映射为 NDK 预编译链的文件夹名称。
-     *
-     * @param supportedAbis 设备的 Build.SUPPORTED_ABIS 数组
-     * @return 对应的文件夹名称（例如 "linux-aarch64"）
-     */
-    private fun mapAndroidAbiToLinuxAbiDir(supportedAbis: Array<String>): String {
-        for (abi in supportedAbis) {
-            when (abi) {
-                "arm64-v8a" -> return "linux-aarch64"
-                "x86_64" -> return "linux-x86_64"
-                "armeabi-v7a", "armeabi" -> return "linux-arm"
-                "x86" -> return "linux-x86"
-            }
-        }
-        // 默认降级为 aarch64
-        return "linux-x86_64"
+  private fun executable(bin: File, name: String, required: Boolean): File {
+    val file = File(bin, name)
+    if (required && !file.isFile) throw IllegalStateException("Required clang tool missing: ${file.absolutePath}")
+    if (file.isFile && !file.canExecute()) file.setExecutable(true)
+    return file
+  }
+
+  private data class VersionKey(val numbers: List<Int>) : Comparable<VersionKey> {
+    override fun compareTo(other: VersionKey): Int {
+      val max = maxOf(numbers.size, other.numbers.size)
+      for (i in 0 until max) {
+        val diff = numbers.getOrElse(i) { 0 } - other.numbers.getOrElse(i) { 0 }
+        if (diff != 0) return diff
+      }
+      return 0
     }
+    companion object { fun parse(text: String) = VersionKey(Regex("\\d+").findAll(text).map { it.value.toIntOrNull() ?: 0 }.toList()) }
+  }
 }
