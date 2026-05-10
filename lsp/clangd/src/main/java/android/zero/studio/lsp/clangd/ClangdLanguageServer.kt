@@ -27,6 +27,7 @@ import com.itsaky.androidide.models.Range
 import com.itsaky.androidide.projects.IWorkspace
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import org.json.JSONArray
 import org.json.JSONObject
@@ -214,7 +215,7 @@ class ClangdLanguageServer : ILanguageServer {
             val future = rpcMessenger!!.sendRequest("textDocument/completion", requestParams)
             var waitedMs = 0L
             while (!future.isDone && waitedMs < SYNC_TIMEOUT_MS) {
-                if (params.cancelChecker.isCancelled) {
+                if (params.cancelChecker.isCancelled()) {
                     future.cancel(true)
                     return CompletionResult.EMPTY
                 }
@@ -326,6 +327,10 @@ class ClangdLanguageServer : ILanguageServer {
         return advancedProvider!!.codeActions(file.toUri().toString(), range, diagnostics)
     }
 
+    override suspend fun expandSelection(params: ExpandSelectionParams): Range {
+        return params.selection
+    }
+
     override suspend fun analyze(file: Path): DiagnosticResult {
         return DiagnosticResult.NO_UPDATE
     }
@@ -390,9 +395,11 @@ class ClangdLanguageServer : ILanguageServer {
         val endObj = obj.optJSONObject("range")?.optJSONObject("end") ?: return null
         
         return Location(
-            File(filePath),
-            startObj.optInt("line", 0), startObj.optInt("character", 0),
-            endObj.optInt("line", 0), endObj.optInt("character", 0)
+            Paths.get(filePath),
+            Range(
+                Position(startObj.optInt("line", 0), startObj.optInt("character", 0)),
+                Position(endObj.optInt("line", 0), endObj.optInt("character", 0))
+            )
         )
     }
 

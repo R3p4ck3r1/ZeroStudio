@@ -77,9 +77,10 @@ object CompileCommandsLocator {
         if (cxxFiles.isNotEmpty()) {
             try {
                 val toolchain = ClangdSysrootResolver.resolve(projectDir)
-                val generated = CompileCommandsGenerator.generateCompileCommands(
-                    projectRoot = projectDir,
+                val generated = CompileCommandsGenerator.generate(
+                    projectPath = projectDir.absolutePath,
                     sourceFiles = cxxFiles,
+                    toolchainInfo = toolchain,
                     includeDirs = listOf(File(toolchain.sysrootDir, "usr/include"))
                 )
                 if (generated.exists()) {
