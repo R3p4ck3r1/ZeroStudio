@@ -1,0 +1,33 @@
+{
+  "types": ["toml"],
+  "styles": {
+    "type": "@type",
+    "field": "@field",
+    "string": {
+      "fg": "@string",
+      "maybeHexColor": true
+    },
+    "string.escape": {
+      "fg": "@func.decl",
+      "bold": true
+    },
+    "number": "@number",
+    "keyword": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "constant": "@constant",
+    "comment": {
+      "fg": "@comment",
+      "italic": true
+    },
+    "operator": "@operator",
+    "punctuation.bracket": {
+      "fg": "@variable",
+      "bold": true
+    },
+    "punctuation.delimiter": {
+      "fg": "@attribute"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "types": ["aidl"],
+  "styles": {
+    "type": { 
+      "fg": "@type", 
+      "bold": true 
+    },
+    "function": { 
+      "fg": "@func.decl", 
+      "bold": true 
+    },
+    "variable": { 
+      "fg": "@onSurface" 
+    },
+    "variable.parameter": { 
+      "fg": "@variable", 
+      "italic": true 
+    },
+    "property": { 
+      "fg": "@field" 
+    },
+    "number": { 
+      "fg": "@number" 
+    },
+    "comment": { 
+      "fg": "@comment", 
+      "italic": true 
+    },
+    "boolean": { 
+      "fg": "@keyword", 
+      "bold": true 
+    },
+    "string": { 
+      "fg": "@string" 
+    },
+    "attribute": { 
+      "fg": "@attribute", 
+      "bold": true,
+      "italic": true 
+    },
+    "keyword": { 
+      "fg": "@keyword", 
+      "bold": true 
+    },
+    "operator": { 
+      "fg": "@operator" 
+    },
+    "punctuation": { 
+      "fg": "@keyword" 
+    },
+    "punctuation.bracket": { 
+      "fg": "@outline" 
+    },
+    "punctuation.delimiter": { 
+      "fg": "@onSurfaceVariant" 
+    }
+  }
+}

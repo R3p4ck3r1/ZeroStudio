@@ -1,0 +1,28 @@
+{
+  "types":["py", "python", "pyi", "pyw"],
+  "styles": {
+    "variable": { "fg": "@onSurface" },
+    "constructor": { "fg": "@type", "bold": true },
+    "constant": { "fg": "@constant", "bold": true },
+    
+    "function": { "fg": "@func.decl", "bold": true },
+    "function.method": { "fg": "@func.decl", "italic": true },
+    "function.builtin": { "fg": "@func.call", "bold": true, "italic": true },
+    
+    "property": { "fg": "@field" },
+    "type": { "fg": "@type", "bold": true },
+    
+    "constant.builtin": { "fg": "@keyword", "bold": true },
+    "number": { "fg": "@number" },
+    
+    "comment": { "fg": "@comment", "italic": true },
+    "string": { "fg": "@string" },
+    "escape": { "fg": "@func.decl", "bold": true },
+    
+    "embedded": { "fg": "@onSurface" },
+    
+    "punctuation.special": { "fg": "@kt.punctuation.special" },
+    "operator": { "fg": "@operator" },
+    "keyword": { "fg": "@keyword", "bold": true }
+  }
+}

@@ -93,10 +93,9 @@ object IDEColorSchemeProvider {
             ?: run {
               val fallbackScheme =
                   when {
-                    name == EditorPreferences.DEFAULT_COLOR_SCHEME ->
-                        schemes["${EditorPreferences.DEFAULT_COLOR_SCHEME}-dark"]
-                            ?: schemes.values.firstOrNull { it.key.startsWith("default") }
-                    else -> schemes[EditorPreferences.DEFAULT_COLOR_SCHEME]
+                    name != EditorPreferences.DEFAULT_COLOR_SCHEME ->
+                        schemes[EditorPreferences.DEFAULT_COLOR_SCHEME]
+                    else -> schemes.values.firstOrNull { !it.key.endsWith("-dark") }
                   }
 
               if (fallbackScheme != null) {

@@ -1,0 +1,20 @@
+{
+  "types": ["aidl"],
+  "styles": {
+    "keyword": { "fg": "@keyword", "bold": true },
+    "type": { "fg": "@type", "bold": true },
+    "type.builtin": { "fg": "@keyword", "bold": true },
+    "function": { "fg": "@func.decl", "bold": true },
+    "variable": { "fg": "@onSurface" },
+    "variable.parameter": { "fg": "@variable" },
+    "property": { "fg": "@field" },
+    "number": { "fg": "@number" },
+    "string": { "fg": "@string" },
+    "constant.builtin": { "fg": "@keyword", "bold": true },
+    "comment": { "fg": "@comment", "italic": true },
+    "attribute": { "fg": "@attribute", "italic": true },
+    "operator": { "fg": "@operator" },
+    "punctuation.bracket": { "fg": "@outline" },
+    "punctuation.delimiter": { "fg": "@onSurfaceVariant" }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "types": [
+    "md",
+    "markdown",
+    "mkd",
+    "mkdn",
+    "mdown",
+    "mdwn",
+    "mdtxt"
+  ],
+  "styles": {
+    "text.title": {
+      "fg": "@type",
+      "bold": true
+    },
+    "text.literal": {
+      "fg": "@string"
+    },
+    "text.uri": {
+      "fg": "@func.call",
+      "italic": true
+    },
+    "text.reference": {
+      "fg": "@field",
+      "bold": true
+    },
+    "text.emphasis": {
+      "fg": "@onSurface",
+      "italic": true
+    },
+    "text.strong": {
+      "fg": "@onSurface",
+      "bold": true
+    },
+    "punctuation.special": {
+      "fg": "@operator",
+      "bold": true
+    },
+    "punctuation.delimiter": {
+      "fg": "@outline"
+    },
+    "string.escape": {
+      "fg": "@keyword",
+      "bold": true
+    },
+    "none": {
+      "fg": "@onSurface"
+    }
+  }
+}
