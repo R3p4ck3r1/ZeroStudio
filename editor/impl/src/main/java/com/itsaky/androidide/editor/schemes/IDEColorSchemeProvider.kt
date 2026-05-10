@@ -91,8 +91,25 @@ object IDEColorSchemeProvider {
     val scheme =
         schemes[name]
             ?: run {
-              log.error("Color scheme '{}' not found in loaded schemes", name)
-              return null
+              val fallbackScheme =
+                  when {
+                    name == EditorPreferences.DEFAULT_COLOR_SCHEME ->
+                        schemes["${EditorPreferences.DEFAULT_COLOR_SCHEME}-dark"]
+                            ?: schemes.values.firstOrNull { it.key.startsWith("default") }
+                    else -> schemes[EditorPreferences.DEFAULT_COLOR_SCHEME]
+                  }
+
+              if (fallbackScheme != null) {
+                log.warn(
+                    "Color scheme '{}' not found in loaded schemes, falling back to '{}'",
+                    name,
+                    fallbackScheme.key,
+                )
+              } else {
+                log.error("Color scheme '{}' not found in loaded schemes", name)
+              }
+
+              fallbackScheme ?: return null
             }
     return loadColorScheme(scheme)
   }
