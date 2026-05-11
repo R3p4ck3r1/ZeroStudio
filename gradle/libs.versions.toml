@@ -15,7 +15,7 @@ protobufVersion = "4.33.0"
 
 # Kotlin相关
 kotlin = "2.2.20"
-ksp = "2.2.20-2.0.4"
+ksp = "2.3.4"
 kotlin-coroutines = "1.10.2"
 kotlinxSerializationJson = "1.9.0"
 kotlinx-datetime = "0.7.1"
@@ -23,9 +23,9 @@ kotlinMarkdown = "0.7.3"
 kotlin-coroutines-core = "1.10.2"
 
 # Compose
-composeBom = "2025.11.00"     #对应组件的实际版本号，参见：https://developer.android.com/develop/ui/compose/bom/bom-mapping
+composeBom = "2026.05.00"     #对应组件的实际版本号，参见：https://developer.android.com/develop/ui/compose/bom/bom-mapping
 
-activityCompose = "1.10.1"
+activityCompose = "1.13.0"
 navigationCompose = "2.9.0"
 androidxCompose-livedata = "1.7.0"
 compose-compiler = "1.5.15"
@@ -49,17 +49,17 @@ androidRecyclerview = "1.3.2"
 activityKtx = "1.10.1"
 lifecycleViewmodelKtx = "2.9.2"
 androidxUiautomator = "2.2.0"
-browser = "1.9.0"
-media3 = "1.8.0"
-cameraCore = "1.5.1"
-paging = "3.3.6"
-nav2 = "2.9.6"
-nav3Core = "1.0.0-rc01"
+browser = "1.10.0"
+media3 = "1.10.0"
+cameraCore = "1.6.1"
+paging = "3.4.2"
+nav2 = "2.9.8"
+nav3Core = "1.1.1"
 profileinstaller = "1.4.1"
-lifecycleRuntimeKtx = "2.9.4"
-material3AdaptiveNav3 = "1.3.0-alpha09"
-lifecycleViewmodelNav3 = "1.0.0-alpha04"
-datastore = "1.1.7"
+lifecycleRuntimeKtx = "2.10.0"
+material3AdaptiveNav3 = "1.3.0-beta01"
+lifecycleViewmodelNav3 = "2.10.0"
+datastore = "1.2.1"
 benchmarkMacroJunit4 = "1.4.1"
 baselineprofile = "1.4.1"
 multidexVersion = "2.0.1"
@@ -72,8 +72,8 @@ guava-android = "32.1.3-android"
 googleMaterial = "1.12.0"
 google-accompanist-pager = "0.28.0"
 google-services = "4.4.4"
-firebase-bom = "34.11.0"
-firebase-crashlytics = "3.0.6"
+firebase-bom = "34.12.0"
+firebase-crashlytics = "3.0.7"
 zxing = "3.5.4"
 ioGrpcVersion = "1.78.0"
 ioGrpcStubVersion = "1.5.0"
@@ -83,8 +83,8 @@ googleProtobufKotlin = "4.33.2"
 soraEditor = "0.23.6" #> 这个library没有采用在线的而是本地
 lottie-animation = "6.6.10"
 io-markwon = "4.6.2"
-koin-bom = "4.1.1"
-retrofit = "2.10.0"
+koin-bom = "4.2.1"
+retrofit = "3.0.0"
 iorealm = "10.19.0"
 slf4j-api = "2.0.12"
 jrubyJoni = "2.2.6"
@@ -108,29 +108,29 @@ io-ktor = "3.3.2" # Ktor (HTTP Server)
 glide = "4.16.0" #图像sdk
 io-coil = "2.7.0" # Coil (Image Loading)
 leakcanary = "2.14"
-jsoup = "1.21.2"
+jsoup = "1.22.2"
 dav4jvm = "main-SNAPSHOT"
 dom4j = "2.2.0"
-jlatexmath = "1.2"
+jlatexmath = "1.3"
 ucrop = "2.2.11-native"
-sonner = "0.4.0"
-okhttp = "5.1.0"
-mcp = "0.7.7"
-pebble = "3.2.4"
+sonner = "0.3.9"
+okhttp = "5.3.2"
+mcp = "0.8.4"
+pebble = "4.1.1"
 quickjs = "3.2.3"
-reorderable = "3.0.0"
+reorderable = "3.1.0"
 objectbox = "4.3.0"
 lucide-icons = "1.1.0"
 image-viewer = "1.1.0-alpha.7"
 quickie-bundled = "1.11.0"
 barcodeScanning = "17.3.0"
-metadataExtractor = "2.19.0"
+metadataExtractor = "2.20.0"
 javaxAnnotation = "1.3.2"
 orgNanohttpd = "2.3.1"
 incap = "1.0.0"
-haze = "1.0.2"
+haze = "1.7.2"
 huge-icons = "1.3"
-jmdns = "3.5.9"
+jmdns = "3.6.3"
 slf4j-android = "1.7.36"
 sqlite-android = "-SNAPSHOT"
 floatingx = "2.3.7"
@@ -152,9 +152,29 @@ com-github-Juniversalchardet = "2.5.0"
 # Testing
 junit = "4.13.2"
 androidxTestExtJunit = "1.2.1"
-espressoCore = "3.6.1"
+espressoCore = "3.7.0"
 junit-jupiter = "5.10.2"
 
+
+
+
+# Added from core/chatai version catalog
+coreKtx = "1.18.0"
+junitVersion = "1.3.0"
+commons-text = "1.15.0"
+material3 = "1.5.0-alpha19"
+nav3Material = "1.0.0-SNAPSHOT"
+markdown = "66a56dffca"
+coil = "3.4.0"
+room = "2.8.4"
+serialization-json = "1.11.0"
+workmanager = "2.11.2"
+appcompat = "1.7.1"
+material = "1.13.0"
+uiautomator = "2.3.0"
+ktor = "3.4.3"
+sqlite-vector = "0.9.92"
+slf4j = "2.0.17"
 
 [libraries]
 # Dependencies in composite build
@@ -585,6 +605,8 @@ io-insert-koin = [
 
 
 
+
+
 [plugins]
 
 #android ， androidx , Google 相关
@@ -617,3 +639,5 @@ com-jaredsburrows-license = { id = "com.jaredsburrows.license", version = "0.8.4
 gradle-publish = { id = "com.gradle.plugin-publish", version = "1.2.1" }
 realm-gradle-plugin = { id = "io.realm:realm-gradle-plugin", version.ref = "iorealm" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
+
+
