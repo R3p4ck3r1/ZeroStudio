@@ -36,6 +36,7 @@ import com.itsaky.androidide.events.EditorEventsIndex
 import com.itsaky.androidide.events.LspApiEventsIndex
 import com.itsaky.androidide.events.LspJavaEventsIndex
 import com.itsaky.androidide.events.LspKotlinEventsIndex
+import com.itsaky.androidide.managers.ToolsManager
 import com.itsaky.androidide.preferences.internal.DevOpsPreferences
 import com.itsaky.androidide.preferences.internal.GeneralPreferences
 import com.itsaky.androidide.resources.localization.LocaleProvider
@@ -113,6 +114,7 @@ class IDEApplication : TermuxApplication() {
     GlobalScope.launch(Dispatchers.IO) {
       IDEColorSchemeProvider.init()
       Environment.initSecondaryDirs()
+      ToolsManager.initIfNeeded(this@IDEApplication, null)
     }
     
     Environment.init(this)
