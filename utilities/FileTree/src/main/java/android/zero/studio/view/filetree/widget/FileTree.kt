@@ -47,6 +47,7 @@ class FileTree : RecyclerView {
 
   private var isTreeInitialized = false
   private var isRootNodeVisible: Boolean = true
+  private var autoExpandSingleChildFolders: Boolean = false
 
   constructor(context: Context) : super(context)
 
@@ -63,6 +64,11 @@ class FileTree : RecyclerView {
     setItemViewCacheSize(100)
     layoutManager = LinearLayoutManager(context)
     fileTreeAdapter = FileTreeAdapter(context, this)
+    layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+  }
+
+  fun setAutoExpandSingleChildFolders(enabled: Boolean) {
+    autoExpandSingleChildFolders = enabled
   }
 
   /**
@@ -157,6 +163,9 @@ class FileTree : RecyclerView {
   fun expandNode(node: Node<FileObject>) {
     if (!node.isExpand) {
       fileTreeAdapter.expandNode(node)
+      if (autoExpandSingleChildFolders) {
+        autoExpandUntilBranch(node)
+      }
     }
   }
 
@@ -170,16 +179,36 @@ class FileTree : RecyclerView {
     }
   }
 
+  fun expandByPath(path: String): Boolean {
+    expandPathOnce(path)
+    val node = fileTreeAdapter.currentList.firstOrNull { it.value.getAbsolutePath() == path } ?: return false
+    if (!node.isExpand && node.value.isDirectory()) {
+      fileTreeAdapter.expandNode(node)
+    }
+    return true
+  }
+
+  fun collapseByPath(path: String): Boolean {
+    val node = fileTreeAdapter.currentList.firstOrNull { it.value.getAbsolutePath() == path } ?: return false
+    if (node.isExpand && node.value.isDirectory()) {
+      collapseNode(node)
+    }
+    return true
+  }
+
   fun collapseAll() {
-    fileTreeAdapter.currentList.filter { it.isExpand }.reversed().forEach { collapseNode(it) }
+    val expanded = fileTreeAdapter.currentList.filter { it.isExpand }.sortedByDescending { it.level }
+    expanded.forEach { collapseNode(it) }
   }
 
   fun expandAll() {
-    val list = fileTreeAdapter.currentList.toMutableList()
-    list.forEach {
-      if (it.value.isDirectory() && !it.isExpand) {
-        expandNode(it)
+    var cursor = 0
+    while (cursor < fileTreeAdapter.currentList.size) {
+      val node = fileTreeAdapter.currentList[cursor]
+      if (node.value.isDirectory() && !node.isExpand) {
+        fileTreeAdapter.expandNode(node)
       }
+      cursor++
     }
   }
 
@@ -208,26 +237,9 @@ class FileTree : RecyclerView {
   /** 精准定位文件位置。通过路径逐级比对并展开父目录，最后滚动到目标。 */
   fun locateFileAndScroll(targetAbsolutePath: String) {
     post {
-      var targetIndex = -1
-
-      var retry = true
-      while (retry) {
-        retry = false
-        val list = fileTreeAdapter.currentList.toList()
-        for ((index, node) in list.withIndex()) {
-          val path = node.value.getAbsolutePath()
-          if (path == targetAbsolutePath) {
-            targetIndex = index
-            break
-          }
-
-          if (targetAbsolutePath.startsWith(path + "/") && !node.isExpand) {
-            expandNode(node)
-            retry = true
-            break
-          }
-        }
-      }
+      expandPathOnce(targetAbsolutePath)
+      val targetIndex =
+          fileTreeAdapter.currentList.indexOfFirst { it.value.getAbsolutePath() == targetAbsolutePath }
 
       if (targetIndex != -1) {
         val lm = layoutManager as LinearLayoutManager
@@ -249,6 +261,58 @@ class FileTree : RecyclerView {
                 },
                 2500,
             )
+      }
+    }
+  }
+
+  private fun expandPathOnce(targetAbsolutePath: String) {
+    val pathParts = targetAbsolutePath.split("/").filter { it.isNotEmpty() }
+    if (pathParts.isEmpty()) return
+    var currentNode: Node<FileObject>? =
+        fileTreeAdapter.currentList.firstOrNull { it.value.getAbsolutePath() == rootFileObject.getAbsolutePath() }
+
+    if (currentNode == null && !isRootNodeVisible) {
+      currentNode =
+          fileTreeAdapter.currentList.firstOrNull {
+            targetAbsolutePath.startsWith(it.value.getAbsolutePath().trimEnd('/') + "/") ||
+                it.value.getAbsolutePath() == targetAbsolutePath
+          }
+    }
+
+    while (currentNode != null && currentNode.value.isDirectory()) {
+      if (!currentNode.isExpand) {
+        fileTreeAdapter.expandNode(currentNode)
+      }
+      val next =
+          currentNode.child.firstOrNull {
+            targetAbsolutePath.startsWith(it.value.getAbsolutePath().trimEnd('/') + "/") ||
+                it.value.getAbsolutePath() == targetAbsolutePath
+          }
+      currentNode = next
+    }
+  }
+
+  private fun autoExpandUntilBranch(startNode: Node<FileObject>) {
+    var current = startNode
+    while (current.value.isDirectory()) {
+      val children = Sorter.sort(current.value)
+      if (children.size != 1) {
+        break
+      }
+      val onlyChild = children.first()
+      if (!onlyChild.value.isDirectory()) {
+        break
+      }
+      if (current.child.any { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }) {
+        val next =
+            current.child.first { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }
+        if (!next.isExpand) {
+          fileTreeAdapter.expandNode(next)
+        }
+        current = next
+      } else {
+        fileTreeAdapter.expandNode(onlyChild)
+        current = onlyChild
       }
     }
   }

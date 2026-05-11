@@ -7,6 +7,7 @@ import android.zero.studio.view.filetree.interfaces.FileObject
 import android.zero.studio.view.filetree.model.Node
 import android.zero.studio.view.filetree.provider.file
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import com.itsaky.androidide.R
 import com.itsaky.androidide.models.FileExtension
 import java.io.File
@@ -18,7 +19,15 @@ import java.io.File
  */
 class IDEFileIconProvider(private val context: Context) : FileIconProvider {
   private val chevronRight = ContextCompat.getDrawable(context, R.drawable.ic_chevron_right)
-  private val expandMore = ContextCompat.getDrawable(context, R.drawable.ic_chevron_down)
+  private val expandMore by lazy {
+    val raw = ContextCompat.getDrawable(context, R.drawable.ic_chevron_down)?.mutate()
+    val isNight = (context.resources.configuration.uiMode and 0x30) == 0x20
+    val tint = if (isNight) 0xFFFFFFFF.toInt() else 0xFF1F2937.toInt()
+    raw?.let {
+      DrawableCompat.setTint(it, tint)
+      it
+    }
+  }
 
   override fun getIcon(node: Node<FileObject>): Drawable? {
     val fileObj =
@@ -26,11 +35,7 @@ class IDEFileIconProvider(private val context: Context) : FileIconProvider {
             ?: return ContextCompat.getDrawable(context, R.drawable.ic_file_type_unknown)
 
     val iconRes =
-        when {
-          fileObj.isDirectory -> R.drawable.ic_folder
-          fileObj.name == "gradlew" || fileObj.name == "gradlew.bat" -> R.drawable.ic_terminal
-          else -> FileExtension.Factory.forFile(fileObj).icon
-        }
+        FileExtension.Factory.forFile(fileObj).icon
     return ContextCompat.getDrawable(context, iconRes)
   }
 

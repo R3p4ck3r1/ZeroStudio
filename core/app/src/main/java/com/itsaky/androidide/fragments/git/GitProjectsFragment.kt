@@ -25,6 +25,7 @@ import com.itsaky.androidide.fragments.git.menu.GitBranchPopupManager
 import com.itsaky.androidide.fragments.git.tree.ListProjectFilesRequestEvent
 import com.itsaky.androidide.fragments.git.tree.TreeStateManager
 import com.itsaky.androidide.projects.IProjectManager
+import com.itsaky.androidide.preferences.internal.GeneralPreferences
 import com.itsaky.androidide.provider.IDEFileIconProvider
 import com.itsaky.androidide.viewmodel.FileTreeViewModel
 import java.io.File
@@ -74,7 +75,9 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
     super.onStop()
     if (EventBus.getDefault().isRegistered(this)) EventBus.getDefault().unregister(this)
     // 自动保存状态
-    fileTreeView?.let { viewModel.saveState(it) }
+    if (GeneralPreferences.treeRememberExpandedState) {
+      fileTreeView?.let { viewModel.saveState(it) }
+    }
   }
 
   override fun setupToolbar() {
@@ -93,7 +96,11 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
 
     // 刷新
     addToolbarAction(R.drawable.ic_refresh_file_24dp, getString(R.string.refresh)) {
-      fileTreeView?.reloadFileTreeSilently()
+      if (GeneralPreferences.treeRememberExpandedState) {
+        fileTreeView?.reloadFileTreeSilently()
+      } else {
+        listProjectFiles()
+      }
       Toast.makeText(context, "Refreshed silently", Toast.LENGTH_SHORT).show()
     }
 
@@ -112,7 +119,6 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
     val btnCollapse =
         addToolbarAction(R.drawable.ic_chevron_right, "Collapse All") {
           fileTreeView?.let {
-            stateManager.pushState(it)
             it.collapseAll()
           }
         }
@@ -128,7 +134,6 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
 
     addToolbarAction(R.drawable.ic_chevron_down, "Expand All") {
       fileTreeView?.let {
-        stateManager.pushState(it)
         it.expandAll()
       }
     }
@@ -279,6 +284,7 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
           setIconProvider(IDEFileIconProvider(ctx))
           setOnFileClickListener(this@GitProjectsFragment)
           setOnFileLongClickListener(this@GitProjectsFragment)
+          setAutoExpandSingleChildFolders(GeneralPreferences.treeAutoExpandSingleChild)
           loadFiles(file(projectRoot), true)
         }
 
@@ -293,7 +299,9 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
       )
 
       // 恢复状态
-      tree.post { tree.restoreState(viewModel.savedState) }
+      if (GeneralPreferences.treeRememberExpandedState) {
+        tree.post { tree.restoreState(viewModel.savedState) }
+      }
     }
   }
 
@@ -303,7 +311,9 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
   }
 
   override fun onClick(node: Node<FileObject>) {
-    fileTreeView?.let { stateManager.pushState(it) } // 记录点击前的状态
+    if (node.value.isDirectory()) {
+      stateManager.recordAction(node.value.getAbsolutePath(), node.isExpand)
+    }
 
     val target = IDEFileIconProvider.extractNativeFile(node.value) ?: return
     if (target.isFile) {
@@ -323,7 +333,11 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
 
   @Subscribe(threadMode = ThreadMode.MAIN)
   fun onListProjectFilesRequest(event: ListProjectFilesRequestEvent?) {
-    fileTreeView?.reloadFileTreeSilently()
+    if (GeneralPreferences.treeRememberExpandedState) {
+      fileTreeView?.reloadFileTreeSilently()
+    } else {
+      listProjectFiles()
+    }
   }
 
   override fun onDestroyView() {
