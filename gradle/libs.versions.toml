@@ -161,7 +161,6 @@ junit-jupiter = "5.10.2"
 # Added from core/chatai version catalog
 coreKtx = "1.18.0"
 junitVersion = "1.3.0"
-commons-text = "1.15.0"
 material3 = "1.5.0-alpha19"
 nav3Material = "1.0.0-SNAPSHOT"
 markdown = "66a56dffca"
@@ -639,5 +638,4 @@ com-jaredsburrows-license = { id = "com.jaredsburrows.license", version = "0.8.4
 gradle-publish = { id = "com.gradle.plugin-publish", version = "1.2.1" }
 realm-gradle-plugin = { id = "io.realm:realm-gradle-plugin", version.ref = "iorealm" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
-
 
