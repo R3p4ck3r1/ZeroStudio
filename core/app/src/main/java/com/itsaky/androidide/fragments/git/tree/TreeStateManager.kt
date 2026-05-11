@@ -9,37 +9,39 @@ import java.util.Stack
  * @author android_zero
  */
 class TreeStateManager {
-  private val undoStack = Stack<String>()
-  private val redoStack = Stack<String>()
+  data class NodeAction(val path: String, val expandedAfterAction: Boolean)
+
+  private val undoStack = Stack<NodeAction>()
+  private val redoStack = Stack<NodeAction>()
   private val MAX_HISTORY_SIZE = 50
 
-  /** 记录当前状态（在发生展开/折叠动作前调用） */
-  fun pushState(treeView: FileTree) {
-    val state = treeView.getSaveState()
-    if (undoStack.isNotEmpty() && undoStack.peek() == state) return
-
-    undoStack.push(state)
+  fun recordAction(path: String, expandedAfterAction: Boolean) {
+    val action = NodeAction(path = path, expandedAfterAction = expandedAfterAction)
+    if (undoStack.isNotEmpty() && undoStack.peek() == action) return
+    undoStack.push(action)
     if (undoStack.size > MAX_HISTORY_SIZE) undoStack.removeAt(0)
     redoStack.clear()
   }
 
   fun undo(treeView: FileTree) {
     if (undoStack.isEmpty()) return
-    val currentState = treeView.getSaveState()
-    redoStack.push(currentState)
-
-    val previousState = undoStack.pop()
-    treeView.collapseAll()
-    treeView.restoreState(previousState)
+    val action = undoStack.pop()
+    if (action.expandedAfterAction) {
+      treeView.collapseByPath(action.path)
+    } else {
+      treeView.expandByPath(action.path)
+    }
+    redoStack.push(action)
   }
 
   fun redo(treeView: FileTree) {
     if (redoStack.isEmpty()) return
-    val currentState = treeView.getSaveState()
-    undoStack.push(currentState)
-
-    val nextState = redoStack.pop()
-    treeView.collapseAll()
-    treeView.restoreState(nextState)
+    val action = redoStack.pop()
+    if (action.expandedAfterAction) {
+      treeView.expandByPath(action.path)
+    } else {
+      treeView.collapseByPath(action.path)
+    }
+    undoStack.push(action)
   }
 }

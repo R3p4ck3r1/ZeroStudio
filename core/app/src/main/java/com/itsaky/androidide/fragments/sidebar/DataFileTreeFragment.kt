@@ -156,7 +156,9 @@ class DataFileTreeFragment : BottomSheetDialogFragment(), FileClickListener, Fil
             ),
         )
 
-    tree.post { tree.restoreState(viewModel.savedState) }
+    if (GeneralPreferences.treeRememberExpandedState) {
+      tree.post { tree.restoreState(viewModel.savedState) }
+    }
   }
 
   // 虚拟根目录包装类 (用于容纳多个磁盘入口)
@@ -192,7 +194,9 @@ class DataFileTreeFragment : BottomSheetDialogFragment(), FileClickListener, Fil
   }
 
   fun saveTreeState() {
-    viewModel.saveState(fileTreeView)
+    if (GeneralPreferences.treeRememberExpandedState) {
+      viewModel.saveState(fileTreeView)
+    }
   }
 
   override fun onClick(node: Node<FileObject>) {

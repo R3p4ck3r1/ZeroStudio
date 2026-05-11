@@ -39,6 +39,7 @@ import android.zero.studio.view.filetree.widget.FileTree
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import kotlin.math.max
 
 class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
   val expandView: ImageView = v.findViewById(R.id.expand)
@@ -134,7 +135,8 @@ class FileTreeAdapter(private val context: Context, val fileTree: FileTree) :
     fileView.layoutParams = layoutParams
 
     // Set padding based on node level
-    holder.itemView.setPadding(node.level * dpToPx(17f), dpToPx(5f), 0, 0)
+    holder.itemView.minimumWidth = max(fileTree.width, fileTree.measuredWidth)
+    holder.itemView.setPadding(node.level * dpToPx(17f), dpToPx(5f), dpToPx(8f), dpToPx(5f))
     fileView.setImageDrawable(iconProvider?.getIcon(node))
 
     val icChevronRight = iconProvider?.getChevronRight()
@@ -152,7 +154,7 @@ class FileTreeAdapter(private val context: Context, val fileTree: FileTree) :
       expandView.visibility = View.GONE
     }
 
-    holder.textView.text = "  ${node.value.getName()}  "
+    holder.textView.text = node.value.getName()
 
     // 处理定位高亮效果 (闪烁动画)
     if (node.isHighlighted) {

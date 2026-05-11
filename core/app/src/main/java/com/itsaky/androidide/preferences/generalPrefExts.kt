@@ -72,6 +72,7 @@ class ProjectConfig(
     addPreference(OpenLastProject())
     addPreference(ConfirmProjectOpen())
     addPreference(TreeAutoExpandSingleChildPreference())
+    addPreference(TreeRememberExpandedStatePreference())
   }
 }
 
@@ -269,6 +270,24 @@ class TreeAutoExpandSingleChildPreference(
   override fun onPreferenceChanged(preference: Preference, newValue: Any?): Boolean {
     GeneralPreferences.treeAutoExpandSingleChild =
         newValue as? Boolean ?: GeneralPreferences.treeAutoExpandSingleChild
+    return true
+  }
+}
+
+@Parcelize
+class TreeRememberExpandedStatePreference(
+    override val key: String = GeneralPreferences.TREE_REMEMBER_EXPANDED_STATE,
+    override val title: Int = R.string.idepref_tree_remember_state_title,
+    override val summary: Int? = R.string.idepref_tree_remember_state_summary,
+    override val icon: Int? = drawable.ic_history,
+) :
+    SwitchPreference(
+        setValue = { GeneralPreferences.treeRememberExpandedState = it },
+        getValue = { GeneralPreferences.treeRememberExpandedState },
+    ) {
+  override fun onPreferenceChanged(preference: Preference, newValue: Any?): Boolean {
+    GeneralPreferences.treeRememberExpandedState =
+        newValue as? Boolean ?: GeneralPreferences.treeRememberExpandedState
     return true
   }
 }

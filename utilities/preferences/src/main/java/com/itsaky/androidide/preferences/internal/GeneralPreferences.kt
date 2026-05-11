@@ -32,6 +32,7 @@ object GeneralPreferences {
   const val CONFIRM_PROJECT_OPEN = "idepref_general_confirmProjectOpen"
   const val TERMINAL_USE_SYSTEM_SHELL = "idepref_general_terminalShell"
   const val TREE_AUTO_EXPAND_SINGLE_CHILD = "idepref_tree_auto_expand_single_child"
+  const val TREE_REMEMBER_EXPANDED_STATE = "idepref_tree_remember_expanded_state"
   const val LAST_OPENED_PROJECT = "ide_last_project"
 
   const val PREF_LOTTIE_ANIMATION = "idepref_splash_lottie_animation"
@@ -96,6 +97,12 @@ object GeneralPreferences {
     get() = prefManager.getBoolean(TREE_AUTO_EXPAND_SINGLE_CHILD, true)
     set(value) {
       prefManager.putBoolean(TREE_AUTO_EXPAND_SINGLE_CHILD, value)
+    }
+
+  var treeRememberExpandedState: Boolean
+    get() = prefManager.getBoolean(TREE_REMEMBER_EXPANDED_STATE, true)
+    set(value) {
+      prefManager.putBoolean(TREE_REMEMBER_EXPANDED_STATE, value)
     }
 
   var lastOpenedProject: String
