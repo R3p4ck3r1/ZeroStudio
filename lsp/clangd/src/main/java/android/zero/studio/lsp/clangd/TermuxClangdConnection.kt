@@ -3,6 +3,7 @@ package android.zero.studio.lsp.clangd
 import com.itsaky.androidide.utils.Environment
 import java.io.File
 import java.io.InputStream
+import java.io.InterruptedIOException
 import java.io.OutputStream
 import org.slf4j.LoggerFactory
 
@@ -20,6 +21,15 @@ class TermuxClangdConnection(
 
   fun start() {
     if (process != null) return
+    if (!toolchain.clangd.exists()) {
+      throw IllegalStateException("clangd binary does not exist: ${toolchain.clangd.absolutePath}")
+    }
+    if (!toolchain.clangd.canExecute()) {
+      val updated = toolchain.clangd.setExecutable(true)
+      if (!updated || !toolchain.clangd.canExecute()) {
+        throw IllegalStateException("clangd binary is not executable: ${toolchain.clangd.absolutePath}")
+      }
+    }
     val command = listOf(toolchain.clangd.absolutePath) + arguments
     val builder = ProcessBuilder(command).directory(workingDir).redirectErrorStream(false)
     val env = builder.environment()
@@ -41,14 +51,28 @@ class TermuxClangdConnection(
 
   private fun drainStderr() {
     val stream = process?.errorStream ?: return
-    stream.bufferedReader().useLines { lines -> lines.forEach { log.warn("clangd: {}", it) } }
+    try {
+      stream.bufferedReader().useLines { lines -> lines.forEach { log.warn("clangd: {}", it) } }
+    } catch (error: InterruptedIOException) {
+      // Expected when close() is called while stderr thread is blocked on read.
+      log.debug("clangd stderr reader interrupted while closing process")
+    } catch (error: java.io.IOException) {
+      if (process != null) {
+        log.warn("Failed reading clangd stderr", error)
+      } else {
+        log.debug("clangd stderr stream closed while shutting down")
+      }
+    }
   }
 
   override fun close() {
-    runCatching { process?.outputStream?.close() }
-    runCatching { process?.inputStream?.close() }
-    process?.destroy()
+    val runningProcess = process ?: return
+    runCatching { runningProcess.outputStream.close() }
+    runCatching { runningProcess.inputStream.close() }
+    runCatching { runningProcess.errorStream.close() }
+    runningProcess.destroy()
     runCatching { stderrThread?.interrupt() }
     process = null
+    stderrThread = null
   }
 }

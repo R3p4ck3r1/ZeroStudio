@@ -46,7 +46,6 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -58,10 +57,9 @@ public class ToolsManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(ToolsManager.class);
   private static final Object TOOLING_API_LOCK = new Object();
-  private static final AtomicBoolean INIT_STARTED = new AtomicBoolean(false);
+  private static final Object INIT_EXECUTOR_LOCK = new Object();
   private static volatile CompletableFuture<Void> INIT_FUTURE;
-  private static final ExecutorService INIT_EXECUTOR =
-      Executors.newSingleThreadExecutor(r -> new Thread(r, "ToolsManager-LazyInit"));
+  private static volatile ExecutorService INIT_EXECUTOR;
 
   public static String COMMON_ASSET_DATA_DIR = "data/common";
 
@@ -90,7 +88,7 @@ public class ToolsManager {
         if (onFinish != null) onFinish.run();
         return f;
       }
-      INIT_STARTED.set(true);
+      final ExecutorService initExecutor = getOrCreateInitExecutor();
 
       INIT_FUTURE = CompletableFuture.runAsync(() -> {
         // Load installed JDK distributions only when tooling is actually initialized.
@@ -106,15 +104,35 @@ public class ToolsManager {
         installExtraTools();
 
         deleteIdeenv();
-      }, INIT_EXECUTOR).whenComplete((__, error) -> {
+      }, initExecutor).whenComplete((__, error) -> {
         if (error != null) {
           LOG.error("Error extracting tools", error);
         }
+        releaseInitExecutor();
         if (onFinish != null) {
           onFinish.run();
         }
       });
       return INIT_FUTURE;
+    }
+  }
+
+  private static ExecutorService getOrCreateInitExecutor() {
+    synchronized (INIT_EXECUTOR_LOCK) {
+      if (INIT_EXECUTOR == null || INIT_EXECUTOR.isShutdown() || INIT_EXECUTOR.isTerminated()) {
+        INIT_EXECUTOR =
+            Executors.newSingleThreadExecutor(r -> new Thread(r, "ToolsManager-LazyInit"));
+      }
+      return INIT_EXECUTOR;
+    }
+  }
+
+  private static void releaseInitExecutor() {
+    synchronized (INIT_EXECUTOR_LOCK) {
+      if (INIT_EXECUTOR != null) {
+        INIT_EXECUTOR.shutdown();
+        INIT_EXECUTOR = null;
+      }
     }
   }
   

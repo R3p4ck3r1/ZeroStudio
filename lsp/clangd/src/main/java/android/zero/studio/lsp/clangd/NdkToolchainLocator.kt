@@ -138,7 +138,13 @@ object NdkToolchainLocator {
   private fun executable(bin: File, name: String, required: Boolean): File {
     val file = File(bin, name)
     if (required && !file.isFile) throw IllegalStateException("Required clang tool missing: ${file.absolutePath}")
-    if (file.isFile && !file.canExecute()) file.setExecutable(true)
+    if (file.isFile && !file.canExecute()) {
+      val changed = file.setExecutable(true)
+      if (!changed || !file.canExecute()) {
+        val msg = "Clang tool is not executable: ${file.absolutePath}"
+        if (required) throw IllegalStateException(msg) else return file
+      }
+    }
     return file
   }
 

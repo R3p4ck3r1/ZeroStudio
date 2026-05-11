@@ -62,6 +62,11 @@ class ClangdLanguageServer : ILanguageServer {
       documents.forEach { (path, text) -> didOpen(DidOpenTextDocumentParams(path, languageId(path), 1, text)) }
     } catch (t: Throwable) {
       log.error("Unable to start clangd", t)
+      client?.showMessage(
+          ShowMessageParams(
+              MessageType.Error,
+              "clangd 启动失败: ${t.message ?: t.javaClass.simpleName}",
+          ))
     }
   }
 

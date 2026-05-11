@@ -27,10 +27,12 @@ import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.itsaky.androidide.R
 import com.itsaky.androidide.activities.editor.EditorActivityKt
+import com.itsaky.androidide.app.BaseApplication
 import com.itsaky.androidide.app.EdgeToEdgeIDEActivity
 import com.itsaky.androidide.fragments.MainFragment
 import com.itsaky.androidide.fragments.TemplateDetailsFragment
 import com.itsaky.androidide.fragments.TemplateListFragment
+import com.itsaky.androidide.managers.ToolsManager
 import com.itsaky.androidide.templates.ITemplateProvider
 import com.itsaky.androidide.utils.DialogUtils
 import com.itsaky.androidide.utils.flashError
@@ -39,6 +41,7 @@ import com.itsaky.androidide.viewmodel.MainEvent
 import com.itsaky.androidide.viewmodel.MainViewModel
 import java.io.File
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * A modern MainActivity built with Compose + MVM architecture + Material3
@@ -134,6 +137,9 @@ class MainActivity : EdgeToEdgeIDEActivity() {
       viewModel.mainEvents.collect { event ->
         when (event) {
           is MainEvent.OpenProjectSuccess -> {
+            withContext(kotlinx.coroutines.Dispatchers.IO) {
+              ToolsManager.initIfNeeded(this@MainActivity.application as BaseApplication, null).join()
+            }
             val intent =
                 Intent(this@MainActivity, EditorActivityKt::class.java).apply {
                   addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
