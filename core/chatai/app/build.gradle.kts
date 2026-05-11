@@ -265,13 +265,13 @@ dependencies {
     implementation(libs.sqlite.android)
 
     // modules
-    implementation(project(":ai"))
-    implementation(project(":web"))
-    implementation(project(":document"))
-    implementation(project(":highlight"))
-    implementation(project(":search"))
-    implementation(project(":speech"))
-    implementation(project(":common"))
+    implementation(projects.core.chatai.ai)
+    implementation(projects.core.chatai.web)
+    implementation(projects.core.chatai.document)
+    implementation(projects.core.chatai.highlight)
+    implementation(projects.core.chatai.search)
+    implementation(projects.core.chatai.speech)
+    implementation(projects.core.chatai.common)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     implementation(kotlin("reflect"))
 
