@@ -25,6 +25,7 @@ import com.itsaky.androidide.fragments.git.menu.GitBranchPopupManager
 import com.itsaky.androidide.fragments.git.tree.ListProjectFilesRequestEvent
 import com.itsaky.androidide.fragments.git.tree.TreeStateManager
 import com.itsaky.androidide.projects.IProjectManager
+import com.itsaky.androidide.preferences.internal.GeneralPreferences
 import com.itsaky.androidide.provider.IDEFileIconProvider
 import com.itsaky.androidide.viewmodel.FileTreeViewModel
 import java.io.File
@@ -279,6 +280,7 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
           setIconProvider(IDEFileIconProvider(ctx))
           setOnFileClickListener(this@GitProjectsFragment)
           setOnFileLongClickListener(this@GitProjectsFragment)
+          setAutoExpandSingleChildFolders(GeneralPreferences.treeAutoExpandSingleChild)
           loadFiles(file(projectRoot), true)
         }
 

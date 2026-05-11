@@ -47,6 +47,7 @@ class FileTree : RecyclerView {
 
   private var isTreeInitialized = false
   private var isRootNodeVisible: Boolean = true
+  private var autoExpandSingleChildFolders: Boolean = false
 
   constructor(context: Context) : super(context)
 
@@ -63,6 +64,11 @@ class FileTree : RecyclerView {
     setItemViewCacheSize(100)
     layoutManager = LinearLayoutManager(context)
     fileTreeAdapter = FileTreeAdapter(context, this)
+    layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+  }
+
+  fun setAutoExpandSingleChildFolders(enabled: Boolean) {
+    autoExpandSingleChildFolders = enabled
   }
 
   /**
@@ -157,6 +163,9 @@ class FileTree : RecyclerView {
   fun expandNode(node: Node<FileObject>) {
     if (!node.isExpand) {
       fileTreeAdapter.expandNode(node)
+      if (autoExpandSingleChildFolders) {
+        autoExpandUntilBranch(node)
+      }
     }
   }
 
@@ -249,6 +258,31 @@ class FileTree : RecyclerView {
                 },
                 2500,
             )
+      }
+    }
+  }
+
+  private fun autoExpandUntilBranch(startNode: Node<FileObject>) {
+    var current = startNode
+    while (current.value.isDirectory()) {
+      val children = Sorter.sort(current.value)
+      if (children.size != 1) {
+        break
+      }
+      val onlyChild = children.first()
+      if (!onlyChild.value.isDirectory()) {
+        break
+      }
+      if (current.child.any { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }) {
+        val next =
+            current.child.first { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }
+        if (!next.isExpand) {
+          fileTreeAdapter.expandNode(next)
+        }
+        current = next
+      } else {
+        fileTreeAdapter.expandNode(onlyChild)
+        current = onlyChild
       }
     }
   }

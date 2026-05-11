@@ -26,11 +26,7 @@ class IDEFileIconProvider(private val context: Context) : FileIconProvider {
             ?: return ContextCompat.getDrawable(context, R.drawable.ic_file_type_unknown)
 
     val iconRes =
-        when {
-          fileObj.isDirectory -> R.drawable.ic_folder
-          fileObj.name == "gradlew" || fileObj.name == "gradlew.bat" -> R.drawable.ic_terminal
-          else -> FileExtension.Factory.forFile(fileObj).icon
-        }
+        FileExtension.Factory.forFile(fileObj).icon
     return ContextCompat.getDrawable(context, iconRes)
   }
 
