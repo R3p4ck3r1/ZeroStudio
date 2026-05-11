@@ -1,5 +1,7 @@
 package me.rerere.rikkahub.ui.pages.favorite
 
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Delete01
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -36,10 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import java.time.Instant
 import kotlinx.coroutines.launch
-import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.context.LocalNavController
@@ -48,74 +48,83 @@ import me.rerere.rikkahub.utils.navigateToChatPage
 import me.rerere.rikkahub.utils.plus
 import me.rerere.rikkahub.utils.toLocalDateTime
 import org.koin.androidx.compose.koinViewModel
+import java.time.Instant
 
 @Composable
 fun FavoritePage(vm: FavoriteVM = koinViewModel()) {
-  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-  val navController = LocalNavController.current
-  val scope = rememberCoroutineScope()
-  val snackbarHostState = remember { SnackbarHostState() }
-  val favorites = vm.nodeFavorites.collectAsStateWithLifecycle().value
-  val favoriteRemovedText = stringResource(R.string.favorite_page_removed)
-  val undoText = stringResource(R.string.history_page_undo)
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val navController = LocalNavController.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val favorites = vm.nodeFavorites.collectAsStateWithLifecycle().value
+    val favoriteRemovedText = stringResource(R.string.favorite_page_removed)
+    val undoText = stringResource(R.string.history_page_undo)
 
-  Scaffold(
-      topBar = {
-        LargeFlexibleTopAppBar(
-            navigationIcon = { BackButton() },
-            title = { Text(stringResource(R.string.favorite_page_title)) },
-            scrollBehavior = scrollBehavior,
-            colors = CustomColors.topBarColors,
-        )
-      },
-      snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-      modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-      containerColor = CustomColors.topBarColors.containerColor,
-  ) { innerPadding ->
-    if (favorites.isEmpty()) {
-      Box(
-          modifier = Modifier.fillMaxSize().padding(innerPadding),
-          contentAlignment = Alignment.Center,
-      ) {
-        Text(
-            text = stringResource(R.string.favorite_page_no_favorites),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-        )
-      }
-      return@Scaffold
-    }
+    Scaffold(
+        topBar = {
+            LargeFlexibleTopAppBar(
+                navigationIcon = {
+                    BackButton()
+                },
+                title = {
+                    Text(stringResource(R.string.favorite_page_title))
+                },
+                scrollBehavior = scrollBehavior,
+                colors = CustomColors.topBarColors,
+            )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = CustomColors.topBarColors.containerColor,
+    ) { innerPadding ->
+        if (favorites.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.favorite_page_no_favorites),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                )
+            }
+            return@Scaffold
+        }
 
-    LazyColumn(
-        contentPadding = innerPadding + PaddingValues(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxSize(),
-    ) {
-      items(favorites, key = { it.id }) { item ->
-        SwipeableFavoriteCard(
-            item = item,
-            onClick = {
-              navigateToChatPage(navController, item.conversationId, nodeId = item.nodeId)
-            },
-            onDelete = {
-              scope.launch {
-                val entity = vm.getEntityByRefKey(item.refKey) ?: return@launch
-                vm.removeFavorite(item.refKey)
-                val result =
-                    snackbarHostState.showSnackbar(
-                        message = favoriteRemovedText,
-                        actionLabel = undoText,
-                        withDismissAction = true,
-                    )
-                if (result == SnackbarResult.ActionPerformed) {
-                  vm.restoreFavorite(entity)
-                }
-              }
-            },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).animateItem(),
-        )
-      }
+        LazyColumn(
+            contentPadding = innerPadding + PaddingValues(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            items(favorites, key = { it.id }) { item ->
+                SwipeableFavoriteCard(
+                    item = item,
+                    onClick = { navigateToChatPage(navController, item.conversationId, nodeId = item.nodeId) },
+                    onDelete = {
+                        scope.launch {
+                            val entity = vm.getEntityByRefKey(item.refKey) ?: return@launch
+                            vm.removeFavorite(item.refKey)
+                            val result = snackbarHostState.showSnackbar(
+                                message = favoriteRemovedText,
+                                actionLabel = undoText,
+                                withDismissAction = true,
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                vm.restoreFavorite(entity)
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                        .animateItem(),
+                )
+            }
+        }
     }
-  }
 }
 
 @Composable
@@ -125,46 +134,48 @@ private fun SwipeableFavoriteCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  val dismissState =
-      rememberSwipeToDismissBoxState(
-          initialValue = SwipeToDismissBoxValue.Settled,
-      )
-
-  LaunchedEffect(dismissState.currentValue) {
-    when (dismissState.currentValue) {
-      SwipeToDismissBoxValue.EndToStart -> {
-        onDelete()
-      }
-
-      else -> {}
-    }
-  }
-
-  SwipeToDismissBox(
-      state = dismissState,
-      backgroundContent = {
-        Box(
-            modifier =
-                Modifier.fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 20.dp),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-          Icon(
-              imageVector = HugeIcons.Delete01,
-              contentDescription = stringResource(R.string.assistant_page_remove),
-              tint = MaterialTheme.colorScheme.onErrorContainer,
-          )
-        }
-      },
-      enableDismissFromStartToEnd = false,
-      modifier = modifier,
-  ) {
-    FavoriteCard(
-        item = item,
-        onClick = onClick,
+    val dismissState = rememberSwipeToDismissBoxState(
+        initialValue = SwipeToDismissBoxValue.Settled,
     )
-  }
+
+    LaunchedEffect(dismissState.currentValue) {
+        when (dismissState.currentValue) {
+            SwipeToDismissBoxValue.EndToStart -> {
+                onDelete()
+            }
+
+            else -> {}
+        }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        MaterialTheme.colorScheme.errorContainer,
+                        RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Icon(
+                    imageVector = HugeIcons.Delete01,
+                    contentDescription = stringResource(R.string.assistant_page_remove),
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        },
+        enableDismissFromStartToEnd = false,
+        modifier = modifier,
+    ) {
+        FavoriteCard(
+            item = item,
+            onClick = onClick,
+        )
+    }
 }
 
 @Composable
@@ -173,40 +184,37 @@ private fun FavoriteCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  Card(
-      onClick = onClick,
-      modifier = modifier.fillMaxWidth(),
-      colors = CustomColors.cardColorsOnSurfaceContainer,
-  ) {
-    SelectionContainer {
-      Column(
-          modifier = Modifier.padding(16.dp),
-          verticalArrangement = Arrangement.spacedBy(4.dp),
-      ) {
-        Text(
-            text =
-                item.conversationTitle.ifBlank {
-                  stringResource(R.string.favorite_page_untitled_conversation)
-                },
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.titleMedium,
-        )
-        val dateText = Instant.ofEpochMilli(item.createdAt).toLocalDateTime()
-        Text(
-            text = item.preview,
-            maxLines = 4,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(
-            text = dateText,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.outline,
-        )
-      }
+    Card(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        colors = CustomColors.cardColorsOnSurfaceContainer,
+    ) {
+        SelectionContainer {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = item.conversationTitle.ifBlank { stringResource(R.string.favorite_page_untitled_conversation) },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                val dateText = Instant.ofEpochMilli(item.createdAt).toLocalDateTime()
+                Text(
+                    text = item.preview,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    text = dateText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+            }
+        }
     }
-  }
 }

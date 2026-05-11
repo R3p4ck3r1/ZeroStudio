@@ -23,9 +23,6 @@ import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
-import kotlin.coroutines.cancellation.CancellationException
-import kotlin.math.abs
-import kotlin.math.sign
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.channels.Channel
@@ -34,53 +31,53 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import me.saket.swipe.DragEvent.*
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.abs
+import kotlin.math.sign
 
 /**
  * Workaround for [269627294](https://issuetracker.google.com/issues/269627294).
  *
- * Copy of Compose UI's draggable modifier, but with an additional check to only accept horizontal
- * swipes made within 22.5°. This prevents accidental swipes while scrolling a vertical list.
+ * Copy of Compose UI's draggable modifier, but with an additional check to only accept horizontal swipes
+ * made within 22.5°. This prevents accidental swipes while scrolling a vertical list.
  */
 internal fun Modifier.horizontalDraggable(
-    state: DraggableState,
-    enabled: Boolean = true,
-    startDragImmediately: Boolean = false,
-    onDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit = {},
-    onDragStopped: suspend CoroutineScope.(velocity: Float) -> Unit = {},
-): Modifier =
-    this then
-        DraggableElement(
-            state = state,
-            enabled = enabled,
-            startDragImmediately = { startDragImmediately },
-            onDragStarted = onDragStarted,
-            onDragStopped = { velocity -> onDragStopped(velocity.x) },
-        )
+  state: DraggableState,
+  enabled: Boolean = true,
+  startDragImmediately: Boolean = false,
+  onDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit = {},
+  onDragStopped: suspend CoroutineScope.(velocity: Float) -> Unit = {},
+): Modifier = this then DraggableElement(
+  state = state,
+  enabled = enabled,
+  startDragImmediately = { startDragImmediately },
+  onDragStarted = onDragStarted,
+  onDragStopped = { velocity -> onDragStopped(velocity.x) },
+)
 
 internal data class DraggableElement(
-    private val state: DraggableState,
-    private val enabled: Boolean,
-    private val startDragImmediately: () -> Boolean,
-    private val onDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit,
-    private val onDragStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit,
+  private val state: DraggableState,
+  private val enabled: Boolean,
+  private val startDragImmediately: () -> Boolean,
+  private val onDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit,
+  private val onDragStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit,
 ) : ModifierNodeElement<DraggableNode>() {
 
-  override fun create(): DraggableNode =
-      DraggableNode(
-          state,
-          enabled,
-          startDragImmediately,
-          onDragStarted,
-          onDragStopped,
-      )
+  override fun create(): DraggableNode = DraggableNode(
+    state,
+    enabled,
+    startDragImmediately,
+    onDragStarted,
+    onDragStopped,
+  )
 
   override fun update(node: DraggableNode) {
     node.update(
-        state = state,
-        enabled = enabled,
-        startDragImmediately = startDragImmediately,
-        onDragStarted = onDragStarted,
-        onDragStopped = onDragStopped,
+      state = state,
+      enabled = enabled,
+      startDragImmediately = startDragImmediately,
+      onDragStarted = onDragStarted,
+      onDragStopped = onDragStopped,
     )
   }
 
@@ -95,11 +92,11 @@ internal data class DraggableElement(
 }
 
 internal class DraggableNode(
-    private var state: DraggableState,
-    private var enabled: Boolean,
-    private var startDragImmediately: () -> Boolean,
-    private var onDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit,
-    private var onDragStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit,
+  private var state: DraggableState,
+  private var enabled: Boolean,
+  private var startDragImmediately: () -> Boolean,
+  private var onDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit,
+  private var onDragStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit,
 ) : DelegatingNode(), PointerInputModifierNode {
 
   private val velocityTracker = VelocityTracker()
@@ -138,35 +135,32 @@ internal class DraggableNode(
       }
 
       awaitEachGesture {
-        val awaited =
-            awaitDownAndSlop(
-                startDragImmediately = startDragImmediately,
-                velocityTracker = velocityTracker,
-            )
+        val awaited = awaitDownAndSlop(
+          startDragImmediately = startDragImmediately,
+          velocityTracker = velocityTracker,
+        )
 
         if (awaited != null) {
           var isDragSuccessful = false
           try {
-            isDragSuccessful =
-                awaitDrag(
-                    startEvent = awaited.first,
-                    initialDelta = awaited.second,
-                    velocityTracker = velocityTracker,
-                    channel = channel,
-                    reverseDirection = false,
-                )
+            isDragSuccessful = awaitDrag(
+              startEvent = awaited.first,
+              initialDelta = awaited.second,
+              velocityTracker = velocityTracker,
+              channel = channel,
+              reverseDirection = false,
+            )
           } catch (cancellation: CancellationException) {
             isDragSuccessful = false
             if (!isActive) throw cancellation
           } finally {
-            val event =
-                if (isDragSuccessful) {
-                  val velocity = velocityTracker.calculateVelocity()
-                  velocityTracker.resetTracking()
-                  DragStopped(velocity)
-                } else {
-                  DragCancelled
-                }
+            val event = if (isDragSuccessful) {
+              val velocity = velocityTracker.calculateVelocity()
+              velocityTracker.resetTracking()
+              DragStopped(velocity)
+            } else {
+              DragCancelled
+            }
             channel.trySend(event)
           }
         }
@@ -178,7 +172,11 @@ internal class DraggableNode(
     delegate(pointerInputNode)
   }
 
-  override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+  override fun onPointerEvent(
+    pointerEvent: PointerEvent,
+    pass: PointerEventPass,
+    bounds: IntSize
+  ) {
     pointerInputNode.onPointerEvent(pointerEvent, pass, bounds)
   }
 
@@ -187,11 +185,11 @@ internal class DraggableNode(
   }
 
   fun update(
-      state: DraggableState,
-      enabled: Boolean,
-      startDragImmediately: () -> Boolean,
-      onDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit,
-      onDragStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit,
+    state: DraggableState,
+    enabled: Boolean,
+    startDragImmediately: () -> Boolean,
+    onDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit,
+    onDragStopped: suspend CoroutineScope.(velocity: Velocity) -> Unit,
   ) {
     var resetPointerInputHandling = false
     if (this.state != state) {
@@ -212,8 +210,8 @@ internal class DraggableNode(
 }
 
 private suspend fun AwaitPointerEventScope.awaitDownAndSlop(
-    startDragImmediately: () -> Boolean,
-    velocityTracker: VelocityTracker,
+  startDragImmediately: () -> Boolean,
+  velocityTracker: VelocityTracker,
 ): Pair<PointerInputChange, Offset>? {
   val initialDown = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
   return if (startDragImmediately()) {
@@ -226,10 +224,9 @@ private suspend fun AwaitPointerEventScope.awaitDownAndSlop(
     velocityTracker.addPointerInputChange(down)
     var initialDelta = Offset.Zero
     val postPointerSlop = { event: PointerInputChange, overSlop: Float ->
-      val isHorizontalSwipe =
-          event.positionChange().let {
-            abs(it.x) > abs(it.y * 2f) // Accept swipes made at a max. of 22.5° in either direction.
-          }
+      val isHorizontalSwipe = event.positionChange().let {
+        abs(it.x) > abs(it.y * 2f)  // Accept swipes made at a max. of 22.5° in either direction.
+      }
       if (isHorizontalSwipe) {
         velocityTracker.addPointerInputChange(event)
         event.consume()
@@ -239,28 +236,27 @@ private suspend fun AwaitPointerEventScope.awaitDownAndSlop(
       }
     }
 
-    val afterSlopResult =
-        awaitHorizontalTouchSlopOrCancellation(
-            pointerId = down.id,
-            onTouchSlopReached = postPointerSlop,
-        )
+    val afterSlopResult = awaitHorizontalTouchSlopOrCancellation(
+      pointerId = down.id,
+      onTouchSlopReached = postPointerSlop
+    )
 
     if (afterSlopResult != null) afterSlopResult to initialDelta else null
   }
 }
 
 private suspend fun AwaitPointerEventScope.awaitDrag(
-    startEvent: PointerInputChange,
-    initialDelta: Offset,
-    velocityTracker: VelocityTracker,
-    channel: SendChannel<DragEvent>,
-    reverseDirection: Boolean,
+  startEvent: PointerInputChange,
+  initialDelta: Offset,
+  velocityTracker: VelocityTracker,
+  channel: SendChannel<DragEvent>,
+  reverseDirection: Boolean,
 ): Boolean {
   val overSlopOffset = initialDelta
   val xSign = sign(startEvent.position.x)
   val ySign = sign(startEvent.position.y)
-  val adjustedStart =
-      startEvent.position - Offset(overSlopOffset.x * xSign, overSlopOffset.y * ySign)
+  val adjustedStart = startEvent.position -
+    Offset(overSlopOffset.x * xSign, overSlopOffset.y * ySign)
   channel.trySend(DragStarted(adjustedStart))
 
   channel.trySend(DragDelta(if (reverseDirection) initialDelta * -1f else initialDelta))
@@ -280,10 +276,7 @@ private suspend fun AwaitPointerEventScope.awaitDrag(
 
 private sealed class DragEvent {
   class DragStarted(val startPoint: Offset) : DragEvent()
-
   class DragStopped(val velocity: Velocity) : DragEvent()
-
   data object DragCancelled : DragEvent()
-
   class DragDelta(val delta: Offset) : DragEvent()
 }

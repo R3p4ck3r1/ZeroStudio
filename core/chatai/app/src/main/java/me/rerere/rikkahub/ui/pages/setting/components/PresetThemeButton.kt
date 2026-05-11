@@ -1,5 +1,7 @@
 package me.rerere.rikkahub.ui.pages.setting.components
 
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Tick01
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
@@ -32,8 +34,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
-import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.rikkahub.ui.theme.LocalDarkMode
 import me.rerere.rikkahub.ui.theme.PresetTheme
 import me.rerere.rikkahub.ui.theme.PresetThemes
@@ -43,57 +43,76 @@ fun PresetThemeButton(
     theme: PresetTheme,
     selected: Boolean,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit,
+    onClick: () -> Unit
 ) {
-  val darkMode = LocalDarkMode.current
-  val scheme = theme.getColorScheme(darkMode)
+    val darkMode = LocalDarkMode.current
+    val scheme = theme.getColorScheme(darkMode)
 
-  Column(
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(4.dp),
-      modifier =
-          modifier
-              .clip(RoundedCornerShape(16.dp))
-              .clickable(
-                  interactionSource = remember { MutableInteractionSource() },
-                  indication = LocalIndication.current,
-                  onClick = { onClick() },
-              )
-              .padding(8.dp),
-  ) {
-    Box(
-        contentAlignment = Alignment.Center,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = LocalIndication.current,
+                onClick = {
+                    onClick()
+                }
+            )
+            .padding(8.dp),
     ) {
-      Canvas(modifier = Modifier.clip(CircleShape).size(48.dp)) {
-        drawRect(color = scheme.primaryContainer, size = size)
-        drawRect(
-            color = scheme.secondaryContainer,
-            size = size,
-            topLeft = Offset(x = size.width / 2, y = 0f),
-        )
-        drawRect(
-            color = scheme.tertiaryContainer,
-            size = size,
-            topLeft = Offset(x = size.width / 2, y = size.height / 2),
-        )
-        drawCircle(
-            color = scheme.primary,
-            radius = if (selected) 12.dp.toPx() else 8.dp.toPx(),
-            center = Offset(x = size.width / 2, y = size.height / 2),
-        )
-      }
-      if (selected) {
-        Icon(
-            HugeIcons.Tick01,
-            contentDescription = null,
-            tint = scheme.contentColorFor(scheme.onPrimary),
-        )
-      }
+        Box(
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .size(48.dp)
+            ) {
+                drawRect(
+                    color = scheme.primaryContainer,
+                    size = size
+                )
+                drawRect(
+                    color = scheme.secondaryContainer,
+                    size = size,
+                    topLeft = Offset(
+                        x = size.width / 2,
+                        y = 0f
+                    ),
+                )
+                drawRect(
+                    color = scheme.tertiaryContainer,
+                    size = size,
+                    topLeft = Offset(
+                        x = size.width / 2,
+                        y = size.height / 2
+                    ),
+                )
+                drawCircle(
+                    color = scheme.primary,
+                    radius = if (selected) 12.dp.toPx() else 8.dp.toPx(),
+                    center = Offset(
+                        x = size.width / 2,
+                        y = size.height / 2
+                    )
+                )
+            }
+            if (selected) {
+                Icon(
+                    HugeIcons.Tick01,
+                    contentDescription = null,
+                    tint = scheme.contentColorFor(scheme.onPrimary)
+                )
+            }
+        }
+        ProvideTextStyle(
+            value = MaterialTheme.typography.labelMedium.copy(color = scheme.primary)
+        ) {
+            theme.name()
+        }
     }
-    ProvideTextStyle(value = MaterialTheme.typography.labelMedium.copy(color = scheme.primary)) {
-      theme.name()
-    }
-  }
 }
 
 @Composable
@@ -102,31 +121,38 @@ fun PresetThemeButtonGroup(
     modifier: Modifier = Modifier,
     onChangeTheme: (String) -> Unit,
 ) {
-  Column(
-      modifier = modifier.padding(12.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp),
-      horizontalAlignment = Alignment.CenterHorizontally,
-  ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.SpaceAround,
+    Column(
+        modifier = modifier.padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-      PresetThemes.fastForEach { theme ->
-        key(theme.id) {
-          PresetThemeButton(
-              theme = theme,
-              selected = theme.id == themeId,
-              onClick = { onChangeTheme(theme.id) },
-          )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.SpaceAround,
+        ) {
+            PresetThemes.fastForEach { theme ->
+                key(theme.id) {
+                    PresetThemeButton(
+                        theme = theme,
+                        selected = theme.id == themeId,
+                        onClick = {
+                            onChangeTheme(theme.id)
+                        },
+                    )
+                }
+            }
         }
-      }
     }
-  }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun PresetThemeButtonPreview() {
-  var themeId by remember { mutableStateOf("ocean") }
-  PresetThemeButtonGroup(themeId = themeId, onChangeTheme = { themeId = it })
+    var themeId by remember { mutableStateOf("ocean") }
+    PresetThemeButtonGroup(
+        themeId = themeId,
+        onChangeTheme = { themeId = it }
+    )
 }

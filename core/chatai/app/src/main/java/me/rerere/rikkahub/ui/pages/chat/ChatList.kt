@@ -1,5 +1,14 @@
 package me.rerere.rikkahub.ui.pages.chat
 
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Tick01
+import me.rerere.hugeicons.stroke.ArrowDown01
+import me.rerere.hugeicons.stroke.ArrowUp01
+import me.rerere.hugeicons.stroke.ArrowDownDouble
+import me.rerere.hugeicons.stroke.ArrowUpDouble
+import me.rerere.hugeicons.stroke.CursorPointer01
+import me.rerere.hugeicons.stroke.Search01
+import me.rerere.hugeicons.stroke.Cancel01
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -14,7 +23,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -46,7 +54,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -60,6 +67,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -75,21 +84,10 @@ import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.zIndex
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import kotlin.math.roundToInt
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.rerere.ai.ui.UIMessage
-import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.ArrowDown01
-import me.rerere.hugeicons.stroke.ArrowDownDouble
-import me.rerere.hugeicons.stroke.ArrowUp01
-import me.rerere.hugeicons.stroke.ArrowUpDouble
-import me.rerere.hugeicons.stroke.Cancel01
-import me.rerere.hugeicons.stroke.CursorPointer01
-import me.rerere.hugeicons.stroke.Search01
-import me.rerere.hugeicons.stroke.Tick01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.findModelById
@@ -104,6 +102,8 @@ import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 import me.rerere.rikkahub.ui.components.ui.Tooltip
 import me.rerere.rikkahub.ui.hooks.ImeLazyListAutoScroller
 import me.rerere.rikkahub.utils.plus
+import kotlin.math.roundToInt
+import kotlin.uuid.Uuid
 
 private const val TAG = "ChatList"
 private const val LoadingIndicatorKey = "LoadingIndicator"
@@ -115,6 +115,7 @@ fun ChatList(
     conversation: Conversation,
     state: LazyListState,
     loading: Boolean,
+    processingStatus: String? = null,
     previewMode: Boolean,
     settings: Settings,
     hazeState: HazeState,
@@ -134,49 +135,49 @@ fun ChatList(
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     onToggleFavorite: ((MessageNode) -> Unit)? = null,
 ) {
-  AnimatedContent(
-      targetState = previewMode,
-      label = "ChatListMode",
-      transitionSpec = {
-        (fadeIn() + scaleIn(initialScale = 0.8f) togetherWith
-            fadeOut() + scaleOut(targetScale = 0.8f))
-      },
-  ) { target ->
-    if (target) {
-      ChatListPreview(
-          innerPadding = innerPadding,
-          conversation = conversation,
-          settings = settings,
-          hazeState = hazeState,
-          onJumpToMessage = onJumpToMessage,
-          animatedVisibilityScope = this@AnimatedContent,
-      )
-    } else {
-      ChatListNormal(
-          innerPadding = innerPadding,
-          conversation = conversation,
-          state = state,
-          loading = loading,
-          settings = settings,
-          hazeState = hazeState,
-          errors = errors,
-          onDismissError = onDismissError,
-          onClearAllErrors = onClearAllErrors,
-          onRegenerate = onRegenerate,
-          onEdit = onEdit,
-          onForkMessage = onForkMessage,
-          onDelete = onDelete,
-          onUpdateMessage = onUpdateMessage,
-          onClickSuggestion = onClickSuggestion,
-          onTranslate = onTranslate,
-          onClearTranslation = onClearTranslation,
-          animatedVisibilityScope = this@AnimatedContent,
-          onToolApproval = onToolApproval,
-          onToolAnswer = onToolAnswer,
-          onToggleFavorite = onToggleFavorite,
-      )
+    AnimatedContent(
+        targetState = previewMode,
+        label = "ChatListMode",
+        transitionSpec = {
+            (fadeIn() + scaleIn(initialScale = 0.8f) togetherWith fadeOut() + scaleOut(targetScale = 0.8f))
+        }
+    ) { target ->
+        if (target) {
+            ChatListPreview(
+                innerPadding = innerPadding,
+                conversation = conversation,
+                settings = settings,
+                hazeState = hazeState,
+                onJumpToMessage = onJumpToMessage,
+                animatedVisibilityScope = this@AnimatedContent,
+            )
+        } else {
+            ChatListNormal(
+                innerPadding = innerPadding,
+                conversation = conversation,
+                state = state,
+                loading = loading,
+                processingStatus = processingStatus,
+                settings = settings,
+                hazeState = hazeState,
+                errors = errors,
+                onDismissError = onDismissError,
+                onClearAllErrors = onClearAllErrors,
+                onRegenerate = onRegenerate,
+                onEdit = onEdit,
+                onForkMessage = onForkMessage,
+                onDelete = onDelete,
+                onUpdateMessage = onUpdateMessage,
+                onClickSuggestion = onClickSuggestion,
+                onTranslate = onTranslate,
+                onClearTranslation = onClearTranslation,
+                animatedVisibilityScope = this@AnimatedContent,
+                onToolApproval = onToolApproval,
+                onToolAnswer = onToolAnswer,
+                onToggleFavorite = onToggleFavorite,
+            )
+        }
     }
-  }
 }
 
 @Composable
@@ -185,6 +186,7 @@ private fun ChatListNormal(
     conversation: Conversation,
     state: LazyListState,
     loading: Boolean,
+    processingStatus: String? = null,
     settings: Settings,
     hazeState: HazeState,
     errors: List<ChatError>,
@@ -203,316 +205,368 @@ private fun ChatListNormal(
     onToolAnswer: ((toolCallId: String, answer: String) -> Unit)? = null,
     onToggleFavorite: ((MessageNode) -> Unit)? = null,
 ) {
-  val scope = rememberCoroutineScope()
-  val loadingState by rememberUpdatedState(loading)
-  var isRecentScroll by remember { mutableStateOf(false) }
-  val conversationUpdated by rememberUpdatedState(conversation)
-  val density = LocalDensity.current
-  val activity = LocalContext.current as? me.rerere.rikkahub.RouteActivity
+    val scope = rememberCoroutineScope()
+    val loadingState by rememberUpdatedState(loading)
+    var isRecentScroll by remember { mutableStateOf(false) }
+    val conversationUpdated by rememberUpdatedState(conversation)
+    val density = LocalDensity.current
+    val activity = LocalContext.current as? me.rerere.rikkahub.RouteActivity
 
-  DisposableEffect(Unit) {
-    val listener: (Boolean) -> Boolean = { isVolumeUp ->
-      if (settings.displaySetting.enableVolumeKeyScroll) {
-        val bottomPaddingPx =
-            with(density) { (32.dp + innerPadding.calculateBottomPadding()).toPx() }
-        val scrollAmount =
-            (state.layoutInfo.viewportSize.height - bottomPaddingPx) *
-                settings.displaySetting.volumeKeyScrollRatio
-        scope.launch { state.scrollBy(if (isVolumeUp) -scrollAmount else scrollAmount) }
-        true
-      } else false
-    }
-    activity?.volumeKeyListeners?.add(listener)
-    onDispose { activity?.volumeKeyListeners?.remove(listener) }
-  }
-
-  fun List<LazyListItemInfo>.isAtBottom(): Boolean {
-    val lastItem = lastOrNull() ?: return false
-    val inputBarHeight = with(density) { innerPadding.calculateBottomPadding().toPx() }
-    val lastPos = lastItem.offset + lastItem.size
-    val inputPos = (state.layoutInfo.viewportEndOffset - inputBarHeight.roundToInt())
-    // println("lastPos = $lastPos, inputPos = $inputPos  | ${lastPos <= inputPos - 8}")
-    return lastPos <= inputPos - 8
-  }
-
-  // 聊天选择
-  val selectedItems = remember { mutableStateListOf<Uuid>() }
-  var selecting by remember { mutableStateOf(false) }
-  var showExportSheet by remember { mutableStateOf(false) }
-
-  // 自动跟随键盘滚动
-  ImeLazyListAutoScroller(lazyListState = state)
-
-  // 对话大小警告对话框
-  val sizeInfo = rememberConversationSizeInfo(conversation)
-  var showSizeWarningDialog by rememberSaveable(conversation.id) { mutableStateOf(true) }
-  if (sizeInfo.showWarning && showSizeWarningDialog) {
-    ConversationSizeWarningDialog(
-        sizeInfo = sizeInfo,
-        onDismiss = { showSizeWarningDialog = false },
-    )
-  }
-
-  Box(
-      modifier = Modifier.fillMaxSize(),
-  ) {
-    // 自动滚动到底部
-    if (settings.displaySetting.enableAutoScroll) {
-      LaunchedEffect(state) {
-        snapshotFlow { state.layoutInfo.visibleItemsInfo }
-            .collect { visibleItemsInfo ->
-              // println("is bottom = ${visibleItemsInfo.isAtBottom()}, scroll =
-              // ${state.isScrollInProgress}, can_scroll = ${state.canScrollForward}, loading =
-              // $loading")
-              if (!state.isScrollInProgress && loadingState) {
-                if (visibleItemsInfo.isAtBottom()) {
-                  state.requestScrollToItem(conversationUpdated.messageNodes.lastIndex + 10)
-                  // Log.i(TAG, "ChatList: scroll to ${conversationUpdated.messageNodes.lastIndex}")
+    DisposableEffect(Unit) {
+        val listener: (Boolean) -> Boolean = { isVolumeUp ->
+            if (settings.displaySetting.enableVolumeKeyScroll) {
+                val bottomPaddingPx = with(density) {
+                    (32.dp + innerPadding.calculateBottomPadding()).toPx()
                 }
-              }
-            }
-      }
+                val scrollAmount = (state.layoutInfo.viewportSize.height - bottomPaddingPx) *
+                    settings.displaySetting.volumeKeyScrollRatio
+                scope.launch { state.scrollBy(if (isVolumeUp) -scrollAmount else scrollAmount) }
+                true
+            } else false
+        }
+        activity?.volumeKeyListeners?.add(listener)
+        onDispose {
+            activity?.volumeKeyListeners?.remove(listener)
+        }
     }
 
-    // 判断最近是否滚动
-    LaunchedEffect(state.isScrollInProgress) {
-      if (state.isScrollInProgress) {
-        isRecentScroll = true
-        delay(1500)
-        isRecentScroll = false
-      } else {
-        delay(1500)
-        isRecentScroll = false
-      }
+    fun List<LazyListItemInfo>.isAtBottom(): Boolean {
+        val lastItem = lastOrNull() ?: return false
+        val inputBarHeight = with(density) { innerPadding.calculateBottomPadding().toPx() }
+        val lastPos = lastItem.offset + lastItem.size
+        val inputPos = (state.layoutInfo.viewportEndOffset - inputBarHeight.roundToInt())
+        // println("lastPos = $lastPos, inputPos = $inputPos  | ${lastPos <= inputPos - 8}")
+        return lastPos <= inputPos - 8
     }
 
-    LazyColumn(
-        state = state,
-        contentPadding =
-            PaddingValues(16.dp) +
-                PaddingValues(bottom = 32.dp + innerPadding.calculateBottomPadding()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier =
-            Modifier.fillMaxSize()
-                .hazeSource(state = hazeState)
-                .padding(top = innerPadding.calculateTopPadding()),
-    ) {
-      itemsIndexed(
-          items = conversation.messageNodes,
-          key = { index, item -> item.id },
-      ) { index, node ->
-        Column {
-          ListSelectableItem(
-              key = node.id,
-              onSelectChange = {
-                if (!selectedItems.contains(node.id)) {
-                  selectedItems.add(node.id)
-                } else {
-                  selectedItems.remove(node.id)
-                }
-              },
-              selectedKeys = selectedItems,
-              enabled = selecting,
-          ) {
-            ChatMessage(
-                node = node,
-                model = node.currentMessage.modelId?.let { settings.findModelById(it) },
-                assistant = settings.getAssistantById(conversation.assistantId),
-                loading = loading && index == conversation.messageNodes.lastIndex,
-                onRegenerate = { onRegenerate(node.currentMessage) },
-                onEdit = { onEdit(node.currentMessage) },
-                onFork = { onForkMessage(node.currentMessage) },
-                onDelete = { onDelete(node.currentMessage) },
-                onShare = {
-                  selecting = true // 使用 CoroutineScope 延迟状态更新
-                  selectedItems.clear()
-                  selectedItems.addAll(
-                      conversation.messageNodes
-                          .map { it.id }
-                          .subList(0, conversation.messageNodes.indexOf(node) + 1)
-                  )
-                },
-                onUpdate = { onUpdateMessage(it) },
-                isFavorite = node.isFavorite,
-                onToggleFavorite = { onToggleFavorite?.invoke(node) },
-                onTranslate = onTranslate,
-                onClearTranslation = onClearTranslation,
-                onToolApproval = onToolApproval,
-                onToolAnswer = onToolAnswer,
-                lastMessage = index == conversation.messageNodes.lastIndex,
-            )
-          }
-        }
-      }
+    // 聊天选择
+    val selectedItems = remember { mutableStateListOf<Uuid>() }
+    var selecting by remember { mutableStateOf(false) }
+    var showExportSheet by remember { mutableStateOf(false) }
 
-      if (loading) {
-        item(LoadingIndicatorKey) {
-          RabbitLoadingIndicator(modifier = Modifier.padding(8.dp).size(28.dp))
-        }
-      }
+    // 自动跟随键盘滚动
+    ImeLazyListAutoScroller(lazyListState = state)
 
-      // 为了能正确滚动到这
-      item(ScrollBottomKey) { Spacer(Modifier.fillMaxWidth().height(5.dp)) }
+    // 对话大小警告对话框
+    val sizeInfo = rememberConversationSizeInfo(conversation)
+    var showSizeWarningDialog by rememberSaveable(conversation.id) { mutableStateOf(true) }
+    if (sizeInfo.showWarning && showSizeWarningDialog) {
+        ConversationSizeWarningDialog(
+            sizeInfo = sizeInfo,
+            onDismiss = { showSizeWarningDialog = false }
+        )
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().padding(innerPadding),
+        modifier = Modifier
+            .fillMaxSize(),
     ) {
-      // 错误消息卡片
-      ErrorCardsDisplay(
-          errors = errors,
-          onDismissError = onDismissError,
-          onClearAllErrors = onClearAllErrors,
-          modifier = Modifier.align(Alignment.BottomCenter).zIndex(5f),
-      )
-
-      // 完成选择
-      AnimatedVisibility(
-          visible = selecting,
-          modifier = Modifier.align(Alignment.BottomCenter).offset(y = -(48).dp),
-          enter =
-              slideInVertically(
-                  initialOffsetY = { it * 2 },
-              ),
-          exit =
-              slideOutVertically(
-                  targetOffsetY = { it * 2 },
-              ),
-      ) {
-        HorizontalFloatingToolbar(
-            expanded = true,
-        ) {
-          Tooltip(tooltip = { Text("Clear selection") }) {
-            IconButton(
-                onClick = {
-                  selecting = false
-                  selectedItems.clear()
+        // 自动滚动到底部
+        if (settings.displaySetting.enableAutoScroll) {
+            LaunchedEffect(state) {
+                snapshotFlow { state.layoutInfo.visibleItemsInfo }.collect { visibleItemsInfo ->
+                    // println("is bottom = ${visibleItemsInfo.isAtBottom()}, scroll = ${state.isScrollInProgress}, can_scroll = ${state.canScrollForward}, loading = $loading")
+                    if (!state.isScrollInProgress && loadingState) {
+                        if (visibleItemsInfo.isAtBottom()) {
+                            state.requestScrollToItem(conversationUpdated.messageNodes.lastIndex + 10)
+                            // Log.i(TAG, "ChatList: scroll to ${conversationUpdated.messageNodes.lastIndex}")
+                        }
+                    }
                 }
-            ) {
-              Icon(HugeIcons.Cancel01, null)
             }
-          }
-          Tooltip(tooltip = { Text("Select all") }) {
-            IconButton(
-                onClick = {
-                  if (selectedItems.isNotEmpty()) {
-                    selectedItems.clear()
-                  } else {
-                    selectedItems.addAll(conversation.messageNodes.map { it.id })
-                  }
-                }
-            ) {
-              Icon(HugeIcons.CursorPointer01, null)
-            }
-          }
-          Tooltip(tooltip = { Text("Confirm") }) {
-            FilledIconButton(
-                onClick = {
-                  selecting = false
-                  val messages = conversation.messageNodes.filter { it.id in selectedItems }
-                  if (messages.isNotEmpty()) {
-                    showExportSheet = true
-                  }
-                }
-            ) {
-              Icon(HugeIcons.Tick01, null)
-            }
-          }
         }
-      }
 
-      // 导出对话框
-      ChatExportSheet(
-          visible = showExportSheet,
-          onDismissRequest = {
-            showExportSheet = false
-            selectedItems.clear()
-          },
-          conversation = conversation,
-          selectedMessages =
-              conversation.messageNodes.filter { it.id in selectedItems }.map { it.currentMessage },
-      )
+        // 判断最近是否滚动
+        LaunchedEffect(state.isScrollInProgress) {
+            if (state.isScrollInProgress) {
+                isRecentScroll = true
+                delay(1500)
+                isRecentScroll = false
+            } else {
+                delay(1500)
+                isRecentScroll = false
+            }
+        }
 
-      val captureProgress = LocalScrollCaptureInProgress.current
+        LazyColumn(
+            state = state,
+            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 32.dp + innerPadding.calculateBottomPadding()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(state = hazeState)
+                .padding(top = innerPadding.calculateTopPadding()),
+        ) {
+            itemsIndexed(
+                items = conversation.messageNodes,
+                key = { index, item -> item.id },
+            ) { index, node ->
+                Column {
+                    ListSelectableItem(
+                        key = node.id,
+                        onSelectChange = {
+                            if (!selectedItems.contains(node.id)) {
+                                selectedItems.add(node.id)
+                            } else {
+                                selectedItems.remove(node.id)
+                            }
+                        },
+                        selectedKeys = selectedItems,
+                        enabled = selecting,
+                    ) {
+                        ChatMessage(
+                            node = node,
+                            model = node.currentMessage.modelId?.let { settings.findModelById(it) },
+                            assistant = settings.getAssistantById(conversation.assistantId),
+                            loading = loading && index == conversation.messageNodes.lastIndex,
+                            onRegenerate = {
+                                onRegenerate(node.currentMessage)
+                            },
+                            onEdit = {
+                                onEdit(node.currentMessage)
+                            },
+                            onFork = {
+                                onForkMessage(node.currentMessage)
+                            },
+                            onDelete = {
+                                onDelete(node.currentMessage)
+                            },
+                            onShare = {
+                                selecting = true  // 使用 CoroutineScope 延迟状态更新
+                                selectedItems.clear()
+                                selectedItems.addAll(conversation.messageNodes.map { it.id }
+                                    .subList(0, conversation.messageNodes.indexOf(node) + 1))
+                            },
+                            onUpdate = {
+                                onUpdateMessage(it)
+                            },
+                            isFavorite = node.isFavorite,
+                            onToggleFavorite = {
+                                onToggleFavorite?.invoke(node)
+                            },
+                            onTranslate = onTranslate,
+                            onClearTranslation = onClearTranslation,
+                            onToolApproval = onToolApproval,
+                            onToolAnswer = onToolAnswer,
+                            lastMessage = index == conversation.messageNodes.lastIndex,
+                        )
+                    }
+                }
+            }
 
-      // 消息快速跳转
-      MessageJumper(
-          show =
-              isRecentScroll &&
-                  !state.isScrollInProgress &&
-                  settings.displaySetting.showMessageJumper &&
-                  !captureProgress,
-          onLeft = settings.displaySetting.messageJumperOnLeft,
-          scope = scope,
-          state = state,
-      )
+            if (loading) {
+                item(LoadingIndicatorKey) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        RabbitLoadingIndicator(
+                            modifier = Modifier.size(28.dp)
+                        )
+                        AnimatedVisibility(
+                            visible = processingStatus != null,
+                        ) {
+                            Text(
+                                text = processingStatus ?: "",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
 
-      // Suggestion
-      if (conversation.chatSuggestions.isNotEmpty() && !captureProgress) {
-        ChatSuggestionsRow(
-            conversation = conversation,
-            onClickSuggestion = onClickSuggestion,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
-      }
+            // 为了能正确滚动到这
+            item(ScrollBottomKey) {
+                Spacer(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(5.dp)
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            // 错误消息卡片
+            ErrorCardsDisplay(
+                errors = errors,
+                onDismissError = onDismissError,
+                onClearAllErrors = onClearAllErrors,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .zIndex(5f)
+            )
+
+            // 完成选择
+            AnimatedVisibility(
+                visible = selecting,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = -(48).dp),
+                enter = slideInVertically(
+                    initialOffsetY = { it * 2 },
+                ),
+                exit = slideOutVertically(
+                    targetOffsetY = { it * 2 },
+                ),
+            ) {
+                HorizontalFloatingToolbar(
+                    expanded = true,
+                ) {
+                    Tooltip(
+                        tooltip = {
+                            Text("Clear selection")
+                        }
+                    ) {
+                        IconButton(
+                            onClick = {
+                                selecting = false
+                                selectedItems.clear()
+                            }
+                        ) {
+                            Icon(HugeIcons.Cancel01, null)
+                        }
+                    }
+                    Tooltip(
+                        tooltip = {
+                            Text("Select all")
+                        }
+                    ) {
+                        IconButton(
+                            onClick = {
+                                if (selectedItems.isNotEmpty()) {
+                                    selectedItems.clear()
+                                } else {
+                                    selectedItems.addAll(conversation.messageNodes.map { it.id })
+                                }
+                            }
+                        ) {
+                            Icon(HugeIcons.CursorPointer01, null)
+                        }
+                    }
+                    Tooltip(
+                        tooltip = {
+                            Text("Confirm")
+                        }
+                    ) {
+                        FilledIconButton(
+                            onClick = {
+                                selecting = false
+                                val messages = conversation.messageNodes.filter { it.id in selectedItems }
+                                if (messages.isNotEmpty()) {
+                                    showExportSheet = true
+                                }
+                            }
+                        ) {
+                            Icon(HugeIcons.Tick01, null)
+                        }
+                    }
+                }
+            }
+
+            // 导出对话框
+            ChatExportSheet(
+                visible = showExportSheet,
+                onDismissRequest = {
+                    showExportSheet = false
+                    selectedItems.clear()
+                },
+                conversation = conversation,
+                selectedMessages = conversation.messageNodes.filter { it.id in selectedItems }
+                    .map { it.currentMessage }
+            )
+
+            val captureProgress = LocalScrollCaptureInProgress.current
+
+            // 消息快速跳转
+            MessageJumper(
+                show = isRecentScroll && !state.isScrollInProgress && settings.displaySetting.showMessageJumper && !captureProgress,
+                onLeft = settings.displaySetting.messageJumperOnLeft,
+                scope = scope,
+                state = state
+            )
+
+            // Suggestion
+            if (conversation.chatSuggestions.isNotEmpty() && !captureProgress) {
+                ChatSuggestionsRow(
+                    conversation = conversation,
+                    onClickSuggestion = onClickSuggestion,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+        }
     }
-  }
 }
 
-/** 提取包含搜索词的文本片段，确保匹配词在开头可见 */
-private fun extractMatchingSnippet(text: String, query: String): String {
-  if (query.isBlank()) {
-    return text
-  }
+/**
+ * 提取包含搜索词的文本片段，确保匹配词在开头可见
+ */
+private fun extractMatchingSnippet(
+    text: String,
+    query: String
+): String {
+    if (query.isBlank()) {
+        return text
+    }
 
-  val matchIndex = text.indexOf(query, ignoreCase = true)
-  if (matchIndex == -1) {
-    return text
-  }
+    val matchIndex = text.indexOf(query, ignoreCase = true)
+    if (matchIndex == -1) {
+        return text
+    }
 
-  // 直接从匹配词开始显示，确保匹配词在最前面
-  val snippet = text.substring(matchIndex)
+    // 直接从匹配词开始显示，确保匹配词在最前面
+    val snippet = text.substring(matchIndex)
 
-  // 只在前面有内容时添加省略号
-  return if (matchIndex > 0) {
-    "...$snippet"
-  } else {
-    snippet
-  }
+    // 只在前面有内容时添加省略号
+    return if (matchIndex > 0) {
+        "...$snippet"
+    } else {
+        snippet
+    }
 }
 
 private fun buildHighlightedText(
     text: String,
     query: String,
-    highlightColor: Color,
+    highlightColor: Color
 ): AnnotatedString {
-  if (query.isBlank()) {
-    return AnnotatedString(text)
-  }
-
-  return buildAnnotatedString {
-    var startIndex = 0
-    var index = text.indexOf(query, startIndex, ignoreCase = true)
-
-    while (index >= 0) {
-      // 添加高亮前的文本
-      append(text.substring(startIndex, index))
-
-      // 添加高亮文本
-      withStyle(style = SpanStyle(background = highlightColor, color = Color.Black)) {
-        append(text.substring(index, index + query.length))
-      }
-
-      startIndex = index + query.length
-      index = text.indexOf(query, startIndex, ignoreCase = true)
+    if (query.isBlank()) {
+        return AnnotatedString(text)
     }
 
-    // 添加剩余文本
-    if (startIndex < text.length) {
-      append(text.substring(startIndex))
+    return buildAnnotatedString {
+        var startIndex = 0
+        var index = text.indexOf(query, startIndex, ignoreCase = true)
+
+        while (index >= 0) {
+            // 添加高亮前的文本
+            append(text.substring(startIndex, index))
+
+            // 添加高亮文本
+            withStyle(
+                style = SpanStyle(
+                    background = highlightColor,
+                    color = Color.Black
+                )
+            ) {
+                append(text.substring(index, index + query.length))
+            }
+
+            startIndex = index + query.length
+            index = text.indexOf(query, startIndex, ignoreCase = true)
+        }
+
+        // 添加剩余文本
+        if (startIndex < text.length) {
+            append(text.substring(startIndex))
+        }
     }
-  }
 }
 
 @Composable
@@ -522,137 +576,148 @@ private fun ChatListPreview(
     settings: Settings,
     hazeState: HazeState,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    onJumpToMessage: (Int) -> Unit,
+    onJumpToMessage: (Int) -> Unit
 ) {
-  var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
 
-  // 过滤消息，同时保留原始 index 避免后续 O(n) indexOf 查找
-  val filteredMessages =
-      remember(conversation.messageNodes, searchQuery) {
+    // 过滤消息，同时保留原始 index 避免后续 O(n) indexOf 查找
+    val filteredMessages = remember(conversation.messageNodes, searchQuery) {
         if (searchQuery.isBlank()) {
-          conversation.messageNodes.mapIndexed { index, node -> index to node }
+            conversation.messageNodes.mapIndexed { index, node -> index to node }
         } else {
-          conversation.messageNodes
-              .mapIndexed { index, node -> index to node }
-              .filter { (_, node) ->
-                node.currentMessage.toText().contains(searchQuery, ignoreCase = true)
-              }
+            conversation.messageNodes.mapIndexed { index, node -> index to node }
+                .filter { (_, node) -> node.currentMessage.toText().contains(searchQuery, ignoreCase = true) }
         }
-      }
-
-  Column(
-      modifier = Modifier.padding(top = innerPadding.calculateTopPadding()).fillMaxSize(),
-  ) {
-    // 搜索框
-    OutlinedTextField(
-        value = searchQuery,
-        onValueChange = { searchQuery = it },
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        placeholder = { Text(stringResource(R.string.history_page_search)) },
-        leadingIcon = {
-          Icon(
-              imageVector = HugeIcons.Search01,
-              contentDescription = null,
-              modifier = Modifier.size(20.dp),
-          )
-        },
-        trailingIcon = {
-          if (searchQuery.isNotEmpty()) {
-            IconButton(onClick = { searchQuery = "" }) {
-              Icon(
-                  imageVector = HugeIcons.Cancel01,
-                  contentDescription = "Clear",
-                  modifier = Modifier.size(20.dp),
-              )
-            }
-          }
-        },
-        singleLine = true,
-        shape = CircleShape,
-        maxLines = 1,
-    )
-
-    // 消息预览
-    LazyColumn(
-        contentPadding =
-            PaddingValues(16.dp) +
-                PaddingValues(bottom = 32.dp + innerPadding.calculateBottomPadding()),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth().weight(1f),
-    ) {
-      itemsIndexed(
-          items = filteredMessages,
-          key = { index, item -> item.second.id },
-      ) { _, (originalIndex, node) ->
-        val message = node.currentMessage
-        val isUser = message.role == me.rerere.ai.core.MessageRole.USER
-        Column(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .then(if (!isUser) Modifier.padding(end = 24.dp) else Modifier),
-            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
-        ) {
-          Surface(
-              shape = MaterialTheme.shapes.medium,
-              color =
-                  if (isUser) MaterialTheme.colorScheme.primaryContainer
-                  else MaterialTheme.colorScheme.secondaryContainer,
-          ) {
-            Row(
-                modifier =
-                    Modifier.clickable { onJumpToMessage(originalIndex) }
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-              val highlightColor = MaterialTheme.colorScheme.tertiaryContainer
-              val highlightedText =
-                  remember(searchQuery, message) {
-                    val fullText = message.toText().trim().ifBlank { "[...]" }
-                    val messageText = extractMatchingSnippet(text = fullText, query = searchQuery)
-                    buildHighlightedText(
-                        text = messageText,
-                        query = searchQuery,
-                        highlightColor = highlightColor,
-                    )
-                  }
-              Text(
-                  text = highlightedText,
-                  style = MaterialTheme.typography.bodyMedium,
-                  maxLines = 1,
-                  overflow = TextOverflow.Ellipsis,
-              )
-            }
-          }
-        }
-      }
     }
-  }
+
+    Column(
+        modifier = Modifier
+            .padding(top = innerPadding.calculateTopPadding())
+            .fillMaxSize(),
+    ) {
+        // 搜索框
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            placeholder = { Text(stringResource(R.string.history_page_search)) },
+            leadingIcon = {
+                Icon(
+                    imageVector = HugeIcons.Search01,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(
+                            imageVector = HugeIcons.Cancel01,
+                            contentDescription = "Clear",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            },
+            singleLine = true,
+            shape = CircleShape,
+            maxLines = 1,
+        )
+
+        // 消息预览
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp) + PaddingValues(bottom = 32.dp + innerPadding.calculateBottomPadding()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        ) {
+            itemsIndexed(
+                items = filteredMessages,
+                key = { index, item -> item.second.id },
+            ) { _, (originalIndex, node) ->
+                val message = node.currentMessage
+                val isUser = message.role == me.rerere.ai.core.MessageRole.USER
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (!isUser) Modifier.padding(end = 24.dp) else Modifier
+                        ),
+                    horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+                ) {
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .clickable {
+                                    onJumpToMessage(originalIndex)
+                                }
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val highlightColor = MaterialTheme.colorScheme.tertiaryContainer
+                            val highlightedText = remember(searchQuery, message) {
+                                val fullText = message.toText().trim().ifBlank { "[...]" }
+                                val messageText = extractMatchingSnippet(
+                                    text = fullText,
+                                    query = searchQuery
+                                )
+                                buildHighlightedText(
+                                    text = messageText,
+                                    query = searchQuery,
+                                    highlightColor = highlightColor
+                                )
+                            }
+                            Text(
+                                text = highlightedText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 private fun ChatSuggestionsRow(
     modifier: Modifier = Modifier,
     conversation: Conversation,
-    onClickSuggestion: (String) -> Unit,
+    onClickSuggestion: (String) -> Unit
 ) {
-  LazyRow(
-      modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    items(conversation.chatSuggestions) { suggestion ->
-      Box(
-          modifier =
-              Modifier.clip(RoundedCornerShape(50))
-                  .clickable { onClickSuggestion(suggestion) }
-                  .background(MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp))
-                  .padding(vertical = 4.dp, horizontal = 8.dp),
-      ) {
-        Text(text = suggestion, style = MaterialTheme.typography.bodySmall)
-      }
+    LazyRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        items(conversation.chatSuggestions) { suggestion ->
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .clickable {
+                        onClickSuggestion(suggestion)
+                    }
+                    .background(MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp))
+                    .padding(vertical = 4.dp, horizontal = 8.dp),
+            ) {
+                Text(
+                    text = suggestion,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
     }
-  }
 }
 
 @Composable
@@ -660,71 +725,100 @@ private fun BoxScope.MessageJumper(
     show: Boolean,
     onLeft: Boolean,
     scope: CoroutineScope,
-    state: LazyListState,
+    state: LazyListState
 ) {
-  AnimatedVisibility(
-      visible = show,
-      modifier = Modifier.align(if (onLeft) Alignment.CenterStart else Alignment.CenterEnd),
-      enter =
-          slideInHorizontally(
-              initialOffsetX = { if (onLeft) -it * 2 else it * 2 },
-          ),
-      exit =
-          slideOutHorizontally(
-              targetOffsetX = { if (onLeft) -it * 2 else it * 2 },
-          ),
-  ) {
-    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      Surface(
-          onClick = { scope.launch { state.scrollToItem(0) } },
-          shape = CircleShape,
-          tonalElevation = 4.dp,
-          color = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp).copy(alpha = 0.65f),
-      ) {
-        Icon(
-            imageVector = HugeIcons.ArrowUpDouble,
-            contentDescription = null,
-            modifier = Modifier.padding(4.dp),
+    AnimatedVisibility(
+        visible = show,
+        modifier = Modifier.align(if (onLeft) Alignment.CenterStart else Alignment.CenterEnd),
+        enter = slideInHorizontally(
+            initialOffsetX = { if (onLeft) -it * 2 else it * 2 },
+        ),
+        exit = slideOutHorizontally(
+            targetOffsetX = { if (onLeft) -it * 2 else it * 2 },
         )
-      }
-      Surface(
-          onClick = {
-            scope.launch {
-              state.animateScrollToItem((state.firstVisibleItemIndex - 1).fastCoerceAtLeast(0))
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                onClick = {
+                    scope.launch {
+                        state.scrollToItem(0)
+                    }
+                },
+                shape = CircleShape,
+                tonalElevation = 4.dp,
+                color = MaterialTheme.colorScheme.surfaceColorAtElevation(
+                    4.dp
+                ).copy(alpha = 0.65f)
+            ) {
+                Icon(
+                    imageVector = HugeIcons.ArrowUpDouble,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(4.dp)
+                )
             }
-          },
-          shape = CircleShape,
-          tonalElevation = 4.dp,
-          color = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp).copy(alpha = 0.65f),
-      ) {
-        Icon(
-            imageVector = HugeIcons.ArrowUp01,
-            contentDescription = null,
-            modifier = Modifier.padding(4.dp),
-        )
-      }
-      Surface(
-          onClick = { scope.launch { state.animateScrollToItem(state.firstVisibleItemIndex + 1) } },
-          shape = CircleShape,
-          color = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp).copy(alpha = 0.65f),
-      ) {
-        Icon(
-            imageVector = HugeIcons.ArrowDown01,
-            contentDescription = null,
-            modifier = Modifier.padding(4.dp),
-        )
-      }
-      Surface(
-          onClick = { scope.launch { state.scrollToItem(state.layoutInfo.totalItemsCount - 1) } },
-          shape = CircleShape,
-          color = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp).copy(alpha = 0.65f),
-      ) {
-        Icon(
-            imageVector = HugeIcons.ArrowDownDouble,
-            contentDescription = stringResource(R.string.chat_page_scroll_to_bottom),
-            modifier = Modifier.padding(4.dp),
-        )
-      }
+            Surface(
+                onClick = {
+                    scope.launch {
+                        state.animateScrollToItem(
+                            (state.firstVisibleItemIndex - 1).fastCoerceAtLeast(
+                                0
+                            )
+                        )
+                    }
+                },
+                shape = CircleShape,
+                tonalElevation = 4.dp,
+                color = MaterialTheme.colorScheme.surfaceColorAtElevation(
+                    4.dp
+                ).copy(alpha = 0.65f)
+            ) {
+                Icon(
+                    imageVector = HugeIcons.ArrowUp01,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(4.dp)
+                )
+            }
+            Surface(
+                onClick = {
+                    scope.launch {
+                        state.animateScrollToItem(state.firstVisibleItemIndex + 1)
+                    }
+                },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceColorAtElevation(
+                    4.dp
+                ).copy(alpha = 0.65f)
+            ) {
+                Icon(
+                    imageVector = HugeIcons.ArrowDown01,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(4.dp)
+                )
+            }
+            Surface(
+                onClick = {
+                    scope.launch {
+                        state.scrollToItem(state.layoutInfo.totalItemsCount - 1)
+                    }
+                },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceColorAtElevation(
+                    4.dp
+                ).copy(alpha = 0.65f),
+            ) {
+                Icon(
+                    imageVector = HugeIcons.ArrowDownDouble,
+                    contentDescription = stringResource(R.string.chat_page_scroll_to_bottom),
+                    modifier = Modifier
+                        .padding(4.dp)
+                )
+            }
+        }
     }
-  }
 }

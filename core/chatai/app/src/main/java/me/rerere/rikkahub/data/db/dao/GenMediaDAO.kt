@@ -8,13 +8,15 @@ import me.rerere.rikkahub.data.db.entity.GenMediaEntity
 
 @Dao
 interface GenMediaDAO {
-  @Query("SELECT * FROM genmediaentity ORDER BY create_at DESC")
-  fun getAll(): PagingSource<Int, GenMediaEntity>
+    @Query("SELECT * FROM genmediaentity ORDER BY create_at DESC")
+    fun getAll(): PagingSource<Int, GenMediaEntity>
 
-  @Query("SELECT * FROM genmediaentity ORDER BY create_at DESC")
-  suspend fun getAllMedia(): List<GenMediaEntity>
+    @Query("SELECT * FROM genmediaentity ORDER BY create_at DESC")
+    suspend fun getAllMedia(): List<GenMediaEntity>
 
-  @Insert suspend fun insert(media: GenMediaEntity)
+    @Insert
+    suspend fun insert(media: GenMediaEntity)
 
-  @Query("DELETE FROM genmediaentity WHERE id = :id") suspend fun delete(id: Int)
+    @Query("DELETE FROM genmediaentity WHERE id = :id")
+    suspend fun delete(id: Int)
 }

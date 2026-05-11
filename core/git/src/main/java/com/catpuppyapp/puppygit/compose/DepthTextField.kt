@@ -14,21 +14,29 @@ import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.user.UserUtil
 
+
 @Composable
 fun DepthTextField(depth: MutableState<String>) {
-  val isPro = UserUtil.isPro()
+    val isPro = UserUtil.isPro()
 
-  TextField(
-      modifier = Modifier.fillMaxWidth().padding(MyStyleKt.defaultHorizontalPadding),
-      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-      singleLine = true,
-      enabled = isPro,
-      value = depth.value,
-      onValueChange = { depth.value = it },
-      label = {
-        if (isPro) Text(stringResource(R.string.depth_optional))
-        else Text(stringResource(R.string.depth_optional_pro_only))
-      },
-      placeholder = { Text(stringResource(R.string.depth)) },
-  )
+    TextField(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MyStyleKt.defaultHorizontalPadding),
+
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        singleLine = true,
+        enabled = isPro,
+        value = depth.value,
+        onValueChange = {
+            depth.value = it
+        },
+        label = {
+            if (isPro) Text(stringResource(R.string.depth_optional)) else Text(stringResource(R.string.depth_optional_pro_only))
+        },
+        placeholder = {
+            Text(stringResource(R.string.depth))
+        }
+    )
 }
+

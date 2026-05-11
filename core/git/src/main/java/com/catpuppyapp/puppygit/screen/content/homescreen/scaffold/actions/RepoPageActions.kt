@@ -22,70 +22,77 @@ import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.utils.changeStateTriggerRefreshPage
 import com.catpuppyapp.puppygit.utils.state.CustomStateSaveable
 
+
 @Composable
 fun RepoPageActions(
     navController: NavHostController,
     curRepo: CustomStateSaveable<RepoEntity>,
     showGlobalUsernameAndEmailDialog: MutableState<Boolean>,
     needRefreshRepoPage: MutableState<String>,
-    repoPageFilterModeOn: MutableState<Boolean>,
-    repoPageFilterKeyWord: CustomStateSaveable<TextFieldValue>,
-    showImportRepoDialog: MutableState<Boolean>,
+    repoPageFilterModeOn:MutableState<Boolean>,
+    repoPageFilterKeyWord:CustomStateSaveable<TextFieldValue>,
+    showImportRepoDialog:MutableState<Boolean>
 ) {
-  /*  TODO 添加个设置按钮
-   * 跳转到仓库全局设置页面，至少两个开关：
-   * Auto Fetch                default:Off
-   * Auto check Status         default:Off
-   */
+    /*  TODO 添加个设置按钮
+     * 跳转到仓库全局设置页面，至少两个开关：
+     * Auto Fetch                default:Off
+     * Auto check Status         default:Off
+     */
 
-  val dropDownMenuExpandState = rememberSaveable { mutableStateOf(false) }
 
-  LongPressAbleIconBtn(
-      tooltipText = stringResource(R.string.filter),
-      icon = Icons.Filled.FilterAlt,
-      iconContentDesc = stringResource(id = R.string.filter),
-  ) {
-    repoPageFilterKeyWord.value = TextFieldValue("")
-    repoPageFilterModeOn.value = true
-  }
+    val dropDownMenuExpandState = rememberSaveable { mutableStateOf(false)}
 
-  LongPressAbleIconBtn(
-      tooltipText = stringResource(R.string.refresh),
-      icon = Icons.Filled.Refresh,
-      iconContentDesc = stringResource(id = R.string.refresh),
-  ) {
-    changeStateTriggerRefreshPage(needRefreshRepoPage)
-  }
 
-  LongPressAbleIconBtn(
-      tooltipText = stringResource(R.string.user_info),
-      icon = Icons.Filled.Person,
-      iconContentDesc = stringResource(R.string.user_info),
-  ) {
-    showGlobalUsernameAndEmailDialog.value = true
-  }
-
-  LongPressAbleIconBtn(
-      tooltipText = stringResource(R.string.credential_manager),
-      icon = Icons.Filled.Key,
-      iconContentDesc = stringResource(R.string.credential_manager),
-  ) {
-    navController.navigate(Cons.nav_CredentialManagerScreen + "/${Cons.dbInvalidNonEmptyId}")
-  }
-
-  Column {
     LongPressAbleIconBtn(
-        tooltipText = stringResource(R.string.clone),
-        icon = Icons.Filled.Add,
-        iconContentDesc = stringResource(R.string.clone),
+        tooltipText = stringResource(R.string.filter),
+        icon =  Icons.Filled.FilterAlt,
+        iconContentDesc = stringResource(id = R.string.filter),
+
     ) {
-      dropDownMenuExpandState.value = !dropDownMenuExpandState.value
+        repoPageFilterKeyWord.value = TextFieldValue("")
+        repoPageFilterModeOn.value = true
     }
 
-    AddRepoDropDownMenu(
-        showMenu = dropDownMenuExpandState.value,
-        closeMenu = { dropDownMenuExpandState.value = false },
-        importOnClick = { showImportRepoDialog.value = true },
-    )
-  }
+    LongPressAbleIconBtn(
+        tooltipText = stringResource(R.string.refresh),
+        icon = Icons.Filled.Refresh,
+        iconContentDesc = stringResource(id = R.string.refresh),
+    ) {
+        changeStateTriggerRefreshPage(needRefreshRepoPage)
+    }
+
+    LongPressAbleIconBtn(
+        tooltipText = stringResource(R.string.user_info),
+        icon = Icons.Filled.Person,
+        iconContentDesc = stringResource(R.string.user_info),
+    ) {
+        showGlobalUsernameAndEmailDialog.value=true
+    }
+
+    LongPressAbleIconBtn(
+        tooltipText = stringResource(R.string.credential_manager),
+        icon = Icons.Filled.Key,
+        iconContentDesc = stringResource(R.string.credential_manager),
+    ) {
+        navController.navigate(Cons.nav_CredentialManagerScreen+"/${Cons.dbInvalidNonEmptyId}")
+    }
+
+    Column {
+        LongPressAbleIconBtn(
+            tooltipText = stringResource(R.string.clone),
+            icon = Icons.Filled.Add,
+            iconContentDesc = stringResource(R.string.clone),
+        ) {
+            dropDownMenuExpandState.value = !dropDownMenuExpandState.value
+        }
+
+        AddRepoDropDownMenu(
+            showMenu = dropDownMenuExpandState.value,
+            closeMenu = { dropDownMenuExpandState.value = false },
+            importOnClick = {
+                showImportRepoDialog.value = true
+            }
+        )
+
+    }
 }

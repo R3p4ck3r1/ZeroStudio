@@ -6,14 +6,14 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 val JsonElement.jsonObjectOrNull: JsonObject?
-  get() = this as? JsonObject
+    get() = this as? JsonObject
 
 val JsonElement.jsonArrayOrNull: JsonArray?
-  get() = this as? JsonArray
+    get() = this as? JsonArray
 
 val JsonElement.jsonPrimitiveOrNull: JsonPrimitive?
-  get() = this as? JsonPrimitive
+    get() = this as? JsonPrimitive
 
 fun JsonObject.getByKey(key: String): String {
-  return evaluateJsonExpr(key, this)
+    return evaluateJsonExpr(key, this)
 }

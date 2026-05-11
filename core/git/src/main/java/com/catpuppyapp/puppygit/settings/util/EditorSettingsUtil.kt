@@ -5,9 +5,11 @@ import com.catpuppyapp.puppygit.settings.SettingsUtil
 
 object EditorSettingsUtil {
 
-  fun updateDisableSoftKb(newValue: Boolean, state: MutableState<Boolean>?) {
-    state?.value = newValue
+    fun updateDisableSoftKb(newValue:Boolean, state: MutableState<Boolean>?) {
+        state?.value = newValue
 
-    SettingsUtil.update { it.editor.disableSoftwareKeyboard = newValue }
-  }
+        SettingsUtil.update {
+            it.editor.disableSoftwareKeyboard = newValue
+        }
+    }
 }

@@ -7,15 +7,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 
+
 @Composable
 fun MyHorizontalDivider(
     modifier: Modifier = Modifier,
     thickness: Dp = DividerDefaults.Thickness,
     color: Color = DividerDefaults.color.copy(alpha = 0.4f),
 ) {
-  HorizontalDivider(
-      modifier = modifier,
-      thickness = thickness,
-      color = color,
-  )
+    HorizontalDivider(
+        modifier = modifier,
+        thickness = thickness,
+        color = color,
+    )
 }

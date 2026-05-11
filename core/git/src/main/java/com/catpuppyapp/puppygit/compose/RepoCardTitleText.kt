@@ -10,14 +10,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun RepoCardTitleText(repoName: String) {
-  Text(
-      text = repoName,
-      fontSize = 16.sp,
-      fontWeight = FontWeight.Bold,
-      modifier = Modifier.padding(start = 10.dp, top = 2.dp, bottom = 0.dp, end = 1.dp),
-      //        textAlign = TextAlign.Center,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis,
-  )
+fun RepoCardTitleText(repoName:String) {
+    Text(
+        text = repoName,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(
+            start = 10.dp,
+            top = 2.dp,
+            bottom = 0.dp,
+            end = 1.dp
+        ),
+//        textAlign = TextAlign.Center,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }

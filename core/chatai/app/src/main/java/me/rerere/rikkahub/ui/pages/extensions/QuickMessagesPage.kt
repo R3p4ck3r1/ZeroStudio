@@ -54,113 +54,115 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun QuickMessagesPage(vm: QuickMessagesVM = koinViewModel()) {
-  val settings = vm.settings.collectAsStateWithLifecycle().value
-  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-  var showAddDialog by rememberSaveable { mutableStateOf(false) }
-  var editTarget by remember { mutableStateOf<QuickMessage?>(null) }
-  var deleteTarget by remember { mutableStateOf<QuickMessage?>(null) }
+    val settings = vm.settings.collectAsStateWithLifecycle().value
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    var showAddDialog by rememberSaveable { mutableStateOf(false) }
+    var editTarget by remember { mutableStateOf<QuickMessage?>(null) }
+    var deleteTarget by remember { mutableStateOf<QuickMessage?>(null) }
 
-  Scaffold(
-      topBar = {
-        LargeFlexibleTopAppBar(
-            title = { Text(stringResource(R.string.assistant_page_quick_messages)) },
-            navigationIcon = { BackButton() },
-            scrollBehavior = scrollBehavior,
-            colors = CustomColors.topBarColors,
-        )
-      },
-      floatingActionButton = {
-        FloatingActionButton(onClick = { showAddDialog = true }) {
-          Icon(HugeIcons.Add01, contentDescription = null)
-        }
-      },
-      modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-      containerColor = CustomColors.topBarColors.containerColor,
-  ) { innerPadding ->
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = innerPadding + PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-      if (settings.quickMessages.isEmpty()) {
-        item {
-          Column(
-              modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
-              horizontalAlignment = Alignment.CenterHorizontally,
-              verticalArrangement = Arrangement.spacedBy(12.dp),
-          ) {
-            Icon(
-                imageVector = HugeIcons.Zap,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    Scaffold(
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = { Text(stringResource(R.string.assistant_page_quick_messages)) },
+                navigationIcon = { BackButton() },
+                scrollBehavior = scrollBehavior,
+                colors = CustomColors.topBarColors,
             )
-            Text(
-                text = stringResource(R.string.quick_messages_page_empty_title),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = stringResource(R.string.quick_messages_page_empty_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          }
-        }
-      }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
+                Icon(HugeIcons.Add01, contentDescription = null)
+            }
+        },
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = CustomColors.topBarColors.containerColor,
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = innerPadding + PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (settings.quickMessages.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = HugeIcons.Zap,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(R.string.quick_messages_page_empty_title),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(R.string.quick_messages_page_empty_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
 
-      items(settings.quickMessages, key = { it.id }) { quickMessage ->
-        QuickMessageCard(
-            quickMessage = quickMessage,
-            onEdit = { editTarget = quickMessage },
-            onDelete = { deleteTarget = quickMessage },
-        )
-      }
+            items(settings.quickMessages, key = { it.id }) { quickMessage ->
+                QuickMessageCard(
+                    quickMessage = quickMessage,
+                    onEdit = { editTarget = quickMessage },
+                    onDelete = { deleteTarget = quickMessage },
+                )
+            }
+        }
     }
-  }
 
-  if (showAddDialog) {
-    EditQuickMessageDialog(
-        title = stringResource(R.string.quick_messages_page_add_title),
-        initialQuickMessage = null,
-        onDismiss = { showAddDialog = false },
-        onConfirm = { title, content ->
-          vm.addQuickMessage(title, content)
-          showAddDialog = false
+    if (showAddDialog) {
+        EditQuickMessageDialog(
+            title = stringResource(R.string.quick_messages_page_add_title),
+            initialQuickMessage = null,
+            onDismiss = { showAddDialog = false },
+            onConfirm = { title, content ->
+                vm.addQuickMessage(title, content)
+                showAddDialog = false
+            },
+        )
+    }
+
+    editTarget?.let { quickMessage ->
+        EditQuickMessageDialog(
+            title = stringResource(R.string.quick_messages_page_edit_title),
+            initialQuickMessage = quickMessage,
+            onDismiss = { editTarget = null },
+            onConfirm = { title, content ->
+                vm.updateQuickMessage(
+                    quickMessage.copy(
+                        title = title,
+                        content = content,
+                    )
+                )
+                editTarget = null
+            },
+        )
+    }
+
+    RikkaConfirmDialog(
+        show = deleteTarget != null,
+        title = stringResource(R.string.quick_messages_page_delete_title),
+        confirmText = stringResource(R.string.delete),
+        dismissText = stringResource(R.string.cancel),
+        onConfirm = {
+            deleteTarget?.let { vm.deleteQuickMessage(it.id) }
+            deleteTarget = null
         },
-    )
-  }
-
-  editTarget?.let { quickMessage ->
-    EditQuickMessageDialog(
-        title = stringResource(R.string.quick_messages_page_edit_title),
-        initialQuickMessage = quickMessage,
-        onDismiss = { editTarget = null },
-        onConfirm = { title, content ->
-          vm.updateQuickMessage(
-              quickMessage.copy(
-                  title = title,
-                  content = content,
-              )
-          )
-          editTarget = null
-        },
-    )
-  }
-
-  RikkaConfirmDialog(
-      show = deleteTarget != null,
-      title = stringResource(R.string.quick_messages_page_delete_title),
-      confirmText = stringResource(R.string.delete),
-      dismissText = stringResource(R.string.cancel),
-      onConfirm = {
-        deleteTarget?.let { vm.deleteQuickMessage(it.id) }
-        deleteTarget = null
-      },
-      onDismiss = { deleteTarget = null },
-  ) {
-    Text(stringResource(R.string.quick_messages_page_delete_message, deleteTarget?.title ?: ""))
-  }
+        onDismiss = { deleteTarget = null },
+    ) {
+        Text(stringResource(R.string.quick_messages_page_delete_message, deleteTarget?.title ?: ""))
+    }
 }
 
 @Composable
@@ -169,91 +171,86 @@ private fun QuickMessageCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-  var menuExpanded by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
 
-  Card(
-      modifier = Modifier.fillMaxWidth(),
-      colors = CustomColors.cardColorsOnSurfaceContainer,
-  ) {
-    Row(
-        modifier =
-            Modifier.fillMaxWidth().padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CustomColors.cardColorsOnSurfaceContainer,
     ) {
-      Icon(
-          imageVector = HugeIcons.Zap,
-          contentDescription = null,
-          modifier = Modifier.size(20.dp),
-          tint = MaterialTheme.colorScheme.primary,
-      )
-      Column(
-          modifier = Modifier.weight(1f).padding(start = 12.dp),
-          verticalArrangement = Arrangement.spacedBy(2.dp),
-      ) {
-        Text(
-            text =
-                quickMessage.title.ifBlank {
-                  stringResource(R.string.quick_messages_page_untitled)
-                },
-            style = MaterialTheme.typography.titleSmallEmphasized,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text =
-                quickMessage.content.ifBlank {
-                  stringResource(R.string.quick_messages_page_empty_content)
-                },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-      }
-      Box {
-        IconButton(onClick = { menuExpanded = true }) {
-          Icon(
-              imageVector = HugeIcons.MoreVertical,
-              contentDescription = stringResource(R.string.skills_page_more_actions),
-          )
-        }
-        DropdownMenu(
-            expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false },
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-          DropdownMenuItem(
-              text = { Text(stringResource(R.string.edit)) },
-              leadingIcon = {
-                Icon(
-                    imageVector = HugeIcons.Edit01,
-                    contentDescription = null,
+            Icon(
+                imageVector = HugeIcons.Zap,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = quickMessage.title.ifBlank { stringResource(R.string.quick_messages_page_untitled) },
+                    style = MaterialTheme.typography.titleSmallEmphasized,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-              },
-              onClick = {
-                menuExpanded = false
-                onEdit()
-              },
-          )
-          DropdownMenuItem(
-              text = {
-                Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
-              },
-              leadingIcon = {
-                Icon(
-                    imageVector = HugeIcons.Delete01,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
+                Text(
+                    text = quickMessage.content.ifBlank { stringResource(R.string.quick_messages_page_empty_content) },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-              },
-              onClick = {
-                menuExpanded = false
-                onDelete()
-              },
-          )
+            }
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(
+                        imageVector = HugeIcons.MoreVertical,
+                        contentDescription = stringResource(R.string.skills_page_more_actions),
+                    )
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.edit)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = HugeIcons.Edit01,
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onEdit()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = HugeIcons.Delete01,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onDelete()
+                        },
+                    )
+                }
+            }
         }
-      }
     }
-  }
 }
 
 @Composable
@@ -263,43 +260,47 @@ private fun EditQuickMessageDialog(
     onDismiss: () -> Unit,
     onConfirm: (title: String, content: String) -> Unit,
 ) {
-  var quickMessageTitle by
-      rememberSaveable(initialQuickMessage?.id) { mutableStateOf(initialQuickMessage?.title ?: "") }
-  var quickMessageContent by
-      rememberSaveable(initialQuickMessage?.id) {
+    var quickMessageTitle by rememberSaveable(initialQuickMessage?.id) {
+        mutableStateOf(initialQuickMessage?.title ?: "")
+    }
+    var quickMessageContent by rememberSaveable(initialQuickMessage?.id) {
         mutableStateOf(initialQuickMessage?.content ?: "")
-      }
+    }
 
-  AlertDialog(
-      onDismissRequest = onDismiss,
-      title = { Text(title) },
-      text = {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-          OutlinedTextField(
-              value = quickMessageTitle,
-              onValueChange = { quickMessageTitle = it },
-              modifier = Modifier.fillMaxWidth(),
-              label = { Text(stringResource(R.string.assistant_page_quick_message_title)) },
-              singleLine = true,
-          )
-          OutlinedTextField(
-              value = quickMessageContent,
-              onValueChange = { quickMessageContent = it },
-              modifier = Modifier.fillMaxWidth(),
-              label = { Text(stringResource(R.string.assistant_page_quick_message_content)) },
-              minLines = 4,
-              maxLines = 8,
-          )
-        }
-      },
-      confirmButton = {
-        TextButton(
-            onClick = { onConfirm(quickMessageTitle.trim(), quickMessageContent.trim()) },
-            enabled = quickMessageTitle.isNotBlank() && quickMessageContent.isNotBlank(),
-        ) {
-          Text(stringResource(R.string.assistant_page_save))
-        }
-      },
-      dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-  )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = quickMessageTitle,
+                    onValueChange = { quickMessageTitle = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.assistant_page_quick_message_title)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = quickMessageContent,
+                    onValueChange = { quickMessageContent = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.assistant_page_quick_message_content)) },
+                    minLines = 4,
+                    maxLines = 8,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(quickMessageTitle.trim(), quickMessageContent.trim()) },
+                enabled = quickMessageTitle.isNotBlank() && quickMessageContent.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.assistant_page_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
 }

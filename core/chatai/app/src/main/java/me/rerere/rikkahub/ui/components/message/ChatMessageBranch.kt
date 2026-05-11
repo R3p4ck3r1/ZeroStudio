@@ -29,54 +29,62 @@ fun ChatMessageBranchSelector(
     modifier: Modifier = Modifier,
     onUpdate: (MessageNode) -> Unit,
 ) {
-  Row(
-      modifier = modifier,
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-  ) {
-    if (node.messages.size > 1) {
-      Icon(
-          imageVector = HugeIcons.ArrowLeft01,
-          contentDescription = "Prev",
-          modifier =
-              Modifier.clip(CircleShape)
-                  .alpha(if (node.selectIndex == 0) 0.5f else 1f)
-                  .clickable(
-                      interactionSource = remember { MutableInteractionSource() },
-                      indication = LocalIndication.current,
-                      onClick = {
-                        if (node.selectIndex > 0) {
-                          onUpdate(node.copy(selectIndex = node.selectIndex - 1))
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (node.messages.size > 1) {
+            Icon(
+                imageVector = HugeIcons.ArrowLeft01,
+                contentDescription = "Prev",
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .alpha(if (node.selectIndex == 0) 0.5f else 1f)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = LocalIndication.current,
+                        onClick = {
+                            if (node.selectIndex > 0) {
+                                onUpdate(
+                                    node.copy(
+                                        selectIndex = node.selectIndex - 1
+                                    )
+                                )
+                            }
                         }
-                      },
-                  )
-                  .padding(8.dp)
-                  .size(16.dp),
-      )
+                    )
+                    .padding(8.dp)
+                    .size(16.dp)
+            )
 
-      Text(
-          text = "${node.selectIndex + 1}/${node.messages.size}",
-          style = MaterialTheme.typography.bodySmall,
-      )
+            Text(
+                text = "${node.selectIndex + 1}/${node.messages.size}",
+                style = MaterialTheme.typography.bodySmall
+            )
 
-      Icon(
-          imageVector = HugeIcons.ArrowRight01,
-          contentDescription = "Next",
-          modifier =
-              Modifier.clip(CircleShape)
-                  .alpha(if (node.selectIndex == node.messages.lastIndex) 0.5f else 1f)
-                  .clickable(
-                      interactionSource = remember { MutableInteractionSource() },
-                      indication = LocalIndication.current,
-                      onClick = {
-                        if (node.selectIndex < node.messages.lastIndex) {
-                          onUpdate(node.copy(selectIndex = node.selectIndex + 1))
+            Icon(
+                imageVector = HugeIcons.ArrowRight01,
+                contentDescription = "Next",
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .alpha(if (node.selectIndex == node.messages.lastIndex) 0.5f else 1f)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = LocalIndication.current,
+                        onClick = {
+                            if (node.selectIndex < node.messages.lastIndex) {
+                                onUpdate(
+                                    node.copy(
+                                        selectIndex = node.selectIndex + 1
+                                    )
+                                )
+                            }
                         }
-                      },
-                  )
-                  .padding(8.dp)
-                  .size(16.dp),
-      )
+                    )
+                    .padding(8.dp)
+                    .size(16.dp),
+            )
+        }
     }
-  }
 }

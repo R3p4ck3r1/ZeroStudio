@@ -11,12 +11,14 @@ import com.catpuppyapp.puppygit.style.MyStyleKt
 @Composable
 fun PaddingRow(
     paddingValues: PaddingValues = PaddingValues(horizontal = MyStyleKt.defaultHorizontalPadding),
-    content: @Composable RowScope.() -> Unit,
+    content: @Composable RowScope.()->Unit
 ) {
-  Row(modifier = Modifier.padding(paddingValues)) { content() }
+    Row(modifier = Modifier.padding(paddingValues)) {
+        content()
+    }
 }
 
 @Composable
-fun DefaultPaddingRow(content: @Composable RowScope.() -> Unit) {
-  PaddingRow(content = content)
+fun DefaultPaddingRow(content: @Composable RowScope.()->Unit) {
+    PaddingRow(content = content)
 }

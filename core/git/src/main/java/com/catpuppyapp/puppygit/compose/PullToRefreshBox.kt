@@ -21,32 +21,34 @@ fun PullToRefreshBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-  val state = rememberPullToRefreshState()
-  val isRefreshing = remember { mutableStateOf(false) }
+    val state = rememberPullToRefreshState()
+    val isRefreshing = remember { mutableStateOf(false) }
 
-  // 包装触发动作
-  val wrappedOnRefresh = {
-    doJobThenOffLoading {
-      isRefreshing.value = true
-      delay(500)
-      isRefreshing.value = false
+    // 包装触发动作
+    val wrappedOnRefresh = {
+        doJobThenOffLoading {
+            isRefreshing.value = true
+            delay(500)
+            isRefreshing.value = false
+        }
+        onRefresh()
     }
-    onRefresh()
-  }
 
-  androidx.compose.material3.pulltorefresh.PullToRefreshBox(
-      isRefreshing = isRefreshing.value,
-      onRefresh = wrappedOnRefresh,
-      modifier = modifier,
-      state = state,
-      indicator = {
-        PullToRefreshDefaults.Indicator(
-            isRefreshing = isRefreshing.value,
-            state = state,
-            modifier = Modifier.align(Alignment.TopCenter).padding(contentPadding),
-        )
-      },
-  ) {
-    content()
-  }
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing.value,
+        onRefresh = wrappedOnRefresh,
+        modifier = modifier,
+        state = state,
+        indicator = {
+            PullToRefreshDefaults.Indicator(
+                isRefreshing = isRefreshing.value,
+                state = state,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(contentPadding) 
+            )
+        }
+    ) {
+        content()
+    }
 }

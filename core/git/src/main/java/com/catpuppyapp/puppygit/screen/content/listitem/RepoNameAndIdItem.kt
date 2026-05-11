@@ -15,44 +15,36 @@ import com.catpuppyapp.puppygit.settings.AppSettings
 import com.catpuppyapp.puppygit.settings.util.AutomationUtil
 import com.catpuppyapp.puppygit.utils.appendSecondsUnit
 
+
 @Composable
 fun RepoNameAndIdItem(
     settings: AppSettings,
     selected: Boolean,
-    appPackageName: String,
+    appPackageName:String,
     repoEntity: RepoEntity,
     trailIconWidth: Dp,
-    trailIcons: @Composable BoxScope.(containerModifier: Modifier) -> Unit,
+    trailIcons: @Composable BoxScope.(containerModifier:Modifier)->Unit,
 ) {
 
-  Row(
-      modifier = Modifier.fillMaxWidth(),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    TwoLineTextsAndIcons(
-        text1 = repoEntity.repoName,
-        text2 =
-            if (selected) {
-              AutomationUtil.getAppAndRepoSpecifiedSettingsActuallyBeUsed(
-                      appPackageName,
-                      repoEntity.id,
-                      settings,
-                  )
-                  .let {
-                    stringResource(R.string.pull_interval) +
-                        ": " +
-                        appendSecondsUnit(it.getPullIntervalFormatted()) +
-                        ", " +
-                        stringResource(R.string.push_delay) +
-                        ": " +
-                        appendSecondsUnit(it.getPushDelayFormatted())
-                  }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TwoLineTextsAndIcons(
+            text1 = repoEntity.repoName,
+            text2 = if(selected) {
+                AutomationUtil.getAppAndRepoSpecifiedSettingsActuallyBeUsed(appPackageName, repoEntity.id, settings).let {
+                    stringResource(R.string.pull_interval)+": "+appendSecondsUnit(it.getPullIntervalFormatted())+", "+ stringResource(R.string.push_delay)+": "+appendSecondsUnit(it.getPushDelayFormatted())
+                }
             } else {
-              //               // repoEntity.id
-              ""
+//               // repoEntity.id
+                ""
             },
-        trailIconWidth = trailIconWidth,
-        trailIcons = trailIcons,
-    )
-  }
+            trailIconWidth = trailIconWidth,
+            trailIcons = trailIcons
+        )
+    }
+
 }
+

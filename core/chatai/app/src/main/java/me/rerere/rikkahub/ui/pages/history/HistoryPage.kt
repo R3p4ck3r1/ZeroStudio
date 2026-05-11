@@ -1,5 +1,10 @@
-package me.rerere.rikkahub.ui.pages.history
+package me.rerere.rikkahub.ui.pages.history;
 
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Pin
+import me.rerere.hugeicons.stroke.PinOff
+import me.rerere.hugeicons.stroke.GlobalSearch
+import me.rerere.hugeicons.stroke.Delete01
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,11 +48,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.Delete01
-import me.rerere.hugeicons.stroke.GlobalSearch
-import me.rerere.hugeicons.stroke.Pin
-import me.rerere.hugeicons.stroke.PinOff
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.model.Conversation
@@ -60,91 +60,107 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HistoryPage(vm: HistoryVM = koinViewModel()) {
-  val navController = LocalNavController.current
-  val scope = rememberCoroutineScope()
-  val snackbarHostState = remember { SnackbarHostState() }
-  var showDeleteAllDialog by remember { mutableStateOf(false) }
+    val navController = LocalNavController.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showDeleteAllDialog by remember { mutableStateOf(false) }
 
-  val conversations by vm.conversations.collectAsStateWithLifecycle()
+    val conversations by vm.conversations.collectAsStateWithLifecycle()
 
-  Scaffold(
-      topBar = {
-        TopAppBar(
-            title = { Text(stringResource(R.string.history_page_title)) },
-            navigationIcon = { BackButton() },
-            actions = {
-              IconButton(onClick = { navController.navigate(Screen.MessageSearch) }) {
-                Icon(
-                    HugeIcons.GlobalSearch,
-                    contentDescription = stringResource(R.string.history_page_search_messages),
-                )
-              }
-              IconButton(onClick = { showDeleteAllDialog = true }) {
-                Icon(
-                    HugeIcons.Delete01,
-                    contentDescription = stringResource(R.string.history_page_delete_all),
-                )
-              }
-            },
-        )
-      },
-      snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-  ) { contentPadding ->
-    val snackMessageDeleted = stringResource(R.string.history_page_conversation_deleted)
-    val snackMessageUndo = stringResource(R.string.history_page_undo)
-    LazyColumn(
-        contentPadding = contentPadding + PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-      items(conversations, key = { it.id }) { conversation ->
-        SwipeableConversationItem(
-            conversation = conversation,
-            onClick = { navigateToChatPage(navController, conversation.id) },
-            onDelete = {
-              scope.launch {
-                // 先获取完整的对话数据（包含 messageNodes），用于撤销恢复
-                val fullConversation = vm.getFullConversation(conversation.id) ?: conversation
-                vm.deleteConversation(conversation)
-                val result =
-                    snackbarHostState.showSnackbar(
-                        message = snackMessageDeleted,
-                        actionLabel = snackMessageUndo,
-                        withDismissAction = true,
-                    )
-                if (result == SnackbarResult.ActionPerformed) {
-                  vm.restoreConversation(fullConversation)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(stringResource(R.string.history_page_title))
+                },
+                navigationIcon = {
+                    BackButton()
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            navController.navigate(Screen.MessageSearch)
+                        }
+                    ) {
+                        Icon(
+                            HugeIcons.GlobalSearch,
+                            contentDescription = stringResource(R.string.history_page_search_messages)
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            showDeleteAllDialog = true
+                        }
+                    ) {
+                        Icon(HugeIcons.Delete01, contentDescription = stringResource(R.string.history_page_delete_all))
+                    }
                 }
-              }
-            },
-            onTogglePin = { vm.togglePinStatus(conversation.id) },
-            modifier = Modifier.fillMaxWidth().animateItem(),
-        )
-      }
+            )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) { contentPadding ->
+        val snackMessageDeleted = stringResource(R.string.history_page_conversation_deleted)
+        val snackMessageUndo = stringResource(R.string.history_page_undo)
+        LazyColumn(
+            contentPadding = contentPadding + PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(conversations, key = { it.id }) { conversation ->
+                SwipeableConversationItem(
+                    conversation = conversation,
+                    onClick = {
+                        navigateToChatPage(navController, conversation.id)
+                    },
+                    onDelete = {
+                        scope.launch {
+                            // 先获取完整的对话数据（包含 messageNodes），用于撤销恢复
+                            val fullConversation = vm.getFullConversation(conversation.id) ?: conversation
+                            vm.deleteConversation(conversation)
+                            val result = snackbarHostState.showSnackbar(
+                                message = snackMessageDeleted,
+                                actionLabel = snackMessageUndo,
+                                withDismissAction = true,
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                vm.restoreConversation(fullConversation)
+                            }
+                        }
+                    },
+                    onTogglePin = { vm.togglePinStatus(conversation.id) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateItem()
+                )
+            }
+        }
     }
-  }
 
-  if (showDeleteAllDialog) {
-    AlertDialog(
-        onDismissRequest = { showDeleteAllDialog = false },
-        title = { Text(stringResource(R.string.history_page_delete_all_conversations)) },
-        text = { Text(stringResource(R.string.history_page_delete_all_confirmation)) },
-        confirmButton = {
-          TextButton(
-              onClick = {
-                vm.deleteAllConversations()
-                showDeleteAllDialog = false
-              }
-          ) {
-            Text(stringResource(R.string.history_page_delete))
-          }
-        },
-        dismissButton = {
-          TextButton(onClick = { showDeleteAllDialog = false }) {
-            Text(stringResource(R.string.history_page_cancel))
-          }
-        },
-    )
-  }
+    if (showDeleteAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllDialog = false },
+            title = { Text(stringResource(R.string.history_page_delete_all_conversations)) },
+            text = { Text(stringResource(R.string.history_page_delete_all_confirmation)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vm.deleteAllConversations()
+                        showDeleteAllDialog = false
+                    }
+                ) {
+                    Text(stringResource(R.string.history_page_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteAllDialog = false }
+                ) {
+                    Text(stringResource(R.string.history_page_cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -155,46 +171,53 @@ private fun SwipeableConversationItem(
     onTogglePin: () -> Unit = {},
     onClick: () -> Unit = {},
 ) {
-  val positionThreshold = SwipeToDismissBoxDefaults.positionalThreshold
-  val dismissState = remember {
-    SwipeToDismissBoxState(
-        initialValue = SwipeToDismissBoxValue.Settled,
-        positionalThreshold = positionThreshold,
-    )
-  }
-
-  LaunchedEffect(dismissState.currentValue) {
-    when (dismissState.currentValue) {
-      SwipeToDismissBoxValue.EndToStart -> {
-        onDelete()
-      }
-
-      else -> {}
+    val positionThreshold = SwipeToDismissBoxDefaults.positionalThreshold
+    val dismissState = remember {
+        SwipeToDismissBoxState(
+            initialValue = SwipeToDismissBoxValue.Settled,
+            positionalThreshold = positionThreshold,
+        )
     }
-  }
 
-  SwipeToDismissBox(
-      state = dismissState,
-      backgroundContent = {
-        Box(
-            modifier =
-                Modifier.fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(25))
-                    .padding(horizontal = 20.dp),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-          Icon(
-              imageVector = HugeIcons.Delete01,
-              contentDescription = stringResource(R.string.history_page_delete),
-              tint = MaterialTheme.colorScheme.onErrorContainer,
-          )
+    LaunchedEffect(dismissState.currentValue) {
+        when (dismissState.currentValue) {
+            SwipeToDismissBoxValue.EndToStart -> {
+                onDelete()
+            }
+
+            else -> {}
         }
-      },
-      enableDismissFromStartToEnd = false,
-      modifier = modifier,
-  ) {
-    ConversationItem(conversation = conversation, onTogglePin = onTogglePin, onClick = onClick)
-  }
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        MaterialTheme.colorScheme.errorContainer,
+                        RoundedCornerShape(25)
+                    )
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    imageVector = HugeIcons.Delete01,
+                    contentDescription = stringResource(R.string.history_page_delete),
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        },
+        enableDismissFromStartToEnd = false,
+        modifier = modifier
+    ) {
+        ConversationItem(
+            conversation = conversation,
+            onTogglePin = onTogglePin,
+            onClick = onClick
+        )
+    }
 }
 
 @Composable
@@ -204,48 +227,50 @@ private fun ConversationItem(
     onTogglePin: () -> Unit = {},
     onClick: () -> Unit = {},
 ) {
-  Surface(
-      onClick = onClick,
-      tonalElevation = 2.dp,
-      shape = RoundedCornerShape(25),
-      modifier = modifier,
-  ) {
-    ListItem(
-        headlineContent = {
-          Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(4.dp),
-          ) {
-            if (conversation.isPinned) {
-              Icon(
-                  imageVector = HugeIcons.Pin,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.primary,
-                  modifier = Modifier.size(16.dp),
-              )
+    Surface(
+        onClick = onClick,
+        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(25),
+        modifier = modifier
+    ) {
+        ListItem(
+            headlineContent = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (conversation.isPinned) {
+                        Icon(
+                            imageVector = HugeIcons.Pin,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    Text(
+                        text = conversation.title.ifBlank { stringResource(R.string.history_page_new_conversation) }
+                            .trim(),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            },
+            supportingContent = {
+                Text(conversation.createAt.toLocalDateTime())
+            },
+            trailingContent = {
+                IconButton(
+                    onClick = onTogglePin
+                ) {
+                    Icon(
+                        if (conversation.isPinned) HugeIcons.PinOff else HugeIcons.Pin,
+                        contentDescription = if (conversation.isPinned) stringResource(R.string.history_page_unpin) else stringResource(
+                            R.string.history_page_pin
+                        )
+                    )
+                }
             }
-            Text(
-                text =
-                    conversation.title
-                        .ifBlank { stringResource(R.string.history_page_new_conversation) }
-                        .trim(),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.titleMedium,
-            )
-          }
-        },
-        supportingContent = { Text(conversation.createAt.toLocalDateTime()) },
-        trailingContent = {
-          IconButton(onClick = onTogglePin) {
-            Icon(
-                if (conversation.isPinned) HugeIcons.PinOff else HugeIcons.Pin,
-                contentDescription =
-                    if (conversation.isPinned) stringResource(R.string.history_page_unpin)
-                    else stringResource(R.string.history_page_pin),
-            )
-          }
-        },
-    )
-  }
+        )
+    }
 }

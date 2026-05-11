@@ -16,28 +16,35 @@ import androidx.core.graphics.drawable.toBitmap
 import com.catpuppyapp.puppygit.compose.TwoLineTextsAndIcons
 import com.catpuppyapp.puppygit.dto.AppInfo
 
+
 @Composable
 fun AppItem(
-    appInfo: AppInfo,
+    appInfo:AppInfo,
     trailIconWidth: Dp,
-    trailIcons: @Composable BoxScope.(containerModifier: Modifier) -> Unit,
+    trailIcons: @Composable BoxScope.(containerModifier:Modifier)->Unit,
 ) {
 
-  Row(
-      modifier = Modifier.fillMaxWidth(),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Image(
-        bitmap = appInfo.appIcon.toBitmap().asImageBitmap(),
-        contentDescription = null,
-        modifier = Modifier.size(48.dp).padding(start = 5.dp),
-    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
 
-    TwoLineTextsAndIcons(
-        text1 = appInfo.appName,
-        text2 = appInfo.packageName,
-        trailIconWidth = trailIconWidth,
-        trailIcons = trailIcons,
-    )
-  }
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+
+        Image(
+            bitmap = appInfo.appIcon.toBitmap().asImageBitmap(),
+            contentDescription = null,
+            modifier = Modifier
+                .size(48.dp)
+                .padding(start = 5.dp)
+        )
+
+        TwoLineTextsAndIcons(
+            text1 = appInfo.appName,
+            text2 = appInfo.packageName,
+            trailIconWidth = trailIconWidth,
+            trailIcons = trailIcons
+        )
+
+    }
+
 }

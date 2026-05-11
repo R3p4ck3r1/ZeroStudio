@@ -19,29 +19,29 @@ package com.catpuppyapp.puppygit.data.repository
 import com.catpuppyapp.puppygit.data.entity.SettingsEntity
 
 /**
- * Repository that provides insert, update, delete, and retrieve of [SettingsEntity] from a given
- * data source.
+ * Repository that provides insert, update, delete, and retrieve of [SettingsEntity] from a given data source.
  */
 @Deprecated("废弃了，改用json存AppSettings了")
 interface SettingsRepository {
-  //
-  //    /**
-  //     * Insert item in the data source
-  //     */
-  //    suspend fun insert(item: SettingsEntity)
-  //
-  //    /**
-  //     * Delete item from the data source
-  //     */
-  //    suspend fun delete(item: SettingsEntity)
-  //
-  //    /**
-  //     * Update item in the data source
-  //     */
-  //    suspend fun update(item: SettingsEntity)
-  //
-  //    suspend fun getOrInsertByUsedFor(usedFor:Int): SettingsEntity?
-  //
+//
+//    /**
+//     * Insert item in the data source
+//     */
+//    suspend fun insert(item: SettingsEntity)
+//
+//    /**
+//     * Delete item from the data source
+//     */
+//    suspend fun delete(item: SettingsEntity)
+//
+//    /**
+//     * Update item in the data source
+//     */
+//    suspend fun update(item: SettingsEntity)
+//
+//    suspend fun getOrInsertByUsedFor(usedFor:Int): SettingsEntity?
+//
 
-  suspend fun subtractTimeOffset(offsetInSec: Long)
+    suspend fun subtractTimeOffset(offsetInSec:Long)
+
 }

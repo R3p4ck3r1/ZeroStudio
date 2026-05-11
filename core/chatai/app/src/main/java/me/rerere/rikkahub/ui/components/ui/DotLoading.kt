@@ -27,24 +27,22 @@ fun DotLoading(
     animationDuration: Int = 600,
     size: Dp = 16.dp,
 ) {
-  val infiniteTransition = rememberInfiniteTransition(label = "dot_loading")
-  val alpha by
-      infiniteTransition.animateFloat(
-          initialValue = 0.3f,
-          targetValue = 1f,
-          animationSpec =
-              infiniteRepeatable(
-                  animation = tween(durationMillis = animationDuration),
-                  repeatMode = RepeatMode.Reverse,
-              ),
-          label = "dot_alpha",
-      )
+    val infiniteTransition = rememberInfiniteTransition(label = "dot_loading")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = animationDuration),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot_alpha"
+    )
 
-  Box(
-      modifier =
-          Modifier.size(size)
-              .then(modifier)
-              .alpha(alpha)
-              .background(color = color, shape = CircleShape)
-  )
+    Box(
+        modifier = Modifier
+            .size(size)
+            .then(modifier)
+            .alpha(alpha)
+            .background(color = color, shape = CircleShape)
+    )
 }

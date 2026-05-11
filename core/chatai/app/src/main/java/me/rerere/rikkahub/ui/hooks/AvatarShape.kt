@@ -14,16 +14,16 @@ import kotlin.math.roundToInt
 
 @Composable
 fun rememberAvatarShape(loading: Boolean): Shape {
-  val infiniteTransition = rememberInfiniteTransition()
-  val rotateAngle =
-      infiniteTransition.animateFloat(
-          initialValue = 0f,
-          targetValue = 360f,
-          animationSpec =
-              infiniteRepeatable(
-                  animation = tween(durationMillis = 3000, easing = LinearEasing),
-              ),
-      )
-  return if (loading) MaterialShapes.Cookie6Sided.toShape(rotateAngle.value.roundToInt())
-  else CircleShape
+    val infiniteTransition = rememberInfiniteTransition()
+    val rotateAngle = infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 3000,
+                easing = LinearEasing
+            ),
+        )
+    )
+    return if (loading) MaterialShapes.Cookie6Sided.toShape(rotateAngle.value.roundToInt()) else CircleShape
 }

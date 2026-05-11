@@ -10,16 +10,16 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun ScrollableRow(
-    modifier: Modifier = Modifier,
+    modifier: Modifier=Modifier,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
     verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
-    content: @Composable () -> Unit,
+    content:@Composable ()->Unit
 ) {
-  Row(
-      modifier = modifier.horizontalScroll(rememberScrollState()),
-      horizontalArrangement = horizontalArrangement,
-      verticalAlignment = verticalAlignment,
-  ) {
-    content()
-  }
+    Row(
+        modifier = modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = horizontalArrangement,
+        verticalAlignment = verticalAlignment
+    ) {
+        content()
+    }
 }

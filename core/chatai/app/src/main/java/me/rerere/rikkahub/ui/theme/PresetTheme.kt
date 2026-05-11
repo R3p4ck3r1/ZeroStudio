@@ -14,21 +14,21 @@ data class PresetTheme(
     val standardLight: ColorScheme,
     val standardDark: ColorScheme,
 ) {
-  fun getColorScheme(dark: Boolean): ColorScheme {
-    return if (dark) standardDark else standardLight
-  }
+    fun getColorScheme(dark: Boolean): ColorScheme {
+        return if (dark) standardDark else standardLight
+    }
 }
 
 val PresetThemes by lazy {
-  listOf(
-      SakuraThemePreset,
-      OceanThemePreset,
-      SpringThemePreset,
-      AutumnThemePreset,
-      BlackThemePreset,
-  )
+    listOf(
+        SakuraThemePreset,
+        OceanThemePreset,
+        SpringThemePreset,
+        AutumnThemePreset,
+        BlackThemePreset,
+    )
 }
 
 fun findPresetTheme(id: String): PresetTheme {
-  return PresetThemes.find { it.id == id } ?: SakuraThemePreset
+    return PresetThemes.find { it.id == id } ?: SakuraThemePreset
 }

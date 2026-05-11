@@ -7,27 +7,30 @@ android {
   namespace = "me.rerere.common"
   compileSdk = 36
 
-  defaultConfig {
-    minSdk = 26
+    defaultConfig {
+        minSdk = 26
 
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    consumerProguardFiles("consumer-rules.pro")
-  }
-
-  buildTypes {
-    release {
-      isMinifyEnabled = false
-      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
     }
-  }
-  compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-  }
-  tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.optIn.add("kotlin.uuid.ExperimentalUuidApi")
-    compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
-  }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    tasks.withType<KotlinCompile>().configureEach {
+        compilerOptions.optIn.add("kotlin.uuid.ExperimentalUuidApi")
+        compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
+    }
 }
 
 dependencies {

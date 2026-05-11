@@ -32,7 +32,9 @@ import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.AlertCircle
 import me.rerere.rikkahub.R
 
-/** 权限请求说明对话框 */
+/**
+ * 权限请求说明对话框
+ */
 @Composable
 internal fun PermissionRationaleDialog(
     permissions: List<PermissionInfo>,
@@ -40,177 +42,198 @@ internal fun PermissionRationaleDialog(
     onProceed: () -> Unit,
     onCancel: () -> Unit,
     onOpenSettings: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
-  Dialog(
-      onDismissRequest = onCancel,
-  ) {
-    Card(
-        modifier = modifier.fillMaxWidth().padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    Dialog(
+        onDismissRequest = onCancel,
     ) {
-      Column(
-          modifier = Modifier.fillMaxWidth().padding(24.dp),
-          horizontalAlignment = Alignment.CenterHorizontally,
-      ) {
-        // 标题图标
-        Icon(
-            imageVector = HugeIcons.AlertCircle,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 标题
-        val hasPermanentlyDenied = permanentlyDeniedPermissions.isNotEmpty()
-        Text(
-            text = stringResource(R.string.permission_diaog_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // 说明文字
-        Text(
-            text =
-                if (hasPermanentlyDenied) {
-                  stringResource(R.string.permission_desc_goto_setting)
-                } else {
-                  stringResource(R.string.permission_desc_require_permission)
-                },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 权限列表
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-          items(permissions) { permissionInfo ->
-            PermissionItem(
-                permissionInfo = permissionInfo,
-                isPermanentlyDenied = permanentlyDeniedPermissions.contains(permissionInfo),
-                modifier = Modifier.fillMaxWidth(),
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
             )
-          }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 按钮组
-        if (hasPermanentlyDenied) {
-          // 有永久拒绝的权限，只显示前往设置和取消按钮
-          Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(12.dp),
-          ) {
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
-              Text(stringResource(R.string.cancel))
-            }
-
-            Button(
-                onClick = onProceed, // 这里会跳转到设置
-                modifier = Modifier.weight(1f),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-              Text(stringResource(R.string.permission_go_to_settings))
-            }
-          }
-        } else {
-          // 没有永久拒绝的权限，显示正常的授权按钮
-          Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(12.dp),
-          ) {
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
-              Text(stringResource(R.string.cancel))
-            }
+                // 标题图标
+                Icon(
+                    imageVector = HugeIcons.AlertCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
 
-            Button(onClick = onProceed, modifier = Modifier.weight(1f)) {
-              Text(stringResource(R.string.confirm))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 标题
+                val hasPermanentlyDenied = permanentlyDeniedPermissions.isNotEmpty()
+                Text(
+                    text = stringResource(R.string.permission_diaog_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 说明文字
+                Text(
+                    text = if (hasPermanentlyDenied) {
+                        stringResource(R.string.permission_desc_goto_setting)
+                    } else {
+                        stringResource(R.string.permission_desc_require_permission)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 权限列表
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(permissions) { permissionInfo ->
+                        PermissionItem(
+                            permissionInfo = permissionInfo,
+                            isPermanentlyDenied = permanentlyDeniedPermissions.contains(permissionInfo),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 按钮组
+                if (hasPermanentlyDenied) {
+                    // 有永久拒绝的权限，只显示前往设置和取消按钮
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onCancel,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.cancel))
+                        }
+
+                        Button(
+                            onClick = onProceed, // 这里会跳转到设置
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.permission_go_to_settings))
+                        }
+                    }
+                } else {
+                    // 没有永久拒绝的权限，显示正常的授权按钮
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onCancel,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.cancel))
+                        }
+
+                        Button(
+                            onClick = onProceed,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.confirm))
+                        }
+                    }
+                }
             }
-          }
         }
-      }
     }
-  }
 }
 
-/** 单个权限项组件 */
+/**
+ * 单个权限项组件
+ */
 @Composable
 private fun PermissionItem(
     permissionInfo: PermissionInfo,
     modifier: Modifier = Modifier,
     isPermanentlyDenied: Boolean = false,
 ) {
-  Card(
-      modifier = modifier,
-      colors =
-          CardDefaults.cardColors(
-              containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-          ),
-      shape = RoundedCornerShape(8.dp),
-  ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-      // 权限名称
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.weight(1f)) {
-          ProvideTextStyle(
-              value = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium)
-          ) {
-            permissionInfo.displayName()
-          }
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-          if (permissionInfo.required) {
-            Card(
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                shape = RoundedCornerShape(4.dp),
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            // 权限名称
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-              Text(
-                  text = stringResource(R.string.permission_required),
-                  style = MaterialTheme.typography.labelSmall,
-                  color = MaterialTheme.colorScheme.onErrorContainer,
-                  modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-              )
-            }
-          }
+                Box(modifier = Modifier.weight(1f)) {
+                    ProvideTextStyle(value = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium)) {
+                        permissionInfo.displayName()
+                    }
+                }
 
-          if (isPermanentlyDenied) {
-            Card(
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                    ),
-                shape = RoundedCornerShape(4.dp),
-            ) {
-              Text(
-                  text = stringResource(R.string.permission_permanently_denied),
-                  style = MaterialTheme.typography.labelSmall,
-                  color = MaterialTheme.colorScheme.onError,
-                  modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-              )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (permissionInfo.required) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.permission_required),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    if (isPermanentlyDenied) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                            ),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.permission_permanently_denied),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onError,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
             }
-          }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 权限使用说明
+            ProvideTextStyle(value = MaterialTheme.typography.bodySmall) {
+                permissionInfo.usage()
+            }
         }
-      }
-
-      Spacer(modifier = Modifier.height(4.dp))
-
-      // 权限使用说明
-      ProvideTextStyle(value = MaterialTheme.typography.bodySmall) { permissionInfo.usage() }
     }
-  }
 }

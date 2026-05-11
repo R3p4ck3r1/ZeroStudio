@@ -23,14 +23,14 @@ private fun PlainDialog(
     onClose: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-  Dialog(onDismissRequest = onClose) {
-    Card(
-        modifier = modifier,
-        shape = shape,
-    ) {
-      content()
+    Dialog(onDismissRequest = onClose) {
+        Card(
+            modifier = modifier,
+            shape = shape,
+        ) {
+            content()
+        }
     }
-  }
 }
 
 @Composable
@@ -41,17 +41,15 @@ fun PlainDialogWithPadding(
     onClose: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-  PlainDialog(onClose = onClose) {
-    Column(
-        modifier =
-            Modifier.fillMaxWidth()
+    PlainDialog(onClose = onClose) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
                 .padding(contentPadding)
-                .then(
-                    if (scrollable) Modifier.verticalScroll(scrollState ?: rememberScrollState())
-                    else Modifier
-                ),
-    ) {
-      content()
+                .then(if(scrollable) Modifier.verticalScroll(scrollState ?: rememberScrollState()) else Modifier)
+            ,
+        ) {
+            content()
+        }
     }
-  }
 }

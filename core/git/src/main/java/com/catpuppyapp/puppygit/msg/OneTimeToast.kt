@@ -5,15 +5,15 @@ import com.catpuppyapp.puppygit.utils.Msg
 
 // if need more other class, create an interface
 class OneTimeToast {
-  private val showed = AtomicBoolean(false)
+    private val showed = AtomicBoolean(false)
 
-  fun show(msg: String) {
-    if (showed.compareAndSet(false, true)) {
-      Msg.requireShowLongDuration(msg)
+    fun show(msg:String) {
+        if(showed.compareAndSet(false, true)) {
+            Msg.requireShowLongDuration(msg)
+        }
     }
-  }
 
-  fun reset() {
-    showed.set(false)
-  }
+    fun reset() {
+        showed.set(false)
+    }
 }

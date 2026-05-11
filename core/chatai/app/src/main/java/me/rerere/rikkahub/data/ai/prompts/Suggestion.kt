@@ -1,7 +1,6 @@
 package me.rerere.rikkahub.data.ai.prompts
 
-internal val DEFAULT_SUGGESTION_PROMPT =
-    """
+internal val DEFAULT_SUGGESTION_PROMPT = """
     I will provide you with some chat content in the `<content>` block, including conversations between the User and the AI assistant.
     You need to act as the **User** to reply to the assistant, generating 3~5 appropriate and contextually relevant responses to the assistant.
 
@@ -16,5 +15,4 @@ internal val DEFAULT_SUGGESTION_PROMPT =
     <content>
     {content}
     </content>
-    """
-        .trimIndent()
+""".trimIndent()

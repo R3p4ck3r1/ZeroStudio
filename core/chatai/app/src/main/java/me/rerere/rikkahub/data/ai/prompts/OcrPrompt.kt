@@ -15,5 +15,4 @@ val DEFAULT_OCR_PROMPT =
 
     Keep the original reading order and layout structure as much as possible.
     Do not interpret or translate—only transcribe and describe what is visually present.
-    """
-        .trimIndent()
+    """.trimIndent()

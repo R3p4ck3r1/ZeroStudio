@@ -14,16 +14,18 @@ import me.rerere.rikkahub.ui.theme.CustomColors
 
 @Composable
 fun BackButton(modifier: Modifier = Modifier) {
-  val navController = LocalNavController.current
-  FilledTonalIconButton(
-      onClick = { navController.popBackStack() },
-      modifier = modifier,
-      shapes = IconButtonDefaults.shapes(),
-      colors =
-          IconButtonDefaults.filledTonalIconButtonColors(
-              containerColor = CustomColors.listItemColors.containerColor
-          ),
-  ) {
-    Icon(imageVector = HugeIcons.ArrowLeft01, contentDescription = stringResource(R.string.back))
-  }
+    val navController = LocalNavController.current
+    FilledTonalIconButton(
+        onClick = {
+            navController.popBackStack()
+        },
+        modifier = modifier,
+        shapes = IconButtonDefaults.shapes(),
+        colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = CustomColors.listItemColors.containerColor),
+    ) {
+        Icon(
+            imageVector = HugeIcons.ArrowLeft01,
+            contentDescription = stringResource(R.string.back)
+        )
+    }
 }

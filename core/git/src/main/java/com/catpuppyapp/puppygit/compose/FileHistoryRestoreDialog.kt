@@ -30,50 +30,46 @@ fun FileHistoryRestoreDialog(
     curRepo: CustomStateSaveable<RepoEntity>,
     fileRelativePath: String,
     repoId: String,
-    onSuccess: () -> Unit = {},
+    onSuccess:() -> Unit = {}
 ) {
-  ConfirmDialog2(
-      title = stringResource(R.string.restore),
-      requireShowTextCompose = true,
-      textCompose = {
-        MySelectionContainer {
-          ScrollableColumn {
-            Text(
-                replaceStringResList(stringResource(R.string.target_ph), listOf(targetCommitOidStr))
-            )
+    ConfirmDialog2(
+        title = stringResource(R.string.restore),
+        requireShowTextCompose = true,
+        textCompose = {
+            MySelectionContainer {
+                ScrollableColumn {
+                    Text(
+                        replaceStringResList(stringResource(R.string.target_ph), listOf(targetCommitOidStr))
+                    )
 
-            if (commitMsg.isNotBlank()) {
-              Spacer(Modifier.height(15.dp))
-              Text(commitMsg)
+                    if(commitMsg.isNotBlank()) {
+                        Spacer(Modifier.height(15.dp))
+                        Text(commitMsg)
+                    }
+                }
             }
-          }
-        }
-      },
-      onCancel = { showRestoreDialog.value = false },
-      okBtnText = stringResource(R.string.restore),
-  ) {
-    showRestoreDialog.value = false
-    doJobThenOffLoading(loadingOn, loadingOff, activityContext.getString(R.string.restoring)) {
-      try {
-        Repository.open(curRepo.value.fullSavePath).use { repo ->
-          // fun checkoutFiles(repo: Repository, targetCommitHash:String, pathSpecs: List<String>,
-          // force: Boolean, checkoutOptions: Checkout.Options?=null): Ret<Unit?> {
-          Libgit2Helper.checkoutFiles(
-              repo,
-              targetCommitOidStr,
-              pathSpecs = listOf(fileRelativePath),
-              force = true,
-          )
-        }
+        },
+        onCancel = { showRestoreDialog.value = false },
+        okBtnText = stringResource(R.string.restore)
+    ) {
+        showRestoreDialog.value = false
+        doJobThenOffLoading(loadingOn, loadingOff, activityContext.getString(R.string.restoring)) {
+            try {
+                Repository.open(curRepo.value.fullSavePath).use { repo ->
+                    //fun checkoutFiles(repo: Repository, targetCommitHash:String, pathSpecs: List<String>, force: Boolean, checkoutOptions: Checkout.Options?=null): Ret<Unit?> {
+                    Libgit2Helper.checkoutFiles(repo, targetCommitOidStr, pathSpecs = listOf(fileRelativePath), force = true)
 
-        Msg.requireShow(activityContext.getString(R.string.success))
+                }
 
-        onSuccess()
-      } catch (e: Exception) {
-        val errMsg = e.localizedMessage ?: "unknown err"
-        Msg.requireShowLongDuration(errMsg)
-        createAndInsertError(repoId, errMsg)
-      }
+                Msg.requireShow(activityContext.getString(R.string.success))
+
+                onSuccess()
+            } catch (e: Exception) {
+                val errMsg = e.localizedMessage ?: "unknown err"
+                Msg.requireShowLongDuration(errMsg)
+                createAndInsertError(repoId, errMsg)
+            }
+        }
     }
-  }
 }
+

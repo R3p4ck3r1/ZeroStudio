@@ -14,33 +14,30 @@ import me.rerere.rikkahub.ui.context.LocalSettings
 
 @Composable
 fun RabbitLoadingIndicator(modifier: Modifier = Modifier) {
-  val useAppIconStyleLoadingIndicator =
-      LocalSettings.current.displaySetting.useAppIconStyleLoadingIndicator
-  val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
+    val useAppIconStyleLoadingIndicator = LocalSettings.current.displaySetting.useAppIconStyleLoadingIndicator
+    val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
 
-  if (useAppIconStyleLoadingIndicator) {
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-          ImageView(context).apply {
-            val drawable =
-                AppCompatResources.getDrawable(context, R.drawable.rabbit)
-                    as? AnimatedVectorDrawable
-            setImageDrawable(drawable)
-            drawable?.setTint(primaryColor)
-            drawable?.start()
-          }
-        },
-        update = { imageView ->
-          (imageView.drawable as? AnimatedVectorDrawable)?.apply {
-            setTint(primaryColor)
-            start()
-          }
-        },
-    )
-  } else {
-    ContainedLoadingIndicator(
-        modifier = modifier,
-    )
-  }
+    if (useAppIconStyleLoadingIndicator) {
+        AndroidView(
+            modifier = modifier,
+            factory = { context ->
+                ImageView(context).apply {
+                    val drawable = AppCompatResources.getDrawable(context, R.drawable.rabbit) as? AnimatedVectorDrawable
+                    setImageDrawable(drawable)
+                    drawable?.setTint(primaryColor)
+                    drawable?.start()
+                }
+            },
+            update = { imageView ->
+                (imageView.drawable as? AnimatedVectorDrawable)?.apply {
+                    setTint(primaryColor)
+                    start()
+                }
+            }
+        )
+    } else {
+        ContainedLoadingIndicator(
+            modifier = modifier,
+        )
+    }
 }

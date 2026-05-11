@@ -36,53 +36,62 @@ fun <T> Select(
     optionToString: @Composable (T) -> String = { it.toString() },
     optionLeading: @Composable ((T) -> Unit)? = null,
     leading: @Composable () -> Unit = {},
-    trailing: @Composable () -> Unit = {},
+    trailing: @Composable () -> Unit = {}
 ) {
-  var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
 
-  ExposedDropdownMenuBox(
-      modifier = modifier,
-      expanded = expanded,
-      onExpandedChange = { expanded = it },
-  ) {
-    Surface(
-        tonalElevation = 4.dp,
-        shape = RoundedCornerShape(50),
-        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+    ExposedDropdownMenuBox(
+        modifier = modifier,
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
     ) {
-      Row(
-          modifier =
-              Modifier.fillMaxWidth()
-                  .clip(RoundedCornerShape(4.dp))
-                  .clickable { expanded = true }
-                  .padding(vertical = 8.dp, horizontal = 16.dp),
-          horizontalArrangement = Arrangement.spacedBy(6.dp),
-          verticalAlignment = Alignment.CenterVertically,
-      ) {
-        leading()
-        Text(
-            text = optionToString(selectedOption),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
-        )
-        trailing()
-        Icon(
-            imageVector = if (expanded) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
-            contentDescription = "expand",
-        )
-      }
+        Surface(
+            tonalElevation = 4.dp,
+            shape = RoundedCornerShape(50),
+            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable { expanded = true }
+                    .padding(vertical = 8.dp, horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                leading()
+                Text(
+                    text = optionToString(selectedOption),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                trailing()
+                Icon(
+                    imageVector = if (expanded) HugeIcons.ArrowUp01 else HugeIcons.ArrowDown01,
+                    contentDescription = "expand"
+                )
+            }
+        }
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+            }
+        ) {
+            options.fastForEach { option ->
+                DropdownMenuItem(
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    },
+                    text = {
+                        Text(text = optionToString(option), maxLines = 1)
+                    },
+                    leadingIcon = optionLeading?.let {
+                        { it(option) }
+                    }
+                )
+            }
+        }
     }
-    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-      options.fastForEach { option ->
-        DropdownMenuItem(
-            onClick = {
-              onOptionSelected(option)
-              expanded = false
-            },
-            text = { Text(text = optionToString(option), maxLines = 1) },
-            leadingIcon = optionLeading?.let { { it(option) } },
-        )
-      }
-    }
-  }
 }

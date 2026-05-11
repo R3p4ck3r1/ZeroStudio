@@ -17,71 +17,81 @@ import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.utils.AppModel
 import com.catpuppyapp.puppygit.utils.doJobThenOffLoading
 
+
 @Composable
 fun UnLinkCredentialAndRemoteDialogForRemoteListPage(
-    remoteId: String,
-    remoteName: String,
+    remoteId:String,
+    remoteName:String,
     onCancel: () -> Unit,
-    onOkCallback: () -> Unit,
+    onOkCallback:()->Unit,
 ) {
 
-  val fetchChecked = rememberSaveable { mutableStateOf(true) }
-  val pushChecked = rememberSaveable { mutableStateOf(true) }
+    val fetchChecked = rememberSaveable { mutableStateOf(true) }
+    val pushChecked = rememberSaveable { mutableStateOf(true) }
 
-  AlertDialog(
-      title = { DialogTitle(stringResource(R.string.unlink)) },
-      text = {
-        ScrollableColumn {
-          SelectionRow {
-            Text(text = stringResource(id = R.string.remote) + ": ")
-            Text(
-                text = remoteName,
-                fontWeight = FontWeight.ExtraBold,
-                overflow = TextOverflow.Visible,
-            )
-          }
-          Spacer(Modifier.height(10.dp))
-          MyCheckBox(text = stringResource(R.string.fetch), value = fetchChecked)
-          MyCheckBox(text = stringResource(R.string.push), value = pushChecked)
-        }
-      },
-      onDismissRequest = { onCancel() },
-      confirmButton = {
-        TextButton(
-            enabled =
-                fetchChecked.value || pushChecked.value, // at least checked 1, else dont enable
-            onClick = onOk@{
-                  if (!fetchChecked.value && !pushChecked.value) {
-                    return@onOk
-                  }
+    AlertDialog(
+        title = {
+            DialogTitle(stringResource(R.string.unlink))
+        },
+        text = {
+            ScrollableColumn {
+                SelectionRow {
+                    Text(text = stringResource(id = R.string.remote)+": ")
+                    Text(text = remoteName,
+                        fontWeight = FontWeight.ExtraBold,
+                        overflow = TextOverflow.Visible
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                MyCheckBox(text = stringResource(R.string.fetch), value = fetchChecked)
+                MyCheckBox(text = stringResource(R.string.push), value = pushChecked)
+            }
 
-                  val remoteDb = AppModel.dbContainer.remoteRepository
-                  val emptyId = ""
+        },
+        onDismissRequest = {
+            onCancel()
+        },
+        confirmButton = {
+            TextButton(
+                enabled = fetchChecked.value || pushChecked.value,  //at least checked 1, else dont enable
 
-                  doJobThenOffLoading {
-                    try {
-                      if (fetchChecked.value && pushChecked.value) {
-                        remoteDb.updateFetchAndPushCredentialIdByRemoteId(
-                            remoteId,
-                            emptyId,
-                            emptyId,
-                        )
-                      } else if (fetchChecked.value) {
-                        remoteDb.updateCredentialIdByRemoteId(remoteId, emptyId)
-                      } else { // pushChecked.value is true
-                        remoteDb.updatePushCredentialIdByRemoteId(remoteId, emptyId)
-                      }
-                    } finally {
-                      onOkCallback()
+                onClick = onOk@{
+                    if(!fetchChecked.value && !pushChecked.value) {
+                        return@onOk
                     }
-                  }
-                },
-        ) {
-          Text(stringResource(id = R.string.ok))
+
+                    val remoteDb = AppModel.dbContainer.remoteRepository
+                    val emptyId = ""
+
+                    doJobThenOffLoading {
+                        try {
+                            if(fetchChecked.value && pushChecked.value) {
+                                remoteDb.updateFetchAndPushCredentialIdByRemoteId(remoteId, emptyId, emptyId)
+                            }else if(fetchChecked.value) {
+                                remoteDb.updateCredentialIdByRemoteId(remoteId, emptyId)
+                            }else {  //pushChecked.value is true
+                                remoteDb.updatePushCredentialIdByRemoteId(remoteId, emptyId)
+                            }
+
+                        }finally {
+                            onOkCallback()
+                        }
+                    }
+                }
+            ) {
+                Text(stringResource(id = R.string.ok))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    onCancel()
+                }
+            ) {
+                Text(stringResource(id = R.string.cancel))
+            }
         }
-      },
-      dismissButton = {
-        TextButton(onClick = { onCancel() }) { Text(stringResource(id = R.string.cancel)) }
-      },
-  )
+    )
+
 }
+

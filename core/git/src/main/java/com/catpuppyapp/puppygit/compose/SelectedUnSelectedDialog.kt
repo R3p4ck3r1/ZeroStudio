@@ -21,111 +21,132 @@ import com.catpuppyapp.puppygit.utils.state.CustomStateSaveable
 
 @Composable
 fun <T> SelectedUnSelectedDialog(
-    title: String,
-    loading: Boolean,
-    selectedTitleText: String,
-    unselectedTitleText: String,
-    selectedItemList: MutableList<T>,
-    unselectedItemList: MutableList<T>,
+    title:String,
+    loading:Boolean,
+    selectedTitleText:String,
+    unselectedTitleText:String,
+    selectedItemList:MutableList<T>,
+    unselectedItemList:MutableList<T>,
     filterKeyWord: CustomStateSaveable<TextFieldValue>,
-    selectedItemFormatter: @Composable (T) -> Unit,
-    unselectedItemFormatter: @Composable (T) -> Unit,
-    filterSelectedItemList: (keyword: String) -> List<T>,
-    filterUnselectedItemList: (keyword: String) -> List<T>,
-    cancel: () -> Unit,
-) {
-  ConfirmDialog3(
-      title = title,
-      requireShowTextCompose = true,
-      textCompose = {
-        SelectedUnSelectedList(
-            loading = loading,
-            selectedTitleText = selectedTitleText,
-            unselectedTitleText = unselectedTitleText,
-            selectedItemList = selectedItemList,
-            unselectedItemList = unselectedItemList,
-            filterKeyWord = filterKeyWord,
-            selectedItemFormatter = selectedItemFormatter,
-            unselectedItemFormatter = unselectedItemFormatter,
-            filterSelectedItemList = filterSelectedItemList,
-            filterUnselectedItemList = filterUnselectedItemList,
-        )
-      },
-      cancelBtnText = stringResource(R.string.close),
-      onCancel = cancel,
-      showOk = false,
-      onOk = {},
-  )
+    selectedItemFormatter:@Composable (T)->Unit,
+    unselectedItemFormatter:@Composable (T)->Unit,
+    filterSelectedItemList: (keyword:String)->List<T>,
+    filterUnselectedItemList: (keyword:String)->List<T>,
+    cancel:()->Unit,
+){
+    ConfirmDialog3(
+        title = title,
+        requireShowTextCompose = true,
+        textCompose = {
+            SelectedUnSelectedList(
+                loading = loading,
+                selectedTitleText = selectedTitleText,
+                unselectedTitleText = unselectedTitleText,
+                selectedItemList = selectedItemList,
+                unselectedItemList = unselectedItemList,
+                filterKeyWord = filterKeyWord,
+                selectedItemFormatter = selectedItemFormatter,
+                unselectedItemFormatter = unselectedItemFormatter,
+                filterSelectedItemList=filterSelectedItemList,
+                filterUnselectedItemList=filterUnselectedItemList,
+            )
+        },
+        cancelBtnText = stringResource(R.string.close),
+        onCancel = cancel,
+        showOk = false,
+        onOk = {}
+    )
 }
 
 @Composable
 fun <T> SelectedUnSelectedList(
-    loading: Boolean,
-    selectedTitleText: String,
-    unselectedTitleText: String,
-    selectedItemList: MutableList<T>,
-    unselectedItemList: MutableList<T>,
+    loading:Boolean,
+    selectedTitleText:String,
+    unselectedTitleText:String,
+    selectedItemList:MutableList<T>,
+    unselectedItemList:MutableList<T>,
     filterKeyWord: CustomStateSaveable<TextFieldValue>,
-    selectedItemFormatter: @Composable (T) -> Unit,
-    unselectedItemFormatter: @Composable (T) -> Unit,
-    filterSelectedItemList: (keyword: String) -> List<T>,
-    filterUnselectedItemList: (keyword: String) -> List<T>,
+    selectedItemFormatter:@Composable (T)->Unit,
+    unselectedItemFormatter:@Composable (T)->Unit,
+
+    filterSelectedItemList: (keyword:String)->List<T>,
+    filterUnselectedItemList: (keyword:String)->List<T>,
 ) {
-  MySelectionContainerPlaceHolder {
-    if (loading) {
-      LoadingTextBase(
-          modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
-          text = { Text(stringResource(R.string.loading)) },
-      )
-    } else {
-      Column(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.Center,
-      ) {
+    MySelectionContainerPlaceHolder {
+        if(loading) {
+            LoadingTextBase(modifier = Modifier.fillMaxWidth().padding(top=20.dp), text = { Text(stringResource(R.string.loading)) })
+        }else {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
 
-        // 注意：这个过滤没开协程，直接在渲染线程过滤的，目前这个组件用来过滤仓库，我估计用户不会克隆超过100个仓库，性能损耗很小，没必要开协程处理
-        // 普通的过滤，加不加清空无所谓，一按返回就清空了，但这个常驻显示，得加个清空按钮
-        FilterTextField(filterKeyWord = filterKeyWord, requireFocus = false)
+                //注意：这个过滤没开协程，直接在渲染线程过滤的，目前这个组件用来过滤仓库，我估计用户不会克隆超过100个仓库，性能损耗很小，没必要开协程处理
+                //普通的过滤，加不加清空无所谓，一按返回就清空了，但这个常驻显示，得加个清空按钮
+                FilterTextField(filterKeyWord = filterKeyWord, requireFocus = false)
 
-        Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(10.dp))
 
-        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
 
-          // 根据关键字过滤条目
-          val k = filterKeyWord.value.text // 关键字
-          val enableFilter = maybeIsGoodKeyword(k)
-          val filteredSelectedList =
-              if (enableFilter) {
-                filterSelectedItemList(k)
-              } else {
-                selectedItemList
-              }
+                    //根据关键字过滤条目
+                    val k = filterKeyWord.value.text  //关键字
+                    val enableFilter = maybeIsGoodKeyword(k)
+                    val filteredSelectedList = if(enableFilter){
+                        filterSelectedItemList(k)
+                    }else {
+                        selectedItemList
+                    }
 
-          val filteredUnselectedList =
-              if (enableFilter) {
-                filterUnselectedItemList(k)
-              } else {
-                unselectedItemList
-              }
+                    val filteredUnselectedList = if(enableFilter){
+                        filterUnselectedItemList(k)
+                    }else {
+                        unselectedItemList
+                    }
 
-          item { SettingsTitle(selectedTitleText + "(${filteredSelectedList.size})") }
+                    item {
+                        SettingsTitle(selectedTitleText+"(${filteredSelectedList.size})")
+                    }
 
-          if (filteredSelectedList.isEmpty()) {
-            item { MySelectionContainer { ItemListIsEmpty() } }
-          } else {
-            filteredSelectedList.forEachBetter { item { Column { selectedItemFormatter(it) } } }
-          }
+                    if(filteredSelectedList.isEmpty()) {
+                        item {
+                            MySelectionContainer {
+                                ItemListIsEmpty()
+                            }
+                        }
+                    }else {
+                        filteredSelectedList.forEachBetter {
+                            item {
+                                Column {
+                                    selectedItemFormatter(it)
+                                }
+                            }
+                        }
+                    }
 
-          item { SettingsTitle(unselectedTitleText + "(${filteredUnselectedList.size})") }
+                    item {
+                        SettingsTitle(unselectedTitleText+"(${filteredUnselectedList.size})")
+                    }
 
-          if (filteredUnselectedList.isEmpty()) {
-            item { MySelectionContainer { ItemListIsEmpty() } }
-          } else {
-            filteredUnselectedList.forEachBetter { item { Column { unselectedItemFormatter(it) } } }
-          }
+                    if(filteredUnselectedList.isEmpty()) {
+                        item {
+                            MySelectionContainer {
+                                ItemListIsEmpty()
+                            }
+                        }
+                    }else {
+                        filteredUnselectedList.forEachBetter {
+                            item {
+                                Column {
+                                    unselectedItemFormatter(it)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }
+

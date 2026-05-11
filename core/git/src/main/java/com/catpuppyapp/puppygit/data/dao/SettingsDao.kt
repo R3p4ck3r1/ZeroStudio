@@ -19,27 +19,31 @@ package com.catpuppyapp.puppygit.data.dao
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.catpuppyapp.puppygit.data.entity.SettingsEntity
 
-/** Database access object to access the Inventory database */
+/**
+ * Database access object to access the Inventory database
+ */
 @Dao
 interface SettingsDao {
 
-  @Insert suspend fun insert(item: SettingsEntity)
+    @Insert
+    suspend fun insert(item: SettingsEntity)
 
-  // update by id
-  @Update suspend fun update(item: SettingsEntity)
+    //update by id
+    @Update
+    suspend fun update(item: SettingsEntity)
 
-  // delete by id
-  @Delete suspend fun delete(item: SettingsEntity)
+    //delete by id
+    @Delete
+    suspend fun delete(item: SettingsEntity)
 
-  @Query("SELECT * from settings where usedFor=:usedFor")
-  suspend fun getByUsedFor(usedFor: Int): SettingsEntity?
+    @Query("SELECT * from settings where usedFor=:usedFor")
+    suspend fun getByUsedFor(usedFor:Int): SettingsEntity?
 
-  @Query(
-      "UPDATE settings set baseCreateTime = baseCreateTime-(:offsetInSec), baseUpdateTime = baseUpdateTime-(:offsetInSec)"
-  )
-  suspend fun subtractTimeOffset(offsetInSec: Long)
+    @Query("UPDATE settings set baseCreateTime = baseCreateTime-(:offsetInSec), baseUpdateTime = baseUpdateTime-(:offsetInSec)")
+    suspend fun subtractTimeOffset(offsetInSec:Long)
 }

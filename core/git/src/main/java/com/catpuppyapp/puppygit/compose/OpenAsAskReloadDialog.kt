@@ -8,21 +8,21 @@ import com.catpuppyapp.puppygit.style.MyStyleKt
 
 @Composable
 fun OpenAsAskReloadDialog(
-    onCancel: () -> Unit,
-    doReload: () -> Unit,
+    onCancel:()->Unit,
+    doReload:()->Unit,
 ) {
-  ConfirmDialogAndDisableSelection(
-      title = stringResource(R.string.reload_file),
-      requireShowTextCompose = true,
-      textCompose = {
-        CopyScrollableColumn {
-          Text(stringResource(R.string.back_editor_from_external_app_ask_reload))
-        }
-      },
-      okBtnText = stringResource(R.string.reload),
-      cancelBtnText = stringResource(R.string.cancel),
-      cancelTextColor = MyStyleKt.TextColor.danger(),
-      onCancel = onCancel,
-      onOk = doReload,
-  )
+    ConfirmDialogAndDisableSelection(
+        title = stringResource(R.string.reload_file),
+        requireShowTextCompose = true,
+        textCompose = {
+            CopyScrollableColumn {
+                Text(stringResource(R.string.back_editor_from_external_app_ask_reload))
+            }
+        },
+        okBtnText = stringResource(R.string.reload),
+        cancelBtnText = stringResource(R.string.cancel),
+        cancelTextColor = MyStyleKt.TextColor.danger(),
+        onCancel = onCancel,
+        onOk = doReload,
+    )
 }

@@ -9,59 +9,51 @@ import me.rerere.rikkahub.data.repository.ConversationRepository
 import me.rerere.rikkahub.utils.JsonInstantPretty
 import me.rerere.rikkahub.utils.toLocalDate
 
-internal fun buildMemoryPrompt(memories: List<AssistantMemory>) = buildString {
-  appendLine()
-  append("**Memories**")
-  appendLine()
-  append(
-      "These are memories stored via the memory_tool that you can reference in future conversations."
-  )
-  appendLine()
-  val json = buildJsonArray {
-    memories.forEach { memory ->
-      add(
-          buildJsonObject {
-            put("id", memory.id)
-            put("content", memory.content)
-          }
-      )
+internal fun buildMemoryPrompt(memories: List<AssistantMemory>) =
+    buildString {
+        appendLine()
+        append("**Memories**")
+        appendLine()
+        append("These are memories stored via the memory_tool that you can reference in future conversations.")
+        appendLine()
+        val json = buildJsonArray {
+            memories.forEach { memory ->
+                add(buildJsonObject {
+                    put("id", memory.id)
+                    put("content", memory.content)
+                })
+            }
+        }
+        append(JsonInstantPretty.encodeToString(json))
+        appendLine()
     }
-  }
-  append(JsonInstantPretty.encodeToString(json))
-  appendLine()
-}
 
 internal suspend fun buildRecentChatsPrompt(
     assistant: Assistant,
-    conversationRepo: ConversationRepository,
+    conversationRepo: ConversationRepository
 ): String {
-  val recentConversations =
-      conversationRepo.getRecentConversations(
-          assistantId = assistant.id,
-          limit = 10,
-      )
-  if (recentConversations.isNotEmpty()) {
-    return buildString {
-      appendLine()
-      append("**Recent Chats**")
-      appendLine()
-      append(
-          "These are some of the user's recent conversations. You can use them to understand user preferences:"
-      )
-      appendLine()
-      val json = buildJsonArray {
-        recentConversations.forEach { conversation ->
-          add(
-              buildJsonObject {
-                put("title", conversation.title)
-                put("last_chat", conversation.updateAt.toLocalDate())
-              }
-          )
+    val recentConversations = conversationRepo.getRecentConversations(
+        assistantId = assistant.id,
+        limit = 10,
+    )
+    if (recentConversations.isNotEmpty()) {
+        return buildString {
+            appendLine()
+            append("**Recent Chats**")
+            appendLine()
+            append("These are some of the user's recent conversations. You can use them to understand user preferences:")
+            appendLine()
+            val json = buildJsonArray {
+                recentConversations.forEach { conversation ->
+                    add(buildJsonObject {
+                        put("title", conversation.title)
+                        put("last_chat", conversation.updateAt.toLocalDate())
+                    })
+                }
+            }
+            append(JsonInstantPretty.encodeToString(json))
+            appendLine()
         }
-      }
-      append(JsonInstantPretty.encodeToString(json))
-      appendLine()
     }
-  }
-  return ""
+    return ""
 }

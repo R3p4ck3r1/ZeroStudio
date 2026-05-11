@@ -35,121 +35,119 @@ private const val TAG = "SetBranchForRemoteDialog"
 
 @Composable
 fun SetBranchForRemoteDialog(
-    stateKeyTag: String,
+    stateKeyTag:String,
     curRepo: RepoEntity,
     remoteName: String,
     isAllInitValue: Boolean,
     onCancel: () -> Unit,
-    onOk: (remoteName: String, isAll: Boolean, branchCsvStr: String) -> Unit,
+    onOk: (remoteName:String, isAll: Boolean, branchCsvStr: String) -> Unit
 ) {
-  val stateKeyTag = Cache.getComponentKey(stateKeyTag, TAG)
+    val stateKeyTag = Cache.getComponentKey(stateKeyTag, TAG)
 
-  val activityContext = LocalContext.current
-  val selectedOption =
-      mutableCustomStateOf(stateKeyTag, "selectedOption") {
-        if (isAllInitValue) BranchMode.ALL else BranchMode.CUSTOM
-      }
+    val activityContext = LocalContext.current
+    val selectedOption = mutableCustomStateOf(stateKeyTag, "selectedOption") { if(isAllInitValue) BranchMode.ALL else BranchMode.CUSTOM }
 
-  //    val branchList = StateUtil.getCustomSaveableStateList(keyTag = stateKeyTag, keyName =
-  // "branchList") {
-  //        listOf<String>()
-  //    }
-  val branchCsvStr = rememberSaveable { mutableStateOf("") }
-  val strListSeparator = Cons.comma
+//    val branchList = StateUtil.getCustomSaveableStateList(keyTag = stateKeyTag, keyName = "branchList") {
+//        listOf<String>()
+//    }
+    val branchCsvStr = rememberSaveable { mutableStateOf("")}
+    val strListSeparator = Cons.comma
 
-  AlertDialog(
-      title = { DialogTitle(stringResource(R.string.set_branch_mode)) },
-      text = {
-        ScrollableColumn {
-          SelectionRow {
-            Text(text = stringResource(R.string.remote) + ": ")
-            Text(text = remoteName, fontWeight = FontWeight.ExtraBold)
-          }
+    AlertDialog(
+        title = {
+            DialogTitle(stringResource(R.string.set_branch_mode))
+        },
+        text = {
+            ScrollableColumn {
+                SelectionRow {
+                    Text(text = stringResource(R.string.remote) + ": ")
+                    Text(text = remoteName,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
 
-          Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-          SelectionRow { Text(text = stringResource(R.string.branch_mode_note)) }
+                SelectionRow {
+                    Text(text = stringResource(R.string.branch_mode_note))
+                }
 
-          Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-          SingleSelection(
-              itemList = BranchMode.entries,
-              selected = { idx, item -> selectedOption.value == item },
-              text = { idx, item ->
-                activityContext.getString(
-                    if (item == BranchMode.ALL) R.string.all else R.string.custom
+                SingleSelection(
+                    itemList = BranchMode.entries,
+                    selected = {idx, item -> selectedOption.value == item},
+                    text = {idx, item -> activityContext.getString(if(item == BranchMode.ALL) R.string.all else R.string.custom) },
+                    onClick = {idx, item -> selectedOption.value = item}
                 )
-              },
-              onClick = { idx, item -> selectedOption.value = item },
-          )
 
-          if (selectedOption.value == BranchMode.CUSTOM) {
-            Spacer(Modifier.height(5.dp))
+                if(selectedOption.value == BranchMode.CUSTOM) {
+                    Spacer(Modifier.height(5.dp))
 
-            TextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = branchCsvStr.value,
-                onValueChange = { branchCsvStr.value = it },
-                label = {
-                  Text(
-                      replaceStringResList(
-                          stringResource(R.string.branches_split_by_sign),
-                          listOf(strListSeparator),
-                      )
-                  )
-                },
-                placeholder = { Text(stringResource(R.string.branches_placeholder)) },
-            )
-          }
+                    TextField(
+                        modifier = Modifier.fillMaxWidth(),
+
+                        value = branchCsvStr.value,
+                        onValueChange = {
+                            branchCsvStr.value = it
+                        },
+                        label = {
+                            Text(replaceStringResList(stringResource(R.string.branches_split_by_sign), listOf(strListSeparator)))
+                        },
+                        placeholder = {
+                            Text(stringResource(R.string.branches_placeholder))
+                        }
+                    )
+                }
+            }
+        },
+        onDismissRequest = { onCancel() },
+        dismissButton = {
+            TextButton(onClick = { onCancel() }) {
+                Text(text = stringResource(R.string.cancel))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = (selectedOption.value == BranchMode.ALL) || branchCsvStr.value.isNotBlank(),
+                onClick = { onOk(remoteName, selectedOption.value == BranchMode.ALL, branchCsvStr.value) }
+            ) {
+                Text(text = stringResource(R.string.save))
+            }
         }
-      },
-      onDismissRequest = { onCancel() },
-      dismissButton = {
-        TextButton(onClick = { onCancel() }) { Text(text = stringResource(R.string.cancel)) }
-      },
-      confirmButton = {
-        TextButton(
-            enabled = (selectedOption.value == BranchMode.ALL) || branchCsvStr.value.isNotBlank(),
-            onClick = {
-              onOk(remoteName, selectedOption.value == BranchMode.ALL, branchCsvStr.value)
-            },
-        ) {
-          Text(text = stringResource(R.string.save))
+    )
+
+
+    LaunchedEffect(Unit) {
+        doJobThenOffLoading {
+            try {
+                Repository.open(curRepo.fullSavePath).use { repo ->
+                    val remote = Libgit2Helper.resolveRemote(repo, remoteName)
+                    if (remote == null) {
+                        Msg.requireShowLongDuration(activityContext.getString(R.string.err_resolve_remote_failed))
+                        return@doJobThenOffLoading
+                    }
+
+                    val (isAllRealValue, branchNameList) = Libgit2Helper.getRemoteFetchBranchList(remote)
+
+                    //更新状态变量
+                    selectedOption.value = if(isAllRealValue) BranchMode.ALL else BranchMode.CUSTOM
+
+                    if (isAllRealValue) {
+                        branchCsvStr.value = ""
+                    } else {
+                        branchCsvStr.value = StrListUtil.listToCsvStr(branchNameList)
+                    }
+
+//                    branchList.value.clear()
+//                    branchList.value.addAll(refspecList)
+                }
+
+            } catch (e: Exception) {
+                Msg.requireShowLongDuration("err: " + e.localizedMessage)
+                createAndInsertError(curRepo.id, "err: ${e.localizedMessage}")
+                MyLog.e(TAG, "#LaunchedEffect: err: ${e.stackTraceToString()}")
+            }
         }
-      },
-  )
-
-  LaunchedEffect(Unit) {
-    doJobThenOffLoading {
-      try {
-        Repository.open(curRepo.fullSavePath).use { repo ->
-          val remote = Libgit2Helper.resolveRemote(repo, remoteName)
-          if (remote == null) {
-            Msg.requireShowLongDuration(
-                activityContext.getString(R.string.err_resolve_remote_failed)
-            )
-            return@doJobThenOffLoading
-          }
-
-          val (isAllRealValue, branchNameList) = Libgit2Helper.getRemoteFetchBranchList(remote)
-
-          // 更新状态变量
-          selectedOption.value = if (isAllRealValue) BranchMode.ALL else BranchMode.CUSTOM
-
-          if (isAllRealValue) {
-            branchCsvStr.value = ""
-          } else {
-            branchCsvStr.value = StrListUtil.listToCsvStr(branchNameList)
-          }
-
-          //                    branchList.value.clear()
-          //                    branchList.value.addAll(refspecList)
-        }
-      } catch (e: Exception) {
-        Msg.requireShowLongDuration("err: " + e.localizedMessage)
-        createAndInsertError(curRepo.id, "err: ${e.localizedMessage}")
-        MyLog.e(TAG, "#LaunchedEffect: err: ${e.stackTraceToString()}")
-      }
     }
-  }
 }

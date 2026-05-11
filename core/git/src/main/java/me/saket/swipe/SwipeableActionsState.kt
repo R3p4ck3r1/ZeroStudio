@@ -14,35 +14,40 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlin.math.abs
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 @Composable
 fun rememberSwipeableActionsState(): SwipeableActionsState {
   return remember { SwipeableActionsState() }
 }
 
-/** The state of a [SwipeableActionsBox]. */
+/**
+ * The state of a [SwipeableActionsBox].
+ */
 @Stable
 class SwipeableActionsState internal constructor() {
-  /** The current position (in pixels) of a [SwipeableActionsBox]. */
-  val offset: State<Float>
-    get() = offsetState
-
+  /**
+   * The current position (in pixels) of a [SwipeableActionsBox].
+   */
+  val offset: State<Float> get() = offsetState
   internal var offsetState = mutableStateOf(0f)
 
   /**
    * Whether [SwipeableActionsBox] is currently animating to reset its offset after it was swiped.
    */
-  val isResettingOnRelease: Boolean by derivedStateOf { swipedAction != null }
+  val isResettingOnRelease: Boolean by derivedStateOf {
+    swipedAction != null
+  }
 
   internal var layoutWidth: Int by mutableIntStateOf(0)
   internal var swipeThresholdPx: Float by mutableFloatStateOf(0f)
   internal val ripple = SwipeRippleState()
 
-  internal var actions: ActionFinder by
-      mutableStateOf(ActionFinder(left = emptyList(), right = emptyList()))
+  internal var actions: ActionFinder by mutableStateOf(
+    ActionFinder(left = emptyList(), right = emptyList())
+  )
   internal val visibleAction: SwipeActionMeta? by derivedStateOf {
     actions.actionAt(offsetState.value, totalWidth = layoutWidth)
   }
@@ -54,11 +59,10 @@ class SwipeableActionsState internal constructor() {
     val canSwipeTowardsRight = actions.left.isNotEmpty()
     val canSwipeTowardsLeft = actions.right.isNotEmpty()
 
-    val isAllowed =
-        isResettingOnRelease ||
-            targetOffset == 0f ||
-            (targetOffset > 0f && canSwipeTowardsRight) ||
-            (targetOffset < 0f && canSwipeTowardsLeft)
+    val isAllowed = isResettingOnRelease
+      || targetOffset == 0f
+      || (targetOffset > 0f && canSwipeTowardsRight)
+      || (targetOffset < 0f && canSwipeTowardsLeft)
 
     offsetState.value += if (isAllowed) delta else (delta / 10)
   }
@@ -77,7 +81,7 @@ class SwipeableActionsState internal constructor() {
           swipedAction = action
           action.value.onSwipe()
 
-          if (animationEnabled) {
+          if(animationEnabled) {
             ripple.animate(action = action)
           }
         }
@@ -85,18 +89,17 @@ class SwipeableActionsState internal constructor() {
     }
 
     launch {
-      if (animationEnabled) {
-        // here call drag is for keep the position correct when animating, if no animate then no
-        // need call drag
+      if(animationEnabled) {
+        // here call drag is for keep the position correct when animating, if no animate then no need call drag
         draggableState.drag(MutatePriority.PreventUserInput) {
           Animatable(offsetState.value).animateTo(
-              targetValue = 0f,
-              animationSpec = tween(durationMillis = animationDurationMs),
+            targetValue = 0f,
+            animationSpec = tween(durationMillis = animationDurationMs),
           ) {
             dragBy(value - offsetState.value)
           }
         }
-      } else { // no animation, reset offset to 0 when drag stopped
+      }else {  // no animation, reset offset to 0 when drag stopped
         offsetState.value = 0f
       }
 

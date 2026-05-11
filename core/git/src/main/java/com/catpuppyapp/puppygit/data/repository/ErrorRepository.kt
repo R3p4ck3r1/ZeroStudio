@@ -16,6 +16,7 @@
 
 package com.catpuppyapp.puppygit.data.repository
 
+import androidx.room.Query
 import com.catpuppyapp.puppygit.data.entity.ErrorEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -23,32 +24,44 @@ import kotlinx.coroutines.flow.Flow
  * Repository that provides insert, update, delete, and retrieve of [Item] from a given data source.
  */
 interface ErrorRepository {
-  /** Retrieve all the items from the the given data source. */
-  fun getAllStream(): Flow<List<ErrorEntity?>>
+    /**
+     * Retrieve all the items from the the given data source.
+     */
+    fun getAllStream(): Flow<List<ErrorEntity?>>
 
-  /** Retrieve an item from the given data source that matches with the [id]. */
-  fun getStream(id: String): Flow<ErrorEntity?>
+    /**
+     * Retrieve an item from the given data source that matches with the [id].
+     */
+    fun getStream(id: String): Flow<ErrorEntity?>
 
-  /** Insert item in the data source */
-  suspend fun insert(item: ErrorEntity)
+    /**
+     * Insert item in the data source
+     */
+    suspend fun insert(item: ErrorEntity)
 
-  /** Delete item from the data source */
-  suspend fun delete(item: ErrorEntity)
+    /**
+     * Delete item from the data source
+     */
+    suspend fun delete(item: ErrorEntity)
 
-  /** Update item in the data source */
-  suspend fun update(item: ErrorEntity)
+    /**
+     * Update item in the data source
+     */
+    suspend fun update(item: ErrorEntity)
 
-  fun getListByRepoId(repoId: String): List<ErrorEntity>
 
-  fun getById(id: String): ErrorEntity?
 
-  fun updateIsCheckedByRepoId(repoId: String, isChecked: Int)
+    fun getListByRepoId(repoId: String): List<ErrorEntity>
 
-  fun deleteErrOverTime(timeInSec: Long)
+    fun getById(id: String): ErrorEntity?
 
-  fun deleteErrOverLimitTime()
+    fun updateIsCheckedByRepoId(repoId: String, isChecked:Int)
+    fun deleteErrOverTime(timeInSec:Long)
 
-  fun deleteByRepoId(repoId: String)
+    fun deleteErrOverLimitTime()
 
-  suspend fun subtractTimeOffset(offsetInSec: Long)
+    fun deleteByRepoId(repoId: String)
+
+    suspend fun subtractTimeOffset(offsetInSec:Long)
+
 }

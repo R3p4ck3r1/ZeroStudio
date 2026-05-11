@@ -13,16 +13,17 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun ListItemRow(
-    content: @Composable () -> Unit,
-) {
-  Row(
-      modifier =
-          Modifier.defaultMinSize(minWidth = Dp.Unspecified, minHeight = 50.dp)
-              .padding(5.dp)
-              .fillMaxWidth(.85F),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.Start,
-  ) {
-    content()
-  }
+    content:@Composable ()->Unit,
+){
+    Row(
+        modifier = Modifier
+            .defaultMinSize(minWidth = Dp.Unspecified, minHeight = 50.dp)
+            .padding(5.dp)
+            .fillMaxWidth(.85F),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start
+
+    ){
+        content()
+    }
 }

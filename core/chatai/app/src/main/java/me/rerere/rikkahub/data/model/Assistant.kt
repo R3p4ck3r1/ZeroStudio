@@ -1,13 +1,14 @@
 package me.rerere.rikkahub.data.model
 
-import kotlin.uuid.Uuid
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.provider.CustomBody
 import me.rerere.ai.provider.CustomHeader
 import me.rerere.ai.ui.UIMessage
+import me.rerere.ai.core.ReasoningLevel
 import me.rerere.rikkahub.data.ai.tools.LocalToolOption
+import kotlin.uuid.Uuid
 
 @Serializable
 data class Assistant(
@@ -29,7 +30,7 @@ data class Assistant(
     val presetMessages: List<UIMessage> = emptyList(),
     val quickMessageIds: Set<Uuid> = emptySet(),
     val regexes: List<AssistantRegex> = emptyList(),
-    val thinkingBudget: Int? = 1024,
+    val reasoningLevel: ReasoningLevel = ReasoningLevel.AUTO,
     val maxTokens: Int? = null,
     val customHeaders: List<CustomHeader> = emptyList(),
     val customBodies: List<CustomBody> = emptyList(),
@@ -37,10 +38,10 @@ data class Assistant(
     val localTools: List<LocalToolOption> = listOf(LocalToolOption.TimeInfo),
     val background: String? = null,
     val backgroundOpacity: Float = 1.0f,
-    val modeInjectionIds: Set<Uuid> = emptySet(), // 关联的模式注入 ID
-    val lorebookIds: Set<Uuid> = emptySet(), // 关联的 Lorebook ID
-    val enabledSkills: Set<String> = emptySet(), // 启用的 skill 名称列表
-    val enableTimeReminder: Boolean = false, // 时间间隔提醒注入
+    val modeInjectionIds: Set<Uuid> = emptySet(),      // 关联的模式注入 ID
+    val lorebookIds: Set<Uuid> = emptySet(),            // 关联的 Lorebook ID
+    val enabledSkills: Set<String> = emptySet(),        // 启用的 skill 名称列表
+    val enableTimeReminder: Boolean = false,            // 时间间隔提醒注入
 )
 
 @Serializable
@@ -58,8 +59,8 @@ data class AssistantMemory(
 
 @Serializable
 enum class AssistantAffectScope {
-  USER,
-  ASSISTANT,
+    USER,
+    ASSISTANT,
 }
 
 @Serializable
@@ -76,39 +77,49 @@ data class AssistantRegex(
 fun String.replaceRegexes(
     assistant: Assistant?,
     scope: AssistantAffectScope,
-    visual: Boolean = false,
+    visual: Boolean = false
 ): String {
-  if (assistant == null) return this
-  if (assistant.regexes.isEmpty()) return this
-  return assistant.regexes.fold(this) { acc, regex ->
-    if (regex.enabled && regex.visualOnly == visual && regex.affectingScope.contains(scope)) {
-      try {
-        val result =
-            acc.replace(
-                regex = Regex(regex.findRegex),
-                replacement = regex.replaceString,
-            )
-        // println("Regex: ${regex.findRegex} -> ${result}")
-        result
-      } catch (e: Exception) {
-        e.printStackTrace()
-        // 如果正则表达式格式错误，返回原字符串
-        acc
-      }
-    } else {
-      acc
+    if (assistant == null) return this
+    if (assistant.regexes.isEmpty()) return this
+    return assistant.regexes.fold(this) { acc, regex ->
+        if (regex.enabled && regex.visualOnly == visual && regex.affectingScope.contains(scope)) {
+            try {
+                val result = acc.replace(
+                    regex = Regex(regex.findRegex),
+                    replacement = regex.replaceString,
+                )
+                // println("Regex: ${regex.findRegex} -> ${result}")
+                result
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // 如果正则表达式格式错误，返回原字符串
+                acc
+            }
+        } else {
+            acc
+        }
     }
-  }
 }
 
-/** 注入位置 */
+/**
+ * 注入位置
+ */
 @Serializable
 enum class InjectionPosition {
-  @SerialName("before_system_prompt") BEFORE_SYSTEM_PROMPT, // 系统提示词之前
-  @SerialName("after_system_prompt") AFTER_SYSTEM_PROMPT, // 系统提示词之后（最常用）
-  @SerialName("top_of_chat") TOP_OF_CHAT, // 对话最开头（第一条用户消息之前）
-  @SerialName("bottom_of_chat") BOTTOM_OF_CHAT, // 最新消息之前（当前用户输入之前）
-  @SerialName("at_depth") AT_DEPTH, // 在指定深度位置插入（从最新消息往前数）
+    @SerialName("before_system_prompt")
+    BEFORE_SYSTEM_PROMPT,   // 系统提示词之前
+
+    @SerialName("after_system_prompt")
+    AFTER_SYSTEM_PROMPT,    // 系统提示词之后（最常用）
+
+    @SerialName("top_of_chat")
+    TOP_OF_CHAT,            // 对话最开头（第一条用户消息之前）
+
+    @SerialName("bottom_of_chat")
+    BOTTOM_OF_CHAT,         // 最新消息之前（当前用户输入之前）
+
+    @SerialName("at_depth")
+    AT_DEPTH,               // 在指定深度位置插入（从最新消息往前数）
 }
 
 /**
@@ -119,50 +130,56 @@ enum class InjectionPosition {
  */
 @Serializable
 sealed class PromptInjection {
-  abstract val id: Uuid
-  abstract val name: String
-  abstract val enabled: Boolean
-  abstract val priority: Int
-  abstract val position: InjectionPosition
-  abstract val content: String
-  abstract val injectDepth: Int // 当 position 为 AT_DEPTH 时使用，表示从最新消息往前数的位置
-  abstract val role: MessageRole // 注入角色：USER 或 ASSISTANT
+    abstract val id: Uuid
+    abstract val name: String
+    abstract val enabled: Boolean
+    abstract val priority: Int
+    abstract val position: InjectionPosition
+    abstract val content: String
+    abstract val injectDepth: Int  // 当 position 为 AT_DEPTH 时使用，表示从最新消息往前数的位置
+    abstract val role: MessageRole  // 注入角色：USER 或 ASSISTANT
 
-  /** 模式注入 - 基于开关状态触发 */
-  @Serializable
-  @SerialName("mode")
-  data class ModeInjection(
-      override val id: Uuid = Uuid.random(),
-      override val name: String = "",
-      override val enabled: Boolean = true,
-      override val priority: Int = 0,
-      override val position: InjectionPosition = InjectionPosition.AFTER_SYSTEM_PROMPT,
-      override val content: String = "",
-      override val injectDepth: Int = 4,
-      override val role: MessageRole = MessageRole.USER,
-  ) : PromptInjection()
+    /**
+     * 模式注入 - 基于开关状态触发
+     */
+    @Serializable
+    @SerialName("mode")
+    data class ModeInjection(
+        override val id: Uuid = Uuid.random(),
+        override val name: String = "",
+        override val enabled: Boolean = true,
+        override val priority: Int = 0,
+        override val position: InjectionPosition = InjectionPosition.AFTER_SYSTEM_PROMPT,
+        override val content: String = "",
+        override val injectDepth: Int = 4,
+        override val role: MessageRole = MessageRole.USER,
+    ) : PromptInjection()
 
-  /** 正则注入 - 基于内容匹配触发（世界书） */
-  @Serializable
-  @SerialName("regex")
-  data class RegexInjection(
-      override val id: Uuid = Uuid.random(),
-      override val name: String = "",
-      override val enabled: Boolean = true,
-      override val priority: Int = 0,
-      override val position: InjectionPosition = InjectionPosition.AFTER_SYSTEM_PROMPT,
-      override val content: String = "",
-      override val injectDepth: Int = 4,
-      override val role: MessageRole = MessageRole.USER,
-      val keywords: List<String> = emptyList(), // 触发关键词
-      val useRegex: Boolean = false, // 是否使用正则匹配
-      val caseSensitive: Boolean = false, // 大小写敏感
-      val scanDepth: Int = 4, // 扫描最近N条消息
-      val constantActive: Boolean = false, // 常驻激活（无需匹配）
-  ) : PromptInjection()
+    /**
+     * 正则注入 - 基于内容匹配触发（世界书）
+     */
+    @Serializable
+    @SerialName("regex")
+    data class RegexInjection(
+        override val id: Uuid = Uuid.random(),
+        override val name: String = "",
+        override val enabled: Boolean = true,
+        override val priority: Int = 0,
+        override val position: InjectionPosition = InjectionPosition.AFTER_SYSTEM_PROMPT,
+        override val content: String = "",
+        override val injectDepth: Int = 4,
+        override val role: MessageRole = MessageRole.USER,
+        val keywords: List<String> = emptyList(),  // 触发关键词
+        val useRegex: Boolean = false,             // 是否使用正则匹配
+        val caseSensitive: Boolean = false,        // 大小写敏感
+        val scanDepth: Int = 4,                    // 扫描最近N条消息
+        val constantActive: Boolean = false,       // 常驻激活（无需匹配）
+    ) : PromptInjection()
 }
 
-/** Lorebook - 组织管理多个 RegexInjection */
+/**
+ * Lorebook - 组织管理多个 RegexInjection
+ */
 @Serializable
 data class Lorebook(
     val id: Uuid = Uuid.random(),
@@ -179,26 +196,26 @@ data class Lorebook(
  * @return 是否触发
  */
 fun PromptInjection.RegexInjection.isTriggered(context: String): Boolean {
-  if (!enabled) return false
-  if (constantActive) return true
-  if (keywords.isEmpty()) return false
+    if (!enabled) return false
+    if (constantActive) return true
+    if (keywords.isEmpty()) return false
 
-  return keywords.any { keyword ->
-    if (useRegex) {
-      try {
-        val options = if (caseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)
-        Regex(keyword, options).containsMatchIn(context)
-      } catch (e: Exception) {
-        false
-      }
-    } else {
-      if (caseSensitive) {
-        context.contains(keyword)
-      } else {
-        context.contains(keyword, ignoreCase = true)
-      }
+    return keywords.any { keyword ->
+        if (useRegex) {
+            try {
+                val options = if (caseSensitive) emptySet() else setOf(RegexOption.IGNORE_CASE)
+                Regex(keyword, options).containsMatchIn(context)
+            } catch (e: Exception) {
+                false
+            }
+        } else {
+            if (caseSensitive) {
+                context.contains(keyword)
+            } else {
+                context.contains(keyword, ignoreCase = true)
+            }
+        }
     }
-  }
 }
 
 /**
@@ -208,8 +225,13 @@ fun PromptInjection.RegexInjection.isTriggered(context: String): Boolean {
  * @param scanDepth 扫描深度（最近N条消息）
  * @return 拼接的文本内容
  */
-fun extractContextForMatching(messages: List<UIMessage>, scanDepth: Int): String {
-  return messages.takeLast(scanDepth).joinToString("\n") { it.toText() }
+fun extractContextForMatching(
+    messages: List<UIMessage>,
+    scanDepth: Int
+): String {
+    return messages
+        .takeLast(scanDepth)
+        .joinToString("\n") { it.toText() }
 }
 
 /**
@@ -221,7 +243,9 @@ fun extractContextForMatching(messages: List<UIMessage>, scanDepth: Int): String
  */
 fun getTriggeredInjections(
     injections: List<PromptInjection.RegexInjection>,
-    context: String,
+    context: String
 ): List<PromptInjection.RegexInjection> {
-  return injections.filter { it.isTriggered(context) }.sortedByDescending { it.priority }
+    return injections
+        .filter { it.isTriggered(context) }
+        .sortedByDescending { it.priority }
 }

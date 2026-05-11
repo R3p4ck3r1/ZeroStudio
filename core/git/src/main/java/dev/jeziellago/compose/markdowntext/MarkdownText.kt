@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
@@ -26,9 +27,7 @@ import dev.jeziellago.compose.markdowntext.plugins.image.ImagesPlugin
 import io.noties.markwon.Markwon
 
 /**
- * @param onLinkClicked handle the url and return a boolean indicated consumed, if return true,
- *   default url handler will not handle the link; if return false, default link handler will take
- *   it
+ * @param onLinkClicked handle the url and return a boolean indicated consumed, if return true, default url handler will not handle the link; if return false, default link handler will take it
  */
 @Composable
 fun MarkdownText(
@@ -57,93 +56,95 @@ fun MarkdownText(
     importForAccessibility: Int = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO,
     beforeSetMarkdown: ((TextView, Spanned) -> Unit)? = null,
     afterSetMarkdown: ((TextView) -> Unit)? = null,
-    onLinkClicked: (String) -> Boolean = { false },
-    onTextLayout: ((numLines: Int) -> Unit)? = null,
+    onLinkClicked: (String) -> Boolean = {false},
+    onTextLayout: ((numLines: Int) -> Unit)? = null
 ) {
-  val defaultColor: Color = LocalContentColor.current
-  val context: Context = LocalContext.current
+    val defaultColor: Color = LocalContentColor.current
+    val context: Context = LocalContext.current
 
-  // this was remembered, if remember, must set dependencies params as key of remember,
-  //   else will not update variable correctly, e.g. when navi to other file which parent difference
-  // to current,
-  //   then the coilStore will not update, so, all relative path resource will not load correctly
-  val markdownRender: Markwon =
-      MarkdownRender.create(
-          context,
-          imageLoader,
-          coilStore,
-          linkifyMask,
-          enableSoftBreakAddsNewLine,
-          syntaxHighlightColor,
-          syntaxHighlightTextColor,
-          headingBreakColor,
-          enableUnderlineForLink,
-          beforeSetMarkdown,
-          afterSetMarkdown,
-          onLinkClicked,
-          style,
-      )
+    // this was remembered, if remember, must set dependencies params as key of remember,
+    //   else will not update variable correctly, e.g. when navi to other file which parent difference to current,
+    //   then the coilStore will not update, so, all relative path resource will not load correctly
+    val markdownRender: Markwon = MarkdownRender.create(
+        context,
+        imageLoader,
+        coilStore,
+        linkifyMask,
+        enableSoftBreakAddsNewLine,
+        syntaxHighlightColor,
+        syntaxHighlightTextColor,
+        headingBreakColor,
+        enableUnderlineForLink,
+        beforeSetMarkdown,
+        afterSetMarkdown,
+        onLinkClicked,
+        style
+    )
 
-  val androidViewModifier =
-      if (onClick != null) {
-        Modifier.clickable { onClick() }.then(modifier)
-      } else {
+    val androidViewModifier = if (onClick != null) {
+        Modifier
+            .clickable { onClick() }
+            .then(modifier)
+    } else {
         modifier
-      }
-  AndroidView(
-      modifier = androidViewModifier,
-      factory = { factoryContext ->
-        val linkTextColor = linkColor.takeOrElse { style.color.takeOrElse { defaultColor } }
+    }
+    AndroidView(
+        modifier = androidViewModifier,
+        factory = { factoryContext ->
 
-        CustomTextView(factoryContext).apply {
-          viewId?.let { id = viewId }
-          fontResource?.let { font -> applyFontResource(font) }
-          importantForAccessibility = importForAccessibility
+            val linkTextColor = linkColor.takeOrElse { style.color.takeOrElse { defaultColor } }
 
-          setMaxLines(maxLines)
-          setLinkTextColor(linkTextColor.toArgb())
+            CustomTextView(factoryContext).apply {
+                viewId?.let { id = viewId }
+                fontResource?.let { font -> applyFontResource(font) }
+                importantForAccessibility = importForAccessibility
 
-          setTextIsSelectable(isTextSelectable)
+                setMaxLines(maxLines)
+                setLinkTextColor(linkTextColor.toArgb())
 
-          movementMethod = LinkMovementMethod.getInstance()
+                setTextIsSelectable(isTextSelectable)
 
-          if (truncateOnTextOverflow) enableTextOverflow()
+                movementMethod = LinkMovementMethod.getInstance()
 
-          autoSizeConfig?.let { config ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-              TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
-                  this,
-                  config.autoSizeMinTextSize,
-                  config.autoSizeMaxTextSize,
-                  config.autoSizeStepGranularity,
-                  config.unit,
-              )
+                if (truncateOnTextOverflow) enableTextOverflow()
+
+                autoSizeConfig?.let { config ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                            this,
+                            config.autoSizeMinTextSize,
+                            config.autoSizeMaxTextSize,
+                            config.autoSizeStepGranularity,
+                            config.unit
+                        )
+                    }
+                }
             }
-          }
-        }
-      },
-      update = { textView ->
-        with(textView) {
-          applyTextColor(style.color.takeOrElse { defaultColor }.toArgb())
-          applyFontSize(style)
-          applyLineHeight(style)
-          applyTextDecoration(style)
+        },
+        update = { textView ->
+            with(textView) {
+                applyTextColor(style.color.takeOrElse { defaultColor }.toArgb())
+                applyFontSize(style)
+                applyLineHeight(style)
+                applyTextDecoration(style)
 
-          with(style) {
-            applyTextAlign(textAlign)
-            fontFamily?.let { applyFontFamily(this) }
-            fontStyle?.let { applyFontStyle(it) }
-            fontWeight?.let { applyFontWeight(it) }
-          }
+                with(style) {
+                    applyTextAlign(textAlign)
+                    fontFamily?.let { applyFontFamily(this) }
+                    fontStyle?.let { applyFontStyle(it) }
+                    fontWeight?.let { applyFontWeight(it) }
+                }
+            }
+            markdownRender.setMarkdown(textView, markdown)
+            if (disableLinkMovementMethod) {
+                textView.movementMethod = null
+            }
+            if (onTextLayout != null) {
+                textView.post {
+                    onTextLayout(textView.lineCount)
+                }
+            }
+            textView.maxLines = maxLines
         }
-        markdownRender.setMarkdown(textView, markdown)
-        if (disableLinkMovementMethod) {
-          textView.movementMethod = null
-        }
-        if (onTextLayout != null) {
-          textView.post { onTextLayout(textView.lineCount) }
-        }
-        textView.maxLines = maxLines
-      },
-  )
+    )
 }

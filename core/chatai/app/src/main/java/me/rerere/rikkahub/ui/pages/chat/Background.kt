@@ -15,32 +15,33 @@ import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 
 @Composable
 fun AssistantBackground(setting: Settings) {
-  val assistant = setting.getCurrentAssistant()
-  if (assistant.background != null) {
-    val backgroundColor = MaterialTheme.colorScheme.background
-    val backgroundOpacity = assistant.backgroundOpacity.coerceIn(0f, 1f)
-    Box {
-      AsyncImage(
-          model = assistant.background,
-          contentDescription = null,
-          contentScale = ContentScale.Crop,
-          modifier = Modifier.fillMaxSize().alpha(backgroundOpacity),
-      )
+    val assistant = setting.getCurrentAssistant()
+    if (assistant.background != null) {
+        val backgroundColor = MaterialTheme.colorScheme.background
+        val backgroundOpacity = assistant.backgroundOpacity.coerceIn(0f, 1f)
+        Box {
+            AsyncImage(
+                model = assistant.background,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(backgroundOpacity)
+            )
 
-      // 全屏渐变遮罩
-      Box(
-          modifier =
-              Modifier.fillMaxSize()
-                  .background(
-                      Brush.verticalGradient(
-                          colors =
-                              listOf(
-                                  backgroundColor.copy(alpha = 0.2f),
-                                  backgroundColor.copy(alpha = 0.5f),
-                              )
-                      )
-                  )
-      )
+            // 全屏渐变遮罩
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                backgroundColor.copy(alpha = 0.2f),
+                                backgroundColor.copy(alpha = 0.5f)
+                            )
+                        )
+                    )
+            )
+        }
     }
-  }
 }

@@ -1,7 +1,6 @@
 package me.rerere.rikkahub.data.ai.prompts
 
-internal val DEFAULT_COMPRESS_PROMPT =
-    """
+internal val DEFAULT_COMPRESS_PROMPT = """
     You are a conversation compression assistant. Compress the following conversation into a concise summary.
 
     Requirements:
@@ -18,5 +17,4 @@ internal val DEFAULT_COMPRESS_PROMPT =
     <conversation>
     {content}
     </conversation>
-    """
-        .trimIndent()
+""".trimIndent()

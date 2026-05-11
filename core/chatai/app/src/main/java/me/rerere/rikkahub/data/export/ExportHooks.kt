@@ -15,11 +15,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.FileProvider
-import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 @Stable
 class ExporterState<T>(
@@ -29,44 +29,46 @@ class ExporterState<T>(
     private val scope: CoroutineScope,
     private val createDocumentLauncher: ManagedActivityResultLauncher<String, Uri?>,
 ) {
-  val value: String
-    get() = serializer.exportToJson(data)
+    val value: String
+        get() = serializer.exportToJson(data)
 
-  val fileName: String
-    get() = serializer.getExportFileName(data)
+    val fileName: String
+        get() = serializer.getExportFileName(data)
 
-  fun exportToFile(fileName: String = this.fileName) {
-    createDocumentLauncher.launch(fileName)
-  }
-
-  fun exportAndShare(fileName: String = this.fileName) {
-    scope.launch {
-      val file =
-          withContext(Dispatchers.IO) {
-            val cacheDir = File(context.cacheDir, "export")
-            cacheDir.mkdirs()
-            val file = File(cacheDir, fileName)
-            file.writeText(value)
-            file
-          }
-      val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-      val intent =
-          Intent(Intent.ACTION_SEND).apply {
-            type = "application/json"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-          }
-      context.startActivity(Intent.createChooser(intent, null))
+    fun exportToFile(fileName: String = this.fileName) {
+        createDocumentLauncher.launch(fileName)
     }
-  }
 
-  internal fun writeToUri(uri: Uri) {
-    scope.launch(Dispatchers.IO) {
-      context.contentResolver.openOutputStream(uri)?.use { output ->
-        output.write(value.toByteArray())
-      }
+    fun exportAndShare(fileName: String = this.fileName) {
+        scope.launch {
+            val file = withContext(Dispatchers.IO) {
+                val cacheDir = File(context.cacheDir, "export")
+                cacheDir.mkdirs()
+                val file = File(cacheDir, fileName)
+                file.writeText(value)
+                file
+            }
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/json"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, null))
+        }
     }
-  }
+
+    internal fun writeToUri(uri: Uri) {
+        scope.launch(Dispatchers.IO) {
+            context.contentResolver.openOutputStream(uri)?.use { output ->
+                output.write(value.toByteArray())
+            }
+        }
+    }
 }
 
 @Composable
@@ -74,31 +76,28 @@ fun <T> rememberExporter(
     data: T,
     serializer: ExportSerializer<T>,
 ): ExporterState<T> {
-  val context = LocalContext.current
-  val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-  var pendingState by remember { mutableStateOf<ExporterState<T>?>(null) }
+    var pendingState by remember { mutableStateOf<ExporterState<T>?>(null) }
 
-  val createDocumentLauncher =
-      rememberLauncherForActivityResult(
-          contract = ActivityResultContracts.CreateDocument("application/json")
-      ) { uri ->
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
         uri?.let { pendingState?.writeToUri(it) }
-      }
+    }
 
-  val state =
-      remember(data, serializer) {
+    val state = remember(data, serializer) {
         ExporterState(
-                data = data,
-                serializer = serializer,
-                context = context,
-                scope = scope,
-                createDocumentLauncher = createDocumentLauncher,
-            )
-            .also { pendingState = it }
-      }
+            data = data,
+            serializer = serializer,
+            context = context,
+            scope = scope,
+            createDocumentLauncher = createDocumentLauncher,
+        ).also { pendingState = it }
+    }
 
-  return state
+    return state
 }
 
 @Stable
@@ -109,16 +108,18 @@ class ImporterState<T>(
     private val openDocumentLauncher: ManagedActivityResultLauncher<Array<String>, Uri?>,
     private val onResult: (Result<T>) -> Unit,
 ) {
-  fun importFromFile() {
-    openDocumentLauncher.launch(arrayOf("application/json"))
-  }
-
-  internal fun handleUri(uri: Uri) {
-    scope.launch {
-      val result = withContext(Dispatchers.IO) { serializer.import(context, uri) }
-      onResult(result)
+    fun importFromFile() {
+        openDocumentLauncher.launch(arrayOf("application/json"))
     }
-  }
+
+    internal fun handleUri(uri: Uri) {
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                serializer.import(context, uri)
+            }
+            onResult(result)
+        }
+    }
 }
 
 @Composable
@@ -126,27 +127,26 @@ fun <T> rememberImporter(
     serializer: ExportSerializer<T>,
     onResult: (Result<T>) -> Unit,
 ): ImporterState<T> {
-  val context = LocalContext.current
-  val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-  var pendingState by remember { mutableStateOf<ImporterState<T>?>(null) }
+    var pendingState by remember { mutableStateOf<ImporterState<T>?>(null) }
 
-  val openDocumentLauncher =
-      rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
+    val openDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
         uri?.let { pendingState?.handleUri(it) }
-      }
+    }
 
-  val state =
-      remember(serializer) {
+    val state = remember(serializer) {
         ImporterState(
-                serializer = serializer,
-                context = context,
-                scope = scope,
-                openDocumentLauncher = openDocumentLauncher,
-                onResult = onResult,
-            )
-            .also { pendingState = it }
-      }
+            serializer = serializer,
+            context = context,
+            scope = scope,
+            openDocumentLauncher = openDocumentLauncher,
+            onResult = onResult,
+        ).also { pendingState = it }
+    }
 
-  return state
+    return state
 }

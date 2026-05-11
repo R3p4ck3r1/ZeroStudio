@@ -10,30 +10,28 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 public val TencentQQIcon: ImageVector
-  get() {
-    if (_tencentQQ != null) {
-      return _tencentQQ!!
-    }
-    _tencentQQ =
-        ImageVector.Builder(
-                name = "TencentQq",
-                defaultWidth = 16.dp,
-                defaultHeight = 16.dp,
-                viewportWidth = 16f,
-                viewportHeight = 16f,
-            )
-            .apply {
-              path(
-                  fill = SolidColor(Color(0xFF000000)),
-                  fillAlpha = 1.0f,
-                  stroke = null,
-                  strokeAlpha = 1.0f,
-                  strokeLineWidth = 1.0f,
-                  strokeLineCap = StrokeCap.Butt,
-                  strokeLineJoin = StrokeJoin.Miter,
-                  strokeLineMiter = 1.0f,
-                  pathFillType = PathFillType.NonZero,
-              ) {
+    get() {
+        if (_tencentQQ != null) {
+            return _tencentQQ!!
+        }
+        _tencentQQ = ImageVector.Builder(
+            name = "TencentQq",
+            defaultWidth = 16.dp,
+            defaultHeight = 16.dp,
+            viewportWidth = 16f,
+            viewportHeight = 16f
+        ).apply {
+            path(
+                fill = SolidColor(Color(0xFF000000)),
+                fillAlpha = 1.0f,
+                stroke = null,
+                strokeAlpha = 1.0f,
+                strokeLineWidth = 1.0f,
+                strokeLineCap = StrokeCap.Butt,
+                strokeLineJoin = StrokeJoin.Miter,
+                strokeLineMiter = 1.0f,
+                pathFillType = PathFillType.NonZero
+            ) {
                 moveTo(6.048f, 3.323f)
                 curveToRelative(0.022f, 0.277f, -0.13f, 0.523f, -0.338f, 0.55f)
                 curveToRelative(-0.21f, 0.026f, -0.397f, -0.176f, -0.419f, -0.453f)
@@ -49,33 +47,25 @@ public val TencentQQIcon: ImageVector
                 curveToRelative(0.053f, 0.024f, 0.147f, 0.028f, 0.193f, -0.098f)
                 curveToRelative(0.023f, -0.063f, 0.017f, -0.11f, -0.006f, -0.142f)
                 curveToRelative(-0.016f, -0.023f, -0.089f, -0.08f, -0.247f, -0.118f)
-              }
-              path(
-                  fill = SolidColor(Color(0xFF000000)),
-                  fillAlpha = 1.0f,
-                  stroke = null,
-                  strokeAlpha = 1.0f,
-                  strokeLineWidth = 1.0f,
-                  strokeLineCap = StrokeCap.Butt,
-                  strokeLineJoin = StrokeJoin.Miter,
-                  strokeLineMiter = 1.0f,
-                  pathFillType = PathFillType.NonZero,
-              ) {
+            }
+            path(
+                fill = SolidColor(Color(0xFF000000)),
+                fillAlpha = 1.0f,
+                stroke = null,
+                strokeAlpha = 1.0f,
+                strokeLineWidth = 1.0f,
+                strokeLineCap = StrokeCap.Butt,
+                strokeLineJoin = StrokeJoin.Miter,
+                strokeLineMiter = 1.0f,
+                pathFillType = PathFillType.NonZero
+            ) {
                 moveTo(11.727f, 6.719f)
                 curveToRelative(0f, -0.022f, 0.01f, -0.375f, 0.01f, -0.557f)
                 curveToRelative(0f, -3.07f, -1.45f, -6.156f, -5.015f, -6.156f)
                 reflectiveCurveTo(1.708f, 3.092f, 1.708f, 6.162f)
                 curveToRelative(0f, 0.182f, 0.01f, 0.535f, 0.01f, 0.557f)
                 lineToRelative(-0.72f, 1.795f)
-                arcToRelative(
-                    26f,
-                    26f,
-                    0f,
-                    isMoreThanHalf = false,
-                    isPositiveArc = false,
-                    -0.534f,
-                    1.508f,
-                )
+                arcToRelative(26f, 26f, 0f, isMoreThanHalf = false, isPositiveArc = false, -0.534f, 1.508f)
                 curveToRelative(-0.68f, 2.187f, -0.46f, 3.093f, -0.292f, 3.113f)
                 curveToRelative(0.36f, 0.044f, 1.401f, -1.647f, 1.401f, -1.647f)
                 curveToRelative(0f, 0.979f, 0.504f, 2.256f, 1.594f, 3.179f)
@@ -88,27 +78,11 @@ public val TencentQQIcon: ImageVector
                 curveToRelative(1.09f, -0.922f, 1.594f, -2.2f, 1.594f, -3.178f)
                 curveToRelative(0f, 0f, 1.041f, 1.69f, 1.401f, 1.647f)
                 curveToRelative(0.168f, -0.02f, 0.388f, -0.926f, -0.292f, -3.113f)
-                arcToRelative(
-                    26f,
-                    26f,
-                    0f,
-                    isMoreThanHalf = false,
-                    isPositiveArc = false,
-                    -0.534f,
-                    -1.508f,
-                )
+                arcToRelative(26f, 26f, 0f, isMoreThanHalf = false, isPositiveArc = false, -0.534f, -1.508f)
                 lineToRelative(-0.72f, -1.795f)
                 close()
                 moveTo(9.773f, 5.53f)
-                arcToRelative(
-                    0.1f,
-                    0.1f,
-                    0f,
-                    isMoreThanHalf = false,
-                    isPositiveArc = true,
-                    -0.009f,
-                    0.096f,
-                )
+                arcToRelative(0.1f, 0.1f, 0f, isMoreThanHalf = false, isPositiveArc = true, -0.009f, 0.096f)
                 curveToRelative(-0.109f, 0.159f, -1.554f, 0.943f, -3.033f, 0.943f)
                 horizontalLineToRelative(-0.017f)
                 curveToRelative(-1.48f, 0f, -2.925f, -0.784f, -3.034f, -0.943f)
@@ -119,7 +93,7 @@ public val TencentQQIcon: ImageVector
                     isMoreThanHalf = false,
                     isPositiveArc = true,
                     -0.018f,
-                    -0.055f,
+                    -0.055f
                 )
                 quadToRelative(0f, -0.022f, 0.01f, -0.04f)
                 curveToRelative(0.13f, -0.287f, 1.43f, -0.606f, 3.042f, -0.606f)
@@ -150,10 +124,9 @@ public val TencentQQIcon: ImageVector
                 horizontalLineToRelative(-0.091f)
                 curveToRelative(-2.245f, -0.023f, -3.7f, -1.562f, -3.846f, -4.011f)
                 curveToRelative(-0.054f, -0.9f, 0f, -1.663f, 0.097f, -2.285f)
-              }
             }
-            .build()
-    return _tencentQQ!!
-  }
+        }.build()
+        return _tencentQQ!!
+    }
 
 private var _tencentQQ: ImageVector? = null

@@ -14,11 +14,11 @@ fun CenterPaddingRow(
     paddingValues: PaddingValues = PaddingValues(top = MyStyleKt.defaultItemPadding),
     content: @Composable () -> Unit,
 ) {
-  Row(
-      modifier = Modifier.padding(paddingValues),
-      horizontalArrangement = Arrangement.Center,
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    content()
-  }
+    Row(
+        modifier = Modifier.padding(paddingValues),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        content()
+    }
 }

@@ -57,7 +57,6 @@ import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastFilter
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -91,6 +90,7 @@ import me.rerere.rikkahub.utils.toDp
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import kotlin.uuid.Uuid
 
 @Composable
 fun ModelSelector(
@@ -100,83 +100,111 @@ fun ModelSelector(
     modifier: Modifier = Modifier,
     onlyIcon: Boolean = false,
     allowClear: Boolean = false,
-    onSelect: (Model) -> Unit,
+    onSelect: (Model) -> Unit
 ) {
-  var popup by remember { mutableStateOf(false) }
-  val scope = rememberCoroutineScope()
-  val model = providers.findModelById(modelId ?: Uuid.random())
+    var popup by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val model = providers.findModelById(modelId ?: Uuid.random())
 
-  if (!onlyIcon) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      TextButton(onClick = { popup = true }, modifier = modifier) {
-        model?.modelId?.let {
-          AutoAIIcon(it, Modifier.padding(end = 4.dp).size(36.dp), color = Color.Transparent)
+    if (!onlyIcon) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = {
+                    popup = true
+                },
+                modifier = modifier
+            ) {
+                model?.modelId?.let {
+                    AutoAIIcon(
+                        it, Modifier
+                            .padding(end = 4.dp)
+                            .size(36.dp),
+                        color = Color.Transparent
+                    )
+                }
+                Text(
+                    text = model?.displayName ?: stringResource(R.string.model_list_select_model),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            if (allowClear && model != null) {
+                IconButton(
+                    onClick = {
+                        onSelect(Model())
+                    }
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Cancel01,
+                        contentDescription = "Clear"
+                    )
+                }
+            }
         }
-        Text(
-            text = model?.displayName ?: stringResource(R.string.model_list_select_model),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodySmall,
-        )
-      }
-      if (allowClear && model != null) {
-        IconButton(onClick = { onSelect(Model()) }) {
-          Icon(imageVector = HugeIcons.Cancel01, contentDescription = "Clear")
+    } else {
+        IconButton(
+            onClick = {
+                popup = true
+            },
+        ) {
+            if (model != null) {
+                AutoAIIcon(
+                    modifier = Modifier.size(36.dp),
+                    name = model.modelId,
+                    color = Color.Transparent
+                )
+            } else {
+                Icon(
+                    imageVector = HugeIcons.Brain02,
+                    contentDescription = stringResource(R.string.setting_model_page_chat_model),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
-      }
     }
-  } else {
-    IconButton(
-        onClick = { popup = true },
-    ) {
-      if (model != null) {
-        AutoAIIcon(modifier = Modifier.size(36.dp), name = model.modelId, color = Color.Transparent)
-      } else {
-        Icon(
-            imageVector = HugeIcons.Brain02,
-            contentDescription = stringResource(R.string.setting_model_page_chat_model),
-            modifier = Modifier.size(20.dp),
-        )
-      }
-    }
-  }
 
-  if (popup) {
-    val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = { popup = false },
-        sheetState = state,
-    ) {
-      Column(
-          modifier = Modifier.padding(8.dp).fillMaxHeight(0.8f).imePadding(),
-          verticalArrangement = Arrangement.spacedBy(4.dp),
-      ) {
-        val filteredProviderSettings = providers.fastFilter {
-          it.enabled && it.models.fastAny { model -> model.type == type }
+    if (popup) {
+        val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = {
+                popup = false
+            },
+            sheetState = state,
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .fillMaxHeight(0.8f)
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val filteredProviderSettings = providers.fastFilter {
+                    it.enabled && it.models.fastAny { model -> model.type == type }
+                }
+                ModelList(
+                    currentModel = modelId,
+                    providers = filteredProviderSettings,
+                    modelType = type,
+                    onSelect = {
+                        onSelect(it)
+                        scope.launch {
+                            state.hide()
+                            popup = false
+                        }
+                    },
+                    onDismiss = {
+                        scope.launch {
+                            state.hide()
+                            popup = false
+                        }
+                    }
+                )
+            }
         }
-        ModelList(
-            currentModel = modelId,
-            providers = filteredProviderSettings,
-            modelType = type,
-            onSelect = {
-              onSelect(it)
-              scope.launch {
-                state.hide()
-                popup = false
-              }
-            },
-            onDismiss = {
-              scope.launch {
-                state.hide()
-                popup = false
-              }
-            },
-        )
-      }
     }
-  }
 }
 
 @Composable
@@ -185,357 +213,371 @@ private fun ColumnScope.ModelList(
     providers: List<ProviderSetting>,
     modelType: ModelType,
     onSelect: (Model) -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-  val coroutineScope = rememberCoroutineScope()
-  val settingsStore = koinInject<SettingsStore>()
-  val settings = settingsStore.settingsFlow.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
+    val settingsStore = koinInject<SettingsStore>()
+    val settings = settingsStore.settingsFlow
+        .collectAsStateWithLifecycle()
 
-  val favoriteModels =
-      settings.value.favoriteModels.mapNotNull { modelId ->
+    val favoriteModels = settings.value.favoriteModels.mapNotNull { modelId ->
         val model = settings.value.providers.findModelById(modelId) ?: return@mapNotNull null
         if (model.type != modelType) return@mapNotNull null
-        val provider =
-            model.findProvider(providers = settings.value.providers, checkOverwrite = false)
-                ?: return@mapNotNull null
+        val provider = model.findProvider(providers = settings.value.providers, checkOverwrite = false) ?: return@mapNotNull null
         model to provider
-      }
+    }
 
-  var searchKeywords by remember { mutableStateOf("") }
+    var searchKeywords by remember { mutableStateOf("") }
 
-  val typeFilteredModelsByProvider =
-      remember(providers, modelType) {
+    val typeFilteredModelsByProvider = remember(providers, modelType) {
         providers.associate { provider ->
-          provider.id to provider.models.fastFilter { it.type == modelType }
+            provider.id to provider.models.fastFilter { it.type == modelType }
         }
-      }
+    }
 
-  val searchFilteredModelsByProvider =
-      remember(providers, modelType, searchKeywords) {
+    val searchFilteredModelsByProvider = remember(providers, modelType, searchKeywords) {
         providers.associate { provider ->
-          provider.id to
-              provider.models.fastFilter {
+            provider.id to provider.models.fastFilter {
                 it.type == modelType && it.displayName.contains(searchKeywords, true)
-              }
+            }
         }
-      }
+    }
 
-  // 计算当前选中模型的位置
-  val selectedModelPosition =
-      remember(currentModel, favoriteModels, providers, typeFilteredModelsByProvider) {
+    // 计算当前选中模型的位置
+    val selectedModelPosition = remember(currentModel, favoriteModels, providers, typeFilteredModelsByProvider) {
         if (currentModel == null) return@remember 0
 
         var position = 0
 
         // 跳过无providers提示
         if (providers.isEmpty()) {
-          position += 1
+            position += 1
         }
 
         // 检查是否在收藏列表中
         val favoriteIndex = favoriteModels.indexOfFirst { it.first.id == currentModel }
         if (favoriteIndex >= 0) {
-          if (favoriteModels.isNotEmpty()) {
-            position += 1 // favorite header
-          }
-          position += favoriteIndex
-          return@remember position
+            if (favoriteModels.isNotEmpty()) {
+                position += 1 // favorite header
+            }
+            position += favoriteIndex
+            return@remember position
         }
 
         // 跳过收藏列表
         if (favoriteModels.isNotEmpty()) {
-          position += 1 // favorite header
-          position += favoriteModels.size
+            position += 1 // favorite header
+            position += favoriteModels.size
         }
 
         // 在providers中查找
         for (provider in providers) {
-          position += 1 // provider header
-          val models = typeFilteredModelsByProvider[provider.id].orEmpty()
-          val modelIndex = models.indexOfFirst { it.id == currentModel }
-          if (modelIndex >= 0) {
-            position += modelIndex
-            return@remember position
-          }
-          position += models.size
+            position += 1 // provider header
+            val models = typeFilteredModelsByProvider[provider.id].orEmpty()
+            val modelIndex = models.indexOfFirst { it.id == currentModel }
+            if (modelIndex >= 0) {
+                position += modelIndex
+                return@remember position
+            }
+            position += models.size
         }
 
         0
-      }
+    }
 
-  val lazyListState = rememberLazyListState(initialFirstVisibleItemIndex = selectedModelPosition)
-  val reorderableState =
-      rememberReorderableLazyListState(lazyListState) { from, to ->
+    val lazyListState = rememberLazyListState(
+        initialFirstVisibleItemIndex = selectedModelPosition
+    )
+    val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
         // 计算favorite models在列表中的位置偏移
         var favoriteStartIndex = 0
         if (providers.isEmpty()) {
-          favoriteStartIndex = 1 // no providers item
+            favoriteStartIndex = 1 // no providers item
         }
         if (favoriteModels.isNotEmpty()) {
-          favoriteStartIndex += 1 // favorite header
+            favoriteStartIndex += 1 // favorite header
         }
 
         val fromIndex = from.index - favoriteStartIndex
         val toIndex = to.index - favoriteStartIndex
 
         // 只处理favorite models范围内的拖拽
-        if (
-            fromIndex >= 0 &&
-                toIndex >= 0 &&
-                fromIndex < favoriteModels.size &&
-                toIndex < favoriteModels.size
+        if (fromIndex >= 0 && toIndex >= 0 &&
+            fromIndex < favoriteModels.size && toIndex < favoriteModels.size
         ) {
-          val newFavoriteModels =
-              settings.value.favoriteModels.toMutableList().apply {
+            val newFavoriteModels = settings.value.favoriteModels.toMutableList().apply {
                 add(toIndex, removeAt(fromIndex))
-              }
-          coroutineScope.launch {
-            settingsStore.update { oldSettings ->
-              oldSettings.copy(favoriteModels = newFavoriteModels)
             }
-          }
+            coroutineScope.launch {
+                settingsStore.update { oldSettings ->
+                    oldSettings.copy(favoriteModels = newFavoriteModels)
+                }
+            }
         }
-      }
-  val haptic = LocalHapticFeedback.current
+    }
+    val haptic = LocalHapticFeedback.current
 
-  val providerPositions =
-      remember(providers, favoriteModels, searchFilteredModelsByProvider) {
+    val providerPositions = remember(providers, favoriteModels, searchFilteredModelsByProvider) {
         var currentIndex = 0
         if (providers.isEmpty()) {
-          currentIndex = 1 // no providers item
+            currentIndex = 1 // no providers item
         }
         if (favoriteModels.isNotEmpty()) {
-          currentIndex += 1 // favorite header
-          currentIndex += favoriteModels.size // favorite models
+            currentIndex += 1 // favorite header
+            currentIndex += favoriteModels.size // favorite models
         }
 
-        providers
-            .map { provider ->
-              val position = currentIndex
-              currentIndex += 1 // provider header
-              currentIndex += searchFilteredModelsByProvider[provider.id].orEmpty().size
-              provider.id to position
-            }
-            .toMap()
-      }
+        providers.map { provider ->
+            val position = currentIndex
+            currentIndex += 1 // provider header
+            currentIndex += searchFilteredModelsByProvider[provider.id].orEmpty().size
+            provider.id to position
+        }.toMap()
+    }
 
-  Surface(
-      shape = RoundedCornerShape(50),
-      modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-  ) {
-    OutlinedTextField(
-        value = searchKeywords,
-        onValueChange = { searchKeywords = it },
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = {
-          Text(
-              text = stringResource(R.string.model_list_search_placeholder),
-          )
-        },
+    Surface(
         shape = RoundedCornerShape(50),
-        colors =
-            TextFieldDefaults.colors(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+    ) {
+        OutlinedTextField(
+            value = searchKeywords,
+            onValueChange = { searchKeywords = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(
+                    text = stringResource(R.string.model_list_search_placeholder),
+                )
+            },
+            shape = RoundedCornerShape(50),
+            colors = TextFieldDefaults.colors(
                 unfocusedIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
             ),
-        leadingIcon = { Icon(HugeIcons.Search01, null) },
-        maxLines = 1,
-    )
-  }
-
-  LazyColumn(
-      state = lazyListState,
-      verticalArrangement = Arrangement.spacedBy(8.dp),
-      contentPadding = PaddingValues(8.dp),
-      modifier = Modifier.weight(1f).fillMaxWidth(),
-  ) {
-    if (providers.isEmpty()) {
-      item {
-        Text(
-            text = stringResource(R.string.model_list_no_providers),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.extendColors.gray6,
-            modifier = Modifier.padding(8.dp),
-        )
-      }
-    }
-
-    if (favoriteModels.isNotEmpty()) {
-      stickyHeader {
-        Text(
-            text = stringResource(R.string.model_list_favorite),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 4.dp, top = 8.dp),
-        )
-      }
-
-      items(items = favoriteModels, key = { "favorite:" + it.first.id.toString() }) {
-          (model, provider) ->
-        ReorderableItem(state = reorderableState, key = "favorite:" + model.id.toString()) {
-            isDragging ->
-          ModelItem(
-              model = model,
-              onSelect = onSelect,
-              modifier = Modifier.scale(if (isDragging) 0.95f else 1f).animateItem(),
-              providerSetting = provider,
-              select = model.id == currentModel,
-              onDismiss = { onDismiss() },
-              tail = {
-                IconButton(
-                    onClick = {
-                      coroutineScope.launch {
-                        settingsStore.update { settings ->
-                          settings.copy(
-                              favoriteModels = settings.favoriteModels.filter { it != model.id }
-                          )
-                        }
-                      }
-                    }
-                ) {
-                  Icon(
-                      HeartIcon,
-                      contentDescription = null,
-                      modifier = Modifier.size(20.dp),
-                      tint = MaterialTheme.colorScheme.primary,
-                  )
-                }
-              },
-              dragHandle = {
-                Icon(
-                    imageVector = HugeIcons.DragDropHorizontal,
-                    contentDescription = null,
-                    modifier =
-                        Modifier.longPressDraggableHandle(
-                            onDragStarted = {
-                              haptic.performHapticFeedback(
-                                  HapticFeedbackType.GestureThresholdActivate
-                              )
-                            },
-                            onDragStopped = {
-                              haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
-                            },
-                        ),
-                )
-              },
-          )
-        }
-      }
-    }
-
-    providers.fastForEach { providerSetting ->
-      stickyHeader(key = "header:${providerSetting.id}") {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp).padding(bottom = 4.dp, top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Text(
-              text = providerSetting.name,
-              style = MaterialTheme.typography.labelMedium,
-              color = MaterialTheme.colorScheme.primary,
-          )
-
-          Spacer(modifier = Modifier.weight(1f))
-
-          ProviderBalanceText(
-              providerSetting = providerSetting,
-              style = MaterialTheme.typography.labelMedium,
-              color = MaterialTheme.colorScheme.primary,
-          )
-        }
-      }
-
-      items(
-          items = searchFilteredModelsByProvider[providerSetting.id].orEmpty(),
-          key = { it.id },
-      ) { model ->
-        val favorite = settings.value.favoriteModels.contains(model.id)
-        ModelItem(
-            model = model,
-            onSelect = onSelect,
-            modifier = Modifier.animateItem(),
-            providerSetting = providerSetting,
-            select = currentModel == model.id,
-            onDismiss = { onDismiss() },
-            tail = {
-              IconButton(
-                  onClick = {
-                    coroutineScope.launch {
-                      settingsStore.update { settings ->
-                        if (favorite) {
-                          settings.copy(
-                              favoriteModels = settings.favoriteModels.filter { it != model.id }
-                          )
-                        } else {
-                          settings.copy(favoriteModels = settings.favoriteModels + model.id)
-                        }
-                      }
-                    }
-                  }
-              ) {
-                if (favorite) {
-                  Icon(
-                      HeartIcon,
-                      contentDescription = null,
-                      modifier = Modifier.size(20.dp),
-                      tint = MaterialTheme.colorScheme.primary,
-                  )
-                } else {
-                  Icon(
-                      imageVector = HugeIcons.Favourite,
-                      contentDescription = null,
-                      modifier = Modifier.size(20.dp),
-                  )
-                }
-              }
+            leadingIcon = {
+                Icon(HugeIcons.Search01, null)
             },
+            maxLines = 1,
         )
-      }
     }
-  }
 
-  // 供应商Badge行
-  val providerBadgeListState = rememberLazyListState()
-  LaunchedEffect(lazyListState) {
-    // 当LazyColumn滚动时，LazyRow也跟随滚动
-    snapshotFlow { lazyListState.firstVisibleItemIndex }
-        .distinctUntilChanged()
-        .debounce(100) // 防抖处理
-        .collect { index ->
-          if (index > 0) {
-            val currentProvider = providerPositions.entries.findLast { index > it.value }
-            val index = providers.indexOfFirst { it.id == currentProvider?.key }
-            if (index >= 0) {
-              providerBadgeListState.animateScrollToItem(index)
-            } else {
-              providerBadgeListState.requestScrollToItem(0)
-            }
-          } else {
-            providerBadgeListState.requestScrollToItem(0)
-          }
-        }
-  }
-  if (providers.isNotEmpty()) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 8.dp),
-        state = providerBadgeListState,
+    LazyColumn(
+        state = lazyListState,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(8.dp),
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth(),
     ) {
-      items(providers) { provider ->
-        AssistChip(
-            onClick = {
-              val position = providerPositions[provider.id] ?: 0
-              coroutineScope.launch { lazyListState.animateScrollToItem(position) }
-            },
-            label = { Text(provider.name) },
-            leadingIcon = { AutoAIIcon(name = provider.name, modifier = Modifier.size(16.dp)) },
-        )
-      }
+        if (providers.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.model_list_no_providers),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.extendColors.gray6,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+        }
+
+        if (favoriteModels.isNotEmpty()) {
+            stickyHeader {
+                Text(
+                    text = stringResource(R.string.model_list_favorite),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(bottom = 4.dp, top = 8.dp)
+                )
+            }
+
+            items(
+                items = favoriteModels,
+                key = { "favorite:" + it.first.id.toString() }
+            ) { (model, provider) ->
+                ReorderableItem(
+                    state = reorderableState,
+                    key = "favorite:" + model.id.toString()
+                ) { isDragging ->
+                    ModelItem(
+                        model = model,
+                        onSelect = onSelect,
+                        modifier = Modifier
+                            .scale(if (isDragging) 0.95f else 1f)
+                            .animateItem(),
+                        providerSetting = provider,
+                        select = model.id == currentModel,
+                        onDismiss = {
+                            onDismiss()
+                        },
+                        tail = {
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        settingsStore.update { settings ->
+                                            settings.copy(
+                                                favoriteModels = settings.favoriteModels.filter { it != model.id }
+                                            )
+                                        }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    HeartIcon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        },
+                        dragHandle = {
+                            Icon(
+                                imageVector = HugeIcons.DragDropHorizontal,
+                                contentDescription = null,
+                                modifier = Modifier.longPressDraggableHandle(
+                                    onDragStarted = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                    },
+                                    onDragStopped = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                                    }
+                                )
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
+        providers.fastForEach { providerSetting ->
+            stickyHeader(key = "header:${providerSetting.id}") {
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .padding(bottom = 4.dp, top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = providerSetting.name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    ProviderBalanceText(
+                        providerSetting = providerSetting,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
+            items(
+                items = searchFilteredModelsByProvider[providerSetting.id].orEmpty(),
+                key = { it.id }
+            ) { model ->
+                val favorite = settings.value.favoriteModels.contains(model.id)
+                ModelItem(
+                    model = model,
+                    onSelect = onSelect,
+                    modifier = Modifier.animateItem(),
+                    providerSetting = providerSetting,
+                    select = currentModel == model.id,
+                    onDismiss = {
+                        onDismiss()
+                    },
+                    tail = {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    settingsStore.update { settings ->
+                                        if (favorite) {
+                                            settings.copy(
+                                                favoriteModels = settings.favoriteModels.filter { it != model.id }
+                                            )
+
+                                        } else {
+                                            settings.copy(
+                                                favoriteModels = settings.favoriteModels + model.id
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        ) {
+                            if (favorite) {
+                                Icon(
+                                    HeartIcon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = HugeIcons.Favourite,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                )
+            }
+        }
     }
-  }
+
+    // 供应商Badge行
+    val providerBadgeListState = rememberLazyListState()
+    LaunchedEffect(lazyListState) {
+        // 当LazyColumn滚动时，LazyRow也跟随滚动
+        snapshotFlow { lazyListState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .debounce(100) // 防抖处理
+            .collect { index ->
+                if (index > 0) {
+                    val currentProvider = providerPositions.entries.findLast {
+                        index > it.value
+                    }
+                    val index = providers.indexOfFirst { it.id == currentProvider?.key }
+                    if (index >= 0) {
+                        providerBadgeListState.animateScrollToItem(index)
+                    } else {
+                        providerBadgeListState.requestScrollToItem(0)
+                    }
+                } else {
+                    providerBadgeListState.requestScrollToItem(0)
+                }
+            }
+    }
+    if (providers.isNotEmpty()) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 8.dp),
+            state = providerBadgeListState
+        ) {
+            items(providers) { provider ->
+                AssistChip(
+                    onClick = {
+                        val position = providerPositions[provider.id] ?: 0
+                        coroutineScope.launch {
+                            lazyListState.animateScrollToItem(position)
+                        }
+                    },
+                    label = {
+                        Text(provider.name)
+                    },
+                    leadingIcon = {
+                        AutoAIIcon(name = provider.name, modifier = Modifier.size(16.dp))
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -547,153 +589,167 @@ private fun ModelItem(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     tail: @Composable RowScope.() -> Unit = {},
-    dragHandle: @Composable (RowScope.() -> Unit)? = null,
+    dragHandle: @Composable (RowScope.() -> Unit)? = null
 ) {
-  val navController = LocalNavController.current
-  val interactionSource = remember { MutableInteractionSource() }
-  Card(
-      modifier = modifier,
-      colors =
-          CardDefaults.cardColors(
-              containerColor =
-                  if (select) MaterialTheme.colorScheme.primaryContainer
-                  else MaterialTheme.colorScheme.surface,
-              contentColor =
-                  if (select) MaterialTheme.colorScheme.onPrimaryContainer
-                  else MaterialTheme.colorScheme.onSurface,
-          ),
-  ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 16.dp),
+    val navController = LocalNavController.current
+    val interactionSource = remember { MutableInteractionSource() }
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = if (select) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+            contentColor = if (select) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        )
     ) {
-      Row(
-          modifier =
-              Modifier.weight(1f)
-                  .combinedClickable(
-                      enabled = true,
-                      onLongClick = {
-                        onDismiss()
-                        navController.navigate(
-                            Screen.SettingProviderDetail(providerSetting.id.toString())
-                        )
-                      },
-                      onClick = { onSelect(model) },
-                      interactionSource = interactionSource,
-                      indication = LocalIndication.current,
-                  ),
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(12.dp),
-      ) {
-        Surface(
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            shape = MaterialTheme.shapes.small,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 16.dp)
         ) {
-          AutoAIIcon(name = model.modelId, modifier = Modifier.padding(4.dp).size(32.dp))
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .combinedClickable(
+                        enabled = true,
+                        onLongClick = {
+                            onDismiss()
+                            navController.navigate(
+                                Screen.SettingProviderDetail(
+                                    providerSetting.id.toString()
+                                )
+                            )
+                        },
+                        onClick = { onSelect(model) },
+                        interactionSource = interactionSource,
+                        indication = LocalIndication.current
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.small,
+                ) {
+                    AutoAIIcon(
+                        name = model.modelId,
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .size(32.dp)
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = model.displayName,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        ModelTypeTag(model = model)
+
+                        ModelModalityTag(model = model)
+
+                        ModelAbilityTag(model = model)
+                    }
+                }
+                tail()
+            }
+            dragHandle?.let { it() }
         }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-          Text(
-              text = model.displayName,
-              style = MaterialTheme.typography.titleSmall,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-          )
-
-          FlowRow(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(4.dp),
-              verticalArrangement = Arrangement.spacedBy(2.dp),
-          ) {
-            ModelTypeTag(model = model)
-
-            ModelModalityTag(model = model)
-
-            ModelAbilityTag(model = model)
-          }
-        }
-        tail()
-      }
-      dragHandle?.let { it() }
     }
-  }
 }
 
 @Composable
 fun ModelTypeTag(model: Model) {
-  Tag(type = TagType.INFO) {
-    Text(
-        text =
-            stringResource(
+    Tag(
+        type = TagType.INFO
+    ) {
+        Text(
+            text = stringResource(
                 when (model.type) {
-                  ModelType.CHAT -> R.string.setting_provider_page_chat_model
-                  ModelType.EMBEDDING -> R.string.setting_provider_page_embedding_model
-                  ModelType.IMAGE -> R.string.setting_provider_page_image_model
+                    ModelType.CHAT -> R.string.setting_provider_page_chat_model
+                    ModelType.EMBEDDING -> R.string.setting_provider_page_embedding_model
+                    ModelType.IMAGE -> R.string.setting_provider_page_image_model
                 }
             )
-    )
-  }
+        )
+    }
 }
 
 @Composable
 fun ModelModalityTag(model: Model) {
-  Tag(type = TagType.SUCCESS) {
-    model.inputModalities.fastForEach { modality ->
-      Icon(
-          imageVector =
-              when (modality) {
-                Modality.TEXT -> HugeIcons.Text
-                Modality.IMAGE -> HugeIcons.Image03
-              },
-          contentDescription = null,
-          modifier = Modifier.size(LocalTextStyle.current.lineHeight.toDp()).padding(1.dp),
-      )
+    Tag(
+        type = TagType.SUCCESS
+    ) {
+        model.inputModalities.fastForEach { modality ->
+            Icon(
+                imageVector = when (modality) {
+                    Modality.TEXT -> HugeIcons.Text
+                    Modality.IMAGE -> HugeIcons.Image03
+                },
+                contentDescription = null,
+                modifier = Modifier
+                    .size(LocalTextStyle.current.lineHeight.toDp())
+                    .padding(1.dp)
+            )
+        }
+        Icon(
+            imageVector = HugeIcons.ArrowRight01,
+            contentDescription = null,
+            modifier = Modifier.size(LocalTextStyle.current.lineHeight.toDp())
+        )
+        model.outputModalities.fastForEach { modality ->
+            Icon(
+                imageVector = when (modality) {
+                    Modality.TEXT -> HugeIcons.Text
+                    Modality.IMAGE -> HugeIcons.Image03
+                },
+                contentDescription = null,
+                modifier = Modifier
+                    .size(LocalTextStyle.current.lineHeight.toDp())
+                    .padding(1.dp)
+            )
+        }
     }
-    Icon(
-        imageVector = HugeIcons.ArrowRight01,
-        contentDescription = null,
-        modifier = Modifier.size(LocalTextStyle.current.lineHeight.toDp()),
-    )
-    model.outputModalities.fastForEach { modality ->
-      Icon(
-          imageVector =
-              when (modality) {
-                Modality.TEXT -> HugeIcons.Text
-                Modality.IMAGE -> HugeIcons.Image03
-              },
-          contentDescription = null,
-          modifier = Modifier.size(LocalTextStyle.current.lineHeight.toDp()).padding(1.dp),
-      )
-    }
-  }
 }
 
 @Composable
 fun ModelAbilityTag(model: Model) {
-  model.abilities.fastForEach { ability ->
-    when (ability) {
-      ModelAbility.TOOL -> {
-        Tag(type = TagType.WARNING) {
-          Icon(
-              imageVector = HugeIcons.Tools,
-              contentDescription = null,
-              modifier = Modifier.size(LocalTextStyle.current.lineHeight.toDp()),
-          )
-        }
-      }
+    model.abilities.fastForEach { ability ->
+        when (ability) {
+            ModelAbility.TOOL -> {
+                Tag(
+                    type = TagType.WARNING
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Tools,
+                        contentDescription = null,
+                        modifier = Modifier.size(LocalTextStyle.current.lineHeight.toDp())
+                    )
+                }
+            }
 
-      ModelAbility.REASONING -> {
-        Tag(type = TagType.INFO) {
-          Icon(
-              painter = painterResource(R.drawable.deepthink),
-              contentDescription = null,
-              modifier = Modifier.size(LocalTextStyle.current.lineHeight.toDp()),
-          )
+            ModelAbility.REASONING -> {
+                Tag(
+                    type = TagType.INFO
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.deepthink),
+                        contentDescription = null,
+                        modifier = Modifier.size(LocalTextStyle.current.lineHeight.toDp()),
+                    )
+                }
+            }
         }
-      }
     }
-  }
 }

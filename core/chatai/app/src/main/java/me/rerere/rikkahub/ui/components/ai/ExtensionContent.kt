@@ -35,22 +35,25 @@ fun ModeInjectionsContent(
     onToggle: (kotlin.uuid.Uuid, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  LazyColumn(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-    items(modeInjections) { injection ->
-      ListItem(
-          headlineContent = {
-            Text(injection.name.ifBlank { stringResource(R.string.extension_content_unnamed) })
-          },
-          trailingContent = {
-            Switch(
-                checked = selectedIds.contains(injection.id),
-                onCheckedChange = { checked -> onToggle(injection.id, checked) },
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(modeInjections) { injection ->
+            ListItem(
+                headlineContent = {
+                    Text(injection.name.ifBlank { stringResource(R.string.extension_content_unnamed) })
+                },
+                trailingContent = {
+                    Switch(
+                        checked = selectedIds.contains(injection.id),
+                        onCheckedChange = { checked -> onToggle(injection.id, checked) }
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
-          },
-          colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-      )
+        }
     }
-  }
 }
 
 @Composable
@@ -60,36 +63,34 @@ fun LorebooksContent(
     onToggle: (kotlin.uuid.Uuid, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  LazyColumn(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-    items(lorebooks) { lorebook ->
-      ListItem(
-          headlineContent = {
-            Text(
-                lorebook.name.ifBlank {
-                  stringResource(R.string.extension_content_unnamed_lorebook)
-                }
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(lorebooks) { lorebook ->
+            ListItem(
+                headlineContent = {
+                    Text(lorebook.name.ifBlank { stringResource(R.string.extension_content_unnamed_lorebook) })
+                },
+                supportingContent = if (lorebook.description.isNotBlank()) {
+                    {
+                        Text(
+                            text = lorebook.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                } else null,
+                trailingContent = {
+                    Switch(
+                        checked = selectedIds.contains(lorebook.id),
+                        onCheckedChange = { checked -> onToggle(lorebook.id, checked) }
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
-          },
-          supportingContent =
-              if (lorebook.description.isNotBlank()) {
-                {
-                  Text(
-                      text = lorebook.description,
-                      style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                  )
-                }
-              } else null,
-          trailingContent = {
-            Switch(
-                checked = selectedIds.contains(lorebook.id),
-                onCheckedChange = { checked -> onToggle(lorebook.id, checked) },
-            )
-          },
-          colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-      )
+        }
     }
-  }
 }
 
 @Composable
@@ -99,30 +100,32 @@ fun SkillsContent(
     onToggle: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  LazyColumn(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-    items(skills, key = { it.name }) { skill ->
-      ListItem(
-          headlineContent = { Text(skill.name) },
-          supportingContent =
-              if (skill.description.isNotBlank()) {
-                {
-                  Text(
-                      text = skill.description,
-                      style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                  )
-                }
-              } else null,
-          trailingContent = {
-            Switch(
-                checked = enabledSkills.contains(skill.name),
-                onCheckedChange = { checked -> onToggle(skill.name, checked) },
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(skills, key = { it.name }) { skill ->
+            ListItem(
+                headlineContent = { Text(skill.name) },
+                supportingContent = if (skill.description.isNotBlank()) {
+                    {
+                        Text(
+                            text = skill.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                } else null,
+                trailingContent = {
+                    Switch(
+                        checked = enabledSkills.contains(skill.name),
+                        onCheckedChange = { checked -> onToggle(skill.name, checked) }
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
-          },
-          colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-      )
+        }
     }
-  }
 }
 
 @Composable
@@ -132,33 +135,35 @@ fun QuickMessagesContent(
     onToggle: (kotlin.uuid.Uuid, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  LazyColumn(modifier = modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-    items(quickMessages, key = { it.id }) { quickMessage ->
-      ListItem(
-          headlineContent = {
-            Text(quickMessage.title.ifBlank { stringResource(R.string.extension_content_unnamed) })
-          },
-          supportingContent =
-              if (quickMessage.content.isNotBlank()) {
-                {
-                  Text(
-                      text = quickMessage.content,
-                      style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                      maxLines = 2,
-                  )
-                }
-              } else null,
-          trailingContent = {
-            Switch(
-                checked = selectedIds.contains(quickMessage.id),
-                onCheckedChange = { checked -> onToggle(quickMessage.id, checked) },
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items(quickMessages, key = { it.id }) { quickMessage ->
+            ListItem(
+                headlineContent = {
+                    Text(quickMessage.title.ifBlank { stringResource(R.string.extension_content_unnamed) })
+                },
+                supportingContent = if (quickMessage.content.isNotBlank()) {
+                    {
+                        Text(
+                            text = quickMessage.content,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            maxLines = 2,
+                        )
+                    }
+                } else null,
+                trailingContent = {
+                    Switch(
+                        checked = selectedIds.contains(quickMessage.id),
+                        onCheckedChange = { checked -> onToggle(quickMessage.id, checked) }
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
             )
-          },
-          colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-      )
+        }
     }
-  }
 }
 
 @Composable
@@ -167,21 +172,23 @@ fun ExtensionEmptyState(
     buttonText: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
-  Column(
-      modifier = Modifier.fillMaxWidth().padding(32.dp),
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(8.dp),
-  ) {
-    Text(
-        text = message,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-    )
-    if (buttonText != null && onAction != null) {
-      TextButton(onClick = onAction) {
-        Icon(HugeIcons.Link01, contentDescription = null)
-        Text(buttonText)
-      }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        )
+        if (buttonText != null && onAction != null) {
+            TextButton(onClick = onAction) {
+                Icon(HugeIcons.Link01, contentDescription = null)
+                Text(buttonText)
+            }
+        }
     }
-  }
 }

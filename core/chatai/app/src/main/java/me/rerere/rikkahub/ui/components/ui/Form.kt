@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
@@ -24,41 +25,59 @@ fun FormItem(
     label: @Composable () -> Unit,
     description: @Composable (() -> Unit)? = null,
     tail: @Composable () -> Unit = {},
-    content: @Composable ColumnScope.() -> Unit = {},
+    content: @Composable ColumnScope.() -> Unit = {}
 ) {
-  Row(
-      modifier = modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = modifier.weight(1f)) {
-      ProvideTextStyle(value = MaterialTheme.typography.titleMedium) { label() }
-      ProvideTextStyle(
-          value =
-              MaterialTheme.typography.labelSmall.copy(
-                  color = LocalContentColor.current.copy(alpha = 0.6f)
-              )
-      ) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = modifier.weight(1f)
         ) {
-          description?.invoke()
+            ProvideTextStyle(
+                value = MaterialTheme.typography.titleMedium
+            ) {
+                label()
+            }
+            ProvideTextStyle(
+                value = MaterialTheme.typography.labelSmall.copy(
+                    color = LocalContentColor.current.copy(alpha = 0.6f)
+                )
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    description?.invoke()
+                }
+            }
+            content()
         }
-      }
-      content()
+        tail()
     }
-    tail()
-  }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun FormItemPreview() {
-  FormItem(
-      label = { Text("Label") },
-      content = { OutlinedTextField(value = "", onValueChange = {}) },
-      description = { Text("Description") },
-      tail = { Switch(checked = true, onCheckedChange = {}) },
-      modifier = Modifier.padding(4.dp),
-  )
+    FormItem(
+        label = { Text("Label") },
+        content = {
+            OutlinedTextField(
+                value = "",
+                onValueChange = {}
+            )
+        },
+        description = {
+            Text("Description")
+        },
+        tail = {
+            Switch(
+                checked = true,
+                onCheckedChange = {}
+            )
+        },
+        modifier = Modifier.padding(4.dp),
+    )
 }

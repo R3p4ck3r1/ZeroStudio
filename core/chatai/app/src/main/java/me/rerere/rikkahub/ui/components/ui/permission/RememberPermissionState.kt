@@ -47,72 +47,77 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
  * ```
  */
 @Composable
-fun rememberPermissionState(permissions: Set<PermissionInfo>): PermissionState {
-  val context = LocalContext.current
-  val activity =
-      context as? ComponentActivity
-          ?: throw IllegalStateException("rememberPermissionState 必须在 ComponentActivity 中使用")
+fun rememberPermissionState(
+    permissions: Set<PermissionInfo>
+): PermissionState {
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
+        ?: throw IllegalStateException("rememberPermissionState 必须在 ComponentActivity 中使用")
 
-  // 创建权限状态对象
-  val permissionState = remember(permissions) { PermissionState(permissions, context, activity) }
-
-  // 多个权限请求启动器
-  val multiplePermissionLauncher =
-      rememberLauncherForActivityResult(
-          contract = ActivityResultContracts.RequestMultiplePermissions()
-      ) { results ->
-        permissionState.handlePermissionResult(results)
-      }
-
-  // 单个权限请求启动器
-  val singlePermissionLauncher =
-      rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) {
-          granted ->
-        // 获取最后请求的权限（通过当前rationale权限或者denied权限推断）
-        val lastRequestedPermission =
-            permissionState.currentRationalePermissions.firstOrNull()?.permission
-                ?: permissionState.deniedPermissions.firstOrNull()?.permission
-
-        lastRequestedPermission?.let { permission ->
-          permissionState.handleSinglePermissionResult(permission, granted)
-        }
-      }
-
-  // 设置启动器
-  LaunchedEffect(multiplePermissionLauncher, singlePermissionLauncher) {
-    permissionState.setPermissionLaunchers(multiplePermissionLauncher, singlePermissionLauncher)
-  }
-
-  // 监听生命周期变化，更新权限状态
-  val lifecycleOwner = LocalLifecycleOwner.current
-
-  DisposableEffect(lifecycleOwner) {
-    val observer = LifecycleEventObserver { _, event ->
-      when (event) {
-        Lifecycle.Event.ON_START -> {
-          // 应用从后台回到前台时强制刷新权限状态
-          // 这里使用 refreshPermissionStates 来处理用户可能在设置中修改的权限
-          permissionState.refreshPermissionStates()
-        }
-
-        Lifecycle.Event.ON_RESUME -> {
-          // 恢复时也刷新一次，确保状态最新
-          permissionState.refreshPermissionStates()
-        }
-
-        else -> {}
-      }
+    // 创建权限状态对象
+    val permissionState = remember(permissions) {
+        PermissionState(permissions, context, activity)
     }
 
-    lifecycleOwner.lifecycle.addObserver(observer)
+    // 多个权限请求启动器
+    val multiplePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        permissionState.handlePermissionResult(results)
+    }
 
-    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-  }
+    // 单个权限请求启动器
+    val singlePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        // 获取最后请求的权限（通过当前rationale权限或者denied权限推断）
+        val lastRequestedPermission = permissionState.currentRationalePermissions.firstOrNull()?.permission
+            ?: permissionState.deniedPermissions.firstOrNull()?.permission
 
-  // 初始化时更新权限状态
-  LaunchedEffect(Unit) { permissionState.updatePermissionStates() }
+        lastRequestedPermission?.let { permission ->
+            permissionState.handleSinglePermissionResult(permission, granted)
+        }
+    }
 
-  return permissionState
+    // 设置启动器
+    LaunchedEffect(multiplePermissionLauncher, singlePermissionLauncher) {
+        permissionState.setPermissionLaunchers(multiplePermissionLauncher, singlePermissionLauncher)
+    }
+
+    // 监听生命周期变化，更新权限状态
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> {
+                    // 应用从后台回到前台时强制刷新权限状态
+                    // 这里使用 refreshPermissionStates 来处理用户可能在设置中修改的权限
+                    permissionState.refreshPermissionStates()
+                }
+
+                Lifecycle.Event.ON_RESUME -> {
+                    // 恢复时也刷新一次，确保状态最新
+                    permissionState.refreshPermissionStates()
+                }
+
+                else -> {}
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // 初始化时更新权限状态
+    LaunchedEffect(Unit) {
+        permissionState.updatePermissionStates()
+    }
+
+    return permissionState
 }
 
 /**
@@ -128,22 +133,25 @@ fun rememberPermissionState(
     permission: String,
     displayName: @Composable () -> Unit,
     usage: @Composable () -> Unit,
-    required: Boolean = false,
+    required: Boolean = false
 ): PermissionState {
-  return rememberPermissionState(
-      permissions =
-          setOf(
-              PermissionInfo(
-                  permission = permission,
-                  displayName = displayName,
-                  usage = usage,
-                  required = required,
-              )
-          )
-  )
+    return rememberPermissionState(
+        permissions = setOf(
+            PermissionInfo(
+                permission = permission,
+                displayName = displayName,
+                usage = usage,
+                required = required,
+            )
+        )
+    )
 }
 
 @Composable
-fun rememberPermissionState(info: PermissionInfo): PermissionState {
-  return rememberPermissionState(permissions = setOf(info))
+fun rememberPermissionState(
+    info: PermissionInfo
+): PermissionState {
+    return rememberPermissionState(
+        permissions = setOf(info)
+    )
 }

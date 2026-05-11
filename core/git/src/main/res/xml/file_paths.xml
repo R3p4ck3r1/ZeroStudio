@@ -15,5 +15,5 @@
 
 <!--    root，匹配所有路径，直接梭哈，不用管那个鸟黄色警号 "not allowed here" ，其实能用 -->
     <root-path name="root" path="/" />
-   <external-files-path name="external_files" path="." />
+
 </paths>

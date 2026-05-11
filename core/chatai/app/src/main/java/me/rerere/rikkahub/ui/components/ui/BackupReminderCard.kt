@@ -31,57 +31,55 @@ fun BackupReminderCard(
     settings: Settings,
     onClick: () -> Unit,
 ) {
-  val config = settings.backupReminderConfig
-  var dismissed by remember { mutableStateOf(false) }
+    val config = settings.backupReminderConfig
+    var dismissed by remember { mutableStateOf(false) }
 
-  val isDue =
-      config.enabled &&
-          (System.currentTimeMillis() - config.lastBackupTime) >
-              config.intervalDays * 24L * 60 * 60 * 1000
+    val isDue = config.enabled &&
+        (System.currentTimeMillis() - config.lastBackupTime) > config.intervalDays * 24L * 60 * 60 * 1000
 
-  if (!isDue || dismissed) return
+    if (!isDue || dismissed) return
 
-  Card(onClick = onClick) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Icon(
-          imageVector = HugeIcons.DatabaseRestore,
-          contentDescription = null,
-          modifier = Modifier.size(20.dp),
-          tint = MaterialTheme.colorScheme.primary,
-      )
-      Column(modifier = Modifier.weight(1f)) {
-        Text(
-            text = stringResource(R.string.backup_page_reminder_title),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        val lastBackupText =
-            if (config.lastBackupTime == 0L) {
-              stringResource(R.string.backup_page_reminder_never_backed_up)
-            } else {
-              val days =
-                  (System.currentTimeMillis() - config.lastBackupTime) / (24L * 60 * 60 * 1000)
-              stringResource(R.string.backup_page_reminder_last_days, days)
+    Card(onClick = onClick) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = HugeIcons.DatabaseRestore,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.backup_page_reminder_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                val lastBackupText = if (config.lastBackupTime == 0L) {
+                    stringResource(R.string.backup_page_reminder_never_backed_up)
+                } else {
+                    val days = (System.currentTimeMillis() - config.lastBackupTime) / (24L * 60 * 60 * 1000)
+                    stringResource(R.string.backup_page_reminder_last_days, days)
+                }
+                Text(
+                    text = lastBackupText,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
-        Text(
-            text = lastBackupText,
-            style = MaterialTheme.typography.bodySmall,
-        )
-      }
-      IconButton(
-          onClick = { dismissed = true },
-          modifier = Modifier.size(32.dp),
-      ) {
-        Icon(
-            imageVector = HugeIcons.Cancel01,
-            contentDescription = stringResource(R.string.backup_page_reminder_dismiss),
-            modifier = Modifier.size(16.dp),
-        )
-      }
+            IconButton(
+                onClick = { dismissed = true },
+                modifier = Modifier.size(32.dp),
+            ) {
+                Icon(
+                    imageVector = HugeIcons.Cancel01,
+                    contentDescription = stringResource(R.string.backup_page_reminder_dismiss),
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
     }
-  }
 }

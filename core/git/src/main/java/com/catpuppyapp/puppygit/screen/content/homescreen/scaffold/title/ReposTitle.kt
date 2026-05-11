@@ -21,36 +21,34 @@ import kotlinx.coroutines.CoroutineScope
 @Composable
 fun ReposTitle(
     listState: LazyListState,
-    scope: CoroutineScope,
-    allRepoCount: Int,
-    lastPosition: MutableState<Int>,
+    scope:CoroutineScope,
+    allRepoCount:Int,
+    lastPosition:MutableState<Int>
 ) {
-  Column(
-      modifier =
-          Modifier.combinedClickable(
-              onDoubleClick = { defaultTitleDoubleClick(scope, listState, lastPosition) }
-          ) {
+    Column (modifier = Modifier.combinedClickable(onDoubleClick = {
+        defaultTitleDoubleClick(scope, listState, lastPosition)
+    }) {
             // onClick
-          }
-  ) {
-    ScrollableRow {
-      Text(
-          text = stringResource(id = R.string.repos),
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-      )
+    }){
+        ScrollableRow {
+            Text(
+                text = stringResource(id = R.string.repos),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        if(allRepoCount > 0) {
+            ScrollableRow {
+                Text(
+                    text= replaceStringResList(stringResource(R.string.count_n), listOf(""+allRepoCount)),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = MyStyleKt.Title.secondLineFontSize
+                )
+
+            }
+        }
     }
 
-    if (allRepoCount > 0) {
-      ScrollableRow {
-        Text(
-            text =
-                replaceStringResList(stringResource(R.string.count_n), listOf("" + allRepoCount)),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            fontSize = MyStyleKt.Title.secondLineFontSize,
-        )
-      }
-    }
-  }
 }

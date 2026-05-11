@@ -30,120 +30,132 @@ import org.koin.core.parameter.parametersOf
 
 @Composable
 fun AssistantLocalToolPage(id: String) {
-  val vm: AssistantDetailVM = koinViewModel(parameters = { parametersOf(id) })
-  val assistant by vm.assistant.collectAsStateWithLifecycle()
-  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
-  Scaffold(
-      topBar = {
-        LargeFlexibleTopAppBar(
-            title = { Text(stringResource(R.string.assistant_page_tab_local_tools)) },
-            navigationIcon = { BackButton() },
-            scrollBehavior = scrollBehavior,
-            colors = CustomColors.topBarColors,
-        )
-      },
-      modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-      containerColor = CustomColors.topBarColors.containerColor,
-  ) { innerPadding ->
-    AssistantLocalToolContent(
-        modifier = Modifier.padding(innerPadding),
-        assistant = assistant,
-        onUpdate = { vm.update(it) },
+    val vm: AssistantDetailVM = koinViewModel(
+        parameters = {
+            parametersOf(id)
+        }
     )
-  }
+    val assistant by vm.assistant.collectAsStateWithLifecycle()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    Scaffold(
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = {
+                    Text(stringResource(R.string.assistant_page_tab_local_tools))
+                },
+                navigationIcon = {
+                    BackButton()
+                },
+                scrollBehavior = scrollBehavior,
+                colors = CustomColors.topBarColors,
+            )
+        },
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = CustomColors.topBarColors.containerColor,
+    ) { innerPadding ->
+        AssistantLocalToolContent(
+            modifier = Modifier.padding(innerPadding),
+            assistant = assistant,
+            onUpdate = { vm.update(it) }
+        )
+    }
 }
 
 @Composable
 private fun AssistantLocalToolContent(
     modifier: Modifier = Modifier,
     assistant: Assistant,
-    onUpdate: (Assistant) -> Unit,
+    onUpdate: (Assistant) -> Unit
 ) {
-  fun toggleLocalTool(option: LocalToolOption, enabled: Boolean) {
-    val newLocalTools =
-        if (enabled) {
-          assistant.localTools + option
+    fun toggleLocalTool(option: LocalToolOption, enabled: Boolean) {
+        val newLocalTools = if (enabled) {
+            assistant.localTools + option
         } else {
-          assistant.localTools - option
+            assistant.localTools - option
         }
-    onUpdate(assistant.copy(localTools = newLocalTools))
-  }
-
-  Column(
-      modifier =
-          modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()).imePadding(),
-      verticalArrangement = Arrangement.spacedBy(12.dp),
-  ) {
-    CardGroup {
-      item(
-          headlineContent = {
-            Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_title))
-          },
-          supportingContent = {
-            Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_desc))
-          },
-          trailingContent = {
-            Switch(
-                checked = assistant.localTools.contains(LocalToolOption.JavascriptEngine),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.JavascriptEngine, it) },
-            )
-          },
-      )
-      item(
-          headlineContent = {
-            Text(stringResource(R.string.assistant_page_local_tools_time_info_title))
-          },
-          supportingContent = {
-            Text(stringResource(R.string.assistant_page_local_tools_time_info_desc))
-          },
-          trailingContent = {
-            Switch(
-                checked = assistant.localTools.contains(LocalToolOption.TimeInfo),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.TimeInfo, it) },
-            )
-          },
-      )
-      item(
-          headlineContent = {
-            Text(stringResource(R.string.assistant_page_local_tools_clipboard_title))
-          },
-          supportingContent = {
-            Text(stringResource(R.string.assistant_page_local_tools_clipboard_desc))
-          },
-          trailingContent = {
-            Switch(
-                checked = assistant.localTools.contains(LocalToolOption.Clipboard),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.Clipboard, it) },
-            )
-          },
-      )
-      item(
-          headlineContent = { Text(stringResource(R.string.assistant_page_local_tools_tts_title)) },
-          supportingContent = {
-            Text(stringResource(R.string.assistant_page_local_tools_tts_desc))
-          },
-          trailingContent = {
-            Switch(
-                checked = assistant.localTools.contains(LocalToolOption.Tts),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.Tts, it) },
-            )
-          },
-      )
-      item(
-          headlineContent = {
-            Text(stringResource(R.string.assistant_page_local_tools_ask_user_title))
-          },
-          supportingContent = {
-            Text(stringResource(R.string.assistant_page_local_tools_ask_user_desc))
-          },
-          trailingContent = {
-            Switch(
-                checked = assistant.localTools.contains(LocalToolOption.AskUser),
-                onCheckedChange = { toggleLocalTool(LocalToolOption.AskUser, it) },
-            )
-          },
-      )
+        onUpdate(assistant.copy(localTools = newLocalTools))
     }
-  }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+            .imePadding(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        CardGroup {
+            item(
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_title))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_javascript_engine_desc))
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.JavascriptEngine),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.JavascriptEngine, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_time_info_title))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_time_info_desc))
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.TimeInfo),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.TimeInfo, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_clipboard_title))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_clipboard_desc))
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Clipboard),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Clipboard, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_tts_title))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_tts_desc))
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.Tts),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.Tts, it) }
+                    )
+                }
+            )
+            item(
+                headlineContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_ask_user_title))
+                },
+                supportingContent = {
+                    Text(stringResource(R.string.assistant_page_local_tools_ask_user_desc))
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.localTools.contains(LocalToolOption.AskUser),
+                        onCheckedChange = { toggleLocalTool(LocalToolOption.AskUser, it) }
+                    )
+                }
+            )
+        }
+    }
 }

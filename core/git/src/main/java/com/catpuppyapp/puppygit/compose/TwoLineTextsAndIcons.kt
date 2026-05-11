@@ -24,16 +24,12 @@ import com.catpuppyapp.puppygit.style.MyStyleKt
 
 private val minHeight = 40.dp
 
-private fun getHorizontalPaddingForIcons(headIconIsNull: Boolean, trailIconIsNull: Boolean) =
-    PaddingValues(
-        start = if (headIconIsNull) 0.dp else 5.dp,
-        end = if (trailIconIsNull) 0.dp else 5.dp,
-    )
+private fun getHorizontalPaddingForIcons(headIconIsNull: Boolean, trailIconIsNull: Boolean) = PaddingValues(start = if(headIconIsNull) 0.dp else 5.dp, end = if(trailIconIsNull) 0.dp else 5.dp)
 
 @Composable
 fun TwoLineTextsAndIcons(
-    text1: String,
-    text2: String = "",
+    text1:String,
+    text2:String = "",
     modifier: Modifier = Modifier,
     text1Color: Color = Color.Unspecified,
     text2Color: Color = Color.Unspecified,
@@ -45,73 +41,64 @@ fun TwoLineTextsAndIcons(
     text2Scrollable: Boolean = true,
     basePadding: PaddingValues = PaddingValues(5.dp),
     headIconWidth: Dp = 0.dp,
-    headIcons: (@Composable BoxScope.(containerModifier: Modifier) -> Unit)? = null,
+    headIcons:  (@Composable BoxScope.(containerModifier: Modifier) -> Unit)? = null,
     trailIconWidth: Dp = 0.dp,
     trailIcons: (@Composable BoxScope.(containerModifier: Modifier) -> Unit)? = null,
 ) {
-  val headIconIsNull = headIcons == null
-  val trailIconIsNull = trailIcons == null
+    val headIconIsNull = headIcons == null
+    val trailIconIsNull = trailIcons == null
 
-  Box(
-      modifier =
-          modifier
-              // base margin
-              .padding(basePadding)
-              // avoid icon too closer with screen border
-              .padding(getHorizontalPaddingForIcons(headIconIsNull, trailIconIsNull))
-              .fillMaxWidth()
-              .heightIn(min = minHeight),
-  ) {
-    if (!headIconIsNull) {
-      headIcons(Modifier.align(Alignment.CenterStart))
-    }
+    Box(
+        modifier = modifier
+            // base margin
+            .padding(basePadding)
+            // avoid icon too closer with screen border
+            .padding(getHorizontalPaddingForIcons(headIconIsNull, trailIconIsNull))
+            .fillMaxWidth()
+            .heightIn(min = minHeight)
+        ,
+    ) {
+        if(!headIconIsNull) {
+            headIcons(Modifier.align(Alignment.CenterStart))
+        }
 
-    Column(
-        modifier =
-            Modifier.align(Alignment.CenterStart)
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
                 // avoid text and icon too close
                 .padding(getHorizontalPaddingForIcons(headIconIsNull, trailIconIsNull))
+
                 .padding(start = headIconWidth, end = trailIconWidth)
-        //                .fillMaxWidth()  // no need fill max width
-        ,
-        verticalArrangement = Arrangement.Center,
-    ) {
-      SelectionRow(
-          modifier =
-              if (text1Scrollable) Modifier.horizontalScroll(rememberScrollState()) else Modifier
-      ) {
-        Text(
-            text = text1,
-            fontSize = text1FontSize,
-            fontWeight = text1FontWeight,
-            color = text1Color,
-        )
-      }
-
-      if (text2.isNotEmpty()) {
-        SelectionRow(
-            modifier =
-                if (text2Scrollable) Modifier.horizontalScroll(rememberScrollState()) else Modifier
+//                .fillMaxWidth()  // no need fill max width
+            ,
+            verticalArrangement = Arrangement.Center,
         ) {
-          Text(
-              text = text2,
-              fontSize = text2FontSize,
-              fontWeight = text2FontWeight,
-              color = text2Color,
-          )
-        }
-      }
-    }
+            SelectionRow(
+                modifier = if(text1Scrollable) Modifier.horizontalScroll(rememberScrollState()) else Modifier
+            ) {
+                Text(text = text1, fontSize = text1FontSize, fontWeight = text1FontWeight, color = text1Color)
+            }
 
-    if (!trailIconIsNull) {
-      trailIcons(Modifier.align(Alignment.CenterEnd))
+            if(text2.isNotEmpty()) {
+                SelectionRow(
+                    modifier = if(text2Scrollable) Modifier.horizontalScroll(rememberScrollState()) else Modifier
+                ) {
+                    Text(text = text2, fontSize = text2FontSize, fontWeight = text2FontWeight, color = text2Color)
+                }
+            }
+        }
+
+        if(!trailIconIsNull) {
+            trailIcons(Modifier.align(Alignment.CenterEnd))
+        }
+
     }
-  }
 }
+
 
 @Composable
 fun OneLineTextsAndIcons(
-    text1: String,
+    text1:String,
     modifier: Modifier = Modifier,
     text1Color: Color = Color.Unspecified,
     text1FontWeight: FontWeight? = null,
@@ -119,24 +106,26 @@ fun OneLineTextsAndIcons(
     text1Scrollable: Boolean = true,
     basePadding: PaddingValues = PaddingValues(0.dp),
     headIconWidth: Dp = 0.dp,
-    headIcons: (@Composable BoxScope.(containerModifier: Modifier) -> Unit)? = null,
+    headIcons:  (@Composable BoxScope.(containerModifier: Modifier) -> Unit)? = null,
     trailIconWidth: Dp = 0.dp,
     trailIcons: (@Composable BoxScope.(containerModifier: Modifier) -> Unit)? = null,
 ) {
-  TwoLineTextsAndIcons(
-      text1 = text1,
-      modifier = modifier,
-      basePadding = basePadding,
-      text1Color = text1Color,
-      text1FontWeight = text1FontWeight,
-      text1FontSize = text1FontSize,
-      text1Scrollable = text1Scrollable,
-      headIconWidth = headIconWidth,
-      headIcons = headIcons,
-      trailIconWidth = trailIconWidth,
-      trailIcons = trailIcons,
-  )
+    TwoLineTextsAndIcons(
+        text1 = text1,
+        modifier = modifier,
+        basePadding = basePadding,
+        text1Color = text1Color,
+        text1FontWeight = text1FontWeight,
+        text1FontSize = text1FontSize,
+        text1Scrollable = text1Scrollable,
+        headIconWidth = headIconWidth,
+        headIcons = headIcons,
+        trailIconWidth = trailIconWidth,
+        trailIcons = trailIcons,
+    )
 }
+
+
 
 @Composable
 fun TwoLineSettingsItem(
@@ -150,44 +139,50 @@ fun TwoLineSettingsItem(
     trailIcon: ImageVector? = null,
     trailIconTooltipText: String = "",
     trailIconWidth: Dp = 0.dp,
-    trailIconOnClick: () -> Unit = {},
+    trailIconOnClick: ()->Unit = {},
 ) {
 
-  @Composable
-  fun TrailIcon(modifier: Modifier) {
-    if (trailIcon != null) {
-      LongPressAbleIconBtn(
-          modifier = modifier,
-          icon = trailIcon,
-          tooltipText = trailIconTooltipText,
-      ) {
-        trailIconOnClick()
-      }
+    @Composable
+    fun TrailIcon(modifier: Modifier) {
+        if(trailIcon != null) {
+            LongPressAbleIconBtn(
+                modifier = modifier,
+                icon = trailIcon,
+                tooltipText = trailIconTooltipText,
+            ) {
+                trailIconOnClick()
+            }
+        }
     }
-  }
 
-  if (text2.isBlank()) {
-    OneLineTextsAndIcons(
-        text1 = text1,
-        text1FontSize = text1FontSize,
-        text1Scrollable = text1Scrollable,
-        basePadding = basePadding,
-        trailIconWidth = trailIconWidth,
-        trailIcons = { modifier -> TrailIcon(modifier) },
-    )
-  } else {
-    TwoLineTextsAndIcons(
-        text1 = text1,
-        text1FontWeight = null,
-        text1FontSize = text1FontSize,
-        text1Scrollable = text1Scrollable,
-        text2 = text2,
-        text2FontSize = text2FontSize,
-        text2FontWeight = FontWeight.Light,
-        text2Scrollable = text2Scrollable,
-        basePadding = basePadding,
-        trailIconWidth = trailIconWidth,
-        trailIcons = { modifier -> TrailIcon(modifier) },
-    )
-  }
+
+    if(text2.isBlank()) {
+        OneLineTextsAndIcons(
+            text1 = text1,
+            text1FontSize = text1FontSize,
+            text1Scrollable = text1Scrollable,
+            basePadding = basePadding,
+            trailIconWidth = trailIconWidth,
+            trailIcons = { modifier ->
+                TrailIcon(modifier)
+            }
+        )
+    }else {
+        TwoLineTextsAndIcons(
+            text1 = text1,
+            text1FontWeight = null,
+            text1FontSize = text1FontSize,
+            text1Scrollable = text1Scrollable,
+            text2 = text2,
+            text2FontSize = text2FontSize,
+            text2FontWeight = FontWeight.Light,
+            text2Scrollable = text2Scrollable,
+
+            basePadding = basePadding,
+            trailIconWidth = trailIconWidth,
+            trailIcons = { modifier ->
+                TrailIcon(modifier)
+            }
+        )
+    }
 }

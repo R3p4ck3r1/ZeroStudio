@@ -16,25 +16,22 @@ fun MyLazyVerticalStaggeredGrid(
     modifier: Modifier = Modifier,
     state: LazyStaggeredGridState,
     contentPadding: PaddingValues,
-    itemMinWidth: Dp,
-    content: LazyStaggeredGridScope.() -> Unit,
+    itemMinWidth:Dp,
+    content: LazyStaggeredGridScope.() -> Unit
 ) {
-  val layoutDirection = LocalLayoutDirection.current
+    val layoutDirection = LocalLayoutDirection.current
 
-  LazyVerticalStaggeredGrid(
-      modifier = modifier,
-      contentPadding =
-          PaddingValues(
-              start = contentPadding.calculateLeftPadding(layoutDirection),
-              end = contentPadding.calculateRightPadding(layoutDirection),
-              top = contentPadding.calculateTopPadding(),
-              bottom =
-                  contentPadding.calculateBottomPadding() +
-                      MyStyleKt.BottomBar.outsideContentPadding,
-          ),
-      columns = StaggeredGridCells.Adaptive(minSize = itemMinWidth),
-      state = state,
-  ) {
-    content()
-  }
+    LazyVerticalStaggeredGrid (
+        modifier = modifier,
+        contentPadding = PaddingValues(
+            start = contentPadding.calculateLeftPadding(layoutDirection),
+            end = contentPadding.calculateRightPadding(layoutDirection),
+            top = contentPadding.calculateTopPadding(),
+            bottom = contentPadding.calculateBottomPadding() + MyStyleKt.BottomBar.outsideContentPadding
+        ),
+        columns = StaggeredGridCells.Adaptive(minSize = itemMinWidth),
+        state = state,
+    ) {
+        content()
+    }
 }

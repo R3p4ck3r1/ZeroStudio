@@ -18,31 +18,26 @@ import io.ktor.server.sse.SSE
 fun startWebServer(
     port: Int = 8080,
     host: String = "0.0.0.0",
-    module: suspend Application.() -> Unit,
+    module: suspend Application.() -> Unit
 ): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
-  return embeddedServer(
-      CIO,
-      port = port,
-      host = host,
-      module = {
+    return embeddedServer(CIO, port = port, host = host, module = {
         install(Compression)
         install(CORS) {
-          allowHeader(HttpHeaders.ContentType)
-          allowHeader(HttpHeaders.Authorization)
-          allowNonSimpleContentTypes = true
-          anyHost()
-          anyMethod()
+            allowHeader(HttpHeaders.ContentType)
+            allowHeader(HttpHeaders.Authorization)
+            allowNonSimpleContentTypes = true
+            anyHost()
+            anyMethod()
         }
         install(SSE)
         install(DefaultHeaders)
         routing {
-          staticResources("/", "static") {
-            default("index.html")
-            enableAutoHeadResponse()
-            singlePageApplication()
-          }
+            staticResources("/", "static") {
+                default("index.html")
+                enableAutoHeadResponse()
+                singlePageApplication()
+            }
         }
         module()
-      },
-  )
+    })
 }

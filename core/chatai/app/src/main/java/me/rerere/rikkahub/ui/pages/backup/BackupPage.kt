@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
@@ -35,74 +36,96 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun BackupPage(vm: BackupVM = koinViewModel()) {
-  val pagerState = rememberPagerState { 4 }
-  val scope = rememberCoroutineScope()
-  var showRestartDialog by remember { mutableStateOf(false) }
-  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val pagerState = rememberPagerState { 4 }
+    val scope = rememberCoroutineScope()
+    var showRestartDialog by remember { mutableStateOf(false) }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-  Scaffold(
-      topBar = {
-        LargeFlexibleTopAppBar(
-            title = { Text(stringResource(R.string.backup_page_title)) },
-            navigationIcon = { BackButton() },
-            scrollBehavior = scrollBehavior,
-            colors = CustomColors.topBarColors,
-        )
-      },
-      modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-      containerColor = CustomColors.topBarColors.containerColor,
-  ) { contentPadding ->
-    Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-      SecondaryScrollableTabRow(
-          selectedTabIndex = pagerState.currentPage,
-          containerColor = CustomColors.topBarColors.containerColor,
-          edgePadding = 4.dp,
-      ) {
-        Tab(
-            selected = pagerState.currentPage == 0,
-            onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-            text = { Text(stringResource(R.string.backup_page_webdav_backup)) },
-        )
-        Tab(
-            selected = pagerState.currentPage == 1,
-            onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
-            text = { Text(stringResource(R.string.backup_page_s3_backup)) },
-        )
-        Tab(
-            selected = pagerState.currentPage == 2,
-            onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
-            text = { Text(stringResource(R.string.backup_page_import_export)) },
-        )
-        Tab(
-            selected = pagerState.currentPage == 3,
-            onClick = { scope.launch { pagerState.animateScrollToPage(3) } },
-            text = { Text(stringResource(R.string.backup_page_reminder)) },
-        )
-      }
+    Scaffold(
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = {
+                    Text(stringResource(R.string.backup_page_title))
+                },
+                navigationIcon = {
+                    BackButton()
+                },
+                scrollBehavior = scrollBehavior,
+                colors = CustomColors.topBarColors
+            )
+        },
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = CustomColors.topBarColors.containerColor
+    ) { contentPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding)
+        ) {
+            SecondaryScrollableTabRow(
+                selectedTabIndex = pagerState.currentPage,
+                containerColor = CustomColors.topBarColors.containerColor,
+                edgePadding = 4.dp,
+            ) {
+                Tab(
+                    selected = pagerState.currentPage == 0,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                    text = { Text(stringResource(R.string.backup_page_webdav_backup)) }
+                )
+                Tab(
+                    selected = pagerState.currentPage == 1,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                    text = { Text(stringResource(R.string.backup_page_s3_backup)) }
+                )
+                Tab(
+                    selected = pagerState.currentPage == 2,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(2) } },
+                    text = { Text(stringResource(R.string.backup_page_import_export)) }
+                )
+                Tab(
+                    selected = pagerState.currentPage == 3,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(3) } },
+                    text = { Text(stringResource(R.string.backup_page_reminder)) }
+                )
+            }
 
-      HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth().weight(1f)) { page ->
-        when (page) {
-          0 -> {
-            WebDavTab(vm = vm, onShowRestartDialog = { showRestartDialog = true })
-          }
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) { page ->
+                when (page) {
+                    0 -> {
+                        WebDavTab(
+                            vm = vm,
+                            onShowRestartDialog = { showRestartDialog = true }
+                        )
+                    }
 
-          1 -> {
-            S3Tab(vm = vm, onShowRestartDialog = { showRestartDialog = true })
-          }
+                    1 -> {
+                        S3Tab(
+                            vm = vm,
+                            onShowRestartDialog = { showRestartDialog = true }
+                        )
+                    }
 
-          2 -> {
-            ImportExportTab(vm = vm, onShowRestartDialog = { showRestartDialog = true })
-          }
+                    2 -> {
+                        ImportExportTab(
+                            vm = vm,
+                            onShowRestartDialog = { showRestartDialog = true }
+                        )
+                    }
 
-          3 -> {
-            ReminderTab(vm = vm)
-          }
+                    3 -> {
+                        ReminderTab(vm = vm)
+                    }
+                }
+            }
         }
-      }
     }
-  }
 
-  if (showRestartDialog) {
-    BackupDialog()
-  }
+    if (showRestartDialog) {
+        BackupDialog()
+    }
 }

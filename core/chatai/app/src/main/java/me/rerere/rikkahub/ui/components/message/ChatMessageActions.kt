@@ -34,7 +34,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.datetime.toJavaLocalDateTime
 import me.rerere.ai.core.MessageRole
@@ -63,6 +62,7 @@ import me.rerere.rikkahub.ui.context.LocalTTSState
 import me.rerere.rikkahub.utils.copyMessageToClipboard
 import me.rerere.rikkahub.utils.extractQuotedContentAsText
 import me.rerere.rikkahub.utils.toLocalString
+import java.util.Locale
 
 @Composable
 fun ColumnScope.ChatMessageActionButtons(
@@ -74,150 +74,153 @@ fun ColumnScope.ChatMessageActionButtons(
     onTranslate: ((UIMessage, Locale) -> Unit)? = null,
     onClearTranslation: (UIMessage) -> Unit = {},
 ) {
-  val context = LocalContext.current
-  var isPendingDelete by remember { mutableStateOf(false) }
-  var showTranslateDialog by remember { mutableStateOf(false) }
-  var showRegenerateConfirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var isPendingDelete by remember { mutableStateOf(false) }
+    var showTranslateDialog by remember { mutableStateOf(false) }
+    var showRegenerateConfirm by remember { mutableStateOf(false) }
 
-  LaunchedEffect(isPendingDelete) {
-    if (isPendingDelete) {
-      delay(3000) // 3秒后自动取消
-      isPendingDelete = false
+    LaunchedEffect(isPendingDelete) {
+        if (isPendingDelete) {
+            delay(3000) // 3秒后自动取消
+            isPendingDelete = false
+        }
     }
-  }
 
-  FlowRow(
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-      itemVerticalAlignment = Alignment.CenterVertically,
-  ) {
-    Icon(
-        imageVector = HugeIcons.Copy01,
-        contentDescription = stringResource(R.string.copy),
-        modifier =
-            Modifier.clip(CircleShape)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = HugeIcons.Copy01,
+            contentDescription = stringResource(R.string.copy),
+            modifier = Modifier
+                .clip(CircleShape)
                 .clickable { context.copyMessageToClipboard(message) }
                 .padding(8.dp)
-                .size(16.dp),
-    )
+                .size(16.dp)
+        )
 
-    Icon(
-        imageVector = HugeIcons.Refresh03,
-        contentDescription = stringResource(R.string.regenerate),
-        modifier =
-            Modifier.clip(CircleShape)
+        Icon(
+            imageVector = HugeIcons.Refresh03,
+            contentDescription = stringResource(R.string.regenerate),
+            modifier = Modifier
+                .clip(CircleShape)
                 .clickable {
-                  if (message.role == MessageRole.USER) {
-                    showRegenerateConfirm = true
-                  } else {
-                    onRegenerate()
-                  }
+                    if (message.role == MessageRole.USER) {
+                        showRegenerateConfirm = true
+                    } else {
+                        onRegenerate()
+                    }
                 }
                 .padding(8.dp)
-                .size(16.dp),
-    )
+                .size(16.dp)
+        )
 
-    if (message.role == MessageRole.ASSISTANT) {
-      val tts = LocalTTSState.current
-      val settings = LocalSettings.current
-      val isSpeaking by tts.isSpeaking.collectAsState()
-      val isAvailable by tts.isAvailable.collectAsState()
-      Icon(
-          imageVector = if (isSpeaking) HugeIcons.StopCircle else HugeIcons.VolumeHigh,
-          contentDescription = stringResource(R.string.tts),
-          modifier =
-              Modifier.clip(CircleShape)
-                  .clickable(
-                      enabled = isAvailable,
-                      interactionSource = remember { MutableInteractionSource() },
-                      indication = LocalIndication.current,
-                      onClick = {
-                        if (!isSpeaking) {
-                          val text = message.toText()
-                          val textToSpeak =
-                              if (settings.displaySetting.ttsOnlyReadQuoted) {
-                                text.extractQuotedContentAsText() ?: text
-                              } else {
-                                text
-                              }
-                          tts.speak(textToSpeak)
-                        } else {
-                          tts.stop()
-                        }
-                      },
-                  )
-                  .padding(8.dp)
-                  .size(16.dp),
-          tint =
-              if (isAvailable) LocalContentColor.current
-              else LocalContentColor.current.copy(alpha = 0.38f),
-      )
-
-      // Translation button
-      if (onTranslate != null) {
-        Icon(
-            imageVector = HugeIcons.Translate,
-            contentDescription = stringResource(R.string.translate),
-            modifier =
-                Modifier.clip(CircleShape)
+        if (message.role == MessageRole.ASSISTANT) {
+            val tts = LocalTTSState.current
+            val settings = LocalSettings.current
+            val isSpeaking by tts.isSpeaking.collectAsState()
+            val isAvailable by tts.isAvailable.collectAsState()
+            Icon(
+                imageVector = if (isSpeaking) HugeIcons.StopCircle else HugeIcons.VolumeHigh,
+                contentDescription = stringResource(R.string.tts),
+                modifier = Modifier
+                    .clip(CircleShape)
                     .clickable(
+                        enabled = isAvailable,
                         interactionSource = remember { MutableInteractionSource() },
                         indication = LocalIndication.current,
-                        onClick = { showTranslateDialog = true },
+                        onClick = {
+                            if (!isSpeaking) {
+                                val text = message.toText()
+                                val textToSpeak = if (settings.displaySetting.ttsOnlyReadQuoted) {
+                                    text.extractQuotedContentAsText() ?: text
+                                } else {
+                                    text
+                                }
+                                tts.speak(textToSpeak)
+                            } else {
+                                tts.stop()
+                            }
+                        }
                     )
                     .padding(8.dp)
                     .size(16.dp),
-        )
-      }
-    }
+                tint = if (isAvailable) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.38f)
+            )
 
-    Icon(
-        imageVector = HugeIcons.MoreVertical,
-        contentDescription = stringResource(R.string.more_options),
-        modifier =
-            Modifier.clip(CircleShape)
+            // Translation button
+            if (onTranslate != null) {
+                Icon(
+                    imageVector = HugeIcons.Translate,
+                    contentDescription = stringResource(R.string.translate),
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = LocalIndication.current,
+                            onClick = {
+                                showTranslateDialog = true
+                            }
+                        )
+                        .padding(8.dp)
+                        .size(16.dp)
+                )
+            }
+        }
+
+        Icon(
+            imageVector = HugeIcons.MoreVertical,
+            contentDescription = stringResource(R.string.more_options),
+            modifier = Modifier
+                .clip(CircleShape)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = LocalIndication.current,
-                    onClick = { onOpenActionSheet() },
+                    onClick = {
+                        onOpenActionSheet()
+                    }
                 )
                 .padding(8.dp)
-                .size(16.dp),
-    )
+                .size(16.dp)
+        )
 
-    ChatMessageBranchSelector(
-        node = node,
-        onUpdate = onUpdate,
-    )
-  }
+        ChatMessageBranchSelector(
+            node = node,
+            onUpdate = onUpdate,
+        )
+    }
 
-  // Translation dialog
-  if (showTranslateDialog && onTranslate != null) {
-    LanguageSelectionDialog(
-        onLanguageSelected = { language ->
-          showTranslateDialog = false
-          onTranslate(message, language)
+    // Translation dialog
+    if (showTranslateDialog && onTranslate != null) {
+        LanguageSelectionDialog(
+            onLanguageSelected = { language ->
+                showTranslateDialog = false
+                onTranslate(message, language)
+            },
+            onClearTranslation = {
+                showTranslateDialog = false
+                onClearTranslation(message)
+            },
+            onDismissRequest = {
+                showTranslateDialog = false
+            },
+        )
+    }
+
+    // Regenerate confirmation dialog
+    RikkaConfirmDialog(
+        show = showRegenerateConfirm,
+        title = stringResource(R.string.regenerate),
+        confirmText = stringResource(R.string.confirm),
+        dismissText = stringResource(R.string.cancel),
+        onConfirm = {
+            showRegenerateConfirm = false
+            onRegenerate()
         },
-        onClearTranslation = {
-          showTranslateDialog = false
-          onClearTranslation(message)
-        },
-        onDismissRequest = { showTranslateDialog = false },
+        onDismiss = { showRegenerateConfirm = false },
+        text = { Text(stringResource(R.string.regenerate_confirm_message)) }
     )
-  }
-
-  // Regenerate confirmation dialog
-  RikkaConfirmDialog(
-      show = showRegenerateConfirm,
-      title = stringResource(R.string.regenerate),
-      confirmText = stringResource(R.string.confirm),
-      dismissText = stringResource(R.string.cancel),
-      onConfirm = {
-        showRegenerateConfirm = false
-        onRegenerate()
-      },
-      onDismiss = { showRegenerateConfirm = false },
-      text = { Text(stringResource(R.string.regenerate_confirm_message)) },
-  )
 }
 
 @Composable
@@ -232,211 +235,227 @@ fun ChatMessageActionsSheet(
     isFavorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
     onWebViewPreview: () -> Unit,
-    onDismissRequest: () -> Unit,
+    onDismissRequest: () -> Unit
 ) {
-  ModalBottomSheet(
-      onDismissRequest = onDismissRequest,
-      sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-  ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-      // Select and Copy
-      Card(
-          onClick = {
-            onDismissRequest()
-            onSelectAndCopy()
-          },
-          shape = MaterialTheme.shapes.medium,
-      ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          Icon(
-              imageVector = HugeIcons.TextSelection,
-              contentDescription = null,
-              modifier = Modifier.padding(4.dp),
-          )
-          Text(
-              text = stringResource(R.string.select_and_copy),
-              style = MaterialTheme.typography.titleMedium,
-          )
-        }
-      }
+            // Select and Copy
+            Card(
+                onClick = {
+                    onDismissRequest()
+                    onSelectAndCopy()
+                },
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.TextSelection,
+                        contentDescription = null,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.select_and_copy),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
 
-      // WebView Preview (only show if message has text content)
-      val hasTextContent =
-          message.parts.filterIsInstance<UIMessagePart.Text>().any { it.text.isNotBlank() }
+            // WebView Preview (only show if message has text content)
+            val hasTextContent = message.parts.filterIsInstance<UIMessagePart.Text>()
+                .any { it.text.isNotBlank() }
 
-      if (hasTextContent) {
-        Card(
-            onClick = {
-              onDismissRequest()
-              onWebViewPreview()
-            },
-            shape = MaterialTheme.shapes.medium,
-        ) {
-          Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(16.dp),
-              modifier = Modifier.padding(16.dp).fillMaxWidth(),
-          ) {
-            Icon(
-                imageVector = HugeIcons.WebDesign01,
-                contentDescription = null,
-                modifier = Modifier.padding(4.dp),
-            )
-            Text(
-                text = stringResource(R.string.render_with_webview),
-                style = MaterialTheme.typography.titleMedium,
-            )
-          }
-        }
-      }
+            if (hasTextContent) {
+                Card(
+                    onClick = {
+                        onDismissRequest()
+                        onWebViewPreview()
+                    },
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = HugeIcons.WebDesign01,
+                            contentDescription = null,
+                            modifier = Modifier.padding(4.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.render_with_webview),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                }
+            }
 
-      // Edit
-      Card(
-          onClick = {
-            onDismissRequest()
-            onEdit()
-          },
-          shape = MaterialTheme.shapes.medium,
-      ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-        ) {
-          Icon(
-              imageVector = HugeIcons.Edit01,
-              contentDescription = null,
-              modifier = Modifier.padding(4.dp),
-          )
-          Text(
-              text = stringResource(R.string.edit),
-              style = MaterialTheme.typography.titleMedium,
-          )
-        }
-      }
+            // Edit
+            Card(
+                onClick = {
+                    onDismissRequest()
+                    onEdit()
+                },
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Edit01,
+                        contentDescription = null,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.edit),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
 
-      // Share
-      Card(
-          onClick = {
-            onDismissRequest()
-            onShare()
-          },
-          shape = MaterialTheme.shapes.medium,
-      ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-        ) {
-          Icon(
-              imageVector = HugeIcons.Share04,
-              contentDescription = null,
-              modifier = Modifier.padding(4.dp),
-          )
-          Text(
-              text = stringResource(R.string.share),
-              style = MaterialTheme.typography.titleMedium,
-          )
-        }
-      }
+            // Share
+            Card(
+                onClick = {
+                    onDismissRequest()
+                    onShare()
+                },
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Share04,
+                        contentDescription = null,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.share),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
 
-      // Create a Fork
-      Card(
-          onClick = {
-            onDismissRequest()
-            onFork()
-          },
-          shape = MaterialTheme.shapes.medium,
-      ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-        ) {
-          Icon(
-              imageVector = HugeIcons.GitFork,
-              contentDescription = null,
-              modifier = Modifier.padding(4.dp),
-          )
-          Text(
-              text = stringResource(R.string.create_fork),
-              style = MaterialTheme.typography.titleMedium,
-          )
-        }
-      }
+            // Create a Fork
+            Card(
+                onClick = {
+                    onDismissRequest()
+                    onFork()
+                },
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.GitFork,
+                        contentDescription = null,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.create_fork),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
 
-      if (onToggleFavorite != null) {
-        Card(
-            onClick = {
-              onDismissRequest()
-              onToggleFavorite()
-            },
-            shape = MaterialTheme.shapes.medium,
-        ) {
-          Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.spacedBy(16.dp),
-              modifier = Modifier.padding(16.dp).fillMaxWidth(),
-          ) {
-            Icon(
-                imageVector = HugeIcons.FavouriteCircle,
-                contentDescription = null,
-                modifier = Modifier.padding(4.dp),
-            )
-            Text(
-                text =
-                    stringResource(
-                        if (isFavorite) R.string.chat_message_remove_favorite
-                        else R.string.chat_message_add_favorite
-                    ),
-                style = MaterialTheme.typography.titleMedium,
-            )
-          }
-        }
-      }
+            if (onToggleFavorite != null) {
+                Card(
+                    onClick = {
+                        onDismissRequest()
+                        onToggleFavorite()
+                    },
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = HugeIcons.FavouriteCircle,
+                            contentDescription = null,
+                            modifier = Modifier.padding(4.dp)
+                        )
+                        Text(
+                            text = stringResource(
+                                if (isFavorite) R.string.chat_message_remove_favorite
+                                else R.string.chat_message_add_favorite
+                            ),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                }
+            }
 
-      // Delete
-      Card(
-          onClick = {
-            onDismissRequest()
-            onDelete()
-          },
-          shape = MaterialTheme.shapes.medium,
-          colors =
-              CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-      ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-        ) {
-          Icon(
-              imageVector = HugeIcons.Delete01,
-              contentDescription = null,
-              modifier = Modifier.padding(4.dp),
-          )
-          Text(
-              text = stringResource(R.string.delete),
-              style = MaterialTheme.typography.titleMedium,
-          )
-        }
-      }
+            // Delete
+            Card(
+                onClick = {
+                    onDismissRequest()
+                    onDelete()
+                },
+                shape = MaterialTheme.shapes.medium,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Delete01,
+                        contentDescription = null,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.delete),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
 
-      // Message Info
-      ProvideTextStyle(MaterialTheme.typography.labelSmall) {
-        Text(message.createdAt.toJavaLocalDateTime().toLocalString())
-        if (model != null) {
-          Text(model.displayName)
+            // Message Info
+            ProvideTextStyle(MaterialTheme.typography.labelSmall) {
+                Text(message.createdAt.toJavaLocalDateTime().toLocalString())
+                if (model != null) {
+                    Text(model.displayName)
+                }
+            }
         }
-      }
     }
-  }
 }

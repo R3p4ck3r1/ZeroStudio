@@ -11,20 +11,23 @@ import kotlinx.coroutines.launch
 fun Focuser(
     focusRequester: FocusRequester,
     scope: CoroutineScope,
-) {
-  LaunchedEffect(Unit) {
-    scope.launch {
-      runCatching {
-        // 等半秒，不然页面还没渲染完，容易聚焦失败
-        delay(500)
-        // 弹出键盘
-        focusRequester.requestFocus()
-      }
+){
+    LaunchedEffect(Unit) {
+        scope.launch {
+            runCatching {
+                //等半秒，不然页面还没渲染完，容易聚焦失败
+                delay(500)
+                //弹出键盘
+                focusRequester.requestFocus()
+            }
+        }
     }
-  }
 }
+
 
 @Composable
 fun OneTimeFocusRightNow(focusRequester: FocusRequester) {
-  LaunchedEffect(Unit) { runCatching { focusRequester.requestFocus() } }
+    LaunchedEffect(Unit) {
+        runCatching { focusRequester.requestFocus() }
+    }
 }

@@ -19,43 +19,51 @@ package com.catpuppyapp.puppygit.data.dao
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.catpuppyapp.puppygit.data.entity.ErrorEntity
 import kotlinx.coroutines.flow.Flow
 
-/** Database access object to access the Inventory database */
+/**
+ * Database access object to access the Inventory database
+ */
 @Dao
 interface ErrorDao {
 
-  @Query("SELECT * from error ORDER BY id ASC") fun getAllStream(): Flow<List<ErrorEntity?>>
+    @Query("SELECT * from error ORDER BY id ASC")
+    fun getAllStream(): Flow<List<ErrorEntity?>>
 
-  @Query("SELECT * from error WHERE id = :id") fun getStream(id: String): Flow<ErrorEntity?>
+    @Query("SELECT * from error WHERE id = :id")
+    fun getStream(id: String): Flow<ErrorEntity?>
 
-  @Insert suspend fun insert(item: ErrorEntity)
+    @Insert
+    suspend fun insert(item: ErrorEntity)
 
-  @Update suspend fun update(item: ErrorEntity)
+    @Update
+    suspend fun update(item: ErrorEntity)
 
-  @Delete suspend fun delete(item: ErrorEntity)
+    @Delete
+    suspend fun delete(item: ErrorEntity)
 
-  // 要不要写个分页查询？进入页面先加载几条，点击按钮后加载更多？
+    //要不要写个分页查询？进入页面先加载几条，点击按钮后加载更多？
 
-  @Query("SELECT * from error WHERE repoId = :repoId order by baseCreateTime DESC")
-  fun getListByRepoId(repoId: String): List<ErrorEntity>
+    @Query("SELECT * from error WHERE repoId = :repoId order by baseCreateTime DESC")
+    fun getListByRepoId(repoId: String): List<ErrorEntity>
 
-  @Query("SELECT * from error WHERE id = :id") fun getById(id: String): ErrorEntity?
+    @Query("SELECT * from error WHERE id = :id")
+    fun getById(id: String): ErrorEntity?
 
-  @Query("update error set isChecked= :isChecked WHERE repoId = :repoId")
-  fun updateIsCheckedByRepoId(repoId: String, isChecked: Int)
+    @Query("update error set isChecked= :isChecked WHERE repoId = :repoId")
+    fun updateIsCheckedByRepoId(repoId: String, isChecked:Int)
 
-  // 删除超过指定时间的记录
-  @Query("delete from error WHERE baseCreateTime < :timeInSec")
-  fun deleteErrOverTime(timeInSec: Long)
+    //删除超过指定时间的记录
+    @Query("delete from error WHERE baseCreateTime < :timeInSec")
+    fun deleteErrOverTime(timeInSec:Long)
 
-  @Query("delete from error WHERE repoId = :repoId") fun deleteByRepoId(repoId: String)
+    @Query("delete from error WHERE repoId = :repoId")
+    fun deleteByRepoId(repoId: String)
 
-  @Query(
-      "UPDATE error set baseCreateTime = baseCreateTime-(:offsetInSec), baseUpdateTime = baseUpdateTime-(:offsetInSec)"
-  )
-  suspend fun subtractTimeOffset(offsetInSec: Long)
+    @Query("UPDATE error set baseCreateTime = baseCreateTime-(:offsetInSec), baseUpdateTime = baseUpdateTime-(:offsetInSec)")
+    suspend fun subtractTimeOffset(offsetInSec:Long)
 }

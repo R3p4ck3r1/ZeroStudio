@@ -28,51 +28,74 @@ import org.koin.core.parameter.parametersOf
 
 @Composable
 fun AssistantRequestPage(id: String) {
-  val vm: AssistantDetailVM = koinViewModel(parameters = { parametersOf(id) })
-  val assistant by vm.assistant.collectAsStateWithLifecycle()
-  val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
-  Scaffold(
-      topBar = {
-        LargeFlexibleTopAppBar(
-            title = { Text(stringResource(R.string.assistant_page_tab_request)) },
-            navigationIcon = { BackButton() },
-            scrollBehavior = scrollBehavior,
-            colors = CustomColors.topBarColors,
-        )
-      },
-      modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-      containerColor = CustomColors.topBarColors.containerColor,
-  ) { innerPadding ->
-    AssistantRequestContent(
-        modifier = Modifier.padding(innerPadding),
-        assistant = assistant,
-        onUpdate = { vm.update(it) },
+    val vm: AssistantDetailVM = koinViewModel(
+        parameters = {
+            parametersOf(id)
+        }
     )
-  }
+    val assistant by vm.assistant.collectAsStateWithLifecycle()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    Scaffold(
+        topBar = {
+            LargeFlexibleTopAppBar(
+                title = {
+                    Text(stringResource(R.string.assistant_page_tab_request))
+                },
+                navigationIcon = {
+                    BackButton()
+                },
+                scrollBehavior = scrollBehavior,
+                colors = CustomColors.topBarColors,
+            )
+        },
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = CustomColors.topBarColors.containerColor,
+    ) { innerPadding ->
+        AssistantRequestContent(
+            modifier = Modifier.padding(innerPadding),
+            assistant = assistant,
+            onUpdate = { vm.update(it) }
+        )
+    }
 }
 
 @Composable
 internal fun AssistantRequestContent(
     modifier: Modifier = Modifier,
     assistant: Assistant,
-    onUpdate: (Assistant) -> Unit,
+    onUpdate: (Assistant) -> Unit
 ) {
-  Column(
-      modifier =
-          modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).imePadding(),
-      verticalArrangement = Arrangement.spacedBy(12.dp),
-  ) {
-    CustomHeaders(
-        headers = assistant.customHeaders,
-        onUpdate = { onUpdate(assistant.copy(customHeaders = it)) },
-    )
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+            .imePadding(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        CustomHeaders(
+            headers = assistant.customHeaders,
+            onUpdate = {
+                onUpdate(
+                    assistant.copy(
+                        customHeaders = it
+                    )
+                )
+            }
+        )
 
-    HorizontalDivider()
+        HorizontalDivider()
 
-    CustomBodies(
-        customBodies = assistant.customBodies,
-        onUpdate = { onUpdate(assistant.copy(customBodies = it)) },
-    )
-  }
+        CustomBodies(
+            customBodies = assistant.customBodies,
+            onUpdate = {
+                onUpdate(
+                    assistant.copy(
+                        customBodies = it
+                    )
+                )
+            }
+        )
+    }
 }

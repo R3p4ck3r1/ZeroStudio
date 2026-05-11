@@ -15,29 +15,27 @@ import dev.jeziellago.compose.markdowntext.MarkdownText
 // support selection as default, need not use `SelectionContainer` wrap it
 @Composable
 fun MarkDownContainer(
-    content: String,
-    modifier: Modifier = Modifier,
-    basePathNoEndSlash: String = "",
+    content:String,
+    modifier:Modifier = Modifier,
+    basePathNoEndSlash:String = "",
     style: TextStyle = LocalTextStyle.current,
-    onLinkClicked: (String) -> Boolean = { false },
+    onLinkClicked: (String) -> Boolean = {false},
 ) {
-  val activityContext = LocalContext.current
-  val inDarkTheme = Theme.inDarkTheme
+    val activityContext = LocalContext.current
+    val inDarkTheme = Theme.inDarkTheme
 
-  MarkdownText(
-      modifier = modifier,
-      markdown = content,
-      linkifyMask = Linkify.EMAIL_ADDRESSES or Linkify.WEB_URLS,
-      onLinkClicked = onLinkClicked,
-      linkColor = MyStyleKt.ClickableText.getColor(),
-      style = style,
+    MarkdownText(
+        modifier = modifier,
+        markdown = content,
+        linkifyMask = Linkify.EMAIL_ADDRESSES or Linkify.WEB_URLS,
+        onLinkClicked = onLinkClicked,
+        linkColor = MyStyleKt.ClickableText.getColor(),
+        style = style,
 
-      // enable selection and copy
-      isTextSelectable = true,
-      syntaxHighlightColor =
-          if (inDarkTheme) MaterialTheme.colorScheme.surfaceBright
-          else MaterialTheme.colorScheme.surfaceDim,
-      coilStore =
-          MdUtil.getCoilStore(context = activityContext, basePathNoEndSlash = basePathNoEndSlash),
-  )
+        // enable selection and copy
+        isTextSelectable = true,
+
+        syntaxHighlightColor = if(inDarkTheme) MaterialTheme.colorScheme.surfaceBright else MaterialTheme.colorScheme.surfaceDim,
+        coilStore = MdUtil.getCoilStore(context = activityContext, basePathNoEndSlash = basePathNoEndSlash)
+    )
 }

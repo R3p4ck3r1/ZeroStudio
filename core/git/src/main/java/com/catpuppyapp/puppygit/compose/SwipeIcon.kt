@@ -13,5 +13,9 @@ fun SwipeIcon(
     imageVector: ImageVector,
     contentDescription: String? = null,
 ) {
-  Icon(modifier = modifier, imageVector = imageVector, contentDescription = contentDescription)
+    Icon(
+        modifier = modifier,
+        imageVector = imageVector,
+        contentDescription = contentDescription
+    )
 }

@@ -10,40 +10,45 @@ android {
   namespace = "me.rerere.ai"
   compileSdk = 36
 
-  defaultConfig {
-    minSdk = 26
+    defaultConfig {
+        minSdk = 26
 
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    consumerProguardFiles("consumer-rules.pro")
-    //        externalNativeBuild {
-    //            cmake {
-    //                cppFlags += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
-    //                abiFilters += listOf("arm64-v8a", "x86_64")
-    //            }
-    //        }
-  }
-
-  buildTypes {
-    release {
-      isMinifyEnabled = false
-      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
+//        externalNativeBuild {
+//            cmake {
+//                cppFlags += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+//                abiFilters += listOf("arm64-v8a", "x86_64")
+//            }
+//        }
     }
-  }
-  compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-  }
-  buildFeatures { compose = true }
-  //    externalNativeBuild {
-  //        cmake {
-  //            path = file("src/main/cpp/CMakeLists.txt")
-  //            version = "3.22.1"
-  //        }
-  //    }
-  tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.optIn.add("kotlin.uuid.ExperimentalUuidApi")
-    compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
-  }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    buildFeatures {
+        compose = true
+    }
+//    externalNativeBuild {
+//        cmake {
+//            path = file("src/main/cpp/CMakeLists.txt")
+//            version = "3.22.1"
+//        }
+//    }
+    tasks.withType<KotlinCompile>().configureEach {
+        compilerOptions.optIn.add("kotlin.uuid.ExperimentalUuidApi")
+        compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
+    }
 }
 
 dependencies {

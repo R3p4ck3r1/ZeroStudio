@@ -19,35 +19,44 @@ import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.ui.theme.Theme
 
+
 @Composable
 fun MyTriCheckBox(
     text: String,
     state: ToggleableState,
-    enabled: Boolean = true,
+    enabled:Boolean = true,
     height: Dp = MyStyleKt.CheckoutBox.height,
-    onValueChange: () -> Unit,
+    onValueChange: ()->Unit
 ) {
-  val inDarkTheme = Theme.inDarkTheme
+    val inDarkTheme = Theme.inDarkTheme
 
-  Row(
-      Modifier.fillMaxWidth()
-          .height(height)
-          .triStateToggleable(enabled = enabled, state = state, role = Role.Checkbox) {
-            onValueChange()
-          }
-          .padding(horizontal = MyStyleKt.defaultHorizontalPadding),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    TriStateCheckbox(enabled = enabled, state = state, onClick = null)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(height)
+            .triStateToggleable(
+                enabled = enabled,
+                state = state,
+                role = Role.Checkbox
+            ){
+                onValueChange()
+            }
+            .padding(horizontal = MyStyleKt.defaultHorizontalPadding),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TriStateCheckbox(
+            enabled = enabled,
+            state = state,
+            onClick = null
+        )
 
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyLarge,
-        modifier = Modifier.padding(start = 16.dp),
-        color =
-            if (enabled) Color.Unspecified
-            else if (inDarkTheme) MyStyleKt.TextColor.disable_DarkTheme
-            else MyStyleKt.TextColor.disable,
-    )
-  }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 16.dp),
+            color = if(enabled) Color.Unspecified else if(inDarkTheme) MyStyleKt.TextColor.disable_DarkTheme else MyStyleKt.TextColor.disable
+        )
+
+    }
 }
+

@@ -30,9 +30,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 enum class SwitchSize {
-  Small,
-  Medium,
-  Large,
+    Small,
+    Medium,
+    Large
 }
 
 @Composable
@@ -45,125 +45,136 @@ fun Switch(
     trackColor: Color = MaterialTheme.colorScheme.primary,
     trackColorUnchecked: Color = MaterialTheme.colorScheme.surfaceVariant,
     thumbColor: Color = MaterialTheme.colorScheme.onPrimary,
-    thumbColorUnchecked: Color = MaterialTheme.colorScheme.outline,
+    thumbColorUnchecked: Color = MaterialTheme.colorScheme.outline
 ) {
-  val dimensions =
-      when (size) {
-        SwitchSize.Small ->
-            SwitchDimensions(
-                trackWidth = 36.dp,
-                trackHeight = 20.dp,
-                thumbSize = 16.dp,
-                thumbPadding = 2.dp,
-            )
+    val dimensions = when (size) {
+        SwitchSize.Small -> SwitchDimensions(
+            trackWidth = 36.dp,
+            trackHeight = 20.dp,
+            thumbSize = 16.dp,
+            thumbPadding = 2.dp
+        )
 
-        SwitchSize.Medium ->
-            SwitchDimensions(
-                trackWidth = 44.dp,
-                trackHeight = 24.dp,
-                thumbSize = 20.dp,
-                thumbPadding = 2.dp,
-            )
+        SwitchSize.Medium -> SwitchDimensions(
+            trackWidth = 44.dp,
+            trackHeight = 24.dp,
+            thumbSize = 20.dp,
+            thumbPadding = 2.dp
+        )
 
-        SwitchSize.Large ->
-            SwitchDimensions(
-                trackWidth = 52.dp,
-                trackHeight = 28.dp,
-                thumbSize = 24.dp,
-                thumbPadding = 2.dp,
-            )
-      }
+        SwitchSize.Large -> SwitchDimensions(
+            trackWidth = 52.dp,
+            trackHeight = 28.dp,
+            thumbSize = 24.dp,
+            thumbPadding = 2.dp
+        )
+    }
 
-  val thumbOffset by
-      animateDpAsState(
-          targetValue =
-              if (checked) {
-                dimensions.trackWidth - dimensions.thumbSize - dimensions.thumbPadding * 2
-              } else {
-                0.dp
-              },
-          animationSpec = tween(durationMillis = 150),
-          label = "thumbOffset",
-      )
+    val thumbOffset by animateDpAsState(
+        targetValue = if (checked) {
+            dimensions.trackWidth - dimensions.thumbSize - dimensions.thumbPadding * 2
+        } else {
+            0.dp
+        },
+        animationSpec = tween(durationMillis = 150),
+        label = "thumbOffset"
+    )
 
-  val currentTrackColor =
-      when {
+    val currentTrackColor = when {
         !enabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         checked -> trackColor
         else -> trackColorUnchecked
-      }
+    }
 
-  val currentThumbColor =
-      when {
+    val currentThumbColor = when {
         !enabled -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
         checked -> thumbColor
         else -> thumbColorUnchecked
-      }
+    }
 
-  Box(
-      modifier =
-          modifier
-              .size(width = dimensions.trackWidth, height = dimensions.trackHeight)
-              .clip(RoundedCornerShape(50))
-              .background(currentTrackColor)
-              .clickable(
-                  enabled = enabled,
-                  indication = null,
-                  interactionSource = remember { MutableInteractionSource() },
-              ) {
-                onCheckedChange(!checked)
-              },
-      contentAlignment = Alignment.CenterStart,
-  ) {
     Box(
-        modifier =
-            Modifier.padding(dimensions.thumbPadding)
+        modifier = modifier
+            .size(width = dimensions.trackWidth, height = dimensions.trackHeight)
+            .clip(RoundedCornerShape(50))
+            .background(currentTrackColor)
+            .clickable(
+                enabled = enabled,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                onCheckedChange(!checked)
+            },
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(dimensions.thumbPadding)
                 .offset(x = thumbOffset)
                 .size(dimensions.thumbSize)
-                .shadow(elevation = if (enabled) 2.dp else 0.dp, shape = CircleShape)
+                .shadow(
+                    elevation = if (enabled) 2.dp else 0.dp,
+                    shape = CircleShape
+                )
                 .clip(CircleShape)
                 .background(currentThumbColor)
-    )
-  }
+        )
+    }
 }
 
 private data class SwitchDimensions(
     val trackWidth: Dp,
     val trackHeight: Dp,
     val thumbSize: Dp,
-    val thumbPadding: Dp,
+    val thumbPadding: Dp
 )
 
 @Composable
 @Preview(showBackground = true)
 private fun SwitchPreview() {
-  Column(
-      modifier = Modifier.padding(32.dp),
-      verticalArrangement = Arrangement.spacedBy(16.dp),
-      horizontalAlignment = Alignment.CenterHorizontally,
-  ) {
-    var checkedSmall by remember { mutableStateOf(true) }
-    var checkedMedium by remember { mutableStateOf(true) }
-    var checkedLarge by remember { mutableStateOf(true) }
-    var unchecked by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.padding(32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        var checkedSmall by remember { mutableStateOf(true) }
+        var checkedMedium by remember { mutableStateOf(true) }
+        var checkedLarge by remember { mutableStateOf(true) }
+        var unchecked by remember { mutableStateOf(false) }
 
-    Text("Small", style = MaterialTheme.typography.labelMedium)
-    Switch(checked = checkedSmall, onCheckedChange = { checkedSmall = it }, size = SwitchSize.Small)
+        Text("Small", style = MaterialTheme.typography.labelMedium)
+        Switch(
+            checked = checkedSmall,
+            onCheckedChange = { checkedSmall = it },
+            size = SwitchSize.Small
+        )
 
-    Text("Medium (Default)", style = MaterialTheme.typography.labelMedium)
-    Switch(
-        checked = checkedMedium,
-        onCheckedChange = { checkedMedium = it },
-        size = SwitchSize.Medium,
-    )
+        Text("Medium (Default)", style = MaterialTheme.typography.labelMedium)
+        Switch(
+            checked = checkedMedium,
+            onCheckedChange = { checkedMedium = it },
+            size = SwitchSize.Medium
+        )
 
-    Text("Large", style = MaterialTheme.typography.labelMedium)
-    Switch(checked = checkedLarge, onCheckedChange = { checkedLarge = it }, size = SwitchSize.Large)
+        Text("Large", style = MaterialTheme.typography.labelMedium)
+        Switch(
+            checked = checkedLarge,
+            onCheckedChange = { checkedLarge = it },
+            size = SwitchSize.Large
+        )
 
-    Text("Unchecked", style = MaterialTheme.typography.labelMedium)
-    Switch(checked = unchecked, onCheckedChange = { unchecked = it }, size = SwitchSize.Medium)
+        Text("Unchecked", style = MaterialTheme.typography.labelMedium)
+        Switch(
+            checked = unchecked,
+            onCheckedChange = { unchecked = it },
+            size = SwitchSize.Medium
+        )
 
-    Text("Disabled", style = MaterialTheme.typography.labelMedium)
-    Switch(checked = true, onCheckedChange = {}, size = SwitchSize.Medium, enabled = false)
-  }
+        Text("Disabled", style = MaterialTheme.typography.labelMedium)
+        Switch(
+            checked = true,
+            onCheckedChange = {},
+            size = SwitchSize.Medium,
+            enabled = false
+        )
+    }
 }

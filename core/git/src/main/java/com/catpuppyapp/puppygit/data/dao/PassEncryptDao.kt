@@ -19,20 +19,27 @@ package com.catpuppyapp.puppygit.data.dao
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.catpuppyapp.puppygit.data.entity.PassEncryptEntity
 
-/** Database access object to access the Inventory database */
+/**
+ * Database access object to access the Inventory database
+ */
 @Dao
 interface PassEncryptDao {
 
-  @Insert suspend fun insert(item: PassEncryptEntity)
+    @Insert
+    suspend fun insert(item: PassEncryptEntity)
 
-  @Update suspend fun update(item: PassEncryptEntity)
+    @Update
+    suspend fun update(item: PassEncryptEntity)
 
-  @Delete suspend fun delete(item: PassEncryptEntity)
+    @Delete
+    suspend fun delete(item: PassEncryptEntity)
 
-  @Query("SELECT * from passEncrypt WHERE id = :id")
-  suspend fun getById(id: Int): PassEncryptEntity?
+    @Query("SELECT * from passEncrypt WHERE id = :id")
+    suspend fun getById(id: Int): PassEncryptEntity?
+
 }

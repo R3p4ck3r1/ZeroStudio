@@ -15,51 +15,57 @@ import androidx.compose.ui.text.withStyle
 import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.utils.forEachBetter
 
+
 @Composable
 fun CommitListDialog(
-    title: String,
-    firstLineLabel: String,
-    firstLineText: String,
-    commitListLabel: String,
-    commits: List<String>,
-    closeDialog: () -> Unit,
-) {
-  ConfirmDialog2(
-      title = title,
-      requireShowTextCompose = true,
-      textCompose = {
-        Column {
-          // 用 \n 是为了在复制文本的时候包含换行符
-          MySelectionContainer {
-            Row {
-              Text(
-                  text =
-                      buildAnnotatedString {
-                        withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)) {
-                          append("$firstLineLabel: ")
+    title:String,
+    firstLineLabel:String,
+    firstLineText:String,
+    commitListLabel:String,
+    commits:List<String>,
+    closeDialog:()->Unit,
+){
+    ConfirmDialog2(
+        title = title,
+        requireShowTextCompose = true,
+        textCompose = {
+            Column {
+                //用 \n 是为了在复制文本的时候包含换行符
+                MySelectionContainer {
+                    Row {
+                        Text(
+                            text = buildAnnotatedString {
+                                withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)) {
+                                    append("$firstLineLabel: ")
+                                }
+
+                                append("$firstLineText\n")
+                            }
+                        )
+                    }
+                }
+
+                MyHorizontalDivider()
+
+                MySelectionContainer {
+                    Text("\n${commitListLabel}:\n", fontWeight = FontWeight.ExtraBold)
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    commits.forEachBetter {
+                        item {
+                            MySelectionContainer {
+                                Text(it+"\n")
+                            }
                         }
-
-                        append("$firstLineText\n")
-                      }
-              )
+                    }
+                }
             }
-          }
-
-          MyHorizontalDivider()
-
-          MySelectionContainer {
-            Text("\n${commitListLabel}:\n", fontWeight = FontWeight.ExtraBold)
-          }
-
-          LazyColumn(
-              modifier = Modifier.fillMaxWidth(),
-          ) {
-            commits.forEachBetter { item { MySelectionContainer { Text(it + "\n") } } }
-          }
-        }
-      },
-      onCancel = closeDialog,
-      cancelBtnText = stringResource(R.string.close),
-      showOk = false,
-  ) {}
+        },
+        onCancel = closeDialog,
+        cancelBtnText = stringResource(R.string.close),
+        showOk = false
+    ) {}
 }

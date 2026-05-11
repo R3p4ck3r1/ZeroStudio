@@ -21,72 +21,88 @@ import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.ui.theme.Theme
 import com.catpuppyapp.puppygit.utils.UIHelper
 
+
 @Composable
 fun SingleLineCardButton(
     modifier: Modifier = Modifier,
-    //    paddingValues: PaddingValues = PaddingValues(30.dp),
+//    paddingValues: PaddingValues = PaddingValues(30.dp),
     text: String,
     enabled: Boolean = true,
-    onClick: () -> Unit,
+    onClick: () -> Unit
 ) {
-  val inDarkTheme = Theme.inDarkTheme
+    val inDarkTheme = Theme.inDarkTheme
 
-  CardButton(
-      modifier = modifier,
-      enabled = enabled,
-      onClick = onClick,
-      content = {
-        Text(
-            text = text,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-            color = UIHelper.getCardButtonTextColor(enabled, inDarkTheme),
-        )
-      },
-  )
+    CardButton(
+        modifier = modifier,
+        enabled = enabled,
+        onClick = onClick,
+        content = {
+            Text(
+                text = text,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                color = UIHelper.getCardButtonTextColor(enabled, inDarkTheme)
+            )
+        },
+    )
 }
+
 
 @Composable
 fun CardButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    minHeight: Int = 50,
-    maxHeight: Int = 120,
+    minHeight:Int = 50,
+    maxHeight:Int = 120,
     onClick: () -> Unit,
-    content: @Composable RowScope.() -> Unit,
+    content:@Composable RowScope.()->Unit,
 ) {
 
-  val maxHeight = maxHeight.coerceAtLeast(minHeight)
+    val maxHeight = maxHeight.coerceAtLeast(minHeight)
 
-  Column(
-      modifier =
-          Modifier.fillMaxWidth()
-              .padding(top = 2.dp) // 顶部加点margin，不然有时候显示不全
-              .then(modifier),
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.Center,
-  ) {
-    MyCard(
-        // 0.9f 占父元素宽度的百分之90
-        modifier = Modifier.clickable(enabled = enabled) { onClick() },
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp)  //顶部加点margin，不然有时候显示不全
+            .then(modifier)
+        ,
+
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-      Row(
-          modifier =
-              Modifier.fillMaxWidth(.85f)
-                  .heightIn(min = minHeight.dp, max = maxHeight.dp)
-                  .padding(5.dp),
-          horizontalArrangement = Arrangement.Center,
-          verticalAlignment = Alignment.CenterVertically,
-      ) {
-        ScrollableColumn { content() }
-      }
+        MyCard(
+            //0.9f 占父元素宽度的百分之90
+            modifier = Modifier
+                .clickable(enabled = enabled) {
+                    onClick()
+                }
+            ,
+
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(.85f)
+                    .heightIn(min = minHeight.dp, max = maxHeight.dp)
+                    .padding(5.dp)
+                ,
+
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ScrollableColumn {
+                    content()
+                }
+            }
+
+        }
+
+//        Spacer(modifier = Modifier.height(95.dp))
+
     }
 
-    //        Spacer(modifier = Modifier.height(95.dp))
-
-  }
 }
+
 
 @Composable
 fun TwoLineTextCardButton(
@@ -94,37 +110,40 @@ fun TwoLineTextCardButton(
     textPair: Pair<String, String>,
     headIcon: ImageVector,
     headIconWidth: Dp,
-    headIconDesc: String,
-    onClick: () -> Unit,
+    headIconDesc:String,
+    onClick: () -> Unit
 ) {
-  CardButton(
-      enabled = enabled,
-      onClick = onClick,
-      content = {
-        val color = if (enabled) Color.Unspecified else UIHelper.getDisableTextColor()
-        val iconColor = if (enabled) LocalContentColor.current else color
+    CardButton(
+        enabled = enabled,
+        onClick = onClick,
+        content = {
+            val color = if(enabled) Color.Unspecified else UIHelper.getDisableTextColor()
+            val iconColor = if(enabled) LocalContentColor.current else color
 
-        TwoLineTextsAndIcons(
-            text1 = textPair.first,
-            text2 = textPair.second,
-            text1Color = color,
-            text2Color = color,
-            headIconWidth = headIconWidth,
-            headIcons = { containerModifier ->
-              Row(
-                  modifier = containerModifier,
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.End,
-              ) {
-                SizeIcon(
-                    size = headIconWidth,
-                    imageVector = headIcon,
-                    contentDescription = headIconDesc,
-                    tint = iconColor,
-                )
-              }
-            },
-        )
-      },
-  )
+            TwoLineTextsAndIcons(
+                text1 = textPair.first,
+                text2 = textPair.second,
+                text1Color = color,
+                text2Color = color,
+                headIconWidth = headIconWidth,
+                headIcons = { containerModifier ->
+                    Row(
+                        modifier = containerModifier,
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+
+                        SizeIcon(
+                            size = headIconWidth,
+                            imageVector = headIcon,
+                            contentDescription = headIconDesc,
+                            tint = iconColor
+                        )
+
+                    }
+                }
+            )
+        },
+    )
 }
+

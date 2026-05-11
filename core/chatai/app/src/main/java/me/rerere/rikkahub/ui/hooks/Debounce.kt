@@ -4,10 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * 创建一个防抖函数包装器
@@ -17,19 +17,22 @@ import kotlinx.coroutines.launch
  * @return 包装后的防抖函数
  */
 @Composable
-fun <T> useDebounce(delayMillis: Long = 300, function: (T) -> Unit): (T) -> Unit {
-  val scope = rememberCoroutineScope()
-  val debounceJob = remember { mutableStateOf<Job?>(null) }
+fun <T> useDebounce(
+    delayMillis: Long = 300,
+    function: (T) -> Unit
+): (T) -> Unit {
+    val scope = rememberCoroutineScope()
+    val debounceJob = remember { mutableStateOf<Job?>(null) }
 
-  return remember {
-    { param: T ->
-      debounceJob.value?.cancel()
-      debounceJob.value = scope.launch {
-        delay(delayMillis)
-        function(param)
-      }
+    return remember {
+        { param: T ->
+            debounceJob.value?.cancel()
+            debounceJob.value = scope.launch {
+                delay(delayMillis)
+                function(param)
+            }
+        }
     }
-  }
 }
 
 /**
@@ -40,31 +43,34 @@ fun <T> useDebounce(delayMillis: Long = 300, function: (T) -> Unit): (T) -> Unit
  * @return 包装后的节流函数
  */
 @Composable
-fun <T> useThrottle(intervalMillis: Long = 300, function: (T) -> Unit): (T) -> Unit {
-  val scope = rememberCoroutineScope()
-  val isThrottling = remember { AtomicBoolean(false) }
-  val latestParam = remember { mutableStateOf<T?>(null) }
+fun <T> useThrottle(
+    intervalMillis: Long = 300,
+    function: (T) -> Unit
+): (T) -> Unit {
+    val scope = rememberCoroutineScope()
+    val isThrottling = remember { AtomicBoolean(false) }
+    val latestParam = remember { mutableStateOf<T?>(null) }
 
-  return remember {
-    { param: T ->
-      latestParam.value = param
+    return remember {
+        { param: T ->
+            latestParam.value = param
 
-      if (!isThrottling.getAndSet(true)) {
-        function(param)
+            if (!isThrottling.getAndSet(true)) {
+                function(param)
 
-        scope.launch {
-          delay(intervalMillis)
-          isThrottling.set(false)
+                scope.launch {
+                    delay(intervalMillis)
+                    isThrottling.set(false)
 
-          // 如果在节流期间有新的参数，则在节流结束后执行一次
-          latestParam.value?.let { latestValue ->
-            // 重置参数
-            latestParam.value = null
-            // 用最新的参数再次调用节流函数
-            function(latestValue)
-          }
+                    // 如果在节流期间有新的参数，则在节流结束后执行一次
+                    latestParam.value?.let { latestValue ->
+                        // 重置参数
+                        latestParam.value = null
+                        // 用最新的参数再次调用节流函数
+                        function(latestValue)
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }

@@ -26,10 +26,11 @@ import com.catpuppyapp.puppygit.utils.state.CustomStateSaveable
 
 private const val TAG = "SetPageSizeDialog"
 
-private const val invalidPageSize = -1
-private const val minPageSize = 1 // make sure it bigger than `invalidPageSize`
 
-fun isInvalidPageSize(size: Int) = size < minPageSize
+private const val invalidPageSize = -1
+private const val minPageSize = 1  // make sure it bigger than `invalidPageSize`
+
+fun isInvalidPageSize(size:Int) = size < minPageSize
 
 @Composable
 fun SetPageSizeDialog(
@@ -37,64 +38,70 @@ fun SetPageSizeDialog(
     pageSize: MutableState<Int>,
     rememberPageSize: MutableState<Boolean>,
     trueCommitHistoryFalseFileHistory: Boolean,
-    closeDialog: () -> Unit,
+    closeDialog:()->Unit,
 ) {
 
-  val activityContext = LocalContext.current
-  val scope = rememberCoroutineScope()
+    val activityContext = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-  val focusRequester = remember { FocusRequester() }
+    val focusRequester = remember { FocusRequester() }
 
-  ConfirmDialog2(
-      title = stringResource(R.string.page_size),
-      requireShowTextCompose = true,
-      textCompose = {
-        ScrollableColumn {
-          TextField(
-              modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-              keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-              value = pageSizeBuf.value,
-              singleLine = true,
-              onValueChange = { pageSizeBuf.value = it },
-              label = { Text(stringResource(R.string.page_size)) },
-          )
+    ConfirmDialog2(
+        title = stringResource(R.string.page_size),
+        requireShowTextCompose = true,
+        textCompose = {
+            ScrollableColumn {
+                TextField(
+                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
 
-          Spacer(Modifier.height(10.dp))
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 
-          MyCheckBox(text = stringResource(R.string.save), rememberPageSize)
-        }
-      },
-      onCancel = closeDialog,
-  ) {
-    closeDialog()
+                    value = pageSizeBuf.value,
+                    singleLine = true,
+                    onValueChange = {
+                        pageSizeBuf.value = it
+                    },
+                    label = {
+                        Text(stringResource(R.string.page_size))
+                    },
+                )
 
-    try {
-      val newPageSize =
-          try {
-            pageSizeBuf.value.text.trim().toInt()
-          } catch (_: Exception) {
-            Msg.requireShow(activityContext.getString(R.string.invalid_number))
-            invalidPageSize
-          }
+                Spacer(Modifier.height(10.dp))
 
-      if (!isInvalidPageSize(newPageSize)) {
-        pageSize.value = newPageSize
-        //                pageSizeBuf.value = TextFieldValue(newPageSize.toString())
-
-        if (rememberPageSize.value) {
-          SettingsUtil.update {
-            if (trueCommitHistoryFalseFileHistory) {
-              it.commitHistoryPageSize = newPageSize
-            } else {
-              it.fileHistoryPageSize = newPageSize
+                MyCheckBox(text= stringResource(R.string.save), rememberPageSize)
             }
-          }
-        }
-      }
-    } catch (e: Exception) {
-      MyLog.e(TAG, "#SetPageSizeDialog err: ${e.localizedMessage}")
-    }
-  }
+        },
+        onCancel = closeDialog
+    ) {
+        closeDialog()
 
-  Focuser(focusRequester, scope)
+        try {
+            val newPageSize = try {
+                pageSizeBuf.value.text.trim().toInt()
+            }catch (_:Exception) {
+                Msg.requireShow(activityContext.getString(R.string.invalid_number))
+                invalidPageSize
+            }
+
+            if(!isInvalidPageSize(newPageSize)) {
+                pageSize.value = newPageSize
+//                pageSizeBuf.value = TextFieldValue(newPageSize.toString())
+
+                if(rememberPageSize.value) {
+                    SettingsUtil.update {
+                        if(trueCommitHistoryFalseFileHistory) {
+                            it.commitHistoryPageSize = newPageSize
+                        }else {
+                            it.fileHistoryPageSize = newPageSize
+                        }
+                    }
+                }
+            }
+
+        }catch (e:Exception) {
+            MyLog.e(TAG, "#SetPageSizeDialog err: ${e.localizedMessage}")
+        }
+    }
+
+    Focuser(focusRequester, scope)
 }

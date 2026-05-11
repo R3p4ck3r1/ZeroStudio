@@ -9,18 +9,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 
+
 @Composable
 fun SizeIcon(
     modifier: Modifier = Modifier,
     imageVector: ImageVector,
-    contentDescription: String?,
+    contentDescription:String?,
     size: Dp,
-    tint: Color = LocalContentColor.current,
+    tint:Color = LocalContentColor.current,
 ) {
-  Icon(
-      modifier = modifier.size(size),
-      imageVector = imageVector,
-      contentDescription = contentDescription,
-      tint = tint,
-  )
+    Icon(
+        modifier = modifier.size(size),
+        imageVector = imageVector,
+        contentDescription = contentDescription,
+        tint = tint,
+    )
 }

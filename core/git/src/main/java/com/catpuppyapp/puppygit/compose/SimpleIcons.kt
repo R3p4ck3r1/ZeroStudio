@@ -7,13 +7,13 @@ import com.catpuppyapp.puppygit.utils.UIHelper
 
 @Composable
 fun SimpleCheckBox(
-    enabled: Boolean,
-    contentDescription: String? = null,
+    enabled:Boolean,
+    contentDescription:String? = null,
     modifier: Modifier = Modifier,
 ) {
-  Icon(
-      imageVector = UIHelper.getCheckBoxByState(enabled),
-      contentDescription = contentDescription,
-      modifier = modifier,
-  )
+    Icon(
+        imageVector = UIHelper.getCheckBoxByState(enabled),
+        contentDescription = contentDescription,
+        modifier = modifier,
+    )
 }

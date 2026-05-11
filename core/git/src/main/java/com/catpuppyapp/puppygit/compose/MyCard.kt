@@ -12,18 +12,24 @@ import com.catpuppyapp.puppygit.utils.UIHelper
 @Composable
 fun MyCard(
     modifier: Modifier,
-    containerColor: Color? = null,
-    content: @Composable () -> Unit,
+    containerColor:Color? = null,
+    content:@Composable ()->Unit,
 ) {
-  val containerColor = containerColor ?: UIHelper.defaultCardColor()
+    val containerColor = containerColor ?: UIHelper.defaultCardColor()
 
-  Card(
-      modifier = modifier,
-      colors = CardDefaults.cardColors(containerColor = containerColor),
-      elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-  ) {
-    content()
-  }
+    Card(
+        modifier = modifier,
+
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor
+        ),
+
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp
+        ),
+    ) {
+        content()
+    }
 }
 
 @Composable
@@ -32,9 +38,9 @@ fun MyToggleCard(
     selected: Boolean,
     content: @Composable () -> Unit,
 ) {
-  MyCard(
-      modifier = modifier,
-      containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else null,
-      content = content,
-  )
+    MyCard(
+        modifier = modifier,
+        containerColor = if(selected) MaterialTheme.colorScheme.primaryContainer else null,
+        content = content
+    )
 }

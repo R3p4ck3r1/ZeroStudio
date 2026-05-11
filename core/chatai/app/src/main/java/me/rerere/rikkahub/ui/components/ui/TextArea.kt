@@ -77,99 +77,111 @@ fun TextArea(
     readOnly: Boolean = false,
     supportedFileTypes: Array<String> = arrayOf("text/*", "application/json"),
     enableFullscreen: Boolean = true,
-    onImportError: ((String) -> Unit)? = null,
+    onImportError: ((String) -> Unit)? = null
 ) {
-  val context = LocalContext.current
-  val scope = rememberCoroutineScope()
-  val toaster = LocalToaster.current
-  var isFullScreen by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val toaster = LocalToaster.current
+    var isFullScreen by remember { mutableStateOf(false) }
 
-  val filePickerLauncher =
-      rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) {
-          uri: Uri? ->
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
         uri?.let {
-          scope.launch {
-            try {
-              val content =
-                  withContext(Dispatchers.IO) {
-                    context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
-                      reader.readText()
-                    } ?: error("Failed to read file")
-                  }
-              state.setTextAndPlaceCursorAtEnd(content)
-              toaster.show(
-                  context.getString(R.string.text_area_import_success),
-                  type = ToastType.Success,
-              )
-            } catch (e: Exception) {
-              e.printStackTrace()
-              val errorMessage = e.message ?: context.getString(R.string.text_area_import_failed)
-              onImportError?.invoke(errorMessage)
-                  ?: toaster.show(message = errorMessage, type = ToastType.Error)
+            scope.launch {
+                try {
+                    val content = withContext(Dispatchers.IO) {
+                        context.contentResolver.openInputStream(uri)?.bufferedReader()
+                            ?.use { reader -> reader.readText() }
+                            ?: error("Failed to read file")
+                    }
+                    state.setTextAndPlaceCursorAtEnd(content)
+                    toaster.show(context.getString(R.string.text_area_import_success), type = ToastType.Success)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    val errorMessage = e.message ?: context.getString(R.string.text_area_import_failed)
+                    onImportError?.invoke(errorMessage) ?: toaster.show(
+                        message = errorMessage,
+                        type = ToastType.Error
+                    )
+                }
             }
-          }
         }
-      }
-
-  Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-    // Header with label, fullscreen and import button
-    if (label.isNotEmpty()) {
-      Row(
-          modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-          verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Text(text = label, style = MaterialTheme.typography.labelLarge)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f),
-        ) {
-          if (enableFullscreen) {
-            Icon(
-                imageVector = HugeIcons.FullScreen,
-                contentDescription = stringResource(R.string.text_area_fullscreen_edit),
-                modifier = Modifier.onClick(onClick = { isFullScreen = true }).size(24.dp),
-            )
-          }
-
-          Icon(
-              imageVector = HugeIcons.FileImport,
-              contentDescription = stringResource(R.string.text_area_import_from_file),
-              modifier =
-                  Modifier.onClick(onClick = { filePickerLauncher.launch(supportedFileTypes) })
-                      .size(24.dp),
-          )
-        }
-      }
-
-      // Multi-line text input
-      OutlinedTextField(
-          state = state,
-          modifier = Modifier.fillMaxWidth(),
-          placeholder =
-              if (placeholder.isNotEmpty()) {
-                { Text(placeholder) }
-              } else null,
-          lineLimits =
-              TextFieldLineLimits.MultiLine(
-                  minHeightInLines = minLines,
-                  maxHeightInLines = maxLines,
-              ),
-          enabled = enabled,
-          readOnly = readOnly,
-      )
     }
-  }
 
-  // Fullscreen editor dialog
-  if (isFullScreen) {
-    FullScreenTextEditor(
-        state = state,
-        label = label,
-        placeholder = placeholder,
-        onDismiss = { isFullScreen = false },
-    )
-  }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // Header with label, fullscreen and import button
+        if (label.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (enableFullscreen) {
+                        Icon(
+                            imageVector = HugeIcons.FullScreen,
+                            contentDescription = stringResource(R.string.text_area_fullscreen_edit),
+                            modifier = Modifier
+                                .onClick(onClick = {
+                                    isFullScreen = true
+                                })
+                                .size(24.dp)
+                        )
+                    }
+
+                    Icon(
+                        imageVector = HugeIcons.FileImport,
+                        contentDescription = stringResource(R.string.text_area_import_from_file),
+                        modifier = Modifier
+                            .onClick(onClick = {
+                                filePickerLauncher.launch(supportedFileTypes)
+                            })
+                            .size(24.dp)
+                    )
+                }
+            }
+
+            // Multi-line text input
+            OutlinedTextField(
+                state = state,
+                modifier = Modifier
+                    .fillMaxWidth(),
+                placeholder = if (placeholder.isNotEmpty()) {
+                    { Text(placeholder) }
+                } else null,
+                lineLimits = TextFieldLineLimits.MultiLine(
+                    minHeightInLines = minLines,
+                    maxHeightInLines = maxLines
+                ),
+                enabled = enabled,
+                readOnly = readOnly
+            )
+        }
+    }
+
+    // Fullscreen editor dialog
+    if (isFullScreen) {
+        FullScreenTextEditor(
+            state = state,
+            label = label,
+            placeholder = placeholder,
+            onDismiss = { isFullScreen = false }
+        )
+    }
 }
 
 @Composable
@@ -177,56 +189,66 @@ private fun FullScreenTextEditor(
     state: TextFieldState,
     label: String,
     placeholder: String,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-  var editingText by remember(state.text.toString()) { mutableStateOf(state.text.toString()) }
-
-  BasicAlertDialog(
-      onDismissRequest = onDismiss,
-      properties = DialogProperties(usePlatformDefaultWidth = false),
-  ) {
-    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Bottom) {
-      Surface(
-          modifier = Modifier.widthIn(max = 800.dp).fillMaxHeight(0.9f),
-          shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-      ) {
-        Column(
-            modifier = Modifier.padding(8.dp).fillMaxSize(),
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-          Row {
-            TextButton(
-                onClick = {
-                  state.setTextAndPlaceCursorAtEnd(editingText)
-                  onDismiss()
-                }
-            ) {
-              Text(stringResource(R.string.text_area_save))
-            }
-          }
-          TextField(
-              value = editingText,
-              onValueChange = { editingText = it },
-              modifier = Modifier.imePadding().fillMaxSize(),
-              shape = RoundedCornerShape(16.dp),
-              placeholder =
-                  if (placeholder.isNotEmpty()) {
-                    { Text(placeholder) }
-                  } else if (label.isNotEmpty()) {
-                    { Text(label) }
-                  } else null,
-              colors =
-                  TextFieldDefaults.colors()
-                      .copy(
-                          unfocusedIndicatorColor = Color.Transparent,
-                          focusedIndicatorColor = Color.Transparent,
-                          focusedContainerColor = Color.Transparent,
-                          unfocusedContainerColor = Color.Transparent,
-                      ),
-          )
-        }
-      }
+    var editingText by remember(state.text.toString()) {
+        mutableStateOf(state.text.toString())
     }
-  }
+
+    BasicAlertDialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false
+        ),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Bottom
+        ) {
+            Surface(
+                modifier = Modifier
+                    .widthIn(max = 800.dp)
+                    .fillMaxHeight(0.9f),
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxSize(),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row {
+                        TextButton(
+                            onClick = {
+                                state.setTextAndPlaceCursorAtEnd(editingText)
+                                onDismiss()
+                            }
+                        ) {
+                            Text(stringResource(R.string.text_area_save))
+                        }
+                    }
+                    TextField(
+                        value = editingText,
+                        onValueChange = { editingText = it },
+                        modifier = Modifier
+                            .imePadding()
+                            .fillMaxSize(),
+                        shape = RoundedCornerShape(16.dp),
+                        placeholder = if (placeholder.isNotEmpty()) {
+                            { Text(placeholder) }
+                        } else if (label.isNotEmpty()) {
+                            { Text(label) }
+                        } else null,
+                        colors = TextFieldDefaults.colors().copy(
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                        ),
+                    )
+                }
+            }
+        }
+    }
 }

@@ -44,65 +44,71 @@ fun HighlightText(
     maxLines: Int = Int.MAX_VALUE,
     minLines: Int = 1,
 ) {
-  val highlighter = LocalHighlighter.current
-  var tokens: List<HighlightToken> by remember { mutableStateOf(emptyList()) }
-  var annotatedString by remember { mutableStateOf(AnnotatedString(code)) }
+    val highlighter = LocalHighlighter.current
+    var tokens: List<HighlightToken> by remember { mutableStateOf(emptyList()) }
+    var annotatedString by remember { mutableStateOf(AnnotatedString(code)) }
 
-  val updatedCode by rememberUpdatedState(code)
-  val updatedLanguage by rememberUpdatedState(language)
-  LaunchedEffect(Unit) {
-    snapshotFlow { updatedCode to updatedLanguage }
-        .collect {
-          tokens =
-              if (updatedCode.length <= MAX_CODE_LENGTH) {
+    val updatedCode by rememberUpdatedState(code)
+    val updatedLanguage by rememberUpdatedState(language)
+    LaunchedEffect(Unit) {
+        snapshotFlow { updatedCode to updatedLanguage }.collect {
+            tokens = if (updatedCode.length <= MAX_CODE_LENGTH) {
                 highlighter.highlight(updatedCode, updatedLanguage)
-              } else {
-                listOf(HighlightToken.Plain(content = updatedCode))
-              }
-          annotatedString = buildAnnotatedString {
-            tokens.fastForEach { token -> buildHighlightText(token, colors) }
-          }
+            } else {
+                listOf(
+                    HighlightToken.Plain(content = updatedCode)
+                )
+            }
+            annotatedString = buildAnnotatedString {
+                tokens.fastForEach { token ->
+                    buildHighlightText(token, colors)
+                }
+            }
         }
-  }
+    }
 
-  Text(
-      modifier = modifier,
-      text = annotatedString,
-      fontSize = fontSize,
-      fontFamily = fontFamily,
-      fontStyle = fontStyle,
-      fontWeight = fontWeight,
-      lineHeight = lineHeight,
-      overflow = overflow,
-      softWrap = softWrap,
-      maxLines = maxLines,
-      minLines = minLines,
-  )
+    Text(
+        modifier = modifier,
+        text = annotatedString,
+        fontSize = fontSize,
+        fontFamily = fontFamily,
+        fontStyle = fontStyle,
+        fontWeight = fontWeight,
+        lineHeight = lineHeight,
+        overflow = overflow,
+        softWrap = softWrap,
+        maxLines = maxLines,
+        minLines = minLines
+    )
 }
 
 fun AnnotatedString.Builder.buildHighlightText(
     token: HighlightToken,
-    colors: HighlightTextColorPalette,
+    colors: HighlightTextColorPalette
 ) {
-  when (token) {
-    is HighlightToken.Plain -> {
-      append(token.content)
-    }
+    when (token) {
+        is HighlightToken.Plain -> {
+            append(token.content)
+        }
 
-    is HighlightToken.Token.StringContent -> {
-      withStyle(getStyleForTokenType(token.type, colors)) { append(token.content) }
-    }
+        is HighlightToken.Token.StringContent -> {
+            withStyle(getStyleForTokenType(token.type, colors)) {
+                append(token.content)
+            }
+        }
 
-    is HighlightToken.Token.StringListContent -> {
-      withStyle(getStyleForTokenType(token.type, colors)) {
-        token.content.fastForEach { append(it) }
-      }
-    }
+        is HighlightToken.Token.StringListContent -> {
+            withStyle(getStyleForTokenType(token.type, colors)) {
+                token.content.fastForEach { append(it) }
+            }
+        }
 
-    is HighlightToken.Token.Nested -> {
-      token.content.forEach { buildHighlightText(it, colors) }
+        is HighlightToken.Token.Nested -> {
+            token.content.forEach {
+                buildHighlightText(it, colors)
+            }
+        }
     }
-  }
 }
 
 data class HighlightTextColorPalette(
@@ -120,11 +126,10 @@ data class HighlightTextColorPalette(
     val tag: Color,
     val attrName: Color,
     val attrValue: Color,
-    val fallback: Color,
+    val fallback: Color
 ) {
-  companion object {
-    val Default =
-        HighlightTextColorPalette(
+    companion object {
+        val Default = HighlightTextColorPalette(
             keyword = Color(0xFFCC7832),
             string = Color(0xFF6A8759),
             number = Color(0xFF6897BB),
@@ -141,33 +146,28 @@ data class HighlightTextColorPalette(
             attrValue = Color(0xFF6A8759),
             fallback = Color(0xFF808080),
         )
-  }
+    }
 }
 
 // 根据token类型返回对应的文本样式
 private fun getStyleForTokenType(type: String, colors: HighlightTextColorPalette): SpanStyle {
-  return when (type) {
-    "keyword" -> SpanStyle(color = colors.keyword)
-    "string" -> SpanStyle(color = colors.string) // 绿色
-    "number" -> SpanStyle(color = colors.number) // 蓝色
-    "comment" -> SpanStyle(color = colors.comment, fontStyle = FontStyle.Italic) // 灰色斜体
-    "function",
-    "method" -> SpanStyle(color = colors.function) // 黄色
-    "operator" -> SpanStyle(color = colors.operator) // 橙色
-    "punctuation" -> SpanStyle(color = colors.punctuation) // 橙色
-    "class-name",
-    "property" -> SpanStyle(color = colors.className) // 棕色
-    "boolean",
-    "constant" -> SpanStyle(color = colors.boolean) // 蓝色
-    "regex",
-    "important",
-    "variable" -> SpanStyle(color = colors.variable)
-    "tag" -> SpanStyle(color = colors.tag) // 黄色
-    "attr-name" -> SpanStyle(color = colors.attrName) // 浅灰色
-    "attr-value" -> SpanStyle(color = colors.attrValue) // 绿色
-    else -> {
-      // println("unknown type $type")
-      SpanStyle(color = colors.fallback)
+    return when (type) {
+        "keyword" -> SpanStyle(color = colors.keyword)
+        "string" -> SpanStyle(color = colors.string) // 绿色
+        "number" -> SpanStyle(color = colors.number) // 蓝色
+        "comment" -> SpanStyle(color = colors.comment, fontStyle = FontStyle.Italic) // 灰色斜体
+        "function", "method" -> SpanStyle(color = colors.function) // 黄色
+        "operator" -> SpanStyle(color = colors.operator) // 橙色
+        "punctuation" -> SpanStyle(color = colors.punctuation) // 橙色
+        "class-name", "property" -> SpanStyle(color = colors.className) // 棕色
+        "boolean", "constant" -> SpanStyle(color = colors.boolean) // 蓝色
+        "regex", "important", "variable" -> SpanStyle(color = colors.variable)
+        "tag" -> SpanStyle(color = colors.tag) // 黄色
+        "attr-name" -> SpanStyle(color = colors.attrName) // 浅灰色
+        "attr-value" -> SpanStyle(color = colors.attrValue) // 绿色
+        else -> {
+            // println("unknown type $type")
+            SpanStyle(color = colors.fallback)
+        }
     }
-  }
 }

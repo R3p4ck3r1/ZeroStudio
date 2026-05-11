@@ -1,5 +1,11 @@
 package me.rerere.rikkahub.ui.pages.chat
 
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Forward02
+import me.rerere.hugeicons.stroke.Pin
+import me.rerere.hugeicons.stroke.PinOff
+import me.rerere.hugeicons.stroke.Refresh01
+import me.rerere.hugeicons.stroke.Delete01
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -42,25 +48,26 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
-import java.time.LocalDate
-import kotlin.uuid.Uuid
-import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.Delete01
-import me.rerere.hugeicons.stroke.Forward02
-import me.rerere.hugeicons.stroke.Pin
-import me.rerere.hugeicons.stroke.PinOff
-import me.rerere.hugeicons.stroke.Refresh01
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.model.Conversation
 import me.rerere.rikkahub.ui.theme.extendColors
+import me.rerere.rikkahub.utils.toLocalString
+import java.time.LocalDate
+import java.time.ZoneId
+import kotlin.uuid.Uuid
 
-/** Represents different types of items in the conversation list */
+/**
+ * Represents different types of items in the conversation list
+ */
 sealed class ConversationListItem {
-  data class DateHeader(val date: LocalDate, val label: String) : ConversationListItem()
-
-  data object PinnedHeader : ConversationListItem()
-
-  data class Item(val conversation: Conversation) : ConversationListItem()
+    data class DateHeader(
+        val date: LocalDate,
+        val label: String
+    ) : ConversationListItem()
+    data object PinnedHeader : ConversationListItem()
+    data class Item(
+        val conversation: Conversation
+    ) : ConversationListItem()
 }
 
 @Composable
@@ -74,132 +81,140 @@ fun ColumnScope.ConversationList(
     onDelete: (Conversation) -> Unit = {},
     onRegenerateTitle: (Conversation) -> Unit = {},
     onPin: (Conversation) -> Unit = {},
-    onMoveToAssistant: (Conversation) -> Unit = {},
+    onMoveToAssistant: (Conversation) -> Unit = {}
 ) {
-  var hasScrolledToCurrent by remember(current.id) { mutableStateOf(false) }
+    var hasScrolledToCurrent by remember(current.id) { mutableStateOf(false) }
 
-  LaunchedEffect(current.id, conversations.itemCount, hasScrolledToCurrent) {
-    if (hasScrolledToCurrent) return@LaunchedEffect
-    val currentIndex =
-        conversations.itemSnapshotList.items.indexOfFirst {
-          (it as? ConversationListItem.Item)?.conversation?.id == current.id
+    LaunchedEffect(current.id, conversations.itemCount, hasScrolledToCurrent) {
+        if (hasScrolledToCurrent) return@LaunchedEffect
+        val currentIndex = conversations.itemSnapshotList.items.indexOfFirst {
+            (it as? ConversationListItem.Item)?.conversation?.id == current.id
         }
-    if (currentIndex >= 0) {
-      val isVisible = listState.layoutInfo.visibleItemsInfo.any { it.index == currentIndex }
-      if (!isVisible) {
-        listState.scrollToItem(currentIndex)
-      }
-      hasScrolledToCurrent = true
-    }
-  }
-
-  LazyColumn(
-      state = listState,
-      modifier = modifier,
-      verticalArrangement = Arrangement.spacedBy(8.dp),
-  ) {
-    if (conversations.itemCount == 0) {
-      item {
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-        ) {
-          Text(
-              text = stringResource(id = R.string.chat_page_no_conversations),
-              style = MaterialTheme.typography.bodyLarge,
-              color = MaterialTheme.colorScheme.onSurface,
-              modifier = Modifier.padding(16.dp),
-          )
+        if (currentIndex >= 0) {
+            val isVisible = listState.layoutInfo.visibleItemsInfo.any { it.index == currentIndex }
+            if (!isVisible) {
+                listState.scrollToItem(currentIndex)
+            }
+            hasScrolledToCurrent = true
         }
-      }
     }
 
-    items(
-        count = conversations.itemCount,
-        key =
-            conversations.itemKey { item ->
-              when (item) {
-                is ConversationListItem.DateHeader -> "date_${item.date}"
-                is ConversationListItem.PinnedHeader -> "pinned_header"
-                is ConversationListItem.Item -> item.conversation.id.toString()
-              }
-            },
-    ) { index ->
-      when (val item = conversations[index]) {
-        is ConversationListItem.DateHeader -> {
-          DateHeaderItem(label = item.label, modifier = Modifier.animateItem())
+    LazyColumn(
+        state = listState,
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (conversations.itemCount == 0) {
+            item {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.chat_page_no_conversations),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
         }
 
-        is ConversationListItem.PinnedHeader -> {
-          PinnedHeader(modifier = Modifier.animateItem())
-        }
+        items(
+            count = conversations.itemCount,
+            key = conversations.itemKey { item ->
+                when (item) {
+                    is ConversationListItem.DateHeader -> "date_${item.date}"
+                    is ConversationListItem.PinnedHeader -> "pinned_header"
+                    is ConversationListItem.Item -> item.conversation.id.toString()
+                }
+            }
+        ) { index ->
+            when (val item = conversations[index]) {
+                is ConversationListItem.DateHeader -> {
+                    DateHeaderItem(
+                        label = item.label,
+                        modifier = Modifier.animateItem()
+                    )
+                }
 
-        is ConversationListItem.Item -> {
-          ConversationItem(
-              conversation = item.conversation,
-              selected = item.conversation.id == current.id,
-              loading = item.conversation.id in conversationJobs,
-              onClick = onClick,
-              onDelete = onDelete,
-              onRegenerateTitle = onRegenerateTitle,
-              onPin = onPin,
-              onMoveToAssistant = onMoveToAssistant,
-              modifier = Modifier.animateItem(),
-          )
-        }
+                is ConversationListItem.PinnedHeader -> {
+                    PinnedHeader(
+                        modifier = Modifier.animateItem()
+                    )
+                }
 
-        null -> {
-          // Placeholder for loading state
+                is ConversationListItem.Item -> {
+                    ConversationItem(
+                        conversation = item.conversation,
+                        selected = item.conversation.id == current.id,
+                        loading = item.conversation.id in conversationJobs,
+                        onClick = onClick,
+                        onDelete = onDelete,
+                        onRegenerateTitle = onRegenerateTitle,
+                        onPin = onPin,
+                        onMoveToAssistant = onMoveToAssistant,
+                        modifier = Modifier.animateItem()
+                    )
+                }
+
+                null -> {
+                    // Placeholder for loading state
+                }
+            }
         }
-      }
     }
-  }
 }
 
 @Composable
-private fun DateHeaderItem(label: String, modifier: Modifier = Modifier) {
-  Row(
-      modifier =
-          modifier
-              .fillMaxWidth()
-              .background(MaterialTheme.colorScheme.surfaceContainerLow)
-              .padding(horizontal = 12.dp, vertical = 8.dp),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-    )
-  }
+private fun DateHeaderItem(
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
 }
 
 @Composable
-private fun PinnedHeader(modifier: Modifier = Modifier) {
-  Row(
-      modifier =
-          modifier
-              .fillMaxWidth()
-              .background(MaterialTheme.colorScheme.surfaceContainerLow)
-              .padding(horizontal = 12.dp, vertical = 8.dp),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Icon(
-        imageVector = HugeIcons.Pin,
-        contentDescription = null,
-        modifier = Modifier.size(16.dp),
-        tint = MaterialTheme.colorScheme.primary,
-    )
-    Spacer(Modifier.size(8.dp))
-    Text(
-        text = stringResource(R.string.pinned_chats),
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-    )
-  }
+private fun PinnedHeader(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = HugeIcons.Pin,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            text = stringResource(R.string.pinned_chats),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
 }
 
 @Composable
@@ -212,104 +227,124 @@ private fun ConversationItem(
     onRegenerateTitle: (Conversation) -> Unit = {},
     onPin: (Conversation) -> Unit = {},
     onMoveToAssistant: (Conversation) -> Unit = {},
-    onClick: (Conversation) -> Unit,
+    onClick: (Conversation) -> Unit
 ) {
-  val interactionSource = remember { MutableInteractionSource() }
-  val backgroundColor =
-      if (selected) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val backgroundColor = if (selected) {
         MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
-      } else {
+    } else {
         Color.Transparent
-      }
-  var showDropdownMenu by remember { mutableStateOf(false) }
-  Box(
-      modifier =
-          modifier
-              .clip(RoundedCornerShape(50f))
-              .combinedClickable(
-                  interactionSource = interactionSource,
-                  indication = LocalIndication.current,
-                  onClick = { onClick(conversation) },
-                  onLongClick = { showDropdownMenu = true },
-              )
-              .background(backgroundColor),
-  ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(
-          text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-      )
-      Spacer(Modifier.weight(1f))
-
-      // 置顶图标
-      AnimatedVisibility(conversation.isPinned) {
-        Icon(
-            imageVector = HugeIcons.Pin,
-            contentDescription = "Pinned",
-            modifier = Modifier.size(12.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-      }
-      AnimatedVisibility(loading) {
-        Box(
-            modifier =
-                Modifier.clip(CircleShape)
-                    .background(MaterialTheme.extendColors.green6)
-                    .size(4.dp)
-                    .semantics { contentDescription = "Loading" }
-        )
-      }
-      DropdownMenu(
-          expanded = showDropdownMenu,
-          onDismissRequest = { showDropdownMenu = false },
-      ) {
-        DropdownMenuItem(
-            text = {
-              Text(
-                  if (conversation.isPinned) stringResource(R.string.unpin_chat)
-                  else stringResource(R.string.pin_chat)
-              )
-            },
-            onClick = {
-              onPin(conversation)
-              showDropdownMenu = false
-            },
-            leadingIcon = {
-              Icon(if (conversation.isPinned) HugeIcons.PinOff else HugeIcons.Pin, null)
-            },
-        )
-
-        DropdownMenuItem(
-            text = { Text(stringResource(id = R.string.chat_page_regenerate_title)) },
-            onClick = {
-              onRegenerateTitle(conversation)
-              showDropdownMenu = false
-            },
-            leadingIcon = { Icon(HugeIcons.Refresh01, null) },
-        )
-
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.chat_page_move_to_assistant)) },
-            onClick = {
-              onMoveToAssistant(conversation)
-              showDropdownMenu = false
-            },
-            leadingIcon = { Icon(HugeIcons.Forward02, null) },
-        )
-
-        DropdownMenuItem(
-            text = { Text(stringResource(id = R.string.chat_page_delete)) },
-            onClick = {
-              onDelete(conversation)
-              showDropdownMenu = false
-            },
-            leadingIcon = { Icon(HugeIcons.Delete01, null) },
-        )
-      }
     }
-  }
+    var showDropdownMenu by remember {
+        mutableStateOf(false)
+    }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(50f))
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = { onClick(conversation) },
+                onLongClick = {
+                    showDropdownMenu = true
+                }
+            )
+            .background(backgroundColor),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = conversation.title.ifBlank { stringResource(id = R.string.chat_page_new_message) },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.weight(1f))
+
+            // 置顶图标
+            AnimatedVisibility(conversation.isPinned) {
+                Icon(
+                    imageVector = HugeIcons.Pin,
+                    contentDescription = "Pinned",
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            AnimatedVisibility(loading) {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.extendColors.green6)
+                        .size(4.dp)
+                        .semantics {
+                            contentDescription = "Loading"
+                        }
+                )
+            }
+            DropdownMenu(
+                expanded = showDropdownMenu,
+                onDismissRequest = { showDropdownMenu = false },
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            if (conversation.isPinned) stringResource(R.string.unpin_chat) else stringResource(R.string.pin_chat)
+                        )
+                    },
+                    onClick = {
+                        onPin(conversation)
+                        showDropdownMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(
+                            if (conversation.isPinned) HugeIcons.PinOff else HugeIcons.Pin,
+                            null
+                        )
+                    }
+                )
+
+                DropdownMenuItem(
+                    text = {
+                        Text(stringResource(id = R.string.chat_page_regenerate_title))
+                    },
+                    onClick = {
+                        onRegenerateTitle(conversation)
+                        showDropdownMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(HugeIcons.Refresh01, null)
+                    }
+                )
+
+                DropdownMenuItem(
+                    text = {
+                        Text(stringResource(R.string.chat_page_move_to_assistant))
+                    },
+                    onClick = {
+                        onMoveToAssistant(conversation)
+                        showDropdownMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(HugeIcons.Forward02, null)
+                    }
+                )
+
+                DropdownMenuItem(
+                    text = {
+                        Text(stringResource(id = R.string.chat_page_delete))
+                    },
+                    onClick = {
+                        onDelete(conversation)
+                        showDropdownMenu = false
+                    },
+                    leadingIcon = {
+                        Icon(HugeIcons.Delete01, null)
+                    }
+                )
+            }
+        }
+    }
 }

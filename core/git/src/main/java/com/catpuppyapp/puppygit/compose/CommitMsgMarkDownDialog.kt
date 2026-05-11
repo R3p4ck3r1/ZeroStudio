@@ -17,33 +17,32 @@ fun CommitMsgMarkDownDialog(
     useSystemFonts: MutableState<Boolean>,
     basePathNoEndSlash: String,
 ) {
-  val activityContext = LocalContext.current
-  val clipboardManager = LocalClipboardManager.current
+    val activityContext = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
 
-  MarkDownDialog(
-      text = text,
-      previewModeOn = previewModeOn,
-      useSystemFonts = useSystemFonts,
-      basePathNoEndSlash = basePathNoEndSlash,
-      close = {
-        dialogVisibleState.value = false
+    MarkDownDialog(
+        text = text,
+        previewModeOn = previewModeOn,
+        useSystemFonts = useSystemFonts,
+        basePathNoEndSlash = basePathNoEndSlash,
+        close = {
+            dialogVisibleState.value = false
 
-        // update settings if need
-        val previewModeOn = previewModeOn.value
-        val useSystemFonts = useSystemFonts.value
-        if (
-            previewModeOn != SettingsUtil.isCommitMsgPreviewModeOn() ||
-                useSystemFonts != SettingsUtil.isCommitMsgUseSystemFonts()
-        ) {
-          SettingsUtil.update {
-            it.commitMsgPreviewModeOn = previewModeOn
-            it.commitMsgUseSystemFonts = useSystemFonts
-          }
+            // update settings if need
+            val previewModeOn = previewModeOn.value
+            val useSystemFonts = useSystemFonts.value
+            if(previewModeOn != SettingsUtil.isCommitMsgPreviewModeOn()
+                || useSystemFonts != SettingsUtil.isCommitMsgUseSystemFonts()
+            ) {
+                SettingsUtil.update {
+                    it.commitMsgPreviewModeOn = previewModeOn
+                    it.commitMsgUseSystemFonts = useSystemFonts
+                }
+            }
+        },
+        copy = {
+            clipboardManager.setText(AnnotatedString(text))
+            Msg.requireShow(activityContext.getString(R.string.copied))
         }
-      },
-      copy = {
-        clipboardManager.setText(AnnotatedString(text))
-        Msg.requireShow(activityContext.getString(R.string.copied))
-      },
-  )
+    )
 }

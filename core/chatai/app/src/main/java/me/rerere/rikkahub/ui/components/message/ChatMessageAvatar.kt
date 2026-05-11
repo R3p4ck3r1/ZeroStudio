@@ -24,6 +24,7 @@ import me.rerere.rikkahub.data.model.Avatar
 import me.rerere.rikkahub.ui.components.ui.AutoAIIcon
 import me.rerere.rikkahub.ui.components.ui.UIAvatar
 import me.rerere.rikkahub.ui.context.LocalSettings
+import me.rerere.rikkahub.utils.formatNumber
 import me.rerere.rikkahub.utils.toLocalString
 
 @Composable
@@ -33,44 +34,40 @@ fun ChatMessageUserAvatar(
     nickname: String,
     modifier: Modifier = Modifier,
 ) {
-  val settings = LocalSettings.current
-  if (
-      message.role == MessageRole.USER &&
-          !message.parts.isEmptyUIMessage() &&
-          settings.displaySetting.showUserAvatar
-  ) {
-    Row(
-        modifier = modifier.padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Column(
-          modifier = Modifier,
-          horizontalAlignment = Alignment.End,
-      ) {
-        Text(
-            text = nickname.ifEmpty { stringResource(R.string.user_default_name) },
-            style = MaterialTheme.typography.titleSmall,
-            maxLines = 1,
-            color = LocalContentColor.current.copy(alpha = 0.85f),
-        )
-        if (settings.displaySetting.showDateBelowName) {
-          Text(
-              text = message.createdAt.toJavaLocalDateTime().toLocalString(),
-              style = MaterialTheme.typography.labelSmall,
-              color = LocalContentColor.current.copy(alpha = 0.6f),
-              maxLines = 1,
-          )
+    val settings = LocalSettings.current
+    if (message.role == MessageRole.USER && !message.parts.isEmptyUIMessage() && settings.displaySetting.showUserAvatar) {
+        Row(
+            modifier = modifier.padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier,
+                horizontalAlignment = Alignment.End,
+            ) {
+                Text(
+                    text = nickname.ifEmpty { stringResource(R.string.user_default_name) },
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    color = LocalContentColor.current.copy(alpha = 0.85f),
+                )
+                if (settings.displaySetting.showDateBelowName) {
+                    Text(
+                        text = message.createdAt.toJavaLocalDateTime().toLocalString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = LocalContentColor.current.copy(alpha = 0.6f),
+                        maxLines = 1,
+                    )
+                }
+            }
+            UIAvatar(
+                name = nickname,
+                modifier = Modifier.size(36.dp),
+                value = avatar,
+                loading = false,
+            )
         }
-      }
-      UIAvatar(
-          name = nickname,
-          modifier = Modifier.size(36.dp),
-          value = avatar,
-          loading = false,
-      )
     }
-  }
 }
 
 @Composable
@@ -81,64 +78,69 @@ fun ChatMessageAssistantAvatar(
     assistant: Assistant?,
     modifier: Modifier = Modifier,
 ) {
-  val settings = LocalSettings.current
-  val showIcon = settings.displaySetting.showModelIcon
-  val useAssistantAvatar = assistant?.useAssistantAvatar == true
-  if (message.role == MessageRole.ASSISTANT && (model != null || useAssistantAvatar)) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier,
-    ) {
-      if (useAssistantAvatar) {
-        if (showIcon) {
-          UIAvatar(
-              name = assistant.name,
-              modifier = Modifier.size(32.dp),
-              value = assistant.avatar,
-              loading = loading,
-          )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-          if (settings.displaySetting.showModelName) {
-            Text(
-                text =
-                    assistant.name.ifEmpty {
-                      stringResource(R.string.assistant_page_default_assistant)
-                    },
-                style = MaterialTheme.typography.titleSmallEmphasized,
-                maxLines = 1,
-            )
-            if (settings.displaySetting.showDateBelowName) {
-              Text(
-                  text = message.createdAt.toJavaLocalDateTime().toLocalString(),
-                  style = MaterialTheme.typography.titleSmall,
-                  color = LocalContentColor.current.copy(alpha = 0.8f),
-                  maxLines = 1,
-              )
+    val settings = LocalSettings.current
+    val showIcon = settings.displaySetting.showModelIcon
+    val useAssistantAvatar = assistant?.useAssistantAvatar == true
+    if (message.role == MessageRole.ASSISTANT && (model != null || useAssistantAvatar)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier
+        ) {
+            if (useAssistantAvatar) {
+                if (showIcon) {
+                    UIAvatar(
+                        name = assistant.name,
+                        modifier = Modifier.size(32.dp),
+                        value = assistant.avatar,
+                        loading = loading,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if(settings.displaySetting.showModelName) {
+                        Text(
+                            text = assistant.name.ifEmpty { stringResource(R.string.assistant_page_default_assistant) },
+                            style = MaterialTheme.typography.titleSmallEmphasized,
+                            maxLines = 1,
+                        )
+                        if (settings.displaySetting.showDateBelowName) {
+                            Text(
+                                text = message.createdAt.toJavaLocalDateTime().toLocalString(),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = LocalContentColor.current.copy(alpha = 0.8f),
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+            } else if (model != null) {
+                if (showIcon) {
+                    AutoAIIcon(
+                        name = model.modelId,
+                        modifier = Modifier.size(32.dp),
+                        loading = loading
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if(settings.displaySetting.showModelName) {
+                        Text(
+                            text = model.displayName,
+                            style = MaterialTheme.typography.titleSmallEmphasized,
+                        )
+                        if (settings.displaySetting.showDateBelowName) {
+                            Text(
+                                text = message.createdAt.toJavaLocalDateTime().toLocalString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = LocalContentColor.current.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
             }
-          }
         }
-      } else if (model != null) {
-        if (showIcon) {
-          AutoAIIcon(name = model.modelId, modifier = Modifier.size(32.dp), loading = loading)
-        }
-        Column(modifier = Modifier.weight(1f)) {
-          if (settings.displaySetting.showModelName) {
-            Text(
-                text = model.displayName,
-                style = MaterialTheme.typography.titleSmallEmphasized,
-            )
-            if (settings.displaySetting.showDateBelowName) {
-              Text(
-                  text = message.createdAt.toJavaLocalDateTime().toLocalString(),
-                  style = MaterialTheme.typography.labelSmall,
-                  color = LocalContentColor.current.copy(alpha = 0.8f),
-              )
-            }
-          }
-        }
-      }
     }
-  }
 }

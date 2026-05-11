@@ -8,11 +8,15 @@ import kotlinx.coroutines.launch
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.SettingsStore
 
-class PromptVM(private val settingsStore: SettingsStore) : ViewModel() {
-  val settings =
-      settingsStore.settingsFlow.stateIn(viewModelScope, SharingStarted.Lazily, Settings.dummy())
+class PromptVM(
+    private val settingsStore: SettingsStore
+) : ViewModel() {
+    val settings = settingsStore.settingsFlow
+        .stateIn(viewModelScope, SharingStarted.Lazily, Settings.dummy())
 
-  fun updateSettings(settings: Settings) {
-    viewModelScope.launch { settingsStore.update(settings) }
-  }
+    fun updateSettings(settings: Settings) {
+        viewModelScope.launch {
+            settingsStore.update(settings)
+        }
+    }
 }

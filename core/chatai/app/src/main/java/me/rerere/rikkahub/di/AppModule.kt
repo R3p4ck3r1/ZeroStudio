@@ -14,61 +14,88 @@ import me.rerere.rikkahub.service.ChatService
 import me.rerere.rikkahub.utils.EmojiData
 import me.rerere.rikkahub.utils.EmojiUtils
 import me.rerere.rikkahub.utils.JsonInstant
+import me.rerere.rikkahub.utils.SoundEffectPlayer
 import me.rerere.rikkahub.utils.UpdateChecker
 import me.rerere.rikkahub.web.WebServerManager
 import me.rerere.tts.provider.TTSManager
 import org.koin.dsl.module
 
 val appModule = module {
-  single<Json> { JsonInstant }
+    single<Json> { JsonInstant }
 
-  single { Highlighter(get()) }
+    single {
+        Highlighter(get())
+    }
 
-  single { AppEventBus() }
+    single {
+        AppEventBus()
+    }
 
-  single { LocalTools(get(), get()) }
+    single {
+        LocalTools(get(), get())
+    }
 
-  single { UpdateChecker(get()) }
+    single {
+        UpdateChecker(get())
+    }
 
-  single { AppScope() }
+    single {
+        AppScope()
+    }
 
-  single<EmojiData> { EmojiUtils.loadEmoji(get()) }
+    single<EmojiData> {
+        EmojiUtils.loadEmoji(get())
+    }
 
-  single { TTSManager(get()) }
+    single {
+        TTSManager(get())
+    }
 
-  single { Firebase.crashlytics }
+    single {
+        Firebase.crashlytics
+    }
 
-  single { Firebase.remoteConfig }
+    single {
+        Firebase.remoteConfig
+    }
 
-  single { Firebase.analytics }
+    single {
+        Firebase.analytics
+    }
 
-  single { AILoggingManager() }
+    single {
+        SoundEffectPlayer(get())
+    }
 
-  single {
-    ChatService(
-        context = get(),
-        appScope = get(),
-        settingsStore = get(),
-        conversationRepo = get(),
-        memoryRepository = get(),
-        generationHandler = get(),
-        templateTransformer = get(),
-        providerManager = get(),
-        localTools = get(),
-        mcpManager = get(),
-        filesManager = get(),
-        skillManager = get(),
-    )
-  }
+    single {
+        AILoggingManager()
+    }
 
-  single {
-    WebServerManager(
-        context = get(),
-        appScope = get(),
-        chatService = get(),
-        conversationRepo = get(),
-        settingsStore = get(),
-        filesManager = get(),
-    )
-  }
+    single {
+        ChatService(
+            context = get(),
+            appScope = get(),
+            settingsStore = get(),
+            conversationRepo = get(),
+            memoryRepository = get(),
+            generationHandler = get(),
+            templateTransformer = get(),
+            providerManager = get(),
+            localTools = get(),
+            mcpManager = get(),
+            filesManager = get(),
+            skillManager = get()
+        )
+    }
+
+    single {
+        WebServerManager(
+            context = get(),
+            appScope = get(),
+            chatService = get(),
+            conversationRepo = get(),
+            settingsStore = get(),
+            filesManager = get()
+        )
+    }
 }

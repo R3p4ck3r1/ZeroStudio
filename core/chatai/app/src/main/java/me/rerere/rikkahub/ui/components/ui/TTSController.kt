@@ -40,166 +40,177 @@ import me.rerere.tts.model.PlaybackStatus
 
 @Composable
 fun TTSController() {
-  val context = LocalContext.current
-  val ttsState = LocalTTSState.current
+    val context = LocalContext.current
+    val ttsState = LocalTTSState.current
 
-  val isSpeaking by ttsState.isSpeaking.collectAsState()
-  var isVisible by remember { mutableStateOf(false) }
+    val isSpeaking by ttsState.isSpeaking.collectAsState()
+    var isVisible by remember { mutableStateOf(false) }
 
-  LaunchedEffect(isSpeaking) {
-    if (isSpeaking) {
-      // 如果开启，显示悬浮窗
-      isVisible = true
+    LaunchedEffect(isSpeaking) {
+        if (isSpeaking) {
+            // 如果开启，显示悬浮窗
+            isVisible = true
+        }
     }
-  }
 
-  FloatingWindow(tag = "tts_controller", visibility = isVisible) {
-    val playbackState by ttsState.playbackState.collectAsState()
-    var expand by remember { mutableStateOf(false) }
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 4.dp,
-        modifier = Modifier.padding(8.dp),
-        shadowElevation = 4.dp,
+    FloatingWindow(
+        tag = "tts_controller",
+        visibility = isVisible
     ) {
-      Row(
-          modifier = Modifier.padding(4.dp),
-          horizontalArrangement = Arrangement.spacedBy(4.dp),
-          verticalAlignment = Alignment.CenterVertically,
-      ) {
-        PlayPauseButton(playbackState = playbackState, ttsState = ttsState)
-
-        IconButton(
-            onClick = {
-              ttsState.stop()
-              isVisible = false
-            }
+        val playbackState by ttsState.playbackState.collectAsState()
+        var expand by remember { mutableStateOf(false) }
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 4.dp,
+            modifier = Modifier.padding(8.dp),
+            shadowElevation = 4.dp,
         ) {
-          Icon(
-              imageVector = HugeIcons.Cancel01,
-              contentDescription = null,
-          )
-        }
+            Row(
+                modifier = Modifier.padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PlayPauseButton(playbackState = playbackState, ttsState = ttsState)
 
-        AnimatedVisibility(expand) {
-          Row(
-              horizontalArrangement = Arrangement.spacedBy(4.dp),
-              verticalAlignment = Alignment.CenterVertically,
-          ) {
-            SpeedButton(playbackState, ttsState)
+                IconButton(
+                    onClick = {
+                        ttsState.stop()
+                        isVisible = false
+                    }
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Cancel01,
+                        contentDescription = null,
+                    )
+                }
 
-            FastForwardButton(ttsState = ttsState)
-          }
-        }
+                AnimatedVisibility(expand) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        SpeedButton(playbackState, ttsState)
 
-        IconButton(onClick = { expand = !expand }) {
-          Icon(
-              imageVector = if (expand) HugeIcons.ArrowLeft01 else HugeIcons.ArrowRight01,
-              contentDescription = null,
-          )
+                        FastForwardButton(ttsState = ttsState)
+                    }
+                }
+
+                IconButton(
+                    onClick = {
+                        expand = !expand
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (expand) HugeIcons.ArrowLeft01 else HugeIcons.ArrowRight01,
+                        contentDescription = null,
+                    )
+                }
+            }
         }
-      }
     }
-  }
 }
 
 @Composable
 private fun FastForwardButton(ttsState: CustomTtsState) {
-  IconButton(onClick = { ttsState.fastForward(5000) }) {
-    Icon(
-        imageVector = HugeIcons.Forward02,
-        contentDescription = null,
-    )
-  }
-}
-
-@Composable
-private fun PlayPauseButton(playbackState: PlaybackState, ttsState: CustomTtsState) {
-  FilledTonalIconButton(
-      onClick = {
-        when (playbackState.status) {
-          PlaybackStatus.Playing -> {
-            ttsState.pause()
-          }
-
-          else -> {
-            ttsState.resume()
-          }
+    IconButton(
+        onClick = {
+            ttsState.fastForward(5000)
         }
-      },
-      colors =
-          IconButtonDefaults.filledTonalIconButtonColors(
-              containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-              contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-          ),
-  ) {
-    Icon(
-        imageVector =
-            if (playbackState.status == PlaybackStatus.Playing) HugeIcons.Pause else HugeIcons.Play,
-        contentDescription = null,
-    )
-    if (
-        playbackState.status == PlaybackStatus.Playing ||
-            playbackState.status == PlaybackStatus.Buffering ||
-            playbackState.status == PlaybackStatus.Paused
     ) {
-      CircularProgressIndicator(
-          progress = {
-            if (playbackState.status == PlaybackStatus.Playing) {
-              playbackState.positionMs.toFloat() / playbackState.durationMs
-            } else {
-              0f
-            }
-          },
-          color = MaterialTheme.colorScheme.tertiary,
-          strokeWidth = 2.dp,
-          trackColor = Color.Transparent,
-      )
-      CircularProgressIndicator(
-          progress = {
-            if (playbackState.status == PlaybackStatus.Playing) {
-              playbackState.currentChunkIndex.toFloat() / playbackState.totalChunks
-            } else {
-              0f
-            }
-          },
-          color = MaterialTheme.colorScheme.tertiary,
-          modifier = Modifier.padding(2.dp),
-          strokeWidth = 2.dp,
-          trackColor = Color.Transparent,
-      )
+        Icon(
+            imageVector = HugeIcons.Forward02,
+            contentDescription = null,
+        )
     }
-  }
 }
 
 @Composable
-private fun SpeedButton(playbackState: PlaybackState, ttsState: CustomTtsState) {
-  TextButton(
-      onClick = {
-        when (playbackState.speed) {
-          0.8f -> {
-            ttsState.setSpeed(1.0f)
-          }
+private fun PlayPauseButton(
+    playbackState: PlaybackState,
+    ttsState: CustomTtsState
+) {
+    FilledTonalIconButton(
+        onClick = {
+            when (playbackState.status) {
+                PlaybackStatus.Playing -> {
+                    ttsState.pause()
+                }
 
-          1.0f -> {
-            ttsState.setSpeed(1.2f)
-          }
-
-          1.2f -> {
-            ttsState.setSpeed(1.5f)
-          }
-
-          1.5f -> {
-            ttsState.setSpeed(0.8f)
-          }
-
-          else -> {
-            ttsState.setSpeed(1.0f)
-          }
+                else -> {
+                    ttsState.resume()
+                }
+            }
+        },
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+        )
+    ) {
+        Icon(
+            imageVector = if (playbackState.status == PlaybackStatus.Playing) HugeIcons.Pause else HugeIcons.Play,
+            contentDescription = null,
+        )
+        if (playbackState.status == PlaybackStatus.Playing || playbackState.status == PlaybackStatus.Buffering || playbackState.status == PlaybackStatus.Paused) {
+            CircularProgressIndicator(
+                progress = {
+                    if (playbackState.status == PlaybackStatus.Playing) {
+                        playbackState.positionMs.toFloat() / playbackState.durationMs
+                    } else {
+                        0f
+                    }
+                },
+                color = MaterialTheme.colorScheme.tertiary,
+                strokeWidth = 2.dp,
+                trackColor = Color.Transparent
+            )
+            CircularProgressIndicator(
+                progress = {
+                    if (playbackState.status == PlaybackStatus.Playing) {
+                        playbackState.currentChunkIndex.toFloat() / playbackState.totalChunks
+                    } else {
+                        0f
+                    }
+                },
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.padding(2.dp),
+                strokeWidth = 2.dp,
+                trackColor = Color.Transparent
+            )
         }
-      }
-  ) {
-    Text(text = "x${"%.1f".format(playbackState.speed)}")
-  }
+    }
+}
+
+@Composable
+private fun SpeedButton(
+    playbackState: PlaybackState,
+    ttsState: CustomTtsState
+) {
+    TextButton(
+        onClick = {
+            when (playbackState.speed) {
+                0.8f -> {
+                    ttsState.setSpeed(1.0f)
+                }
+
+                1.0f -> {
+                    ttsState.setSpeed(1.2f)
+                }
+
+                1.2f -> {
+                    ttsState.setSpeed(1.5f)
+                }
+
+                1.5f -> {
+                    ttsState.setSpeed(0.8f)
+                }
+
+                else -> {
+                    ttsState.setSpeed(1.0f)
+                }
+            }
+        }
+    ) {
+        Text(text = "x${"%.1f".format(playbackState.speed)}")
+    }
 }

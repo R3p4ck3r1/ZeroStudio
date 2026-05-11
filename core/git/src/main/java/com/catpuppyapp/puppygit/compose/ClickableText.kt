@@ -12,30 +12,35 @@ import androidx.compose.ui.unit.TextUnit
 import com.catpuppyapp.puppygit.style.MyStyleKt
 
 @Composable
-fun SingleLineClickableText(text: String, onClick: (() -> Unit)?) {
-  ClickableText(
-      text = text,
-      maxLines = 1,
-      modifier =
-          if (onClick == null) {
+fun SingleLineClickableText(
+    text:String,
+    onClick:(()->Unit)?
+) {
+    ClickableText(
+        text = text,
+        maxLines = 1,
+        modifier = if(onClick == null) {
             Modifier
-          } else {
+        } else {
             MyStyleKt.ClickableText.modifierNoPadding.clickable { onClick() }
-          },
-  )
+        },
+    )
 }
 
+
 @Composable
-fun MultiLineClickableText(text: String, onClick: (() -> Unit)?) {
-  ClickableText(
-      text = text,
-      modifier =
-          if (onClick == null) {
+fun MultiLineClickableText(
+    text:String,
+    onClick:(()->Unit)?
+) {
+    ClickableText(
+        text = text,
+        modifier = if(onClick == null) {
             Modifier
-          } else {
+        } else {
             MyStyleKt.ClickableText.modifierNoPadding.clickable { onClick() }
-          },
-  )
+        },
+    )
 }
 
 /**
@@ -44,51 +49,50 @@ fun MultiLineClickableText(text: String, onClick: (() -> Unit)?) {
  */
 @Composable
 fun ClickableText(
-    text: String,
-    maxLines: Int = Int.MAX_VALUE,
+    text:String,
+    maxLines:Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Ellipsis,
     fontWeight: FontWeight? = MyStyleKt.TextItem.defaultFontWeight(),
-    style: TextStyle = MyStyleKt.ClickableText.getStyle(),
-    color: Color = MyStyleKt.ClickableText.getColor(),
-    fontSize: TextUnit = MyStyleKt.ClickableText.fontSize,
-    modifier: Modifier,
+    style:TextStyle = MyStyleKt.ClickableText.getStyle(),
+    color:Color = MyStyleKt.ClickableText.getColor(),
+    fontSize:TextUnit = MyStyleKt.ClickableText.fontSize,
+    modifier: Modifier
 ) {
-  Text(
-      text = text,
-      maxLines = maxLines,
-      overflow = overflow,
-      fontWeight = fontWeight,
-      style = style,
-      color = color,
-      fontSize = fontSize,
-      modifier = modifier,
-  )
+    Text(
+        text = text,
+        maxLines = maxLines,
+        overflow = overflow,
+        fontWeight = fontWeight,
+        style = style,
+        color = color,
+        fontSize = fontSize,
+        modifier = modifier,
+    )
 }
 
 @Composable
 fun ClickableText(
-    text: String,
-    maxLines: Int = Int.MAX_VALUE,
+    text:String,
+    maxLines:Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Ellipsis,
     fontWeight: FontWeight? = MyStyleKt.TextItem.defaultFontWeight(),
-    style: TextStyle = MyStyleKt.ClickableText.getStyle(),
-    color: Color = MyStyleKt.ClickableText.getColor(),
-    fontSize: TextUnit = MyStyleKt.ClickableText.fontSize,
-    onClick: (() -> Unit)?,
+    style:TextStyle = MyStyleKt.ClickableText.getStyle(),
+    color:Color = MyStyleKt.ClickableText.getColor(),
+    fontSize:TextUnit = MyStyleKt.ClickableText.fontSize,
+    onClick: (() -> Unit)?
 ) {
-  ClickableText(
-      text = text,
-      maxLines = maxLines,
-      overflow = overflow,
-      fontWeight = fontWeight,
-      style = style,
-      color = color,
-      fontSize = fontSize,
-      modifier =
-          if (onClick == null) {
+    ClickableText(
+        text = text,
+        maxLines = maxLines,
+        overflow = overflow,
+        fontWeight = fontWeight,
+        style = style,
+        color = color,
+        fontSize = fontSize,
+        modifier = if(onClick == null) {
             Modifier
-          } else {
+        } else {
             MyStyleKt.ClickableText.modifierNoPadding.clickable { onClick() }
-          },
-  )
+        },
+    )
 }

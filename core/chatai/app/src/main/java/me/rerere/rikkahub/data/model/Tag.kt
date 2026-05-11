@@ -1,7 +1,7 @@
 package me.rerere.rikkahub.data.model
 
-import kotlin.uuid.Uuid
 import kotlinx.serialization.Serializable
+import kotlin.uuid.Uuid
 
 @Serializable
 data class Tag(

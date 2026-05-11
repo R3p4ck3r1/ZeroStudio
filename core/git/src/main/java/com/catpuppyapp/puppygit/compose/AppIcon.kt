@@ -13,12 +13,13 @@ import com.catpuppyapp.puppygit.play.pro.R
 import com.catpuppyapp.puppygit.ui.theme.Theme
 import com.catpuppyapp.puppygit.utils.AppModel
 
+
 @Composable
 fun AppIcon(modifier: Modifier = Modifier) {
-  val context = LocalContext.current
-  val inDarkTheme = remember(Theme.inDarkTheme) { Theme.inDarkTheme }
-  val appIcon = AppModel.getAppIcon(context, inDarkTheme)
-  Image(appIcon, contentDescription = stringResource(R.string.app_icon), modifier = modifier)
+    val context = LocalContext.current
+    val inDarkTheme = remember(Theme.inDarkTheme) { Theme.inDarkTheme }
+    val appIcon = AppModel.getAppIcon(context, inDarkTheme)
+    Image(appIcon, contentDescription = stringResource(R.string.app_icon), modifier = modifier)
 }
 
 @Composable
@@ -26,12 +27,7 @@ fun AppIconMonoChrome(
     modifier: Modifier = Modifier,
     tint: Color = LocalContentColor.current,
 ) {
-  val context = LocalContext.current
-  val appIcon = AppModel.getAppIconMonoChrome(context)
-  Icon(
-      appIcon,
-      contentDescription = stringResource(R.string.app_icon),
-      modifier = modifier,
-      tint = tint,
-  )
+    val context = LocalContext.current
+    val appIcon = AppModel.getAppIconMonoChrome(context)
+    Icon(appIcon, contentDescription = stringResource(R.string.app_icon), modifier = modifier, tint = tint)
 }

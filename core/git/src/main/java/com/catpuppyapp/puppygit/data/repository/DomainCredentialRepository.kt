@@ -23,25 +23,34 @@ import com.catpuppyapp.puppygit.dto.DomainCredentialDto
  * Repository that provides insert, update, delete, and retrieve of [Item] from a given data source.
  */
 interface DomainCredentialRepository {
-  /** Retrieve all the items from the the given data source. */
-  suspend fun getAll(): List<DomainCredentialEntity>
+    /**
+     * Retrieve all the items from the the given data source.
+     */
+    suspend fun getAll(): List<DomainCredentialEntity>
 
-  suspend fun getAllDto(): List<DomainCredentialDto>
+    suspend fun getAllDto(): List<DomainCredentialDto>
 
-  suspend fun isDomainExist(domain: String): Boolean
+    suspend fun isDomainExist(domain:String):Boolean
+    suspend fun getByDomain(domain:String):DomainCredentialEntity?
 
-  suspend fun getByDomain(domain: String): DomainCredentialEntity?
+    /**
+     * Insert item in the data source
+     */
+    suspend fun insert(item: DomainCredentialEntity)
 
-  /** Insert item in the data source */
-  suspend fun insert(item: DomainCredentialEntity)
+    /**
+     * Delete item from the data source
+     */
+    suspend fun delete(item: DomainCredentialEntity)
 
-  /** Delete item from the data source */
-  suspend fun delete(item: DomainCredentialEntity)
+    /**
+     * Update item in the data source
+     */
+    suspend fun update(item: DomainCredentialEntity)
 
-  /** Update item in the data source */
-  suspend fun update(item: DomainCredentialEntity)
 
-  fun getById(id: String): DomainCredentialEntity?
+    fun getById(id: String): DomainCredentialEntity?
 
-  suspend fun subtractTimeOffset(offsetInSec: Long)
+    suspend fun subtractTimeOffset(offsetInSec:Long)
+
 }

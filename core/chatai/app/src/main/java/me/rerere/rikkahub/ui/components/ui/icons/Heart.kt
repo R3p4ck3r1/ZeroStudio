@@ -10,30 +10,28 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 public val HeartIcon: ImageVector
-  get() {
-    if (_heartIcon != null) {
-      return _heartIcon!!
-    }
-    _heartIcon =
-        ImageVector.Builder(
-                name = "HeartFilled",
-                defaultWidth = 16.dp,
-                defaultHeight = 16.dp,
-                viewportWidth = 16f,
-                viewportHeight = 16f,
-            )
-            .apply {
-              path(
-                  fill = SolidColor(Color(0xFF000000)),
-                  fillAlpha = 1.0f,
-                  stroke = null,
-                  strokeAlpha = 1.0f,
-                  strokeLineWidth = 1.0f,
-                  strokeLineCap = StrokeCap.Butt,
-                  strokeLineJoin = StrokeJoin.Miter,
-                  strokeLineMiter = 1.0f,
-                  pathFillType = PathFillType.NonZero,
-              ) {
+    get() {
+        if (_heartIcon != null) {
+            return _heartIcon!!
+        }
+        _heartIcon = ImageVector.Builder(
+            name = "HeartFilled",
+            defaultWidth = 16.dp,
+            defaultHeight = 16.dp,
+            viewportWidth = 16f,
+            viewportHeight = 16f
+        ).apply {
+            path(
+                fill = SolidColor(Color(0xFF000000)),
+                fillAlpha = 1.0f,
+                stroke = null,
+                strokeAlpha = 1.0f,
+                strokeLineWidth = 1.0f,
+                strokeLineCap = StrokeCap.Butt,
+                strokeLineJoin = StrokeJoin.Miter,
+                strokeLineMiter = 1.0f,
+                pathFillType = PathFillType.NonZero
+            ) {
                 moveTo(14.88f, 4.78079f)
                 curveTo(14.7993f, 4.465f, 14.6748f, 4.162f, 14.51f, 3.8808f)
                 curveTo(14.3518f, 3.5882f, 14.1493f, 3.3217f, 13.91f, 3.0907f)
@@ -60,10 +58,9 @@ public val HeartIcon: ImageVector
                 curveTo(14.9592f, 6.4136f, 14.9995f, 6.0979f, 15f, 5.7808f)
                 curveTo(15.0052f, 5.4436f, 14.9648f, 5.1072f, 14.88f, 4.7808f)
                 close()
-              }
             }
-            .build()
-    return _heartIcon!!
-  }
+        }.build()
+        return _heartIcon!!
+    }
 
 private var _heartIcon: ImageVector? = null

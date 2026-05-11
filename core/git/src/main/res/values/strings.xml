@@ -1311,5 +1311,8 @@
     <string name="activity_not_found">No application found to handle this action</string>
     <string name="share">Share</string>
     <string name="line_break">Line Break</string>
+    <string name="async">Async</string>
 
+    <string name="progress_notification_auto_dismiss">Notification Auto Dismiss</string>
+    <string name="progress_notification_auto_dismiss_desc">Notifications will be dismissed automatically after being shown</string>
 </resources>

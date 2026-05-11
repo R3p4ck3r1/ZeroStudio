@@ -23,101 +23,109 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import kotlin.io.encoding.Base64
 import me.rerere.ai.provider.ProviderSetting
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Share03
 import me.rerere.rikkahub.utils.JsonInstant
+import kotlin.io.encoding.Base64
 
 @Composable
 fun ShareSheet(
     state: ShareSheetState,
 ) {
-  val context = LocalContext.current
-  if (state.isShow) {
-    ModalBottomSheet(
-        onDismissRequest = { state.dismiss() },
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-      Column(
-          modifier = Modifier.fillMaxWidth().padding(16.dp),
-          verticalArrangement = Arrangement.spacedBy(8.dp),
-          horizontalAlignment = Alignment.CenterHorizontally,
-      ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    val context = LocalContext.current
+    if (state.isShow) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                state.dismiss()
+            },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ) {
-          Text("共享你的LLM模型", style = MaterialTheme.typography.titleLarge)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("共享你的LLM模型", style = MaterialTheme.typography.titleLarge)
 
-          IconButton(
-              onClick = {
-                val intent = Intent(Intent.ACTION_SEND)
-                intent.type = "text/plain"
-                intent.putExtra(Intent.EXTRA_TEXT, state.currentProvider?.encodeForShare() ?: "")
-                try {
-                  context.startActivity(Intent.createChooser(intent, null))
-                } catch (e: Exception) {
-                  e.printStackTrace()
+                    IconButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_SEND)
+                            intent.type = "text/plain"
+                            intent.putExtra(
+                                Intent.EXTRA_TEXT,
+                                state.currentProvider?.encodeForShare() ?: ""
+                            )
+                            try {
+                                context.startActivity(Intent.createChooser(intent, null))
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    ) {
+                        Icon(HugeIcons.Share03, null)
+                    }
                 }
-              }
-          ) {
-            Icon(HugeIcons.Share03, null)
-          }
-        }
 
-        QRCode(
-            value = state.currentProvider?.encodeForShare() ?: "",
-            modifier = Modifier.clip(RoundedCornerShape(8.dp)).fillMaxWidth().aspectRatio(1f),
-        )
-      }
+                QRCode(
+                    value = state.currentProvider?.encodeForShare() ?: "",
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                )
+            }
+        }
     }
-  }
 }
 
 fun ProviderSetting.encodeForShare(): String {
-  return buildString {
-    append("ai-provider:")
-    append("v1:")
+    return buildString {
+        append("ai-provider:")
+        append("v1:")
 
-    val value = JsonInstant.encodeToString(this@encodeForShare.copyProvider(models = emptyList()))
-    append(Base64.encode(value.encodeToByteArray()))
-  }
+        val value = JsonInstant.encodeToString(this@encodeForShare.copyProvider(models = emptyList()))
+        append(Base64.encode(value.encodeToByteArray()))
+    }
 }
 
 fun decodeProviderSetting(value: String): ProviderSetting {
-  require(value.startsWith("ai-provider:v1:")) { "Invalid provider setting string" }
+    require(value.startsWith("ai-provider:v1:")) { "Invalid provider setting string" }
 
-  // 去掉前缀
-  val base64Str = value.removePrefix("ai-provider:v1:")
+    // 去掉前缀
+    val base64Str = value.removePrefix("ai-provider:v1:")
 
-  // Base64解码
-  val jsonBytes = Base64.decode(base64Str)
-  val jsonStr = jsonBytes.decodeToString()
+    // Base64解码
+    val jsonBytes = Base64.decode(base64Str)
+    val jsonStr = jsonBytes.decodeToString()
 
-  return JsonInstant.decodeFromString<ProviderSetting>(jsonStr)
+    return JsonInstant.decodeFromString<ProviderSetting>(jsonStr)
 }
 
 class ShareSheetState {
-  private var show by mutableStateOf(false)
-  val isShow
-    get() = show
+    private var show by mutableStateOf(false)
+    val isShow get() = show
 
-  private var provider by mutableStateOf<ProviderSetting?>(null)
-  val currentProvider
-    get() = provider
+    private var provider by mutableStateOf<ProviderSetting?>(null)
+    val currentProvider get() = provider
 
-  fun show(provider: ProviderSetting) {
-    this.show = true
-    this.provider = provider
-  }
+    fun show(provider: ProviderSetting) {
+        this.show = true
+        this.provider = provider
+    }
 
-  fun dismiss() {
-    this.show = false
-  }
+    fun dismiss() {
+        this.show = false
+    }
 }
 
 @Composable
 fun rememberShareSheetState(): ShareSheetState {
-  return ShareSheetState()
+    return ShareSheetState()
 }

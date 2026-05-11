@@ -9,12 +9,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 
 @Composable
-fun Modifier.onClick(enabled: Boolean = true, onClick: () -> Unit): Modifier =
-    this.then(
-        Modifier.clickable(
-            onClick = onClick,
-            interactionSource = remember { MutableInteractionSource() },
-            indication = LocalIndication.current,
-            role = Role.Button,
-        )
-    )
+fun Modifier.onClick(
+    enabled: Boolean = true,
+    onClick: () -> Unit
+): Modifier = this.then(Modifier.clickable(
+    onClick = onClick,
+    interactionSource = remember { MutableInteractionSource() },
+    indication = LocalIndication.current,
+    role = Role.Button,
+))

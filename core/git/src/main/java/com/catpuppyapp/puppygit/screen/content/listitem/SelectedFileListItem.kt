@@ -30,59 +30,61 @@ fun <T> SelectedFileItemsDialog(
     showFileIcon: Boolean,
     fileIconOnClick: (T) -> Unit,
     removeItem: (T) -> Unit,
-    clearAll: () -> Unit,
-    closeDialog: () -> Unit,
+    clearAll:() -> Unit,
+    closeDialog:() -> Unit,
     title: String = stringResource(R.string.selected_str),
-    textFormatterForCopy: (T) -> String = { itemName(it) + "\n" + itemPath(it) + "\n\n" },
+    textFormatterForCopy:(T) -> String = { itemName(it) + "\n" + itemPath(it) + "\n\n" },
 ) {
-  val trailIconSize = remember { MyStyleKt.trailIconSize }
-  val splitSpacerWidth = remember { MyStyleKt.trailIconSplitSpacerWidth }
+    val trailIconSize = remember { MyStyleKt.trailIconSize }
+    val splitSpacerWidth = remember { MyStyleKt.trailIconSplitSpacerWidth }
 
-  SelectedItemDialog3(
-      title = title,
-      selectedItems = list,
-      text = {},
-      customText = {
-        TwoLineTextsAndIcons(
-            text1 = itemName(it),
-            text2 = itemPath(it),
-            trailIconWidth =
-                if (showFileIcon) trailIconSize * 2 + splitSpacerWidth else trailIconSize,
-            trailIcons = { containerModifier ->
-              Row(
-                  modifier = containerModifier.fillMaxWidth(),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.End,
-              ) {
-                if (showFileIcon) {
-                  SizeIcon(
-                      size = trailIconSize,
-                      modifier = Modifier.clickable { fileIconOnClick(it) },
-                      imageVector =
-                          if (itemIsDir(it)) Icons.Outlined.Folder
-                          else Icons.AutoMirrored.Outlined.InsertDriveFile,
-                      contentDescription =
-                          if (itemIsDir(it)) stringResource(R.string.folder)
-                          else stringResource(R.string.file),
-                  )
+    SelectedItemDialog3(
+        title = title,
+        selectedItems = list,
+        text = {},
+        customText = {
+            TwoLineTextsAndIcons(
+                text1 = itemName(it),
+                text2 = itemPath(it),
+                trailIconWidth = if(showFileIcon) trailIconSize * 2 + splitSpacerWidth else trailIconSize,
+                trailIcons = { containerModifier ->
+                    Row(
+                        modifier = containerModifier
+                            .fillMaxWidth()
+                        ,
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        if(showFileIcon) {
+                            SizeIcon(
+                                size = trailIconSize,
+                                modifier = Modifier.clickable {
+                                    fileIconOnClick(it)
+                                },
+                                imageVector = if(itemIsDir(it)) Icons.Outlined.Folder else Icons.AutoMirrored.Outlined.InsertDriveFile,
+                                contentDescription = if(itemIsDir(it)) stringResource(R.string.folder) else stringResource(R.string.file)
+                            )
 
-                  Spacer(modifier = Modifier.width(splitSpacerWidth))
+                            Spacer(modifier = Modifier.width(splitSpacerWidth))
+                        }
+
+                        SizeIcon(
+                            size = trailIconSize,
+                            modifier = Modifier.clickable {
+                                removeItem(it)
+                            },
+                            imageVector = Icons.Filled.DeleteOutline,
+                            contentDescription = stringResource(R.string.delete)
+                        )
+                    }
                 }
+            )
+        },
+        customTrailIcon = {},
+        textFormatterForCopy = textFormatterForCopy,
+        switchItemSelected = removeItem,
+        clearAll = clearAll,
+        closeDialog = closeDialog,
+    )
 
-                SizeIcon(
-                    size = trailIconSize,
-                    modifier = Modifier.clickable { removeItem(it) },
-                    imageVector = Icons.Filled.DeleteOutline,
-                    contentDescription = stringResource(R.string.delete),
-                )
-              }
-            },
-        )
-      },
-      customTrailIcon = {},
-      textFormatterForCopy = textFormatterForCopy,
-      switchItemSelected = removeItem,
-      clearAll = clearAll,
-      closeDialog = closeDialog,
-  )
 }

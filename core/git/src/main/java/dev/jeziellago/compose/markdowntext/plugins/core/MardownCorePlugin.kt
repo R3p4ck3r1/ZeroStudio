@@ -43,307 +43,354 @@ class MardownCorePlugin(
     private val syntaxHighlightColor: Int,
     private val syntaxHighlightTextColor: Int,
     private val enableUnderlineForLink: Boolean,
-    private val onTextAddedListeners: MutableList<OnTextAddedListener> = ArrayList(0),
+    private val onTextAddedListeners: MutableList<OnTextAddedListener> = ArrayList(0)
 ) : CorePlugin() {
 
-  override fun configureVisitor(builder: MarkwonVisitor.Builder) {
-    text(builder)
-    strongEmphasis(builder)
-    emphasis(builder)
-    blockQuote(builder)
-    code(builder)
-    fencedCodeBlock(builder)
-    indentedCodeBlock(builder)
-    image(builder)
-    bulletList(builder)
-    orderedList(builder)
-    listItem(builder)
-    thematicBreak(builder)
-    heading(builder)
-    softLineBreak(builder)
-    hardLineBreak(builder)
-    paragraph(builder)
-    link(builder)
-  }
-
-  override fun configureTheme(builder: MarkwonTheme.Builder) {
-    builder.codeBackgroundColor(syntaxHighlightColor)
-    builder.isLinkUnderlined(enableUnderlineForLink)
-    if (syntaxHighlightTextColor != Color.Unspecified.toArgb()) {
-      builder.codeTextColor(syntaxHighlightTextColor)
+    override fun configureVisitor(builder: MarkwonVisitor.Builder) {
+        text(builder)
+        strongEmphasis(builder)
+        emphasis(builder)
+        blockQuote(builder)
+        code(builder)
+        fencedCodeBlock(builder)
+        indentedCodeBlock(builder)
+        image(builder)
+        bulletList(builder)
+        orderedList(builder)
+        listItem(builder)
+        thematicBreak(builder)
+        heading(builder)
+        softLineBreak(builder)
+        hardLineBreak(builder)
+        paragraph(builder)
+        link(builder)
     }
-    super.configureTheme(builder)
-  }
 
-  override fun configureSpansFactory(builder: MarkwonSpansFactory.Builder) {
-    // reuse this one for both code-blocks (indent & fenced)
-    val codeBlockSpanFactory = CodeBlockSpanFactory()
-
-    builder
-        .setFactory(StrongEmphasis::class.java, StrongEmphasisSpanFactory())
-        .setFactory(Emphasis::class.java, EmphasisSpanFactory())
-        .setFactory(BlockQuote::class.java, BlockQuoteSpanFactory())
-        .setFactory(Code::class.java, CodeSpanFactory())
-        .setFactory(FencedCodeBlock::class.java, codeBlockSpanFactory)
-        .setFactory(IndentedCodeBlock::class.java, codeBlockSpanFactory)
-        .setFactory(ListItem::class.java, ListItemSpanFactory())
-        .setFactory(Heading::class.java, HeadingSpanFactory())
-        .setFactory(Link::class.java, LinkSpanFactory())
-        .setFactory(ThematicBreak::class.java, ThematicBreakSpanFactory())
-  }
-
-  override fun addOnTextAddedListener(onTextAddedListener: OnTextAddedListener): CorePlugin {
-    onTextAddedListeners.add(onTextAddedListener)
-    return this
-  }
-
-  private fun text(builder: MarkwonVisitor.Builder) {
-    builder.on(Text::class.java) { visitor, text ->
-      val literal = text.literal
-      visitor.builder().append(literal)
-
-      if (onTextAddedListeners.isNotEmpty()) {
-        // calculate the start position
-        val length = visitor.length() - literal.length
-        for (onTextAddedListener in onTextAddedListeners) {
-          onTextAddedListener.onTextAdded(visitor, literal, length)
+    override fun configureTheme(builder: MarkwonTheme.Builder) {
+        builder.codeBackgroundColor(syntaxHighlightColor)
+        builder.isLinkUnderlined(enableUnderlineForLink)
+        if (syntaxHighlightTextColor != Color.Unspecified.toArgb()) {
+            builder.codeTextColor(syntaxHighlightTextColor)
         }
-      }
+        super.configureTheme(builder)
     }
-  }
 
-  private fun strongEmphasis(builder: MarkwonVisitor.Builder) {
-    builder.on(StrongEmphasis::class.java) { visitor, strongEmphasis ->
-      val length = visitor.length()
-      visitor.visitChildren(strongEmphasis)
-      visitor.setSpansForNodeOptional(strongEmphasis, length)
+    override fun configureSpansFactory(builder: MarkwonSpansFactory.Builder) {
+        // reuse this one for both code-blocks (indent & fenced)
+        val codeBlockSpanFactory = CodeBlockSpanFactory()
+
+        builder
+            .setFactory(StrongEmphasis::class.java, StrongEmphasisSpanFactory())
+            .setFactory(Emphasis::class.java, EmphasisSpanFactory())
+            .setFactory(BlockQuote::class.java, BlockQuoteSpanFactory())
+            .setFactory(Code::class.java, CodeSpanFactory())
+            .setFactory(FencedCodeBlock::class.java, codeBlockSpanFactory)
+            .setFactory(IndentedCodeBlock::class.java, codeBlockSpanFactory)
+            .setFactory(ListItem::class.java, ListItemSpanFactory())
+            .setFactory(Heading::class.java, HeadingSpanFactory())
+            .setFactory(Link::class.java, LinkSpanFactory())
+            .setFactory(ThematicBreak::class.java, ThematicBreakSpanFactory())
     }
-  }
 
-  private fun emphasis(builder: MarkwonVisitor.Builder) {
-    builder.on(Emphasis::class.java) { visitor, emphasis ->
-      val length = visitor.length()
-      visitor.visitChildren(emphasis)
-      visitor.setSpansForNodeOptional(emphasis, length)
+    override fun addOnTextAddedListener(onTextAddedListener: OnTextAddedListener): CorePlugin {
+        onTextAddedListeners.add(onTextAddedListener)
+        return this
     }
-  }
 
-  private fun blockQuote(builder: MarkwonVisitor.Builder) {
-    builder.on(BlockQuote::class.java) { visitor, blockQuote ->
-      visitor.blockStart(blockQuote)
-      val length = visitor.length()
+    private fun text(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            Text::class.java
+        ) { visitor, text ->
+            val literal = text.literal
+            visitor.builder().append(literal)
 
-      visitor.visitChildren(blockQuote)
-      visitor.setSpansForNodeOptional(blockQuote, length)
-      visitor.blockEnd(blockQuote)
+            if (onTextAddedListeners.isNotEmpty()) {
+                // calculate the start position
+                val length = visitor.length() - literal.length
+                for (onTextAddedListener in onTextAddedListeners) {
+                    onTextAddedListener.onTextAdded(visitor, literal, length)
+                }
+            }
+        }
     }
-  }
 
-  private fun code(builder: MarkwonVisitor.Builder) {
-    builder.on(Code::class.java) { visitor, code ->
-      val length = visitor.length()
-      visitor.builder().append('\u00a0').append(code.literal).append('\u00a0')
-      visitor.setSpansForNodeOptional(code, length)
+    private fun strongEmphasis(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            StrongEmphasis::class.java
+        ) { visitor, strongEmphasis ->
+            val length = visitor.length()
+            visitor.visitChildren(strongEmphasis)
+            visitor.setSpansForNodeOptional(strongEmphasis, length)
+        }
     }
-  }
 
-  private fun fencedCodeBlock(builder: MarkwonVisitor.Builder) {
-    builder.on(FencedCodeBlock::class.java) { visitor, fencedCodeBlock ->
-      visitCodeBlock(visitor, fencedCodeBlock.info, fencedCodeBlock.literal, fencedCodeBlock)
+    private fun emphasis(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            Emphasis::class.java
+        ) { visitor, emphasis ->
+            val length = visitor.length()
+            visitor.visitChildren(emphasis)
+            visitor.setSpansForNodeOptional(emphasis, length)
+        }
     }
-  }
 
-  private fun indentedCodeBlock(builder: MarkwonVisitor.Builder) {
-    builder.on(IndentedCodeBlock::class.java) { visitor, indentedCodeBlock ->
-      visitCodeBlock(visitor, null, indentedCodeBlock.literal, indentedCodeBlock)
+    private fun blockQuote(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            BlockQuote::class.java
+        ) { visitor, blockQuote ->
+            visitor.blockStart(blockQuote)
+            val length = visitor.length()
+
+            visitor.visitChildren(blockQuote)
+            visitor.setSpansForNodeOptional(blockQuote, length)
+            visitor.blockEnd(blockQuote)
+        }
     }
-  }
 
-  private fun image(builder: MarkwonVisitor.Builder) {
-    builder.on(
-        Image::class.java,
-        MarkwonVisitor.NodeVisitor { visitor, image -> // if there is no image spanFactory, ignore
-          val spanFactory = visitor.configuration().spansFactory().get(Image::class.java)
-          if (spanFactory == null) {
-            visitor.visitChildren(image)
-            return@NodeVisitor
-          }
+    private fun code(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            Code::class.java
+        ) { visitor, code ->
+            val length = visitor.length()
+            visitor.builder()
+                .append('\u00a0')
+                .append(code.literal)
+                .append('\u00a0')
+            visitor.setSpansForNodeOptional(code, length)
+        }
+    }
 
-          val length = visitor.length()
+    private fun fencedCodeBlock(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            FencedCodeBlock::class.java
+        ) { visitor, fencedCodeBlock ->
+            visitCodeBlock(
+                visitor,
+                fencedCodeBlock.info,
+                fencedCodeBlock.literal,
+                fencedCodeBlock
+            )
+        }
+    }
 
-          visitor.visitChildren(image)
+    private fun indentedCodeBlock(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            IndentedCodeBlock::class.java
+        ) { visitor, indentedCodeBlock ->
+            visitCodeBlock(
+                visitor,
+                null,
+                indentedCodeBlock.literal,
+                indentedCodeBlock
+            )
+        }
+    }
 
-          // we must check if anything _was_ added, as we need at least one char to render
-          if (length == visitor.length()) {
-            visitor.builder().append('\uFFFC')
-          }
+    private fun image(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            Image::class.java,
+            MarkwonVisitor.NodeVisitor { visitor, image -> // if there is no image spanFactory, ignore
+                val spanFactory = visitor.configuration().spansFactory().get(
+                    Image::class.java
+                )
+                if (spanFactory == null) {
+                    visitor.visitChildren(image)
+                    return@NodeVisitor
+                }
 
-          val configuration = visitor.configuration()
+                val length = visitor.length()
 
-          val parent = image.parent
-          val link = parent is Link
+                visitor.visitChildren(image)
 
-          val destination = configuration.imageDestinationProcessor().process(image.destination)
+                // we must check if anything _was_ added, as we need at least one char to render
+                if (length == visitor.length()) {
+                    visitor.builder().append('\uFFFC')
+                }
 
-          val props = visitor.renderProps()
+                val configuration = visitor.configuration()
 
-          // apply image properties
-          // Please note that we explicitly set IMAGE_SIZE to null as we do not clear
-          // properties after we applied span (we could though)
-          ImageProps.DESTINATION[props] = destination
-          ImageProps.REPLACEMENT_TEXT_IS_LINK[props] = link
-          ImageProps.IMAGE_SIZE[props] = null
-          visitor.setSpans(length, spanFactory.getSpans(configuration, props))
-        },
-    )
-  }
+                val parent = image.parent
+                val link = parent is Link
 
-  @VisibleForTesting
-  fun visitCodeBlock(visitor: MarkwonVisitor, info: String?, code: String, node: Node) {
-    visitor.blockStart(node)
+                val destination = configuration
+                    .imageDestinationProcessor()
+                    .process(image.destination)
 
-    val length = visitor.length()
+                val props = visitor.renderProps()
 
-    visitor
-        .builder()
-        .append('\u00a0')
-        .append('\n')
-        .append(visitor.configuration().syntaxHighlight().highlight(info, code))
+                // apply image properties
+                // Please note that we explicitly set IMAGE_SIZE to null as we do not clear
+                // properties after we applied span (we could though)
+                ImageProps.DESTINATION[props] = destination
+                ImageProps.REPLACEMENT_TEXT_IS_LINK[props] = link
+                ImageProps.IMAGE_SIZE[props] = null
+                visitor.setSpans(length, spanFactory.getSpans(configuration, props))
+            })
+    }
 
-    visitor.ensureNewLine()
+    @VisibleForTesting
+    fun visitCodeBlock(
+        visitor: MarkwonVisitor,
+        info: String?,
+        code: String,
+        node: Node
+    ) {
+        visitor.blockStart(node)
 
-    visitor.builder().append('\u00a0')
+        val length = visitor.length()
 
-    CoreProps.CODE_BLOCK_INFO[visitor.renderProps()] = info
+        visitor.builder()
+            .append('\u00a0').append('\n')
+            .append(visitor.configuration().syntaxHighlight().highlight(info, code))
 
-    visitor.setSpansForNodeOptional(node, length)
-
-    visitor.blockEnd(node)
-  }
-
-  private fun bulletList(builder: MarkwonVisitor.Builder) {
-    builder.on(BulletList::class.java, SimpleBlockNodeVisitor())
-  }
-
-  private fun orderedList(builder: MarkwonVisitor.Builder) {
-    builder.on(OrderedList::class.java, SimpleBlockNodeVisitor())
-  }
-
-  private fun listItem(builder: MarkwonVisitor.Builder) {
-    builder.on(ListItem::class.java) { visitor, listItem ->
-      val length = visitor.length()
-      // it's important to visit children before applying render props (
-      // we can have nested children, who are list items also, thus they will
-      // override out props (if we set them before visiting children)
-      visitor.visitChildren(listItem)
-
-      val parent: Node = listItem.parent
-      if (parent is OrderedList) {
-        val start = parent.startNumber
-
-        CoreProps.LIST_ITEM_TYPE[visitor.renderProps()] = CoreProps.ListItemType.ORDERED
-        CoreProps.ORDERED_LIST_ITEM_NUMBER[visitor.renderProps()] = start
-
-        // after we have visited the children increment start number
-        val orderedList = parent
-        orderedList.startNumber += 1
-      } else {
-        CoreProps.LIST_ITEM_TYPE[visitor.renderProps()] = CoreProps.ListItemType.BULLET
-        CoreProps.BULLET_LIST_ITEM_LEVEL[visitor.renderProps()] = listLevel(listItem)
-      }
-
-      visitor.setSpansForNodeOptional(listItem, length)
-      if (visitor.hasNext(listItem)) {
         visitor.ensureNewLine()
-      }
+
+        visitor.builder().append('\u00a0')
+
+        CoreProps.CODE_BLOCK_INFO[visitor.renderProps()] = info
+
+        visitor.setSpansForNodeOptional(node, length)
+
+        visitor.blockEnd(node)
     }
-  }
 
-  private fun listLevel(node: Node): Int {
-    var level = 0
-    var parent = node.parent
-    while (parent != null) {
-      if (parent is ListItem) {
-        level += 1
-      }
-      parent = parent.parent
+    private fun bulletList(builder: MarkwonVisitor.Builder) {
+        builder.on(BulletList::class.java, SimpleBlockNodeVisitor())
     }
-    return level
-  }
 
-  private fun thematicBreak(builder: MarkwonVisitor.Builder) {
-    builder.on(ThematicBreak::class.java) { visitor, thematicBreak ->
-      visitor.blockStart(thematicBreak)
-      val length = visitor.length()
-
-      // without space it won't render
-      visitor.builder().append('\u00a0')
-
-      visitor.setSpansForNodeOptional(thematicBreak, length)
-      visitor.blockEnd(thematicBreak)
+    private fun orderedList(builder: MarkwonVisitor.Builder) {
+        builder.on(OrderedList::class.java, SimpleBlockNodeVisitor())
     }
-  }
 
-  private fun heading(builder: MarkwonVisitor.Builder) {
-    builder.on(Heading::class.java) { visitor, heading ->
-      visitor.blockStart(heading)
-      val length = visitor.length()
-      visitor.visitChildren(heading)
+    private fun listItem(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            ListItem::class.java
+        ) { visitor, listItem ->
+            val length = visitor.length()
+            // it's important to visit children before applying render props (
+            // we can have nested children, who are list items also, thus they will
+            // override out props (if we set them before visiting children)
+            visitor.visitChildren(listItem)
 
-      CoreProps.HEADING_LEVEL[visitor.renderProps()] = heading.level
+            val parent: Node = listItem.parent
+            if (parent is OrderedList) {
+                val start = parent.startNumber
 
-      visitor.setSpansForNodeOptional(heading, length)
-      visitor.blockEnd(heading)
+                CoreProps.LIST_ITEM_TYPE[visitor.renderProps()] = CoreProps.ListItemType.ORDERED
+                CoreProps.ORDERED_LIST_ITEM_NUMBER[visitor.renderProps()] = start
+
+                // after we have visited the children increment start number
+                val orderedList = parent
+                orderedList.startNumber += 1
+            } else {
+                CoreProps.LIST_ITEM_TYPE[visitor.renderProps()] = CoreProps.ListItemType.BULLET
+                CoreProps.BULLET_LIST_ITEM_LEVEL[visitor.renderProps()] = listLevel(listItem)
+            }
+
+            visitor.setSpansForNodeOptional(listItem, length)
+            if (visitor.hasNext(listItem)) {
+                visitor.ensureNewLine()
+            }
+        }
     }
-  }
 
-  private fun softLineBreak(builder: MarkwonVisitor.Builder) {
-    builder.on(SoftLineBreak::class.java) { visitor, _ -> visitor.builder().append(' ') }
-  }
-
-  private fun hardLineBreak(builder: MarkwonVisitor.Builder) {
-    builder.on(HardLineBreak::class.java) { visitor, _ -> visitor.ensureNewLine() }
-  }
-
-  private fun paragraph(builder: MarkwonVisitor.Builder) {
-    builder.on(Paragraph::class.java) { visitor, paragraph ->
-      val inTightList = isInTightList(paragraph)
-      if (!inTightList) {
-        visitor.blockStart(paragraph)
-      }
-
-      val length = visitor.length()
-      visitor.visitChildren(paragraph)
-
-      CoreProps.PARAGRAPH_IS_IN_TIGHT_LIST[visitor.renderProps()] = inTightList
-
-      visitor.setSpansForNodeOptional(paragraph, length)
-      if (!inTightList) {
-        visitor.blockEnd(paragraph)
-      }
+    private fun listLevel(node: Node): Int {
+        var level = 0
+        var parent = node.parent
+        while (parent != null) {
+            if (parent is ListItem) {
+                level += 1
+            }
+            parent = parent.parent
+        }
+        return level
     }
-  }
 
-  private fun isInTightList(paragraph: Paragraph): Boolean {
-    val parent: Node? = paragraph.parent
-    if (parent != null) {
-      val gramps = parent.parent
-      if (gramps is ListBlock) {
-        return gramps.isTight
-      }
+    private fun thematicBreak(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            ThematicBreak::class.java
+        ) { visitor, thematicBreak ->
+            visitor.blockStart(thematicBreak)
+            val length = visitor.length()
+
+            // without space it won't render
+            visitor.builder().append('\u00a0')
+
+            visitor.setSpansForNodeOptional(thematicBreak, length)
+            visitor.blockEnd(thematicBreak)
+        }
     }
-    return false
-  }
 
-  private fun link(builder: MarkwonVisitor.Builder) {
-    builder.on(Link::class.java) { visitor, link ->
-      val length = visitor.length()
-      visitor.visitChildren(link)
+    private fun heading(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            Heading::class.java
+        ) { visitor, heading ->
+            visitor.blockStart(heading)
+            val length = visitor.length()
+            visitor.visitChildren(heading)
 
-      val destination = link.destination
+            CoreProps.HEADING_LEVEL[visitor.renderProps()] = heading.level
 
-      CoreProps.LINK_DESTINATION[visitor.renderProps()] = destination
-      visitor.setSpansForNodeOptional(link, length)
+            visitor.setSpansForNodeOptional(heading, length)
+            visitor.blockEnd(heading)
+        }
     }
-  }
+
+    private fun softLineBreak(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            SoftLineBreak::class.java
+        ) { visitor, _ -> visitor.builder().append(' ') }
+    }
+
+    private fun hardLineBreak(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            HardLineBreak::class.java
+        ) { visitor, _ -> visitor.ensureNewLine() }
+    }
+
+    private fun paragraph(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            Paragraph::class.java
+        ) { visitor, paragraph ->
+            val inTightList = isInTightList(paragraph)
+            if (!inTightList) {
+                visitor.blockStart(paragraph)
+            }
+
+            val length = visitor.length()
+            visitor.visitChildren(paragraph)
+
+            CoreProps.PARAGRAPH_IS_IN_TIGHT_LIST[visitor.renderProps()] = inTightList
+
+            visitor.setSpansForNodeOptional(paragraph, length)
+            if (!inTightList) {
+                visitor.blockEnd(paragraph)
+            }
+        }
+    }
+
+    private fun isInTightList(paragraph: Paragraph): Boolean {
+        val parent: Node? = paragraph.parent
+        if (parent != null) {
+            val gramps = parent.parent
+            if (gramps is ListBlock) {
+                return gramps.isTight
+            }
+        }
+        return false
+    }
+
+    private fun link(builder: MarkwonVisitor.Builder) {
+        builder.on(
+            Link::class.java
+        ) { visitor, link ->
+            val length = visitor.length()
+            visitor.visitChildren(link)
+
+            val destination = link.destination
+
+            CoreProps.LINK_DESTINATION[visitor.renderProps()] = destination
+            visitor.setSpansForNodeOptional(link, length)
+        }
+    }
 }

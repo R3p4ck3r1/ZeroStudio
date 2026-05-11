@@ -16,17 +16,18 @@ fun FullScreenScrollableColumn(
     contentPadding: PaddingValues,
     verticalArrangement: Arrangement.Vertical = Arrangement.Center,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
-    content: @Composable () -> Unit,
+    content:@Composable ()->Unit,
 ) {
-  Column(
-      modifier =
-          Modifier.baseVerticalScrollablePageModifier(contentPadding, rememberScrollState())
+    Column(
+        modifier = Modifier
+            .baseVerticalScrollablePageModifier(contentPadding, rememberScrollState())
 
-              // avoid text reached screen border
-              .padding(MyStyleKt.defaultItemPadding),
-      verticalArrangement = verticalArrangement,
-      horizontalAlignment = horizontalAlignment,
-  ) {
-    content()
-  }
+            // avoid text reached screen border
+            .padding(MyStyleKt.defaultItemPadding)
+        ,
+        verticalArrangement = verticalArrangement,
+        horizontalAlignment = horizontalAlignment,
+    ) {
+        content()
+    }
 }

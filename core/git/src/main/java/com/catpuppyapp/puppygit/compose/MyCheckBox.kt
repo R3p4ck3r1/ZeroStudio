@@ -19,42 +19,43 @@ import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.ui.theme.Theme
 
+
 @Composable
 fun MyCheckBox(
     text: String,
     value: MutableState<Boolean>,
     enabled: Boolean = true,
     height: Dp = MyStyleKt.CheckoutBox.height,
-    onValueChange: (newValue: Boolean) -> Unit = { value.value = it },
+    onValueChange: (newValue:Boolean)->Unit = {value.value = it}
 ) {
-  val inDarkTheme = Theme.inDarkTheme
+    val inDarkTheme = Theme.inDarkTheme
 
-  Row(
-      Modifier.fillMaxWidth()
-          .height(height)
-          .toggleable(
-              enabled = enabled,
-              value = value.value,
-              onValueChange = { onValueChange(it) }, // 话说这个it是不是新值，所以不反转原始值直接 value = it，不就行了？
-              role = Role.Checkbox,
-          )
-          .padding(horizontal = MyStyleKt.defaultHorizontalPadding),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Checkbox(
-        enabled = enabled,
-        checked = value.value,
-        onCheckedChange = null, // null recommended for accessibility with screenreaders
-    )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(height)
+            .toggleable(
+                enabled = enabled,
+                value = value.value,
+                onValueChange = { onValueChange(it) },  //话说这个it是不是新值，所以不反转原始值直接 value = it，不就行了？
+                role = Role.Checkbox
+            )
+            .padding(horizontal = MyStyleKt.defaultHorizontalPadding),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            enabled=enabled,
+            checked = value.value,
+            onCheckedChange = null // null recommended for accessibility with screenreaders
+        )
 
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyLarge,
-        modifier = Modifier.padding(start = 16.dp),
-        color =
-            if (enabled) Color.Unspecified
-            else if (inDarkTheme) MyStyleKt.TextColor.disable_DarkTheme
-            else MyStyleKt.TextColor.disable,
-    )
-  }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 16.dp),
+            color = if(enabled) Color.Unspecified else if(inDarkTheme) MyStyleKt.TextColor.disable_DarkTheme else MyStyleKt.TextColor.disable
+        )
+
+    }
 }
+

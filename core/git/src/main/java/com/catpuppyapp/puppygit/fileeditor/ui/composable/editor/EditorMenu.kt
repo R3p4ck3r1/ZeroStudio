@@ -15,16 +15,22 @@ import androidx.compose.ui.unit.dp
 fun EditorMenu(
     icon: @Composable BoxScope.() -> Unit,
     label: @Composable BoxScope.() -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
-  Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-    Box(modifier = Modifier.align(Alignment.CenterHorizontally)) { icon() }
-    Box(modifier = Modifier.align(Alignment.CenterHorizontally)) { label() }
-  }
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(modifier = Modifier.align(Alignment.CenterHorizontally)) { icon() }
+        Box(modifier = Modifier.align(Alignment.CenterHorizontally)) { label() }
+    }
 }
 
 @Preview
 @Composable
 private fun EditorMenu_Preview() {
-  EditorMenu(icon = { CancelIcon() }, label = { Text(text = "Cancel") })
+    EditorMenu(
+        icon = { CancelIcon() },
+        label = { Text(text = "Cancel") }
+    )
 }

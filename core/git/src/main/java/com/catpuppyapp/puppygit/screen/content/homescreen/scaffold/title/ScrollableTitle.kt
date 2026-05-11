@@ -13,54 +13,57 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.catpuppyapp.puppygit.compose.ScrollableRow
 import com.catpuppyapp.puppygit.screen.functions.defaultTitleDoubleClick
 
-/** 默认双击标题回到列表顶部的title */
+
+/**
+ * 默认双击标题回到列表顶部的title
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ScrollableTitle(
-    text: String,
+    text:String,
     listState: ScrollState,
-    lastPosition: MutableState<Int>,
-) {
-  val scope = rememberCoroutineScope()
+    lastPosition:MutableState<Int>,
 
-  ScrollableRow {
-    Text(
-        text = text,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier =
-            Modifier.combinedClickable(
-                onDoubleClick = {
-                  // double click go to top
-                  defaultTitleDoubleClick(scope, listState, lastPosition)
-                }
-            ) {},
-    )
-  }
+) {
+    val scope = rememberCoroutineScope()
+
+    ScrollableRow {
+        Text(
+            text = text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.combinedClickable(onDoubleClick = {
+                // double click go to top
+                defaultTitleDoubleClick(scope, listState, lastPosition)
+
+            }) {  }
+        )
+    }
 }
 
-/** 默认双击标题回到列表顶部的title */
+/**
+ * 默认双击标题回到列表顶部的title
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ScrollableTitle(
-    text: String,
+    text:String,
     listState: LazyListState,
-    lastPosition: MutableState<Int>,
-) {
-  val scope = rememberCoroutineScope()
+    lastPosition:MutableState<Int>,
 
-  ScrollableRow {
-    Text(
-        text = text,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier =
-            Modifier.combinedClickable(
-                onDoubleClick = {
-                  // double click go to top
-                  defaultTitleDoubleClick(scope, listState, lastPosition)
-                }
-            ) {},
-    )
-  }
+) {
+    val scope = rememberCoroutineScope()
+
+    ScrollableRow {
+        Text(
+            text = text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.combinedClickable(onDoubleClick = {
+                // double click go to top
+                defaultTitleDoubleClick(scope, listState, lastPosition)
+
+            }) {  }
+        )
+    }
 }

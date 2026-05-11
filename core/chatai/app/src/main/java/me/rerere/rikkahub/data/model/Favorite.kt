@@ -1,22 +1,24 @@
 package me.rerere.rikkahub.data.model
 
-import kotlin.uuid.Uuid
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
+import kotlin.uuid.Uuid
 
 @Serializable
 enum class FavoriteType(val value: String) {
-  @SerialName("node") NODE("node"),
+    @SerialName("node")
+    NODE("node"),
 
-  // Keep old value for compatibility with existing data.
-  @SerialName("message") MESSAGE("message");
+    // Keep old value for compatibility with existing data.
+    @SerialName("message")
+    MESSAGE("message");
 
-  companion object {
-    fun fromValue(value: String): FavoriteType? = entries.firstOrNull { it.value == value }
-  }
+    companion object {
+        fun fromValue(value: String): FavoriteType? = entries.firstOrNull { it.value == value }
+    }
 }
 
 @Serializable
@@ -40,19 +42,21 @@ data class NodeFavoriteTarget(
 )
 
 fun UIMessage.buildFavoritePreview(maxLength: Int = 160): String {
-  val plainText =
-      parts.filterIsInstance<UIMessagePart.Text>().joinToString("\n") { it.text.trim() }.trim()
-  if (plainText.isNotBlank()) {
-    return plainText.take(maxLength)
-  }
-  return when (role) {
-    MessageRole.USER -> "[User Message]"
-    MessageRole.ASSISTANT -> "[Assistant Message]"
-    MessageRole.SYSTEM -> "[System Message]"
-    MessageRole.TOOL -> "[Tool Message]"
-  }
+    val plainText = parts
+        .filterIsInstance<UIMessagePart.Text>()
+        .joinToString("\n") { it.text.trim() }
+        .trim()
+    if (plainText.isNotBlank()) {
+        return plainText.take(maxLength)
+    }
+    return when (role) {
+        MessageRole.USER -> "[User Message]"
+        MessageRole.ASSISTANT -> "[Assistant Message]"
+        MessageRole.SYSTEM -> "[System Message]"
+        MessageRole.TOOL -> "[Tool Message]"
+    }
 }
 
 fun MessageNode.buildFavoritePreview(maxLength: Int = 160): String {
-  return currentMessage.buildFavoritePreview(maxLength)
+    return currentMessage.buildFavoritePreview(maxLength)
 }

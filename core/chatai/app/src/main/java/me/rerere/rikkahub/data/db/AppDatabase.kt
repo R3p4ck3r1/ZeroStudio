@@ -23,54 +23,53 @@ import me.rerere.rikkahub.data.db.migrations.Migration_8_9
 import me.rerere.rikkahub.utils.JsonInstant
 
 @Database(
-    entities =
-        [
-            ConversationEntity::class,
-            MemoryEntity::class,
-            GenMediaEntity::class,
-            MessageNodeEntity::class,
-            ManagedFileEntity::class,
-            FavoriteEntity::class,
-        ],
-    version = 17,
-    autoMigrations =
-        [
-            AutoMigration(from = 1, to = 2),
-            AutoMigration(from = 2, to = 3),
-            AutoMigration(from = 3, to = 4),
-            AutoMigration(from = 4, to = 5),
-            AutoMigration(from = 5, to = 6),
-            AutoMigration(from = 7, to = 8),
-            AutoMigration(from = 8, to = 9, spec = Migration_8_9::class),
-            AutoMigration(from = 9, to = 10),
-            AutoMigration(from = 10, to = 11),
-            AutoMigration(from = 12, to = 13),
-            AutoMigration(from = 16, to = 17, spec = Migration_16_17::class),
-        ],
+    entities = [
+        ConversationEntity::class,
+        MemoryEntity::class,
+        GenMediaEntity::class,
+        MessageNodeEntity::class,
+        ManagedFileEntity::class,
+        FavoriteEntity::class
+    ],
+    version = 18,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2),
+        AutoMigration(from = 2, to = 3),
+        AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 5, to = 6),
+        AutoMigration(from = 7, to = 8),
+        AutoMigration(from = 8, to = 9, spec = Migration_8_9::class),
+        AutoMigration(from = 9, to = 10),
+        AutoMigration(from = 10, to = 11),
+        AutoMigration(from = 12, to = 13),
+        AutoMigration(from = 16, to = 17, spec = Migration_16_17::class),
+        AutoMigration(from = 17, to = 18),
+    ]
 )
 @TypeConverters(TokenUsageConverter::class)
 abstract class AppDatabase : RoomDatabase() {
-  abstract fun conversationDao(): ConversationDAO
+    abstract fun conversationDao(): ConversationDAO
 
-  abstract fun memoryDao(): MemoryDAO
+    abstract fun memoryDao(): MemoryDAO
 
-  abstract fun genMediaDao(): GenMediaDAO
+    abstract fun genMediaDao(): GenMediaDAO
 
-  abstract fun messageNodeDao(): MessageNodeDAO
+    abstract fun messageNodeDao(): MessageNodeDAO
 
-  abstract fun managedFileDao(): ManagedFileDAO
+    abstract fun managedFileDao(): ManagedFileDAO
 
-  abstract fun favoriteDao(): FavoriteDAO
+    abstract fun favoriteDao(): FavoriteDAO
 }
 
 object TokenUsageConverter {
-  @TypeConverter
-  fun fromTokenUsage(usage: TokenUsage?): String {
-    return JsonInstant.encodeToString(usage)
-  }
+    @TypeConverter
+    fun fromTokenUsage(usage: TokenUsage?): String {
+        return JsonInstant.encodeToString(usage)
+    }
 
-  @TypeConverter
-  fun toTokenUsage(usage: String): TokenUsage? {
-    return JsonInstant.decodeFromString(usage)
-  }
+    @TypeConverter
+    fun toTokenUsage(usage: String): TokenUsage? {
+        return JsonInstant.decodeFromString(usage)
+    }
 }

@@ -13,45 +13,52 @@ import com.catpuppyapp.puppygit.screen.content.homescreen.innerpage.donateLink
 import com.catpuppyapp.puppygit.utils.ActivityUtil
 import com.catpuppyapp.puppygit.utils.AppModel
 
-private val changelog =
-    """
-    - upgrade dependencies: libgit2 to 1.9.2, openssl to 3.6.1
-    - optimize english translation (pr #125, thx @clach04)
-    - optimize code of `PullToRefreshBox` (pr #128, thx @msmt2018)
-    - align c libs to 16KB page size
-    - fix Automation service bug (issue #130)
-    - 升级依赖: libgit2 to 1.9.2, openssl to 3.6.1
-    - 优化英语翻译 (pr #125, thx @clach04)
-    - 优化 `PullToRefreshBox` 的代码 (pr #128, thx @msmt2018)
-    - 对齐c库为16KB页大小
-    - 修复自动化服务bug (issue #130)
-    """
-        .trimIndent()
+private const val hahaNoteLink = "https://github.com/catpuppyapp/HahaNote-Release"
+
+private val changelog = """
+- support create bare repo
+- support rename remotes (issue #136)
+- 支持创建bare仓库
+- 支持重命名远程仓库 (issue #136)
+""".trimIndent()
+
 
 private const val donateText = "❤ Donate to support develop! ❤"
+
 
 @Composable
 fun ChangelogDialog(
     onClose: () -> Unit,
 ) {
-  val activityContext = LocalContext.current
+    val activityContext = LocalContext.current
 
-  CopyableDialog2(
-      // hide ok btn
-      okCompose = {},
-      onOk = {},
-      cancelBtnText = stringResource(R.string.ok),
-      onCancel = onClose,
-      title = AppModel.getAppVersionNameAndCode(),
-      requireShowTextCompose = true,
-      textCompose = {
-        ScrollableColumn {
-          MultiLineClickableText(donateText) { ActivityUtil.openUrl(activityContext, donateLink) }
+    CopyableDialog2(
+        // hide ok btn
+        okCompose = {},
+        onOk = {},
 
-          Spacer(Modifier.height(15.dp))
 
-          Text(changelog)
+        cancelBtnText = stringResource(R.string.ok),
+        onCancel = onClose,
+
+        title = AppModel.getAppVersionNameAndCode(),
+        requireShowTextCompose = true,
+        textCompose = {
+            ScrollableColumn {
+                MultiLineClickableText(donateText) {
+                    ActivityUtil.openUrl(activityContext, donateLink)
+                }
+
+                Spacer(Modifier.height(15.dp))
+
+                MultiLineClickableText("Try my new app: Haha Note, an e2ee note sync app") {
+                    ActivityUtil.openUrl(activityContext, hahaNoteLink)
+                }
+
+                Spacer(Modifier.height(15.dp))
+
+                Text(changelog)
+            }
         }
-      },
-  )
+    )
 }

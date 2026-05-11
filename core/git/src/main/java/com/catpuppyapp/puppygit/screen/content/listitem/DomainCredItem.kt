@@ -20,89 +20,97 @@ import com.catpuppyapp.puppygit.utils.UIHelper
 import com.catpuppyapp.puppygit.utils.listItemPadding
 import com.catpuppyapp.puppygit.utils.state.CustomStateSaveable
 
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DomainCredItem(
     showBottomSheet: MutableState<Boolean>,
     curCredentialState: CustomStateSaveable<DomainCredentialDto>,
-    idx: Int,
-    lastClickedItemKey: MutableState<String>,
-    thisItem: DomainCredentialDto,
-    onClick: (DomainCredentialDto) -> Unit,
+    idx:Int,
+    lastClickedItemKey:MutableState<String>,
+    thisItem:DomainCredentialDto,
+    onClick:(DomainCredentialDto)->Unit
 ) {
-  //    val haptic = LocalHapticFeedback.current
+//    val haptic = LocalHapticFeedback.current
 
-  val none = "[${stringResource(R.string.none)}]"
+    val none = "[${stringResource(R.string.none)}]"
 
-  //    println("IDX::::::::::"+idx)
-  Column(
-      // 0.9f 占父元素宽度的百分之90
-      modifier =
-          Modifier.fillMaxWidth()
-              //            .defaultMinSize(minHeight = 100.dp)
-              .combinedClickable(
-                  enabled = true,
-                  onClick = {
+//    println("IDX::::::::::"+idx)
+    Column(
+        //0.9f 占父元素宽度的百分之90
+        modifier = Modifier
+            .fillMaxWidth()
+//            .defaultMinSize(minHeight = 100.dp)
+            .combinedClickable(
+                enabled = true,
+                onClick = {
                     lastClickedItemKey.value = thisItem.domainCredId
                     onClick(thisItem)
-                  },
-                  onLongClick = {
+                },
+                onLongClick = {
                     lastClickedItemKey.value = thisItem.domainCredId
 
-                    // 震动反馈
-                    //                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    //震动反馈
+//                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
 
                     curCredentialState.value = DomainCredentialDto()
 
-                    // 设置当前条目，供bottomsheet使用
+                    //设置当前条目，供bottomsheet使用
                     curCredentialState.value = thisItem
 
-                    // 显示底部菜单
+                    //显示底部菜单
                     showBottomSheet.value = true
-                  },
-              )
-              // padding要放到 combinedClickable后面，不然点按区域也会padding
-              //            .background(if (idx % 2 == 0) Color.Transparent else
-              // CommitListSwitchColor)
-              .then(
-                  if (lastClickedItemKey.value == thisItem.domainCredId) {
+                },
+            )
+            //padding要放到 combinedClickable后面，不然点按区域也会padding
+//            .background(if (idx % 2 == 0) Color.Transparent else CommitListSwitchColor)
+            .then(
+                if(lastClickedItemKey.value == thisItem.domainCredId) {
                     Modifier.background(UIHelper.getLastClickedColor())
-                  } else Modifier
-              )
-              .listItemPadding()
-  ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+                }else Modifier
+            )
+            .listItemPadding()
+
+
+
     ) {
-      Text(text = stringResource(R.string.domain) + ": ")
-      Text(
-          text = thisItem.domain,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          fontWeight = FontWeight.Light,
-      )
+
+        Row (
+            verticalAlignment = Alignment.CenterVertically,
+
+        ){
+            Text(text = stringResource(R.string.domain) +": ")
+            Text(text = thisItem.domain,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Light
+
+            )
+        }
+        Row (
+            verticalAlignment = Alignment.CenterVertically,
+
+        ){
+            Text(text = stringResource(R.string.http_s) +": ")
+            Text(text = thisItem.credName ?: none,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Light
+
+            )
+        }
+        Row (
+            verticalAlignment = Alignment.CenterVertically,
+
+        ){
+            Text(text = stringResource(R.string.ssh) +": ")
+            Text(text = thisItem.sshCredName ?: none,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Light
+
+            )
+        }
+
     }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(text = stringResource(R.string.http_s) + ": ")
-      Text(
-          text = thisItem.credName ?: none,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          fontWeight = FontWeight.Light,
-      )
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(text = stringResource(R.string.ssh) + ": ")
-      Text(
-          text = thisItem.sshCredName ?: none,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          fontWeight = FontWeight.Light,
-      )
-    }
-  }
 }

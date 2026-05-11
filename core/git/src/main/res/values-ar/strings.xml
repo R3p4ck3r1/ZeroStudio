@@ -1205,5 +1205,8 @@
     <string name="activity_not_found">لم يتم العثور على تطبيق للتعامل مع هذا الإجراء</string>
     <string name="share">مشاركة</string>
     <string name="line_break">Line Break</string>
+    <string name="async">Async</string>
 
+    <string name="progress_notification_auto_dismiss">إغلاق الإشعار تلقائيًا</string>
+    <string name="progress_notification_auto_dismiss_desc">سيتم إغلاق الإشعارات تلقائيًا بعد عرضها</string>
 </resources>

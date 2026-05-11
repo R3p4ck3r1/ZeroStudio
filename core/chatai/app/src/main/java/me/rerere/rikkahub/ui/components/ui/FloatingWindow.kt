@@ -20,27 +20,35 @@ fun FloatingWindow(
     visibility: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-  val context = LocalContext.current
-  var window: IFxAppControl? by remember { mutableStateOf(null) }
+    val context = LocalContext.current
+    var window: IFxAppControl? by remember { mutableStateOf(null) }
 
-  LaunchedEffect(visibility) {
-    if (visibility) {
-      window?.show()
-    } else {
-      window?.hide()
+    LaunchedEffect(visibility) {
+        if (visibility) {
+            window?.show()
+        } else {
+            window?.hide()
+        }
     }
-  }
 
-  DisposableEffect(context) {
-    window = FloatingX.install {
-      setTag(tag)
-      setContext(context)
-      setGravity(FxGravity.LEFT_OR_BOTTOM)
-      setOffsetXY(20f, -20f)
-      setEnableAnimation(true)
-      setLayoutView(ComposeView(context).apply { setContent { RikkahubTheme { content() } } })
+    DisposableEffect(context) {
+        window = FloatingX.install {
+            setTag(tag)
+            setContext(context)
+            setGravity(FxGravity.LEFT_OR_BOTTOM)
+            setOffsetXY(20f, -20f)
+            setEnableAnimation(true)
+            setLayoutView(ComposeView(context).apply {
+                setContent {
+                    RikkahubTheme {
+                        content()
+                    }
+                }
+            })
+        }
+        if (visibility) window?.show() else window?.hide()
+        onDispose {
+            window?.cancel()
+        }
     }
-    if (visibility) window?.show() else window?.hide()
-    onDispose { window?.cancel() }
-  }
 }

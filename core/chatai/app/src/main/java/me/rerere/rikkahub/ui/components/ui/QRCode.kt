@@ -20,23 +20,27 @@ fun QRCode(
     modifier: Modifier = Modifier,
     size: Int = 512,
     color: Color = Color.Unspecified,
-    backgroundColor: Color = Color.Unspecified,
+    backgroundColor: Color = Color.Unspecified
 ) {
-  val actualColor = color.takeOrElse { MaterialTheme.colorScheme.secondary }
-  val actualBackgroundColor = backgroundColor.takeOrElse { Color.Transparent }
+    val actualColor = color.takeOrElse { MaterialTheme.colorScheme.secondary }
+    val actualBackgroundColor = backgroundColor.takeOrElse { Color.Transparent }
 
-  val qrCodeWriter = remember { QRCodeWriter() }
-  val bitMatrix = remember(value) { qrCodeWriter.encode(value, BarcodeFormat.QR_CODE, size, size) }
-  val bitmap =
-      remember(bitMatrix) {
+    val qrCodeWriter = remember { QRCodeWriter() }
+    val bitMatrix = remember(value) {
+        qrCodeWriter.encode(value, BarcodeFormat.QR_CODE, size, size)
+    }
+    val bitmap = remember(bitMatrix) {
         createBitmap(size, size).apply {
-          for (x in 0 until size) {
-            for (y in 0 until size) {
-              this[x, y] =
-                  if (bitMatrix[x, y]) actualColor.toArgb() else actualBackgroundColor.toArgb()
+            for (x in 0 until size) {
+                for (y in 0 until size) {
+                    this[x, y] = if (bitMatrix[x, y]) actualColor.toArgb() else actualBackgroundColor.toArgb()
+                }
             }
-          }
         }
-      }
-  Image(bitmap = bitmap.asImageBitmap(), contentDescription = "qrcode:$value", modifier = modifier)
+    }
+    Image(
+        bitmap = bitmap.asImageBitmap(),
+        contentDescription = "qrcode:$value",
+        modifier = modifier
+    )
 }

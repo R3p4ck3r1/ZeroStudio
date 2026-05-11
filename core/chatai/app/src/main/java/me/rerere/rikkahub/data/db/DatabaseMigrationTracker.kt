@@ -5,20 +5,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 sealed class MigrationState {
-  data object Idle : MigrationState()
-
-  data class Migrating(val from: Int, val to: Int) : MigrationState()
+    data object Idle : MigrationState()
+    data class Migrating(val from: Int, val to: Int) : MigrationState()
 }
 
 object DatabaseMigrationTracker {
-  private val _state = MutableStateFlow<MigrationState>(MigrationState.Idle)
-  val state: StateFlow<MigrationState> = _state.asStateFlow()
+    private val _state = MutableStateFlow<MigrationState>(MigrationState.Idle)
+    val state: StateFlow<MigrationState> = _state.asStateFlow()
 
-  fun onMigrationStart(from: Int, to: Int) {
-    _state.value = MigrationState.Migrating(from, to)
-  }
+    fun onMigrationStart(from: Int, to: Int) {
+        _state.value = MigrationState.Migrating(from, to)
+    }
 
-  fun onMigrationEnd() {
-    _state.value = MigrationState.Idle
-  }
+    fun onMigrationEnd() {
+        _state.value = MigrationState.Idle
+    }
 }

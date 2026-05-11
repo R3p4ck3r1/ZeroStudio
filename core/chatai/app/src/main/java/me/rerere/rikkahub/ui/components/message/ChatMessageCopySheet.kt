@@ -36,79 +36,95 @@ import me.rerere.rikkahub.R
 import me.rerere.rikkahub.utils.copyMessageToClipboard
 
 @Composable
-fun ChatMessageCopySheet(message: UIMessage, onDismissRequest: () -> Unit) {
-  val context = LocalContext.current
-  ModalBottomSheet(
-      onDismissRequest = onDismissRequest,
-      sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-      sheetGesturesEnabled = false,
-      dragHandle = null,
-  ) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+fun ChatMessageCopySheet(
+    message: UIMessage,
+    onDismissRequest: () -> Unit
+) {
+    val context = LocalContext.current
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetGesturesEnabled = false,
+        dragHandle = null,
     ) {
-      // Header
-      Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
-      ) {
-        IconButton(onClick = { onDismissRequest() }) { Icon(HugeIcons.Cancel01, null) }
-
-        Text(
-            text = stringResource(R.string.select_and_copy),
-            style = MaterialTheme.typography.headlineSmall,
-        )
-
-        TextButton(
-            onClick = {
-              context.copyMessageToClipboard(message)
-              onDismissRequest()
-            }
-        ) {
-          Icon(
-              imageVector = HugeIcons.Copy01,
-              contentDescription = null,
-              modifier = Modifier.size(16.dp),
-          )
-          Spacer(modifier = Modifier.width(8.dp))
-          Text(stringResource(R.string.copy_all))
-        }
-      }
-
-      // Content
-      val textParts =
-          message.parts.filterIsInstance<UIMessagePart.Text>().filter { it.text.isNotBlank() }
-
-      if (textParts.isEmpty()) {
-        // No text content available
         Column(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          Text(
-              text = stringResource(R.string.no_text_content_to_copy),
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-              textAlign = TextAlign.Center,
-          )
-        }
-      } else {
-        SelectionContainer {
-          Column(
-              modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
-          ) {
-            textParts.fastForEach { textPart ->
-              Text(
-                  text = textPart.text,
-                  style = MaterialTheme.typography.bodyMedium,
-              )
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = {
+                        onDismissRequest()
+                    }
+                ) {
+                    Icon(HugeIcons.Cancel01, null)
+                }
+
+                Text(
+                    text = stringResource(R.string.select_and_copy),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+
+                TextButton(
+                    onClick = {
+                        context.copyMessageToClipboard(message)
+                        onDismissRequest()
+                    }
+                ) {
+                    Icon(
+                        imageVector = HugeIcons.Copy01,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.copy_all))
+                }
             }
-          }
+
+            // Content
+            val textParts =
+                message.parts.filterIsInstance<UIMessagePart.Text>().filter { it.text.isNotBlank() }
+
+            if (textParts.isEmpty()) {
+                // No text content available
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.no_text_content_to_copy),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                SelectionContainer {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        textParts.fastForEach { textPart ->
+                            Text(
+                                text = textPart.text,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }

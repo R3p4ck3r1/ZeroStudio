@@ -33,132 +33,143 @@ import me.rerere.rikkahub.ui.components.ui.RabbitLoadingIndicator
 @Composable
 fun CompressContextDialog(
     onDismiss: () -> Unit,
-    onConfirm: (additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int) -> Job,
+    onConfirm: (additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int) -> Job
 ) {
-  var additionalPrompt by remember { mutableStateOf("") }
-  var selectedTokens by remember { mutableIntStateOf(2000) }
-  var keepRecentMessages by remember { mutableIntStateOf(32) }
-  val tokenOptions = listOf(500, 1000, 2000, 4000)
-  val keepRecentOptions = listOf(0, 16, 32, 64)
-  var currentJob by remember { mutableStateOf<Job?>(null) }
-  val isLoading = currentJob?.isActive == true
+    var additionalPrompt by remember { mutableStateOf("") }
+    var selectedTokens by remember { mutableIntStateOf(2000) }
+    var keepRecentMessages by remember { mutableIntStateOf(32) }
+    val tokenOptions = listOf(500, 1000, 2000, 4000)
+    val keepRecentOptions = listOf(0, 16, 32, 64)
+    var currentJob by remember { mutableStateOf<Job?>(null) }
+    val isLoading = currentJob?.isActive == true
 
-  // Monitor job completion
-  LaunchedEffect(currentJob) {
-    currentJob?.join()
-    if (currentJob?.isCompleted == true && currentJob?.isCancelled == false) {
-      onDismiss()
+    // Monitor job completion
+    LaunchedEffect(currentJob) {
+        currentJob?.join()
+        if (currentJob?.isCompleted == true && currentJob?.isCancelled == false) {
+            onDismiss()
+        }
+        currentJob = null
     }
-    currentJob = null
-  }
 
-  AlertDialog(
-      onDismissRequest = {
-        if (!isLoading) {
-          onDismiss()
-        }
-      },
-      title = { Text(stringResource(R.string.chat_page_compress_context_title)) },
-      text = {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-          if (isLoading) {
-            // Loading state
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
+    AlertDialog(
+        onDismissRequest = {
+            if (!isLoading) {
+                onDismiss()
+            }
+        },
+        title = {
+            Text(stringResource(R.string.chat_page_compress_context_title))
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-              RabbitLoadingIndicator(modifier = Modifier.size(32.dp))
-              Spacer(modifier = Modifier.width(12.dp))
-              Text(stringResource(R.string.chat_page_compressing))
-            }
-          } else {
-            Text(stringResource(R.string.chat_page_compress_context_desc))
+                if (isLoading) {
+                    // Loading state
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RabbitLoadingIndicator(
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(stringResource(R.string.chat_page_compressing))
+                    }
+                } else {
+                    Text(stringResource(R.string.chat_page_compress_context_desc))
 
-            // Token size selector
-            Text(
-                text = stringResource(R.string.chat_page_compress_target_tokens),
-                style = MaterialTheme.typography.labelMedium,
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-              tokenOptions.forEachIndexed { index, tokens ->
-                SegmentedButton(
-                    selected = selectedTokens == tokens,
-                    onClick = { selectedTokens = tokens },
-                    shape =
-                        SegmentedButtonDefaults.itemShape(index = index, count = tokenOptions.size),
-                ) {
-                  Text("$tokens")
+                    // Token size selector
+                    Text(
+                        text = stringResource(R.string.chat_page_compress_target_tokens),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        tokenOptions.forEachIndexed { index, tokens ->
+                            SegmentedButton(
+                                selected = selectedTokens == tokens,
+                                onClick = { selectedTokens = tokens },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = tokenOptions.size
+                                )
+                            ) {
+                                Text("$tokens")
+                            }
+                        }
+                    }
+
+                    // Keep recent messages selector
+                    Text(
+                        text = stringResource(R.string.chat_page_compress_keep_recent),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        keepRecentOptions.forEachIndexed { index, count ->
+                            SegmentedButton(
+                                selected = keepRecentMessages == count,
+                                onClick = { keepRecentMessages = count },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = keepRecentOptions.size
+                                )
+                            ) {
+                                Text("$count")
+                            }
+                        }
+                    }
+
+                    // Additional context input
+                    OutlinedTextField(
+                        value = additionalPrompt,
+                        onValueChange = { additionalPrompt = it },
+                        label = {
+                            Text(stringResource(R.string.chat_page_compress_additional_prompt))
+                        },
+                        placeholder = {
+                            Text(stringResource(R.string.chat_page_compress_additional_prompt_hint))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 4,
+                    )
+
+                    // Warning text
+                    Text(
+                        text = stringResource(R.string.chat_page_compress_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
-              }
             }
-
-            // Keep recent messages selector
-            Text(
-                text = stringResource(R.string.chat_page_compress_keep_recent),
-                style = MaterialTheme.typography.labelMedium,
-            )
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-              keepRecentOptions.forEachIndexed { index, count ->
-                SegmentedButton(
-                    selected = keepRecentMessages == count,
-                    onClick = { keepRecentMessages = count },
-                    shape =
-                        SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = keepRecentOptions.size,
-                        ),
-                ) {
-                  Text("$count")
+        },
+        confirmButton = {
+            if (isLoading) {
+                TextButton(onClick = {
+                    currentJob?.cancel()
+                    currentJob = null
+                }) {
+                    Text(stringResource(R.string.cancel))
                 }
-              }
+            } else {
+                TextButton(onClick = {
+                    currentJob = onConfirm(additionalPrompt, selectedTokens, keepRecentMessages)
+                }) {
+                    Text(stringResource(R.string.confirm))
+                }
             }
-
-            // Additional context input
-            OutlinedTextField(
-                value = additionalPrompt,
-                onValueChange = { additionalPrompt = it },
-                label = { Text(stringResource(R.string.chat_page_compress_additional_prompt)) },
-                placeholder = {
-                  Text(stringResource(R.string.chat_page_compress_additional_prompt_hint))
-                },
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 4,
-            )
-
-            // Warning text
-            Text(
-                text = stringResource(R.string.chat_page_compress_warning),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
-          }
+        },
+        dismissButton = {
+            if (!isLoading) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
         }
-      },
-      confirmButton = {
-        if (isLoading) {
-          TextButton(
-              onClick = {
-                currentJob?.cancel()
-                currentJob = null
-              }
-          ) {
-            Text(stringResource(R.string.cancel))
-          }
-        } else {
-          TextButton(
-              onClick = {
-                currentJob = onConfirm(additionalPrompt, selectedTokens, keepRecentMessages)
-              }
-          ) {
-            Text(stringResource(R.string.confirm))
-          }
-        }
-      },
-      dismissButton = {
-        if (!isLoading) {
-          TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        }
-      },
-  )
+    )
 }

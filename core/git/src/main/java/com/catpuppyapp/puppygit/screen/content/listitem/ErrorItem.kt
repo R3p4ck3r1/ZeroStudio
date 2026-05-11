@@ -22,86 +22,96 @@ import com.catpuppyapp.puppygit.utils.UIHelper
 import com.catpuppyapp.puppygit.utils.listItemPadding
 import com.catpuppyapp.puppygit.utils.state.CustomStateSaveable
 
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ErrorItem(
     showBottomSheet: MutableState<Boolean>,
     curObjInState: CustomStateSaveable<ErrorEntity>,
-    idx: Int,
-    lastClickedItemKey: MutableState<String>,
+    idx:Int,
+    lastClickedItemKey:MutableState<String>,
     curObj: ErrorEntity,
-    onClick: () -> Unit,
+    onClick:()->Unit
 ) {
-  val haptic = LocalHapticFeedback.current
-  val defaultFontWeight = remember { MyStyleKt.TextItem.defaultFontWeight() }
+    val haptic = LocalHapticFeedback.current
+    val defaultFontWeight = remember { MyStyleKt.TextItem.defaultFontWeight() }
 
-  Column(
-      // 0.9f 占父元素宽度的百分之90
-      modifier =
-          Modifier.fillMaxWidth()
-              //            .defaultMinSize(minHeight = 100.dp)
-              .combinedClickable(
-                  enabled = true,
-                  onClick = {
+    Column(
+        //0.9f 占父元素宽度的百分之90
+        modifier = Modifier
+            .fillMaxWidth()
+//            .defaultMinSize(minHeight = 100.dp)
+            .combinedClickable (
+                enabled = true,
+                onClick = {
                     lastClickedItemKey.value = curObj.id
                     onClick()
-                  },
-                  onLongClick = {
+                },
+                onLongClick = {
                     lastClickedItemKey.value = curObj.id
 
-                    // 震动反馈
-                    //                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    //震动反馈
+//                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
 
                     curObjInState.value = ErrorEntity()
 
-                    // 设置当前条目
+                    //设置当前条目
                     curObjInState.value = curObj
 
-                    // 显示底部菜单
+                    //显示底部菜单
                     showBottomSheet.value = true
-                  },
-              )
-              // padding要放到 combinedClickable后面，不然点按区域也会padding
-              //            .background(if(idx%2==0)  Color.Transparent else CommitListSwitchColor)
-              .then(
-                  if (lastClickedItemKey.value == curObj.id) {
+                },
+            )
+            //padding要放到 combinedClickable后面，不然点按区域也会padding
+//            .background(if(idx%2==0)  Color.Transparent else CommitListSwitchColor)
+            .then(
+                if(lastClickedItemKey.value == curObj.id) {
                     Modifier.background(UIHelper.getLastClickedColor())
-                  } else Modifier
-              )
-              .listItemPadding()
-  ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+                }else Modifier
+            )
+            .listItemPadding()
+
+
     ) {
-      Text(text = stringResource(R.string.id) + ": ")
-      Text(
-          text = curObj.id,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          fontWeight = defaultFontWeight,
-      )
+        Row (
+            verticalAlignment = Alignment.CenterVertically,
+
+        ){
+
+            Text(text = stringResource(R.string.id) +": ")
+            Text(text = curObj.id,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = defaultFontWeight
+
+            )
+        }
+        Row (
+            verticalAlignment = Alignment.CenterVertically,
+
+            ){
+
+            Text(text = stringResource(R.string.date) +": ")
+            Text(text = curObj.date,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = defaultFontWeight
+
+            )
+        }
+        Row (
+            verticalAlignment = Alignment.CenterVertically,
+
+            ){
+
+            Text(text = stringResource(R.string.msg) +": ")
+            Text(text = curObj.getCachedOneLineMsg(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = defaultFontWeight
+
+            )
+        }
+
     }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(text = stringResource(R.string.date) + ": ")
-      Text(
-          text = curObj.date,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          fontWeight = defaultFontWeight,
-      )
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(text = stringResource(R.string.msg) + ": ")
-      Text(
-          text = curObj.getCachedOneLineMsg(),
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis,
-          fontWeight = defaultFontWeight,
-      )
-    }
-  }
 }

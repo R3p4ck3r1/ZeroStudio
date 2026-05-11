@@ -4,13 +4,10 @@ private val iconCache = mutableMapOf<String, String>()
 
 // https://lobehub.com/zh/icons
 fun computeAIIconByName(name: String): String? {
-  iconCache[name]?.let {
-    return it
-  }
+    iconCache[name]?.let { return it }
 
-  val lowerName = name.lowercase()
-  val result =
-      when {
+    val lowerName = name.lowercase()
+    val result = when {
         PATTERN_OPENAI.containsMatchIn(lowerName) -> "openai.svg"
         PATTERN_GEMINI.containsMatchIn(lowerName) -> "gemini-color.svg"
         PATTERN_GOOGLE.containsMatchIn(lowerName) -> "google-color.svg"
@@ -64,10 +61,10 @@ fun computeAIIconByName(name: String): String? {
         PATTERN_SEARCH_JINA.containsMatchIn(lowerName) -> "jina.svg"
         PATTERN_SEARCH_SEARXNG.containsMatchIn(lowerName) -> "searxng.svg"
         else -> null
-      }
+    }
 
-  result?.let { iconCache[name] = it }
-  return result
+    result?.let { iconCache[name] = it }
+    return result
 }
 
 private val PATTERN_RIKKAHUB = Regex("rikka|auto")

@@ -14,22 +14,22 @@ import com.catpuppyapp.puppygit.play.pro.R
 fun FileDetailListActions(
     request: MutableState<String>,
     filterModeOn: Boolean,
-    initFilterMode: () -> Unit,
+    initFilterMode: ()->Unit,
 ) {
-  if (filterModeOn) {
-    return
-  }
+    if(filterModeOn) {
+        return
+    }
 
-  LongPressAbleIconBtn(
-      tooltipText = stringResource(R.string.filter),
-      icon = Icons.Filled.FilterAlt,
-  ) {
-    initFilterMode()
-  }
-  LongPressAbleIconBtn(
-      tooltipText = stringResource(R.string.refresh),
-      icon = Icons.Filled.Refresh,
-  ) {
-    request.value = PageRequest.reloadRecentFileList
-  }
+    LongPressAbleIconBtn(
+        tooltipText = stringResource(R.string.filter),
+        icon = Icons.Filled.FilterAlt,
+    ) {
+        initFilterMode()
+    }
+    LongPressAbleIconBtn(
+        tooltipText = stringResource(R.string.refresh),
+        icon = Icons.Filled.Refresh,
+    ) {
+        request.value = PageRequest.reloadRecentFileList
+    }
 }

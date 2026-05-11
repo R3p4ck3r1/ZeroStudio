@@ -24,7 +24,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.catpuppyapp.puppygit.base.BaseComposeActivity
 import com.catpuppyapp.puppygit.compose.AppIcon
 import com.catpuppyapp.puppygit.compose.GoToTopAndGoToBottomFab
 import com.catpuppyapp.puppygit.compose.MyHorizontalDivider
@@ -33,6 +32,7 @@ import com.catpuppyapp.puppygit.compose.SingleLineCardButton
 import com.catpuppyapp.puppygit.compose.SpacerRow
 import com.catpuppyapp.puppygit.constants.IntentCons
 import com.catpuppyapp.puppygit.play.pro.R
+import com.catpuppyapp.puppygit.base.BaseComposeActivity
 import com.catpuppyapp.puppygit.screen.content.homescreen.innerpage.reportBugsLink
 import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.ui.theme.InitContent
@@ -41,121 +41,143 @@ import com.catpuppyapp.puppygit.utils.MyLog
 import com.catpuppyapp.puppygit.utils.baseVerticalScrollablePageModifier
 import com.catpuppyapp.puppygit.utils.showToast
 
+
 private const val TAG = "CrashActivity"
 
+
 class CrashActivity : BaseComposeActivity() {
-  companion object {
-    val ACTION_SHOW_ERR_MSG = IntentCons.Action.SHOW_ERR_MSG
-    const val INTENT_EXTRA_KEY_ERR_MSG = IntentCons.ExtrasKey.errMsg
+    companion object {
+        val ACTION_SHOW_ERR_MSG = IntentCons.Action.SHOW_ERR_MSG
+        const val INTENT_EXTRA_KEY_ERR_MSG = IntentCons.ExtrasKey.errMsg
 
-    fun start(fromActivity: Activity, errMsg: String) {
-      val intent =
-          Intent(ACTION_SHOW_ERR_MSG).apply {
-            // 携带错误信息
-            putExtra(INTENT_EXTRA_KEY_ERR_MSG, errMsg)
-            setClass(fromActivity, CrashActivity::class.java)
-          }
 
-      fromActivity.startActivity(intent)
+        fun start(fromActivity: Activity, errMsg:String) {
+            val intent = Intent(ACTION_SHOW_ERR_MSG).apply {
+                //携带错误信息
+                putExtra(INTENT_EXTRA_KEY_ERR_MSG, errMsg)
+                setClass(fromActivity, CrashActivity::class.java)
+            }
+
+            fromActivity.startActivity(intent)
+        }
+
+        private fun getErrMsg(intent: Intent):String {
+            return intent.extras?.getString(INTENT_EXTRA_KEY_ERR_MSG) ?: ""
+        }
+
     }
 
-    private fun getErrMsg(intent: Intent): String {
-      return intent.extras?.getString(INTENT_EXTRA_KEY_ERR_MSG) ?: ""
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val funName = "onCreate"
+
+        init(TAG)
+
+
+        MyLog.d(TAG, "#onCreate called")
+
+        val errMsg = getErrMsg(intent)
+
+
+        setContent {
+            InitContent(applicationContext) {
+                MainCompose(activity = this, appContext = applicationContext, errMsg) {
+                    finish()
+                }
+            }
+        }
+
     }
-  }
 
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    val funName = "onCreate"
 
-    init(TAG)
-
-    MyLog.d(TAG, "#onCreate called")
-
-    val errMsg = getErrMsg(intent)
-
-    setContent {
-      InitContent(applicationContext) {
-        MainCompose(activity = this, appContext = applicationContext, errMsg) { finish() }
-      }
-    }
-  }
 }
 
+
 @Composable
-private fun MainCompose(activity: Activity, appContext: Context, errMsg: String, exit: () -> Unit) {
-  val activityContext = LocalContext.current
-  val clipboardManager = LocalClipboardManager.current
-  val scope = rememberCoroutineScope()
+private fun MainCompose(activity: Activity, appContext: Context, errMsg: String, exit:()->Unit) {
+    val activityContext = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
 
-  val spacerHeight = 20.dp
-  val errMsgZonePadding = 20.dp
+    val spacerHeight = 20.dp
+    val errMsgZonePadding = 20.dp
 
-  val scrollState = rememberScrollState()
-  // 设为true，默认显示fab，可临时隐藏，超时后将再次显示
-  val showFab = rememberSaveable { mutableStateOf(true) }
-  val lastScrollPosition = rememberSaveable { mutableStateOf(0) }
+    val scrollState = rememberScrollState()
+    //设为true，默认显示fab，可临时隐藏，超时后将再次显示
+    val showFab = rememberSaveable { mutableStateOf(true) }
+    val lastScrollPosition = rememberSaveable { mutableStateOf(0) }
 
-  Scaffold(
-      floatingActionButton = {
-        if (showFab.value) {
-          GoToTopAndGoToBottomFab(
-              scope = scope,
-              listState = scrollState,
-              listLastPosition = lastScrollPosition,
-              showFab = showFab,
-          )
+    Scaffold(
+        floatingActionButton = {
+            if(showFab.value) {
+                GoToTopAndGoToBottomFab(
+                    scope = scope,
+                    listState = scrollState,
+                    listLastPosition = lastScrollPosition,
+                    showFab = showFab
+                )
+            }
         }
-      }
-  ) { contentPadding ->
-    Column(
-        modifier = Modifier.baseVerticalScrollablePageModifier(contentPadding, scrollState),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-      Spacer(Modifier.height(spacerHeight))
-      AppIcon()
-      Spacer(Modifier.height(spacerHeight))
+    ) { contentPadding ->
+        Column(
+            modifier = Modifier
+                .baseVerticalScrollablePageModifier(contentPadding, scrollState)
+            ,
+            horizontalAlignment = Alignment.CenterHorizontally,
 
-      Text("App Crashed!!", fontSize = 30.sp)
+        ) {
+            Spacer(Modifier.height(spacerHeight))
+            AppIcon()
+            Spacer(Modifier.height(spacerHeight))
 
-      MySelectionContainer {
-        Text(
-            errMsg,
-            color = MyStyleKt.TextColor.error(),
-            modifier = Modifier.padding(errMsgZonePadding),
-        )
-      }
+            Text("App Crashed!!", fontSize = 30.sp)
 
-      MyHorizontalDivider()
-      Spacer(Modifier.height(spacerHeight))
+            MySelectionContainer {
+                Text(errMsg, color = MyStyleKt.TextColor.error(), modifier = Modifier.padding(errMsgZonePadding))
+            }
 
-      SingleLineCardButton(text = stringResource(R.string.copy)) {
-        clipboardManager.setText(AnnotatedString(errMsg))
-        showToast(activityContext, activityContext.getString(R.string.copied))
-      }
+            MyHorizontalDivider()
+            Spacer(Modifier.height(spacerHeight))
 
-      Spacer(Modifier.height(spacerHeight))
 
-      SingleLineCardButton(text = stringResource(R.string.report_bugs)) {
-        ActivityUtil.openUrl(activityContext, reportBugsLink)
-      }
+            SingleLineCardButton(
+                text = stringResource(R.string.copy)
+            ) {
+                clipboardManager.setText(AnnotatedString(errMsg))
+                showToast(activityContext, activityContext.getString(R.string.copied))
+            }
 
-      Spacer(Modifier.height(spacerHeight))
+            Spacer(Modifier.height(spacerHeight))
 
-      SingleLineCardButton(text = stringResource(R.string.restart_app)) {
-        // 启动App主Activity
-        // 注：必须传Activity，applicationContext无法启动Activity，可能需要悬浮窗权限，但也不一定，总之一般通过Activity启动Activity是没问题的
-        startMainActivity(activity)
+            SingleLineCardButton(
+                text = stringResource(R.string.report_bugs)
+            ) {
+                ActivityUtil.openUrl(activityContext, reportBugsLink)
+            }
 
-        // 退出CrashActivity（当前Activity）
-        exit()
-      }
+            Spacer(Modifier.height(spacerHeight))
 
-      Spacer(Modifier.height(spacerHeight))
+            SingleLineCardButton(
+                text = stringResource(R.string.restart_app)
+            ) {
+                //启动App主Activity
+                //注：必须传Activity，applicationContext无法启动Activity，可能需要悬浮窗权限，但也不一定，总之一般通过Activity启动Activity是没问题的
+                startMainActivity(activity)
 
-      SingleLineCardButton(text = stringResource(R.string.exit)) { exit() }
+                //退出CrashActivity（当前Activity）
+                exit()
+            }
 
-      SpacerRow()
+            Spacer(Modifier.height(spacerHeight))
+
+            SingleLineCardButton(
+                text = stringResource(R.string.exit)
+            ) {
+                exit()
+            }
+
+            SpacerRow()
+        }
     }
-  }
+
 }

@@ -3,11 +3,14 @@ package me.saket.swipe
 import kotlin.math.abs
 
 internal data class SwipeActionMeta(
-    val value: SwipeAction,
-    val isOnRightSide: Boolean,
+  val value: SwipeAction,
+  val isOnRightSide: Boolean,
 )
 
-internal data class ActionFinder(val left: List<SwipeAction>, val right: List<SwipeAction>) {
+internal data class ActionFinder(
+  val left: List<SwipeAction>,
+  val right: List<SwipeAction>
+) {
 
   fun actionAt(offset: Float, totalWidth: Int): SwipeActionMeta? {
     if (offset == 0f) {
@@ -17,13 +20,15 @@ internal data class ActionFinder(val left: List<SwipeAction>, val right: List<Sw
     val isOnRightSide = offset < 0f
     val actions = if (isOnRightSide) right else left
 
-    val actionAtOffset =
-        actions.actionAt(
-            offset = abs(offset).coerceAtMost(totalWidth.toFloat()),
-            totalWidth = totalWidth,
-        )
+    val actionAtOffset = actions.actionAt(
+      offset = abs(offset).coerceAtMost(totalWidth.toFloat()),
+      totalWidth = totalWidth
+    )
     return actionAtOffset?.let {
-      SwipeActionMeta(value = actionAtOffset, isOnRightSide = isOnRightSide)
+      SwipeActionMeta(
+        value = actionAtOffset,
+        isOnRightSide = isOnRightSide
+      )
     }
   }
 
@@ -35,9 +40,7 @@ internal data class ActionFinder(val left: List<SwipeAction>, val right: List<Sw
     val totalWeights = this.sumOf { it.weight }
     var offsetSoFar = 0.0
 
-    @Suppress(
-        "ReplaceManualRangeWithIndicesCalls"
-    ) // Avoid allocating an Iterator for every pixel swiped.
+    @Suppress("ReplaceManualRangeWithIndicesCalls") // Avoid allocating an Iterator for every pixel swiped.
     for (i in 0 until size) {
       val action = this[i]
       val actionWidth = (action.weight / totalWeights) * totalWidth

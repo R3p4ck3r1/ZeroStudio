@@ -1,42 +1,42 @@
 package com.catpuppyapp.puppygit.compose
 //
-// import androidx.compose.foundation.clickable
-// import androidx.compose.foundation.layout.Arrangement
-// import androidx.compose.foundation.layout.Row
-// import androidx.compose.foundation.layout.fillMaxWidth
-// import androidx.compose.foundation.lazy.LazyColumn
-// import androidx.compose.material3.AlertDialog
-// import androidx.compose.material3.MaterialTheme
-// import androidx.compose.material3.Text
-// import androidx.compose.material3.TextButton
-// import androidx.compose.runtime.Composable
-// import androidx.compose.runtime.DisposableEffect
-// import androidx.compose.runtime.LaunchedEffect
-// import androidx.compose.runtime.MutableState
-// import androidx.compose.runtime.mutableStateListOf
-// import androidx.compose.runtime.remember
-// import androidx.compose.ui.Alignment
-// import androidx.compose.ui.Modifier
-// import androidx.compose.ui.graphics.Color
-// import androidx.compose.ui.res.stringResource
-// import com.catpuppyapp.puppygit.play.pro.R
-// import com.catpuppyapp.puppygit.data.entity.RepoEntity
-// import com.catpuppyapp.puppygit.utils.AppModel
-// import com.catpuppyapp.puppygit.utils.doJobThenOffLoading
-// import kotlinx.coroutines.CoroutineScope
-// import kotlinx.coroutines.Dispatchers
-// import kotlinx.coroutines.launch
-// import kotlin.coroutines.cancellation.CancellationException
+//import androidx.compose.foundation.clickable
+//import androidx.compose.foundation.layout.Arrangement
+//import androidx.compose.foundation.layout.Row
+//import androidx.compose.foundation.layout.fillMaxWidth
+//import androidx.compose.foundation.lazy.LazyColumn
+//import androidx.compose.material3.AlertDialog
+//import androidx.compose.material3.MaterialTheme
+//import androidx.compose.material3.Text
+//import androidx.compose.material3.TextButton
+//import androidx.compose.runtime.Composable
+//import androidx.compose.runtime.DisposableEffect
+//import androidx.compose.runtime.LaunchedEffect
+//import androidx.compose.runtime.MutableState
+//import androidx.compose.runtime.mutableStateListOf
+//import androidx.compose.runtime.remember
+//import androidx.compose.ui.Alignment
+//import androidx.compose.ui.Modifier
+//import androidx.compose.ui.graphics.Color
+//import androidx.compose.ui.res.stringResource
+//import com.catpuppyapp.puppygit.play.pro.R
+//import com.catpuppyapp.puppygit.data.entity.RepoEntity
+//import com.catpuppyapp.puppygit.utils.AppModel
+//import com.catpuppyapp.puppygit.utils.doJobThenOffLoading
+//import kotlinx.coroutines.CoroutineScope
+//import kotlinx.coroutines.Dispatchers
+//import kotlinx.coroutines.launch
+//import kotlin.coroutines.cancellation.CancellationException
 //
-//// 20240501：这个东西干嘛的？啊，我想起来了，ChangeList页面用来切换仓库的！但后来改用点击Title弹出下拉选单切换了，所以这个就没用了。
+////20240501：这个东西干嘛的？啊，我想起来了，ChangeList页面用来切换仓库的！但后来改用点击Title弹出下拉选单切换了，所以这个就没用了。
 //
-// @Deprecated("显示列表题目有点问题，先弃用")
-// @Composable
-// fun RepoListDialog(
+//@Deprecated("显示列表题目有点问题，先弃用")
+//@Composable
+//fun RepoListDialog(
 //    curSelectedRepo:MutableState<RepoEntity>,  //如果在查询的列表中就高亮显示，否则就无视
 //    itemOnClick:(RepoEntity)->Unit,
 //    onClose:()->Unit
-// ) {
+//) {
 //    val repoList = remember{ mutableStateListOf<RepoEntity>() }
 //
 //    AlertDialog(
@@ -52,8 +52,7 @@ package com.catpuppyapp.puppygit.compose
 //                        {
 //                            Text(text = r.repoName,
 //                                color =
-//                                if(r.repoName == curSelectedRepo.value.repoName)
-// MaterialTheme.colorScheme.primary
+//                                if(r.repoName == curSelectedRepo.value.repoName) MaterialTheme.colorScheme.primary
 //                                else Color.Unspecified
 //                            )
 //                        }
@@ -105,4 +104,4 @@ package com.catpuppyapp.puppygit.compose
 ////            println("DisposableEffect: exited repolistdialog")
 //        }
 //    }
-// }
+//}

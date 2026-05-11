@@ -1,14 +1,13 @@
 package com.catpuppyapp.puppygit.compose
 
-// import androidx.compose.runtime.Composable
-// import androidx.compose.runtime.mutableIntStateOf
-// import androidx.compose.runtime.remember
+//import androidx.compose.runtime.Composable
+//import androidx.compose.runtime.mutableIntStateOf
+//import androidx.compose.runtime.remember
 
 //
-// @Deprecated("deprecated by performance issue")
-// @Composable
-// fun ScrollListener(nowAt:Int, lastAtInitValue:Int=0, onScrollUp:()->Unit, onScrollDown:()->Unit)
-// {
+//@Deprecated("deprecated by performance issue")
+//@Composable
+//fun ScrollListener(nowAt:Int, lastAtInitValue:Int=0, onScrollUp:()->Unit, onScrollDown:()->Unit) {
 //    val lastAt = remember { mutableIntStateOf(lastAtInitValue) }
 //
 //    if(nowAt < lastAt.intValue) {  // go up
@@ -20,4 +19,4 @@ package com.catpuppyapp.puppygit.compose
 //        onScrollDown()
 //        lastAt.intValue = nowAt
 //    }
-// }
+//}

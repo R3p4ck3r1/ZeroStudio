@@ -14,11 +14,15 @@ import com.catpuppyapp.puppygit.play.pro.R
 
 @Composable
 fun ItemListIsEmpty() {
-  Row(
-      modifier = Modifier.height(50.dp).fillMaxWidth(),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.Center,
-  ) {
-    Text(stringResource(R.string.item_list_is_empty))
-  }
+    Row(
+        modifier = Modifier
+            .height(50.dp)
+            .fillMaxWidth(),
+
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(stringResource(R.string.item_list_is_empty))
+    }
 }
+

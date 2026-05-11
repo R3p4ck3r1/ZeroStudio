@@ -27,148 +27,151 @@ import okhttp3.RequestBody.Companion.toRequestBody
 private const val TAG = "GrokSearchService"
 
 object GrokSearchService : SearchService<SearchServiceOptions.GrokOptions> {
-  override val name: String = "Grok"
+    override val name: String = "Grok"
 
-  @Composable
-  override fun Description() {
-    val uriHandler = LocalUriHandler.current
-    TextButton(onClick = { uriHandler.openUri("https://console.x.ai/") }) {
-      Text(stringResource(R.string.click_to_get_api_key))
+    @Composable
+    override fun Description() {
+        val uriHandler = LocalUriHandler.current
+        TextButton(
+            onClick = {
+                uriHandler.openUri("https://console.x.ai/")
+            }
+        ) {
+            Text(stringResource(R.string.click_to_get_api_key))
+        }
     }
-  }
 
-  override val parameters: InputSchema?
-    get() =
-        InputSchema.Obj(
-            properties =
-                buildJsonObject {
-                  put(
-                      "query",
-                      buildJsonObject {
-                        put("type", "string")
-                        put(
-                            "description",
-                            "The question to ask, can be a natural language question",
-                        )
-                      },
-                  )
-                },
-            required = listOf("query"),
+    override val parameters: InputSchema?
+        get() = InputSchema.Obj(
+            properties = buildJsonObject {
+                put("query", buildJsonObject {
+                    put("type", "string")
+                    put("description", "The question to ask, can be a natural language question")
+                })
+            },
+            required = listOf("query")
         )
 
-  override val scrapingParameters: InputSchema? = null
+    override val scrapingParameters: InputSchema? = null
 
-  override suspend fun search(
-      params: JsonObject,
-      commonOptions: SearchCommonOptions,
-      serviceOptions: SearchServiceOptions.GrokOptions,
-  ): Result<SearchResult> =
-      withContext(Dispatchers.IO) {
+    override suspend fun search(
+        params: JsonObject,
+        commonOptions: SearchCommonOptions,
+        serviceOptions: SearchServiceOptions.GrokOptions
+    ): Result<SearchResult> = withContext(Dispatchers.IO) {
         runCatching {
-          if (serviceOptions.apiKey.isBlank()) {
-            error("Grok API key is required")
-          }
+            if (serviceOptions.apiKey.isBlank()) {
+                error("Grok API key is required")
+            }
 
-          val query = params["query"]?.jsonPrimitive?.content ?: error("query is required")
+            val query = params["query"]?.jsonPrimitive?.content
+                ?: error("query is required")
 
-          val body = buildJsonObject {
-            put("model", JsonPrimitive(serviceOptions.model))
-            put(
-                "input",
-                buildJsonArray {
-                  add(
-                      buildJsonObject {
+            val body = buildJsonObject {
+                put("model", JsonPrimitive(serviceOptions.model))
+                put("input", buildJsonArray {
+                    add(buildJsonObject {
                         put("role", JsonPrimitive("system"))
                         put("content", JsonPrimitive(serviceOptions.systemPrompt))
-                      }
-                  )
-                  add(
-                      buildJsonObject {
+                    })
+                    add(buildJsonObject {
                         put("role", JsonPrimitive("user"))
                         put("content", JsonPrimitive(query))
-                      }
-                  )
-                },
-            )
-            put(
-                "tools",
-                buildJsonArray {
-                  add(buildJsonObject { put("type", JsonPrimitive("web_search")) })
-                  add(buildJsonObject { put("type", JsonPrimitive("x_search")) })
-                },
-            )
-            put("store", JsonPrimitive(false))
-          }
+                    })
+                })
+                put("tools", buildJsonArray {
+                    add(buildJsonObject {
+                        put("type", JsonPrimitive("web_search"))
+                    })
+                    add(buildJsonObject {
+                        put("type", JsonPrimitive("x_search"))
+                    })
+                })
+                put("store", JsonPrimitive(false))
+            }
 
-          Log.i(TAG, "search: $query")
+            Log.i(TAG, "search: $query")
 
-          val request =
-              Request.Builder()
-                  .url(serviceOptions.customUrl)
-                  .post(body.toString().toRequestBody())
-                  .addHeader("Authorization", "Bearer ${serviceOptions.apiKey}")
-                  .addHeader("Content-Type", "application/json")
-                  .build()
+            val request = Request.Builder()
+                .url(serviceOptions.customUrl)
+                .post(body.toString().toRequestBody())
+                .addHeader("Authorization", "Bearer ${serviceOptions.apiKey}")
+                .addHeader("Content-Type", "application/json")
+                .build()
 
-          val response = httpClient.newCall(request).await()
-          if (response.isSuccessful) {
-            val responseBody =
-                response.body.string().let { json.decodeFromString<GrokResponse>(it) }
+            val response = httpClient.newCall(request).await()
+            if (response.isSuccessful) {
+                val responseBody = response.body.string().let {
+                    json.decodeFromString<GrokResponse>(it)
+                }
 
-            val messageOutput =
-                responseBody.output.firstOrNull { it.type == "message" && it.role == "assistant" }
-            val textContent = messageOutput?.content?.firstOrNull { it.type == "output_text" }
+                val messageOutput = responseBody.output.firstOrNull {
+                    it.type == "message" && it.role == "assistant"
+                }
+                val textContent = messageOutput?.content?.firstOrNull {
+                    it.type == "output_text"
+                }
 
-            val answer = textContent?.text
+                val answer = textContent?.text
 
-            val items =
-                textContent
-                    ?.annotations
+                val items = textContent?.annotations
                     ?.filter { it.type == "url_citation" && !it.url.isNullOrBlank() }
                     ?.distinctBy { it.url }
                     ?.take(commonOptions.resultSize)
                     ?.map { annotation ->
-                      SearchResultItem(title = annotation.url!!, url = annotation.url, text = "")
+                        SearchResultItem(
+                            title = annotation.url!!,
+                            url = annotation.url,
+                            text = ""
+                        )
                     } ?: emptyList()
 
-            return@withContext Result.success(SearchResult(answer = answer, items = items))
-          } else {
-            error("response failed #${response.code}: ${response.body?.string()}")
-          }
+                return@withContext Result.success(
+                    SearchResult(
+                        answer = answer,
+                        items = items
+                    )
+                )
+            } else {
+                error("response failed #${response.code}: ${response.body?.string()}")
+            }
         }
-      }
+    }
 
-  override suspend fun scrape(
-      params: JsonObject,
-      commonOptions: SearchCommonOptions,
-      serviceOptions: SearchServiceOptions.GrokOptions,
-  ): Result<ScrapedResult> {
-    return Result.failure(Exception("Scraping is not supported for Grok"))
-  }
+    override suspend fun scrape(
+        params: JsonObject,
+        commonOptions: SearchCommonOptions,
+        serviceOptions: SearchServiceOptions.GrokOptions
+    ): Result<ScrapedResult> {
+        return Result.failure(Exception("Scraping is not supported for Grok"))
+    }
 
-  @Serializable private data class GrokResponse(val output: List<GrokOutputItem> = emptyList())
+    @Serializable
+    private data class GrokResponse(
+        val output: List<GrokOutputItem> = emptyList()
+    )
 
-  @Serializable
-  private data class GrokOutputItem(
-      val type: String,
-      val role: String? = null,
-      val status: String? = null,
-      val content: List<GrokContent>? = null,
-  )
+    @Serializable
+    private data class GrokOutputItem(
+        val type: String,
+        val role: String? = null,
+        val status: String? = null,
+        val content: List<GrokContent>? = null,
+    )
 
-  @Serializable
-  private data class GrokContent(
-      val type: String,
-      val text: String? = null,
-      val annotations: List<GrokAnnotation>? = null,
-  )
+    @Serializable
+    private data class GrokContent(
+        val type: String,
+        val text: String? = null,
+        val annotations: List<GrokAnnotation>? = null
+    )
 
-  @Serializable
-  private data class GrokAnnotation(
-      val type: String,
-      val url: String? = null,
-      val title: String? = null,
-      @SerialName("start_index") val startIndex: Int? = null,
-      @SerialName("end_index") val endIndex: Int? = null,
-  )
+    @Serializable
+    private data class GrokAnnotation(
+        val type: String,
+        val url: String? = null,
+        val title: String? = null,
+        @SerialName("start_index") val startIndex: Int? = null,
+        @SerialName("end_index") val endIndex: Int? = null
+    )
 }

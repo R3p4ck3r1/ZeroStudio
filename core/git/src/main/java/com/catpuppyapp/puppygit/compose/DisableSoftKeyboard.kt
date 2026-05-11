@@ -14,22 +14,25 @@ import kotlinx.coroutines.awaitCancellation
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun DisableSoftKeyboard(disable: Boolean, content: @Composable () -> Unit) {
-  InterceptPlatformTextInput(
-      interceptor = { request, nextHandler ->
-        // If this flag is changed while an input session is active, a new lambda instance
-        // that captures the new value will be passed to InterceptPlatformTextInput, which
-        // will automatically cancel the session upstream and restart it with this new
-        // interceptor.
-        if (disable) {
-          // This function has to return Nothing, and since we don't have any work to do
-          // in this case, we just suspend until cancelled.
-          awaitCancellation()
-        } else {
-          // Forward the request to the system.
-          nextHandler.startInputMethod(request)
-        }
-      },
-      content = content,
-  )
+fun DisableSoftKeyboard(
+    disable: Boolean,
+    content: @Composable () -> Unit
+) {
+    InterceptPlatformTextInput(
+        interceptor = { request, nextHandler ->
+            // If this flag is changed while an input session is active, a new lambda instance
+            // that captures the new value will be passed to InterceptPlatformTextInput, which
+            // will automatically cancel the session upstream and restart it with this new
+            // interceptor.
+            if (disable) {
+                // This function has to return Nothing, and since we don't have any work to do
+                // in this case, we just suspend until cancelled.
+                awaitCancellation()
+            } else {
+                // Forward the request to the system.
+                nextHandler.startInputMethod(request)
+            }
+        },
+        content = content
+    )
 }

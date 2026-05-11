@@ -1,6 +1,6 @@
 package com.catpuppyapp.puppygit.utils
 
-// class MsgQueue {
+//class MsgQueue {
 //    companion object {
 //        val storage = ConcurrentLinkedQueue<String>()
 //
@@ -21,4 +21,4 @@ package com.catpuppyapp.puppygit.utils
 //        }
 //
 //    }
-// }
+//}

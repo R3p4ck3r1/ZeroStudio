@@ -8,5 +8,5 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun ListItemSpacer() {
-  Spacer(modifier = Modifier.padding(4.dp))
+    Spacer(modifier = Modifier.padding(4.dp))
 }

@@ -30,10 +30,9 @@ private fun AIIcon(
     loading: Boolean = false,
     color: Color = MaterialTheme.colorScheme.secondaryContainer,
 ) {
-  val contentColor = LocalContentColor.current
-  val context = LocalContext.current
-  val model =
-      remember(path, contentColor, context) {
+    val contentColor = LocalContentColor.current
+    val context = LocalContext.current
+    val model = remember(path, contentColor, context) {
         ImageRequest.Builder(context)
             .data("file:///android_asset/icons/$path")
             .css(
@@ -41,18 +40,21 @@ private fun AIIcon(
                 svg {
                   fill: ${contentColor.toCssHex()};
                 }
-            """
-                    .trimIndent()
+            """.trimIndent()
             )
             .build()
-      }
-  Surface(
-      modifier = modifier.size(24.dp),
-      shape = rememberAvatarShape(loading),
-      color = color,
-  ) {
-    AsyncImage(model = model, contentDescription = name, modifier = Modifier.padding(4.dp))
-  }
+    }
+    Surface(
+        modifier = modifier.size(24.dp),
+        shape = rememberAvatarShape(loading),
+        color = color,
+    ) {
+        AsyncImage(
+            model = model,
+            contentDescription = name,
+            modifier = Modifier.padding(4.dp)
+        )
+    }
 }
 
 @Composable
@@ -62,33 +64,33 @@ fun AutoAIIcon(
     loading: Boolean = false,
     color: Color = MaterialTheme.colorScheme.secondaryContainer,
 ) {
-  val path =
-      remember(name) { computeAIIconByName(name) }
-          ?: run {
-            TextAvatar(text = name, modifier = modifier, loading = loading, color = color)
-            return
-          }
-  AIIcon(
-      path = path,
-      name = name,
-      modifier = modifier,
-      loading = loading,
-      color = color,
-  )
+    val path = remember(name) { computeAIIconByName(name) } ?: run {
+        TextAvatar(text = name, modifier = modifier, loading = loading, color = color)
+        return
+    }
+    AIIcon(
+        path = path,
+        name = name,
+        modifier = modifier,
+        loading = loading,
+        color = color,
+    )
 }
 
 @Preview
 @Composable
 private fun PreviewAutoAIIcon() {
-  Column { AutoAIIcon("测试") }
+    Column {
+        AutoAIIcon("测试")
+    }
 }
 
 @Composable
 fun SiliconFlowPowerByIcon(modifier: Modifier = Modifier) {
-  val darkMode = LocalDarkMode.current
-  if (!darkMode) {
-    AsyncImage(model = R.drawable.siliconflow_light, contentDescription = null, modifier = modifier)
-  } else {
-    AsyncImage(model = R.drawable.siliconflow_dark, contentDescription = null, modifier = modifier)
-  }
+    val darkMode = LocalDarkMode.current
+    if (!darkMode) {
+        AsyncImage(model = R.drawable.siliconflow_light, contentDescription = null, modifier = modifier)
+    } else {
+        AsyncImage(model = R.drawable.siliconflow_dark, contentDescription = null, modifier = modifier)
+    }
 }

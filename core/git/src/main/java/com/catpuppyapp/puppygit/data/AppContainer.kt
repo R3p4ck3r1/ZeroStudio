@@ -34,56 +34,70 @@ import com.catpuppyapp.puppygit.data.repository.SettingsRepositoryImpl
 import com.catpuppyapp.puppygit.data.repository.StorageDirRepository
 import com.catpuppyapp.puppygit.data.repository.StorageDirRepositoryImpl
 
-/** App container for Dependency injection. */
+/**
+ * App container for Dependency injection.
+ */
 interface AppContainer {
-  val db: AppDatabase
+    val db:AppDatabase
 
-  val repoRepository: RepoRepository
-  val errorRepository: ErrorRepository
-  val credentialRepository: CredentialRepository
-  val remoteRepository: RemoteRepository
+    val repoRepository: RepoRepository
+    val errorRepository: ErrorRepository
+    val credentialRepository: CredentialRepository
+    val remoteRepository: RemoteRepository
 
-  @Deprecated("废弃") val settingsRepository: SettingsRepository
+    @Deprecated("废弃")
+    val settingsRepository: SettingsRepository
 
-  @Deprecated("20241205 之后，采用主密码，此类已不再维护，但保留类并仍在启动时检查是否需要迁移密码以兼容旧版本app")
-  val passEncryptRepository: PassEncryptRepository
+    @Deprecated("20241205 之后，采用主密码，此类已不再维护，但保留类并仍在启动时检查是否需要迁移密码以兼容旧版本app")
+    val passEncryptRepository: PassEncryptRepository
 
-  @Deprecated("废弃") val storageDirRepository: StorageDirRepository
+    @Deprecated("废弃")
+    val storageDirRepository: StorageDirRepository
 
-  val domainCredentialRepository: DomainCredentialRepository
-  // other repository write here
+    val domainCredentialRepository: DomainCredentialRepository
+    // other repository write here
 }
 
-/** [AppContainer] implementation that provides instance of [RepoRepositoryImpl] */
+/**
+ * [AppContainer] implementation that provides instance of [RepoRepositoryImpl]
+ */
 class AppDataContainer(private val context: Context) : AppContainer {
-  override val db: AppDatabase = AppDatabase.getDatabase(context)
-  /** Implementation for [RepoRepository] */
-  override val repoRepository: RepoRepository by lazy { RepoRepositoryImpl(db.repoDao()) }
+    override val db: AppDatabase = AppDatabase.getDatabase(context)
+    /**
+     * Implementation for [RepoRepository]
+     */
+    override val repoRepository: RepoRepository by lazy {
+        RepoRepositoryImpl(db.repoDao())
+    }
 
-  override val errorRepository: ErrorRepository by lazy { ErrorRepositoryImpl(db.errorDao()) }
+    override val errorRepository: ErrorRepository by lazy {
+        ErrorRepositoryImpl(db.errorDao())
+    }
 
-  override val credentialRepository: CredentialRepository by lazy {
-    CredentialRepositoryImpl(db.credentialDao())
-  }
+    override val credentialRepository: CredentialRepository by lazy {
+        CredentialRepositoryImpl(db.credentialDao())
+    }
 
-  override val remoteRepository: RemoteRepository by lazy { RemoteRepositoryImpl(db.remoteDao()) }
+    override val remoteRepository: RemoteRepository by lazy {
+        RemoteRepositoryImpl(db.remoteDao())
+    }
 
-  @Deprecated("废弃")
-  override val settingsRepository: SettingsRepository by lazy {
-    SettingsRepositoryImpl(db.settingsDao())
-  }
+    @Deprecated("废弃")
+    override val settingsRepository: SettingsRepository by lazy {
+        SettingsRepositoryImpl(db.settingsDao())
+    }
 
-  @Deprecated("已废弃")
-  override val passEncryptRepository: PassEncryptRepository by lazy {
-    PassEncryptRepositoryImpl(db.passEncryptDao())
-  }
+    @Deprecated("已废弃")
+    override val passEncryptRepository: PassEncryptRepository by lazy {
+        PassEncryptRepositoryImpl(db.passEncryptDao())
+    }
 
-  @Deprecated("废弃")
-  override val storageDirRepository: StorageDirRepository by lazy {
-    StorageDirRepositoryImpl(db.storageDirDao())
-  }
+    @Deprecated("废弃")
+    override val storageDirRepository: StorageDirRepository by lazy {
+        StorageDirRepositoryImpl(db.storageDirDao())
+    }
 
-  override val domainCredentialRepository: DomainCredentialRepository by lazy {
-    DomainCredentialRepositoryImpl(db.domainCredentialDao())
-  }
+    override val domainCredentialRepository: DomainCredentialRepository by lazy {
+        DomainCredentialRepositoryImpl(db.domainCredentialDao())
+    }
 }

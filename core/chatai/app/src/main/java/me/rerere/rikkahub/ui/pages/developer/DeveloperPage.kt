@@ -1,5 +1,7 @@
 package me.rerere.rikkahub.ui.pages.developer
 
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.FileScript
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,66 +24,73 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
-import me.rerere.hugeicons.HugeIcons
-import me.rerere.hugeicons.stroke.FileScript
 import me.rerere.rikkahub.data.ai.AILogging
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun DeveloperPage(vm: DeveloperVM = koinViewModel()) {
-  val pager = rememberPagerState { 1 }
-  val scope = rememberCoroutineScope()
-  Scaffold(
-      topBar = {
-        TopAppBar(
-            title = {
-              Text(
-                  text = "Developer Page",
-                  maxLines = 1,
-              )
+    val pager = rememberPagerState { 1 }
+    val scope = rememberCoroutineScope()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Developer Page",
+                        maxLines = 1,
+                    )
+                }
+            )
+        },
+        bottomBar = {
+            BottomAppBar {
+                NavigationBarItem(
+                    selected = pager.currentPage == 0,
+                    onClick = { scope.launch { pager.animateScrollToPage(0) } },
+                    label = {
+                        Text(text = "Developer")
+                    },
+                    icon = {
+                        Icon(HugeIcons.FileScript, null)
+                    }
+                )
             }
-        )
-      },
-      bottomBar = {
-        BottomAppBar {
-          NavigationBarItem(
-              selected = pager.currentPage == 0,
-              onClick = { scope.launch { pager.animateScrollToPage(0) } },
-              label = { Text(text = "Developer") },
-              icon = { Icon(HugeIcons.FileScript, null) },
-          )
         }
-      },
-  ) { innerPadding ->
-    HorizontalPager(state = pager, contentPadding = innerPadding) { page ->
-      when (page) {
-        0 -> {
-          LoggingPaging(vm = vm)
+    ) { innerPadding ->
+        HorizontalPager(
+            state = pager,
+            contentPadding = innerPadding
+        ) { page ->
+            when (page) {
+                0 -> {
+                    LoggingPaging(vm = vm)
+                }
+            }
         }
-      }
     }
-  }
 }
 
 @Composable
 fun LoggingPaging(vm: DeveloperVM) {
-  val logs by vm.logs.collectAsStateWithLifecycle()
-  LazyColumn(
-      modifier = Modifier.fillMaxSize(),
-      contentPadding = PaddingValues(8.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp),
-  ) {
-    items(logs) { log ->
-      when (log) {
-        is AILogging.Generation -> {
-          Card {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {}
-          }
+    val logs by vm.logs.collectAsStateWithLifecycle()
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(logs) { log ->
+            when (log) {
+                is AILogging.Generation -> {
+                    Card {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+
+                        }
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }

@@ -7,6 +7,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.catpuppyapp.puppygit.play.pro.R
 
 @Composable
-fun SimpleTitle(text: String = stringResource(R.string.app_name)) {
-  Text(text = text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+fun SimpleTitle(text:String = stringResource(R.string.app_name)) {
+    Text(
+        text = text,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
 }

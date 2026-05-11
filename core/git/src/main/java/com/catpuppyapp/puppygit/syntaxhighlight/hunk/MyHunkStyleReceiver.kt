@@ -9,7 +9,8 @@ class MyHunkStyleReceiver(
     val highlighter: HunkSyntaxHighlighter,
 ) : MyStyleReceiver(TAG, highlighter.myLang?.analyzeManager) {
 
-  override fun handleStyles(styles: Styles) {
-    highlighter.applyStyles(styles)
-  }
+    override fun handleStyles(styles: Styles) {
+        highlighter.applyStyles(styles)
+    }
+
 }

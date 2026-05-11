@@ -13,18 +13,20 @@ import com.catpuppyapp.puppygit.play.pro.R
 @Composable
 fun InfoDialog(
     showTitleInfoDialog: MutableState<Boolean>,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.()->Unit,
 ) {
-  ConfirmDialog2(
-      title = stringResource(R.string.info),
-      requireShowTextCompose = true,
-      textCompose = {
-        MySelectionContainer {
-          Column(modifier = Modifier.verticalScroll(rememberScrollState())) { content() }
-        }
-      },
-      onCancel = { showTitleInfoDialog.value = false },
-      cancelBtnText = stringResource(R.string.close),
-      showOk = false,
-  ) {}
+    ConfirmDialog2(
+        title = stringResource(R.string.info),
+        requireShowTextCompose = true,
+        textCompose = {
+            MySelectionContainer {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    content()
+                }
+            }
+        },
+        onCancel = { showTitleInfoDialog.value = false },
+        cancelBtnText = stringResource(R.string.close),
+        showOk = false
+    ) { }
 }

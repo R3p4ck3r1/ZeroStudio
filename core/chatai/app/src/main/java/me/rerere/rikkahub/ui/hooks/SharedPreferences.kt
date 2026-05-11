@@ -17,107 +17,109 @@ import kotlinx.coroutines.flow.callbackFlow
 @Composable
 fun rememberSharedPreferenceString(
     keyForString: String,
-    defaultValue: String? = null,
+    defaultValue: String? = null
 ): MutableState<String?> {
-  val context = LocalContext.current
-  val prefs = remember {
-    context.getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE)
-  }
-  val stateFlow =
-      remember(keyForString, defaultValue) { prefs.getStringFlowForKey(keyForString, defaultValue) }
-  val state by stateFlow.collectAsStateWithLifecycle(prefs.getString(keyForString, defaultValue))
-  return remember {
-    object : MutableState<String?> {
-      override var value: String?
-        get() = state
-        set(value) {
-          prefs.edit { putString(keyForString, value) }
-        }
-
-      override fun component1(): String? = value
-
-      override fun component2(): (String?) -> Unit = { value = it }
+    val context = LocalContext.current
+    val prefs = remember {
+        context.getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE)
     }
-  }
+    val stateFlow =
+        remember(keyForString, defaultValue) { prefs.getStringFlowForKey(keyForString, defaultValue) }
+    val state by stateFlow.collectAsStateWithLifecycle(prefs.getString(keyForString, defaultValue))
+    return remember {
+        object : MutableState<String?> {
+            override var value: String?
+                get() = state
+                set(value) {
+                    prefs.edit { putString(keyForString, value) }
+                }
+
+            override fun component1(): String? = value
+            override fun component2(): (String?) -> Unit = { value = it }
+        }
+    }
 }
 
 @Composable
 fun rememberSharedPreferenceBoolean(
     keyForBoolean: String,
-    defaultValue: Boolean = false,
+    defaultValue: Boolean = false
 ): MutableState<Boolean> {
-  val context = LocalContext.current
-  val prefs = remember {
-    context.getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE)
-  }
-  val stateFlow =
-      remember(keyForBoolean, defaultValue) {
-        prefs.getBooleanFlowForKey(keyForBoolean, defaultValue)
-      }
-  val state by stateFlow.collectAsStateWithLifecycle(prefs.getBoolean(keyForBoolean, defaultValue))
-  return remember {
-    object : MutableState<Boolean> {
-      override var value: Boolean
-        get() = state
-        set(value) {
-          prefs.edit { putBoolean(keyForBoolean, value) }
-        }
-
-      override fun component1(): Boolean = value
-
-      override fun component2(): (Boolean) -> Unit = { value = it }
+    val context = LocalContext.current
+    val prefs = remember {
+        context.getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE)
     }
-  }
+    val stateFlow =
+        remember(keyForBoolean, defaultValue) { prefs.getBooleanFlowForKey(keyForBoolean, defaultValue) }
+    val state by stateFlow.collectAsStateWithLifecycle(prefs.getBoolean(keyForBoolean, defaultValue))
+    return remember {
+        object : MutableState<Boolean> {
+            override var value: Boolean
+                get() = state
+                set(value) {
+                    prefs.edit { putBoolean(keyForBoolean, value) }
+                }
+
+            override fun component1(): Boolean = value
+            override fun component2(): (Boolean) -> Unit = { value = it }
+        }
+    }
 }
 
 fun Context.writeStringPreference(key: String, value: String?) {
-  getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE).edit { putString(key, value) }
+    getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE).edit {
+        putString(key, value)
+    }
 }
 
 fun Context.readStringPreference(key: String, defaultValue: String? = null): String? {
-  return getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE)
-      .getString(key, defaultValue)
+    return getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE).getString(key, defaultValue)
 }
 
 fun Context.writeBooleanPreference(key: String, value: Boolean) {
-  getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE).edit { putBoolean(key, value) }
+    getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE).edit {
+        putBoolean(key, value)
+    }
 }
 
 fun Context.readBooleanPreference(key: String, defaultValue: Boolean = false): Boolean {
-  return getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE)
-      .getBoolean(key, defaultValue)
+    return getSharedPreferences("rikkahub.preferences", Context.MODE_PRIVATE).getBoolean(key, defaultValue)
 }
 
 fun SharedPreferences.getStringFlowForKey(keyForString: String, defaultValue: String? = null) =
     callbackFlow {
-          val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (keyForString == key) {
-              trySend(getString(key, defaultValue))
+                trySend(getString(key, defaultValue))
             }
-          }
-          registerOnSharedPreferenceChangeListener(listener)
-          if (contains(keyForString)) {
-            send(
-                getString(keyForString, defaultValue)
-            ) // if you want to emit an initial pre-existing value
-          }
-          awaitClose { unregisterOnSharedPreferenceChangeListener(listener) }
         }
-        .buffer(Channel.UNLIMITED) // so trySend never fails
+        registerOnSharedPreferenceChangeListener(listener)
+        if (contains(keyForString)) {
+            send(
+                getString(
+                    keyForString,
+                    defaultValue
+                )
+            ) // if you want to emit an initial pre-existing value
+        }
+        awaitClose { unregisterOnSharedPreferenceChangeListener(listener) }
+    }.buffer(Channel.UNLIMITED) // so trySend never fails
 
 fun SharedPreferences.getBooleanFlowForKey(keyForBoolean: String, defaultValue: Boolean = false) =
     callbackFlow {
-          val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (keyForBoolean == key) {
-              trySend(getBoolean(key, defaultValue))
+                trySend(getBoolean(key, defaultValue))
             }
-          }
-          registerOnSharedPreferenceChangeListener(listener)
-          if (contains(keyForBoolean)) {
-            send(
-                getBoolean(keyForBoolean, defaultValue)
-            ) // if you want to emit an initial pre-existing value
-          }
-          awaitClose { unregisterOnSharedPreferenceChangeListener(listener) }
         }
-        .buffer(Channel.UNLIMITED) // so trySend never fails
+        registerOnSharedPreferenceChangeListener(listener)
+        if (contains(keyForBoolean)) {
+            send(
+                getBoolean(
+                    keyForBoolean,
+                    defaultValue
+                )
+            ) // if you want to emit an initial pre-existing value
+        }
+        awaitClose { unregisterOnSharedPreferenceChangeListener(listener) }
+    }.buffer(Channel.UNLIMITED) // so trySend never fails

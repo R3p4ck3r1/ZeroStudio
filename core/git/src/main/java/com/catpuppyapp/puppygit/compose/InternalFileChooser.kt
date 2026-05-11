@@ -18,31 +18,43 @@ import com.catpuppyapp.puppygit.screen.functions.navToFileChooser
 import com.catpuppyapp.puppygit.screen.shared.FileChooserType
 import com.catpuppyapp.puppygit.style.MyStyleKt
 
-/** App Internal File Chooser, no-depend system file chooser, also no saf support */
+
+/**
+ * App Internal File Chooser, no-depend system file chooser, also no saf support
+ */
 @Composable
 fun InternalFileChooser(
-    activityContext: Context, // 这个最好从外部传，在弹窗内获取的Context，无法转换为Activity，除非递归查找
-    path: MutableState<String>,
-    chooserType: FileChooserType = FileChooserType.SINGLE_DIR, // 默认选dir，如果想选文件，可传对应类型
-    pathTextFieldLabel: String = stringResource(R.string.path),
-    pathTextFieldPlaceHolder: String = stringResource(R.string.eg_storage_emulate_0_repos),
+    activityContext: Context,  //这个最好从外部传，在弹窗内获取的Context，无法转换为Activity，除非递归查找
+    path:MutableState<String>,
+    chooserType: FileChooserType = FileChooserType.SINGLE_DIR,  //默认选dir，如果想选文件，可传对应类型
+    pathTextFieldLabel:String=stringResource(R.string.path),
+    pathTextFieldPlaceHolder:String=stringResource(R.string.eg_storage_emulate_0_repos),
 ) {
-  GrantManageStoragePermissionClickableText(activityContext)
+    GrantManageStoragePermissionClickableText(activityContext)
 
-  TextField(
-      modifier = Modifier.fillMaxWidth().padding(horizontal = MyStyleKt.defaultHorizontalPadding),
-      value = path.value,
-      maxLines = MyStyleKt.defaultMultiLineTextFieldMaxLines,
-      onValueChange = { path.value = it },
-      label = { Text(pathTextFieldLabel) },
-      placeholder = { Text(pathTextFieldPlaceHolder) },
-      trailingIcon = {
-        IconButton(onClick = { navToFileChooser(chooserType) }) {
-          Icon(
-              imageVector = Icons.Filled.MoreHoriz,
-              contentDescription = stringResource(R.string.three_dots_icon_for_choose_folder),
-          )
+    TextField(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = MyStyleKt.defaultHorizontalPadding),
+        value = path.value,
+        maxLines = MyStyleKt.defaultMultiLineTextFieldMaxLines,
+        onValueChange = {
+            path.value = it
+        },
+        label = {
+            Text(pathTextFieldLabel)
+        },
+        placeholder = {
+            Text(pathTextFieldPlaceHolder)
+        },
+        trailingIcon = {
+            IconButton(
+                onClick = {
+                    navToFileChooser(chooserType)
+                }
+
+            ) {
+                Icon(imageVector = Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.three_dots_icon_for_choose_folder))
+            }
         }
-      },
-  )
+    )
+
 }

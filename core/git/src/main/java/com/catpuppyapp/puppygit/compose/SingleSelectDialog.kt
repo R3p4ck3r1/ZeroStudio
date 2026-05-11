@@ -15,41 +15,42 @@ fun <T> SingleSelectDialog(
     currentItem: T?,
     itemList: List<T>,
     text: (T) -> String,
-    selected: (T) -> Boolean = { it == currentItem },
+    selected:(T) -> Boolean = { it == currentItem },
     closeDialog: () -> Unit,
     onClick: (selectedItem: T) -> Unit,
 ) {
 
-  val listState = rememberLazyListState()
-  val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
-  PlainDialogWithPadding(onClose = closeDialog) {
-    LazyColumn(state = listState) {
-      itemList.forEachIndexed { idx, it ->
-        item {
-          SingleSelectionItem(
-              idx = idx,
-              item = it,
-              selected = selected(it),
-              minHeight = 60.dp,
-              text = { idx, it -> text(it) },
-              onClick = { idx, it ->
-                closeDialog()
-                onClick(it)
-              },
-          )
+    PlainDialogWithPadding(onClose = closeDialog) {
+        LazyColumn(state = listState) {
+            itemList.forEachIndexed { idx, it ->
+                item {
+                    SingleSelectionItem(
+                        idx = idx,
+                        item = it,
+                        selected = selected(it),
+                        minHeight = 60.dp,
+                        text = { idx, it -> text(it) },
+                        onClick = { idx, it ->
+                            closeDialog()
+                            onClick(it)
+                        },
+                    )
+                }
+            }
         }
-      }
     }
-  }
 
-  LaunchedEffect(Unit) {
-    scope.launch {
-      delay(200)
 
-      UIHelper.scrollByPredicate(scope, itemList, listState, animation = true) { _, it ->
-        selected(it)
-      }
+    LaunchedEffect(Unit) {
+        scope.launch {
+            delay(200)
+
+            UIHelper.scrollByPredicate(scope, itemList, listState, animation = true) { _, it ->
+                selected(it)
+            }
+        }
     }
-  }
 }

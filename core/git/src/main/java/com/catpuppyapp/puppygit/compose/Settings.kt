@@ -19,79 +19,84 @@ import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.style.MyStyleKt
 import com.catpuppyapp.puppygit.ui.theme.Theme
 
+
 @Composable
-fun SettingsTitle(text: String) {
-  val inDarkTheme = Theme.inDarkTheme
-  Row(
-      modifier =
-          Modifier.background(color = if (inDarkTheme) Color.DarkGray else Color.LightGray)
-              .fillMaxWidth()
-              .padding(start = 5.dp),
-      horizontalArrangement = Arrangement.Start,
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Text(text)
-  }
+fun SettingsTitle(text:String){
+    val inDarkTheme = Theme.inDarkTheme
+    Row(modifier = Modifier
+        .background(color = if (inDarkTheme) Color.DarkGray else Color.LightGray)
+        .fillMaxWidth()
+        .padding(start = 5.dp),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text)
+    }
 }
 
 @Composable
-fun SettingsContent(onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
-  Row(
-      modifier =
-          (if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-              .fillMaxWidth()
-              .defaultMinSize(minHeight = 60.dp)
-              .padding(MyStyleKt.defaultItemPadding),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.SpaceBetween,
-  ) {
-    content()
-  }
+fun SettingsContent(onClick:(()->Unit)?=null, content:@Composable ()->Unit) {
+    Row(
+        modifier = (if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 60.dp)
+            .padding(MyStyleKt.defaultItemPadding)
+        ,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        content()
+    }
 
-  MyHorizontalDivider()
+    MyHorizontalDivider()
 }
 
 @Composable
 fun SettingsContentSelector(
-    left: @Composable ColumnScope.() -> Unit,
-    right: @Composable ColumnScope.() -> Unit,
+    left:@Composable ColumnScope.() -> Unit,
+    right:@Composable ColumnScope.() -> Unit,
 ) {
-  SettingsContentBox(
-      leftModifier = MyStyleKt.SettingsItem.selectorLeftBaseModifier,
-      rightModifier = MyStyleKt.SettingsItem.selectorRightBaseModifier,
-      left = left,
-      right = right,
-  )
+    SettingsContentBox(
+        leftModifier = MyStyleKt.SettingsItem.selectorLeftBaseModifier,
+        rightModifier = MyStyleKt.SettingsItem.selectorRightBaseModifier,
+        left = left,
+        right = right,
+    )
 }
 
 @Composable
 fun SettingsContentSwitcher(
-    left: @Composable ColumnScope.() -> Unit,
-    right: @Composable ColumnScope.() -> Unit,
+    left:@Composable ColumnScope.() -> Unit,
+    right:@Composable ColumnScope.() -> Unit,
     onClick: (() -> Unit)? = null,
 ) {
-  SettingsContentBox(
-      leftModifier = MyStyleKt.SettingsItem.switcherLeftBaseModifier,
-      rightModifier = MyStyleKt.SettingsItem.switcherRightBaseModifier,
-      left = left,
-      right = right,
-      onClick = onClick,
-  )
+    SettingsContentBox(
+        leftModifier = MyStyleKt.SettingsItem.switcherLeftBaseModifier,
+        rightModifier = MyStyleKt.SettingsItem.switcherRightBaseModifier,
+        left = left,
+        right = right,
+        onClick = onClick,
+    )
 }
 
 @Composable
 fun SettingsContentBox(
     leftModifier: Modifier,
-    rightModifier: Modifier,
-    left: @Composable ColumnScope.() -> Unit,
-    right: @Composable ColumnScope.() -> Unit,
+    rightModifier:Modifier,
+    left:@Composable ColumnScope.() -> Unit,
+    right:@Composable ColumnScope.() -> Unit,
     onClick: (() -> Unit)? = null,
 ) {
-  SettingsContent(onClick) {
-    Box(Modifier.fillMaxWidth()) {
-      Column(modifier = leftModifier.align(Alignment.CenterStart)) { left() }
+    SettingsContent(onClick) {
+        Box(Modifier.fillMaxWidth()) {
+            Column(modifier = leftModifier.align(Alignment.CenterStart)) {
+                left()
+            }
 
-      Column(modifier = rightModifier.align(Alignment.CenterEnd)) { right() }
+
+            Column(modifier = rightModifier.align(Alignment.CenterEnd)) {
+                right()
+            }
+        }
     }
-  }
 }

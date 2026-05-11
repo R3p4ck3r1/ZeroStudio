@@ -10,5 +10,5 @@ data class SshSettings(
      *
      * <del>if disable, only allow hosts in the `known_hosts`</del>
      */
-    var allowUnknownHosts: Boolean = false
+    var allowUnknownHosts:Boolean = false
 )

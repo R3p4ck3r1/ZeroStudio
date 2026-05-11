@@ -15,15 +15,23 @@ fun RikkaConfirmDialog(
     onDismiss: () -> Unit,
     text: @Composable () -> Unit,
 ) {
-  if (!show) {
-    return
-  }
+    if (!show) {
+        return
+    }
 
-  AlertDialog(
-      onDismissRequest = onDismiss,
-      title = { Text(title) },
-      text = text,
-      confirmButton = { TextButton(onClick = onConfirm) { Text(confirmText) } },
-      dismissButton = { TextButton(onClick = onDismiss) { Text(dismissText) } },
-  )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = text,
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(confirmText)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(dismissText)
+            }
+        }
+    )
 }
