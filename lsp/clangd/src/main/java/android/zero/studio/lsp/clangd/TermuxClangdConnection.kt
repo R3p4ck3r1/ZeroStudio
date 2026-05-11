@@ -21,6 +21,15 @@ class TermuxClangdConnection(
 
   fun start() {
     if (process != null) return
+    if (!toolchain.clangd.exists()) {
+      throw IllegalStateException("clangd binary does not exist: ${toolchain.clangd.absolutePath}")
+    }
+    if (!toolchain.clangd.canExecute()) {
+      val updated = toolchain.clangd.setExecutable(true)
+      if (!updated || !toolchain.clangd.canExecute()) {
+        throw IllegalStateException("clangd binary is not executable: ${toolchain.clangd.absolutePath}")
+      }
+    }
     val command = listOf(toolchain.clangd.absolutePath) + arguments
     val builder = ProcessBuilder(command).directory(workingDir).redirectErrorStream(false)
     val env = builder.environment()
@@ -57,11 +66,11 @@ class TermuxClangdConnection(
   }
 
   override fun close() {
-    process = process ?: return
-    runCatching { process?.outputStream?.close() }
-    runCatching { process?.inputStream?.close() }
-    runCatching { process?.errorStream?.close() }
-    process?.destroy()
+    val runningProcess = process ?: return
+    runCatching { runningProcess.outputStream.close() }
+    runCatching { runningProcess.inputStream.close() }
+    runCatching { runningProcess.errorStream.close() }
+    runningProcess.destroy()
     runCatching { stderrThread?.interrupt() }
     process = null
     stderrThread = null
