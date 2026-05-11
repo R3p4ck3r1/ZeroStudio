@@ -156,6 +156,7 @@ espressoCore = "3.6.1"
 junit-jupiter = "5.10.2"
 
 
+
 [libraries]
 # Dependencies in composite build
 composite-appintro = { module = "com.itsaky.androidide.build:appintro" }
@@ -585,6 +586,7 @@ io-insert-koin = [
 
 
 
+
 [plugins]
 
 #android ， androidx , Google 相关
@@ -617,3 +619,4 @@ com-jaredsburrows-license = { id = "com.jaredsburrows.license", version = "0.8.4
 gradle-publish = { id = "com.gradle.plugin-publish", version = "1.2.1" }
 realm-gradle-plugin = { id = "io.realm:realm-gradle-plugin", version.ref = "iorealm" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
+

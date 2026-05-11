@@ -19,7 +19,6 @@ android {
   compileSdk = 36
 
     defaultConfig {
-        applicationId = "me.rerere.rikkahub"
         minSdk = 26
         // targetSdk = 37
         // versionCode = 156
@@ -29,18 +28,6 @@ android {
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
-        }
-    }
-
-    splits {
-        abi {
-            // AppBundle tasks usually contain "bundle" in their name
-            //noinspection WrongGradleMethod
-            val isBuildingBundle = gradle.startParameter.taskNames.any { it.lowercase().contains("bundle") }
-            isEnable = !isBuildingBundle
-            reset()
-            include("arm64-v8a", "x86_64")
-            isUniversalApk = true
         }
     }
 
@@ -78,19 +65,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "VERSION_NAME", "\"${android.defaultConfig.versionName}\"")
-            buildConfigField("String", "VERSION_CODE", "\"${android.defaultConfig.versionCode}\"")
         }
         debug {
-            applicationIdSuffix = ".debug"
-            buildConfigField("String", "VERSION_NAME", "\"${android.defaultConfig.versionName}\"")
-            buildConfigField("String", "VERSION_CODE", "\"${android.defaultConfig.versionCode}\"")
         }
         create("baseline") {
             initWith(getByName("release"))
             matchingFallbacks.add("release")
             // signingConfig = signingConfigs.getByName("debug")
-            applicationIdSuffix = ".debug"
             isDebuggable = false
             isMinifyEnabled = false
             isShrinkResources = false
@@ -156,17 +137,17 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.process)
-    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.work.ktx)
     implementation(libs.androidx.browser)
     implementation(libs.androidx.profileinstaller)
 
     // Compose
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.material3.adaptive)
     implementation(libs.androidx.material3.adaptive.layout)
 
@@ -205,14 +186,14 @@ dependencies {
     // okhttp
     implementation(libs.okhttp)
     implementation(libs.okhttp.sse)
-    implementation(libs.retrofit)
+    implementation(libs.common.retrofit)
     implementation(libs.retrofit.serialization.json)
 
     // ktor client
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.io.ktor.client.core)
+    implementation(libs.io.ktor.client.okhttp)
+    implementation(libs.io.ktor.client.content.negotiation)
+    implementation(libs.io.ktor.serialization.kotlinx.json)
 
     // ucrop
     implementation(libs.ucrop)
@@ -221,11 +202,11 @@ dependencies {
     implementation(libs.pebble)
 
     // coil
-    implementation(libs.coil.compose)
-    implementation(libs.coil.gif)
-    implementation(libs.coil.okhttp)
-    implementation(libs.coil.svg)
-    implementation(libs.coil.cache.control)
+    implementation(libs.io.coil.compose)
+    implementation(libs.io.coil.gif)
+    implementation(libs.io.coil.okhttp)
+    implementation(libs.io.coil.svg)
+    implementation(libs.io.coil.cache.control)
 
     // serialization
     implementation(libs.kotlinx.serialization.json)
@@ -249,7 +230,7 @@ dependencies {
     implementation(libs.androidx.paging.compose)
 
     // Apache Commons Text
-    implementation(libs.commons.text)
+    implementation(libs.commonsText)
 
     // Toast (Sonner)
     implementation(libs.sonner)
@@ -302,8 +283,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.room.testing)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
