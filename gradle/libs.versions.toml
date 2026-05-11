@@ -15,7 +15,7 @@ protobufVersion = "4.33.0"
 
 # Kotlin相关
 kotlin = "2.2.20"
-ksp = "2.2.20-2.0.4"
+ksp = "2.3.4"
 kotlin-coroutines = "1.10.2"
 kotlinxSerializationJson = "1.9.0"
 kotlinx-datetime = "0.7.1"
