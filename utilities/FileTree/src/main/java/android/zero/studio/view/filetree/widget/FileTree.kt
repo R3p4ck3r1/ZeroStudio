@@ -284,7 +284,7 @@ class FileTree : RecyclerView {
         fileTreeAdapter.expandNode(currentNode)
       }
       val next =
-          currentNode.child.firstOrNull {
+          (currentNode.child ?: emptyList()).firstOrNull {
             targetAbsolutePath.startsWith(it.value.getAbsolutePath().trimEnd('/') + "/") ||
                 it.value.getAbsolutePath() == targetAbsolutePath
           }
@@ -303,9 +303,10 @@ class FileTree : RecyclerView {
       if (!onlyChild.value.isDirectory()) {
         break
       }
-      if (current.child.any { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }) {
+      val currentChildren = current.child ?: emptyList()
+      if (currentChildren.any { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }) {
         val next =
-            current.child.first { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }
+            currentChildren.first { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }
         if (!next.isExpand) {
           fileTreeAdapter.expandNode(next)
         }
