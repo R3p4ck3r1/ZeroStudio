@@ -24,6 +24,7 @@ import com.itsaky.androidide.eventbus.events.filetree.FileClickEvent
 import com.itsaky.androidide.eventbus.events.filetree.FileLongClickEvent
 import com.itsaky.androidide.events.ExpandTreeNodeRequestEvent
 import com.itsaky.androidide.events.ListProjectFilesRequestEvent
+import com.itsaky.androidide.preferences.internal.GeneralPreferences
 import com.itsaky.androidide.utils.doOnApplyWindowInsets
 import com.itsaky.androidide.viewmodel.DataFileTreeViewModel
 import java.io.File
@@ -140,6 +141,7 @@ class DataFileTreeFragment : BottomSheetDialogFragment(), FileClickListener, Fil
           setIconProvider(IDEFileIconProvider(requireContext()))
           setOnFileClickListener(this@DataFileTreeFragment)
           setOnFileLongClickListener(this@DataFileTreeFragment)
+          setAutoExpandSingleChildFolders(GeneralPreferences.treeAutoExpandSingleChild)
           loadFiles(virtualRoot, false) // false 意味着隐藏顶级 "Root" 虚拟节点，直接展示盘符
           fileTreeView = this
         }

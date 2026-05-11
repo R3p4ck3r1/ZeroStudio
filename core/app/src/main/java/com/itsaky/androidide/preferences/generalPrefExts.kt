@@ -71,6 +71,7 @@ class ProjectConfig(
   init {
     addPreference(OpenLastProject())
     addPreference(ConfirmProjectOpen())
+    addPreference(TreeAutoExpandSingleChildPreference())
   }
 }
 
@@ -249,6 +250,25 @@ class UseSytemShell(
 
   override fun onPreferenceChanged(preference: Preference, newValue: Any?): Boolean {
     GeneralPreferences.useSystemShell = newValue as Boolean? ?: GeneralPreferences.useSystemShell
+    return true
+  }
+}
+
+@Parcelize
+class TreeAutoExpandSingleChildPreference(
+    override val key: String = GeneralPreferences.TREE_AUTO_EXPAND_SINGLE_CHILD,
+    override val title: Int = R.string.idepref_tree_auto_expand_single_child_title,
+    override val summary: Int? = R.string.idepref_tree_auto_expand_single_child_summary,
+    override val icon: Int? = drawable.ic_chevron_down,
+) :
+    SwitchPreference(
+        setValue = { GeneralPreferences.treeAutoExpandSingleChild = it },
+        getValue = { GeneralPreferences.treeAutoExpandSingleChild },
+    ) {
+
+  override fun onPreferenceChanged(preference: Preference, newValue: Any?): Boolean {
+    GeneralPreferences.treeAutoExpandSingleChild =
+        newValue as? Boolean ?: GeneralPreferences.treeAutoExpandSingleChild
     return true
   }
 }
