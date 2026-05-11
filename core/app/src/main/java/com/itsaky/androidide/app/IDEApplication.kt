@@ -117,7 +117,9 @@ class IDEApplication : TermuxApplication() {
       ToolsManager.initIfNeeded(this@IDEApplication, null)
     }
     
-    Environment.init(this)
+    if (Environment.ROOT == null) {
+      Environment.init(this)
+    }
 
   }
 

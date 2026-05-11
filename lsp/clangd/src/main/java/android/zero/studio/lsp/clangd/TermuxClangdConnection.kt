@@ -3,6 +3,7 @@ package android.zero.studio.lsp.clangd
 import com.itsaky.androidide.utils.Environment
 import java.io.File
 import java.io.InputStream
+import java.io.InterruptedIOException
 import java.io.OutputStream
 import org.slf4j.LoggerFactory
 
@@ -41,14 +42,28 @@ class TermuxClangdConnection(
 
   private fun drainStderr() {
     val stream = process?.errorStream ?: return
-    stream.bufferedReader().useLines { lines -> lines.forEach { log.warn("clangd: {}", it) } }
+    try {
+      stream.bufferedReader().useLines { lines -> lines.forEach { log.warn("clangd: {}", it) } }
+    } catch (error: InterruptedIOException) {
+      // Expected when close() is called while stderr thread is blocked on read.
+      log.debug("clangd stderr reader interrupted while closing process")
+    } catch (error: java.io.IOException) {
+      if (process != null) {
+        log.warn("Failed reading clangd stderr", error)
+      } else {
+        log.debug("clangd stderr stream closed while shutting down")
+      }
+    }
   }
 
   override fun close() {
+    process = process ?: return
     runCatching { process?.outputStream?.close() }
     runCatching { process?.inputStream?.close() }
+    runCatching { process?.errorStream?.close() }
     process?.destroy()
     runCatching { stderrThread?.interrupt() }
     process = null
+    stderrThread = null
   }
 }
