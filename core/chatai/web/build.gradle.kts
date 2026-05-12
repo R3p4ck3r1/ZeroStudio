@@ -10,11 +10,7 @@ val buildWebUi = tasks.register<Exec>("buildWebUi") {
     description = "Build web-ui and copy its static output into the web module resources."
 
     workingDir = webUiDir.asFile
-    executable = "bash"
-    args(
-        "-lc",
-        "if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi"
-    )
+    commandLine("bun", "run", "build")
 
     inputs.files(
         webUiDir.file("package.json"),
