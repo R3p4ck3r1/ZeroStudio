@@ -14,9 +14,9 @@ import com.itsaky.androidide.templates.impl.base.writeMainActivity
 import com.itsaky.androidide.templates.impl.baseProjectImpl
 
 fun lithoComposeProject(): ProjectTemplate = baseProjectImpl {
-  templateName = R.string.template_compose
+  templateName = string.template_litho_compose
   thumb = R.drawable.template_compose_empty_activity
-  description = string.title_test
+  description = string.title_template_description_litho_compose
   defaultAppModule(addAndroidX = false) {
     isComposeModule = true
     recipe = createRecipe {
@@ -34,16 +34,40 @@ package ${data.packageName}
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
+import com.facebook.litho.ComponentContext
+import com.facebook.litho.LithoView
+import com.facebook.litho.widget.Text as LithoText
+import com.facebook.soloader.SoLoader
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    SoLoader.init(this, false)
     setContent { Demo() }
   }
 }
 
 @Composable
-fun Demo() { Text("Compose + Litho template ready") }
+fun Demo() {
+  Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    AndroidView(factory = { context ->
+      val c = ComponentContext(context)
+      LithoView.create(
+        context,
+        LithoText.create(c)
+          .text("Hello Litho in Compose")
+          .textSizeDip(28f)
+          .build(),
+      )
+    })
+    Text("Compose host + Litho view ready")
+  }
+}
 """

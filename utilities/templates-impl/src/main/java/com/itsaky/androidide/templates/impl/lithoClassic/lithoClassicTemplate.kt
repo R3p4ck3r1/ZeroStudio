@@ -14,9 +14,9 @@ import com.itsaky.androidide.templates.impl.base.writeMainActivity
 import com.itsaky.androidide.templates.impl.baseProjectImpl
 
 fun lithoClassicProject(): ProjectTemplate = baseProjectImpl {
-  templateName = R.string.template_empty
+  templateName = string.template_litho_classic
   thumb = R.drawable.template_empty_activity
-  description = string.title_test
+  description = string.title_template_description_litho_classic
 
   defaultAppModule {
     recipe = createRecipe {

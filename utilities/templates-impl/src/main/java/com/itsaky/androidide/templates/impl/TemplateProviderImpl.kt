@@ -22,6 +22,10 @@ import com.itsaky.androidide.templates.ITemplateProvider
 import com.itsaky.androidide.templates.Template
 import com.itsaky.androidide.templates.TemplateCategory
 import com.itsaky.androidide.templates.impl.basicActivity.basicActivityProject
+import com.itsaky.androidide.templates.impl.androidstudio.activities.aiGlassesActivity.aiGlassesActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.aiStarter.aiStarterTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.androidTVActivity.androidTVActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.archStarterActivity.archStarterActivityTemplate
 import com.itsaky.androidide.templates.impl.basicCpp.basicCppProject
 import com.itsaky.androidide.templates.impl.bottomNavActivity.bottomNavActivityProject
 import com.itsaky.androidide.templates.impl.composeActivity.composeActivityProject
@@ -106,6 +110,10 @@ class TemplateProviderImpl : ITemplateProvider {
     registerTemplate(TemplateCategory.BasicZeroStudio, noAndroidXActivityProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, lithoClassicProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, lithoComposeProject())
+    registerTemplate(TemplateCategory.BasicZeroStudio, aiStarterTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, aiGlassesActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, androidTVActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, archStarterActivityTemplate())
 
     // Native build（C/C++/Cmake） template category
     registerTemplate(TemplateCategory.Native, imguiActivityProject())
