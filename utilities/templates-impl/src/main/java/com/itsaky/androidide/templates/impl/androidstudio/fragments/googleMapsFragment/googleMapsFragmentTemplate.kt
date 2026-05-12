@@ -30,10 +30,10 @@ import com.itsaky.androidide.templates.TemplateData
 import com.itsaky.androidide.templates.TextFieldWidget
 import com.itsaky.androidide.templates.WizardUiContext
 import com.itsaky.androidide.templates.fragmentToLayout
-import com.itsaky.androidide.templates.stringParameter
-import com.itsaky.androidide.templates.template
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.MIN_API
 import com.itsaky.androidide.templates.impl.androidstudio.defaultPackageNameParameter
+import com.itsaky.androidide.templates.stringParameter
+import com.itsaky.androidide.templates.template
 import java.io.File
 
 val googleMapsFragmentTemplate

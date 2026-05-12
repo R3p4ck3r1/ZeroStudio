@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.googleMapsFragment
 
-import com.itsaky.androidide.templates.impl.androidstudio.activities.googleMapsActivity.geoApiKeyMetadataEntry
+import com.itsaky.androidide.templates.impl.activities.googleMapsActivity.geoApiKeyMetadataEntry
 
 fun androidManifestXml() =
     """

@@ -26,6 +26,15 @@ import com.itsaky.androidide.templates.impl.androidstudio.activities.aiGlassesAc
 import com.itsaky.androidide.templates.impl.androidstudio.activities.aiStarter.aiStarterTemplate
 import com.itsaky.androidide.templates.impl.androidstudio.activities.androidTVActivity.androidTVActivityTemplate
 import com.itsaky.androidide.templates.impl.androidstudio.activities.archStarterActivity.archStarterActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.loginActivity.loginActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.navigationDrawerActivity.navigationDrawerActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.primaryDetailFlow.primaryDetailFlowTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.responsiveActivity.responsiveActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.scrollActivity.scrollActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.settingsActivity.settingsActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.tabbedActivity.tabbedActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.viewModelActivity.viewModelActivityTemplate
+import com.itsaky.androidide.templates.impl.androidstudio.activities.xrActivity.xrActivityTemplate
 import com.itsaky.androidide.templates.impl.basicCpp.basicCppProject
 import com.itsaky.androidide.templates.impl.bottomNavActivity.bottomNavActivityProject
 import com.itsaky.androidide.templates.impl.composeActivity.composeActivityProject
@@ -114,6 +123,15 @@ class TemplateProviderImpl : ITemplateProvider {
     registerTemplate(TemplateCategory.BasicZeroStudio, aiGlassesActivityTemplate())
     registerTemplate(TemplateCategory.BasicZeroStudio, androidTVActivityTemplate())
     registerTemplate(TemplateCategory.BasicZeroStudio, archStarterActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, loginActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, navigationDrawerActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, primaryDetailFlowTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, responsiveActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, scrollActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, settingsActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, tabbedActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, viewModelActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, xrActivityTemplate())
 
     // Native build（C/C++/Cmake） template category
     registerTemplate(TemplateCategory.Native, imguiActivityProject())
