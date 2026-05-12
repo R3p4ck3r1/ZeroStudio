@@ -40,6 +40,21 @@ jobs:
         with:
           gradle-version: '8.13'
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Verify Bun
+        run: |
+          which bun
+          bun --version
+
+      - name: Install web-ui dependencies with Bun
+        working-directory: core/chatai/web-ui
+        run: |
+          bun install --frozen-lockfile
+
       - name: Install the specified NDK and Android SDK CMake (3.22.1)
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
