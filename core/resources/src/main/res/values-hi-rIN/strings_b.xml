@@ -310,4 +310,11 @@ Permission: %5$s
 MD5: %7$s
 SHA1: %8$s
 SHA256: %9$s</string>
+
+    <string name="template_chaquopy_xml">Chaquopy XML Console</string>
+    <string name="template_chaquopy_compose">Chaquopy Compose Console</string>
+    <string name="template_chaquopy_litho">Chaquopy Litho Console</string>
+    <string name="title_template_description_chaquopy_xml">Chaquopy XML template with Python console bridge, manifest, and resources.</string>
+    <string name="title_template_description_chaquopy_compose">Chaquopy Compose template with Python runtime bridge and Compose host activity.</string>
+    <string name="title_template_description_chaquopy_litho">Chaquopy Litho template with Python runtime bridge and Litho-ready dependencies.</string>
 </resources>

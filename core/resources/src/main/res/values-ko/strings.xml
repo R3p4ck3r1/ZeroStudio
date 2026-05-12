@@ -532,4 +532,11 @@
     <string name="summary_open_source_licenses">오픈 소스 라이선스를 확인하세요.</string>
     <string name="idepref_jdkVersion_title">JDK 버전</string>
     <string name="idepref_jdkVersion_summary">현재 선택됨: %1$s (변경 시 재시작 필요)</string>
+
+    <string name="template_chaquopy_xml">Chaquopy XML Console</string>
+    <string name="template_chaquopy_compose">Chaquopy Compose Console</string>
+    <string name="template_chaquopy_litho">Chaquopy Litho Console</string>
+    <string name="title_template_description_chaquopy_xml">Chaquopy XML template with Python console bridge, manifest, and resources.</string>
+    <string name="title_template_description_chaquopy_compose">Chaquopy Compose template with Python runtime bridge and Compose host activity.</string>
+    <string name="title_template_description_chaquopy_litho">Chaquopy Litho template with Python runtime bridge and Litho-ready dependencies.</string>
 </resources>
