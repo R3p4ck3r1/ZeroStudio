@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
-val webUiDir = rootProject.layout.projectDirectory.dir("web-ui")
+val webUiDir = rootProject.layout.projectDirectory.dir("core/chatai/web-ui")
 val webStaticResourcesDir = layout.projectDirectory.dir("src/main/resources/static")
 
 val buildWebUi = tasks.register<Exec>("buildWebUi") {
@@ -10,7 +10,11 @@ val buildWebUi = tasks.register<Exec>("buildWebUi") {
     description = "Build web-ui and copy its static output into the web module resources."
 
     workingDir = webUiDir.asFile
-    commandLine("bun", "run", "build")
+    executable = "bash"
+    args(
+        "-lc",
+        "if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi"
+    )
 
     inputs.files(
         webUiDir.file("package.json"),
