@@ -40,11 +40,14 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Install Bun
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Verify Bun
         run: |
-          curl -fsSL https://bun.com/install | bash
-          export PATH="$HOME/.bun/bin:$PATH"
-          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+          which bun
           bun --version
 
       - name: Install the specified NDK and Android SDK CMake (3.22.1)
