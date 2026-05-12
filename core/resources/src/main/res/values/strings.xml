@@ -797,4 +797,9 @@
     <string name="bottom_sheet_page_build">Build status</string>
     <string name="bottom_sheet_page_symbols">Symbol input</string>
     <string name="action_color_query">Color Query</string>
+
+    <string name="template_litho_classic">Litho Classic Activity</string>
+    <string name="template_litho_compose">Litho Compose Activity</string>
+    <string name="title_template_description_litho_classic">Classic Litho template with SoLoader, Litho core/widgets, sections and a ready-to-run Hello Litho screen.</string>
+    <string name="title_template_description_litho_compose">Compose + Litho hybrid template with SoLoader init and AndroidView-hosted Litho content.</string>
 </resources>
