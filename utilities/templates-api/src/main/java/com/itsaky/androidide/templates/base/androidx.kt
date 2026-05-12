@@ -39,3 +39,18 @@ fun AndroidModuleTemplateBuilder.composeDependencies() {
   addDependency(Dependency.AndroidX.Compose.UI_Tooling)
   addDependency(Dependency.AndroidX.Compose.UI_Test_Manifest)
 }
+
+
+fun AndroidModuleTemplateBuilder.lithoClassicDependencies() {
+  addDependency(Dependency.AndroidX.AppCompat)
+  addDependency(Dependency.Facebook.LithoCore)
+  addDependency(Dependency.Facebook.LithoWidget)
+  addDependency(Dependency.Facebook.LithoFresco)
+  addDependency(Dependency.Facebook.SoLoader)
+  addDependency(Dependency.Facebook.LithoSectionsCore)
+  addDependency(Dependency.Facebook.LithoSectionsWidget)
+  addDependency(Dependency.Facebook.LithoSectionsAnnotations)
+  addDependency(Dependency.Facebook.LithoSectionsProcessor)
+  addDependency(Dependency.Facebook.LithoProcessor)
+  addDependency(Dependency.Facebook.LithoTesting)
+}
