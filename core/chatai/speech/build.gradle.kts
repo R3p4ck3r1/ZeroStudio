@@ -60,7 +60,7 @@ dependencies {
     implementation(libs.androidx.media3.common)
 
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material3)
 
     testImplementation(libs.tests.junit)
     androidTestImplementation(libs.tests.androidx.junit)
