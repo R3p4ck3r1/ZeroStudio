@@ -47,7 +47,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":common"))
+    implementation(projects.core.common)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.okhttp)
@@ -60,9 +60,9 @@ dependencies {
     implementation(libs.androidx.media3.common)
 
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material3)
 
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
+    testImplementation(libs.tests.junit)
+    androidTestImplementation(libs.tests.androidx.junit)
+    androidTestImplementation(libs.tests.androidx.espresso.core)
 }
