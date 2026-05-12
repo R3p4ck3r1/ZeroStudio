@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.automotiveMessagingService.src.app_package
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun messageReadReceiverJava(
     packageName: String,

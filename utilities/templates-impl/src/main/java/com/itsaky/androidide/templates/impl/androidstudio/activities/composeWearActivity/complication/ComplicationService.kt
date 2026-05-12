@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.composeWearActivity.complication
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
 
 fun complicationServiceKt(complicationServiceKt: String, packageName: String) =
     """

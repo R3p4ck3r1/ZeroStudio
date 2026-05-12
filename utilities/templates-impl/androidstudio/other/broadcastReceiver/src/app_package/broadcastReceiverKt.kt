@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.broadcastReceiver.src.app_package
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
 
 fun broadcastReceiverKt(className: String, packageName: String) =
     """

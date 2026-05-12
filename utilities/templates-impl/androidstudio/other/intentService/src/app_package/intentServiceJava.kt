@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.intentService.src.app_package
 
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 
 fun intentServiceJava(className: String, includeHelper: Boolean, packageName: String): String {
   val classDocBlock =

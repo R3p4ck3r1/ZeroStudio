@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.listFragment.src.app_package
 
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.getMaterialComponentName
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.importViewBindingClass
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.layoutToViewBindingClass
 

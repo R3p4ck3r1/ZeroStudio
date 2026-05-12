@@ -15,8 +15,8 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.fullscreenFragment.res.values_night
 
-import com.android.tools.idea.wizard.template.MaterialColor.*
-import com.android.tools.idea.wizard.template.ThemesData
+import com.itsaky.androidide.templates.MaterialColor.*
+import com.itsaky.androidide.templates.ThemesData
 import com.itsaky.androidide.templates.impl.androidstudio.activities.fullscreenActivity.res.values.getFullscreenContainerThemeOverlay
 
 fun fullscreenThemes(themesData: ThemesData) =

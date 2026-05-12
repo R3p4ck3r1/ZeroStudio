@@ -15,15 +15,15 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation
 
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.RecipeExecutor
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.RecipeExecutor
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addLifecycleDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation.res.layout.fragmentFirstXml
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation.src.ui.firstFragmentJava
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation.src.ui.firstFragmentKt
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation.src.ui.viewModelJava
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation.src.ui.viewModelKt
-import com.android.tools.idea.wizard.template.underscoreToCamelCase
+import com.itsaky.androidide.templates.underscoreToCamelCase
 import java.io.File
 
 fun RecipeExecutor.saveFragmentAndViewModel(

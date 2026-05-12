@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.composeActivityMaterial3.src.app_package.ui
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
 
 fun typeKt(packageName: String) =
     """

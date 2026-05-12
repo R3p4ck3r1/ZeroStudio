@@ -16,9 +16,9 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.bottomNavigationActivity
 
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.RecipeExecutor
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.RecipeExecutor
 import com.itsaky.androidide.templates.impl.androidstudio.activities.bottomNavigationActivity.res.layout.navigationActivityMainXml
 import com.itsaky.androidide.templates.impl.androidstudio.activities.bottomNavigationActivity.res.menu.navigationXml
 import com.itsaky.androidide.templates.impl.androidstudio.activities.bottomNavigationActivity.res.navigation.mobileNavigationXml

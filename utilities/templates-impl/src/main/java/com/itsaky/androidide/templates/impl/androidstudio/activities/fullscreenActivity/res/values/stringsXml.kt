@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.fullscreenActivity.res.values
 
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 
 fun stringsXml(activityTitle: String, isNewModule: Boolean, simpleName: String): String {
   val title =

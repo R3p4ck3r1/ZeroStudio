@@ -16,10 +16,10 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.customView
 
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.RecipeExecutor
-import com.android.tools.idea.wizard.template.camelCaseToUnderlines
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.camelCaseToUnderlines
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.other.customView.res.layout.sampleXml
 import com.itsaky.androidide.templates.impl.androidstudio.other.customView.res.values.attrsXml

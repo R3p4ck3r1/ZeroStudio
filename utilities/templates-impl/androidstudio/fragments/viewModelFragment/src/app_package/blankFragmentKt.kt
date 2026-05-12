@@ -16,9 +16,9 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.viewModelFragment.src.app_package
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
-import com.android.tools.idea.wizard.template.getMaterialComponentName
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.getMaterialComponentName
+import com.itsaky.androidide.templates.renderIf
 
 fun blankFragmentKt(
     applicationPackage: String?,

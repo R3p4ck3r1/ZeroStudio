@@ -15,7 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.values_v31
 
-import com.android.tools.idea.wizard.template.ThemesData
+import com.itsaky.androidide.templates.ThemesData
 import com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.values.getAppWidgetContainerStyleName
 import com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.values.getAppWidgetInnerViewStyleName
 

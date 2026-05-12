@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.composeWearActivity.src.app_package.tile
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
 
 fun tileServiceKt(tileServiceClass: String, defaultPreview: String, packageName: String) =
     """

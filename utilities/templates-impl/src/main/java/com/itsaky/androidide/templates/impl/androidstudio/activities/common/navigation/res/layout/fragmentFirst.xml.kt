@@ -15,7 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation.res.layout
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun fragmentFirstXml(
     packageName: String,

@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.loginFragment.src.app_package.ui.login
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun loginFormStateJava(packageName: String, useAndroidX: Boolean) =
     """

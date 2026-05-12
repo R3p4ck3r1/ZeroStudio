@@ -15,7 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.values
 
-import com.android.tools.idea.wizard.template.ThemesData
+import com.itsaky.androidide.templates.ThemesData
 
 fun themesXml(themesData: ThemesData) =
     """<resources>

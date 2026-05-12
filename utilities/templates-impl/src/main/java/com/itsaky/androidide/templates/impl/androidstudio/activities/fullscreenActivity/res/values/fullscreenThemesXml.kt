@@ -15,8 +15,8 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.fullscreenActivity.res.values
 
-import com.android.tools.idea.wizard.template.MaterialColor.*
-import com.android.tools.idea.wizard.template.ThemesData
+import com.itsaky.androidide.templates.MaterialColor.*
+import com.itsaky.androidide.templates.ThemesData
 
 fun fullscreenThemes(themesData: ThemesData): String {
   val mainThemeName = themesData.main.name

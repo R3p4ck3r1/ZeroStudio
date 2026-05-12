@@ -15,9 +15,9 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.other.folders
 
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.RecipeExecutor
-import com.android.tools.idea.wizard.template.SourceSetType
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.SourceSetType
 
 fun RecipeExecutor.generateResourcesFolder(
     moduleData: ModuleTemplateData,

@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.blankFragment.src.app_package
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.getMaterialComponentName
+import com.itsaky.androidide.templates.renderIf
 
 fun blankFragmentJava(
     applicationPackage: String?,

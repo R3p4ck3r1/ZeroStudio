@@ -15,11 +15,11 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.common
 
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
-import com.android.tools.idea.wizard.template.renderIf
-import com.android.tools.idea.wizard.template.underscoreToCamelCase
-import com.android.tools.idea.wizard.template.underscoreToLowerCamelCase
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.renderIf
+import com.itsaky.androidide.templates.underscoreToCamelCase
+import com.itsaky.androidide.templates.underscoreToLowerCamelCase
 
 /**
  * Replaces the findViewById call with the equivalent of view binding.

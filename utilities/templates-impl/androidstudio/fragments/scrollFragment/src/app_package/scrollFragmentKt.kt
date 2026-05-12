@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.scrollFragment.src.app_package
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun scrollFragmentKt(
     fragmentClass: String,

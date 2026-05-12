@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.layout
 
-import com.android.tools.idea.wizard.template.ThemesData
+import com.itsaky.androidide.templates.ThemesData
 import com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.values.getAppWidgetContainerStyleName
 import com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.values.getAppWidgetInnerViewStyleName
 import com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.values.getAppWidgetTheme

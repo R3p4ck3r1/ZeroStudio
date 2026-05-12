@@ -15,7 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.fullscreenActivity.res.values
 
-import com.android.tools.idea.wizard.template.ThemesData
+import com.itsaky.androidide.templates.ThemesData
 
 fun fullscreenStyles(themesData: ThemesData) =
     """<resources>

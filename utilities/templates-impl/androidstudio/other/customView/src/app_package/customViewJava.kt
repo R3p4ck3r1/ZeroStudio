@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.customView.src.app_package
 
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 
 fun customViewJava(applicationPackage: String?, packageName: String, viewClass: String) =
     """

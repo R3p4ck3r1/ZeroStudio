@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.customView.res.values_night
 
-import com.android.tools.idea.wizard.template.MaterialColor.*
+import com.itsaky.androidide.templates.MaterialColor.*
 import com.itsaky.androidide.templates.impl.androidstudio.other.customView.res.values.getCustomViewStyle
 
 fun stylesXml(themeName: String) =

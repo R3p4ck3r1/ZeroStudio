@@ -15,7 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.fullscreenActivity.res.values
 
-import com.android.tools.idea.wizard.template.MaterialColor.*
+import com.itsaky.androidide.templates.MaterialColor.*
 
 fun fullscreenColors() =
     """<resources>
