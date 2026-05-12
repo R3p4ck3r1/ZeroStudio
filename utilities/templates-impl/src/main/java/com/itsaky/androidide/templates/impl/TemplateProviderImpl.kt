@@ -37,6 +37,9 @@ import com.itsaky.androidide.templates.impl.androidstudio.activities.viewModelAc
 import com.itsaky.androidide.templates.impl.androidstudio.activities.xrActivity.xrActivityTemplate
 import com.itsaky.androidide.templates.impl.basicCpp.basicCppProject
 import com.itsaky.androidide.templates.impl.bottomNavActivity.bottomNavActivityProject
+import com.itsaky.androidide.templates.impl.chaquopy.chaquopyComposeDemoProject
+import com.itsaky.androidide.templates.impl.chaquopy.chaquopyLithoDemoProject
+import com.itsaky.androidide.templates.impl.chaquopy.chaquopyXmlDemoProject
 import com.itsaky.androidide.templates.impl.composeActivity.composeActivityProject
 import com.itsaky.androidide.templates.impl.emptyActivity.emptyActivityProject
 import com.itsaky.androidide.templates.impl.lithoClassic.lithoClassicProject
@@ -132,6 +135,9 @@ class TemplateProviderImpl : ITemplateProvider {
     registerTemplate(TemplateCategory.BasicZeroStudio, tabbedActivityTemplate())
     registerTemplate(TemplateCategory.BasicZeroStudio, viewModelActivityTemplate())
     registerTemplate(TemplateCategory.BasicZeroStudio, xrActivityTemplate())
+    registerTemplate(TemplateCategory.BasicZeroStudio, chaquopyXmlDemoProject())
+    registerTemplate(TemplateCategory.BasicZeroStudio, chaquopyComposeDemoProject())
+    registerTemplate(TemplateCategory.BasicZeroStudio, chaquopyLithoDemoProject())
 
     // Native build（C/C++/Cmake） template category
     registerTemplate(TemplateCategory.Native, imguiActivityProject())
