@@ -885,4 +885,11 @@ SHA256：%9$s</string>
     <string name="title_template_description_android_tv_activity">创建基于 Leanback 的 Android TV 示例，包含浏览、详情与播放流程。</string>
     <string name="template_arch_starter_activity">架构入门 Activity</string>
     <string name="title_template_description_arch_starter_activity">创建现代架构入门模板，预置 Compose、Navigation、Room、Hilt 与分层结构。</string>
+
+    <string name="template_chaquopy_xml">Chaquopy XML Console</string>
+    <string name="template_chaquopy_compose">Chaquopy Compose Console</string>
+    <string name="template_chaquopy_litho">Chaquopy Litho Console</string>
+    <string name="title_template_description_chaquopy_xml">Chaquopy XML template with Python console bridge, manifest, and resources.</string>
+    <string name="title_template_description_chaquopy_compose">Chaquopy Compose template with Python runtime bridge and Compose host activity.</string>
+    <string name="title_template_description_chaquopy_litho">Chaquopy Litho template with Python runtime bridge and Litho-ready dependencies.</string>
 </resources>

@@ -11,9 +11,9 @@ import com.itsaky.androidide.templates.impl.baseProjectImpl
 import com.itsaky.androidide.templates.impl.chaquopy.base.writeChaquopyCommonFiles
 
 fun chaquopyLithoDemoProject(): ProjectTemplate = baseProjectImpl {
-  templateName = R.string.template_empty
+  templateName = R.string.template_chaquopy_litho
   thumb = R.drawable.template_basic_activity
-  description = string.title_template_description_basicactivity
+  description = string.title_template_description_chaquopy_litho
   defaultAppModule {
     recipe = createRecipe {
       sources { writeMainActivity(this, ::mainActivityKt, ::mainActivityJava) }

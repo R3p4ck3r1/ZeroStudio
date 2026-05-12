@@ -532,4 +532,11 @@ Bạn có chắc chắn muốn xóa caches không?</string>
     <string name="summary_open_source_licenses">Xem giấy phép nguồn mở.</string>
     <string name="idepref_jdkVersion_title">Phiên bản JDK</string>
     <string name="idepref_jdkVersion_summary">Hiện đang chọn: %1$s (cần khởi động lại nếu thay đổi)</string>
+
+    <string name="template_chaquopy_xml">Chaquopy XML Console</string>
+    <string name="template_chaquopy_compose">Chaquopy Compose Console</string>
+    <string name="template_chaquopy_litho">Chaquopy Litho Console</string>
+    <string name="title_template_description_chaquopy_xml">Chaquopy XML template with Python console bridge, manifest, and resources.</string>
+    <string name="title_template_description_chaquopy_compose">Chaquopy Compose template with Python runtime bridge and Compose host activity.</string>
+    <string name="title_template_description_chaquopy_litho">Chaquopy Litho template with Python runtime bridge and Litho-ready dependencies.</string>
 </resources>

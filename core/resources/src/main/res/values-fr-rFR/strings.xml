@@ -541,4 +541,11 @@ Dernier projet ouvert : \n%s</string>
   <string name="summary_open_source_licenses">View open source licenses.</string>
   <string name="idepref_jdkVersion_title">JDK version</string>
   <string name="idepref_jdkVersion_summary">Currently selected: %1$s (requires restart if changed)</string>
+
+    <string name="template_chaquopy_xml">Chaquopy XML Console</string>
+    <string name="template_chaquopy_compose">Chaquopy Compose Console</string>
+    <string name="template_chaquopy_litho">Chaquopy Litho Console</string>
+    <string name="title_template_description_chaquopy_xml">Chaquopy XML template with Python console bridge, manifest, and resources.</string>
+    <string name="title_template_description_chaquopy_compose">Chaquopy Compose template with Python runtime bridge and Compose host activity.</string>
+    <string name="title_template_description_chaquopy_litho">Chaquopy Litho template with Python runtime bridge and Litho-ready dependencies.</string>
 </resources>

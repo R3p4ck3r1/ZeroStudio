@@ -532,4 +532,11 @@
     <string name="summary_open_source_licenses">Переглянути ліцензії з відкритим вихідним кодом.</string>
     <string name="idepref_jdkVersion_title">версія JDK</string>
     <string name="idepref_jdkVersion_summary">Наразі обрано: %1$s (потрібно перезавантаження у разі зміни)</string>
+
+    <string name="template_chaquopy_xml">Chaquopy XML Console</string>
+    <string name="template_chaquopy_compose">Chaquopy Compose Console</string>
+    <string name="template_chaquopy_litho">Chaquopy Litho Console</string>
+    <string name="title_template_description_chaquopy_xml">Chaquopy XML template with Python console bridge, manifest, and resources.</string>
+    <string name="title_template_description_chaquopy_compose">Chaquopy Compose template with Python runtime bridge and Compose host activity.</string>
+    <string name="title_template_description_chaquopy_litho">Chaquopy Litho template with Python runtime bridge and Litho-ready dependencies.</string>
 </resources>

@@ -11,9 +11,9 @@ import com.itsaky.androidide.templates.impl.baseProjectImpl
 import com.itsaky.androidide.templates.impl.chaquopy.base.writeChaquopyCommonFiles
 
 fun chaquopyComposeDemoProject(): ProjectTemplate = baseProjectImpl {
-  templateName = R.string.template_compose
+  templateName = R.string.template_chaquopy_compose
   thumb = R.drawable.template_compose_empty_activity
-  description = string.title_template_description_basicactivity
+  description = string.title_template_description_chaquopy_compose
   defaultAppModule {
     recipe = createRecipe {
       sources { writeMainActivity(this, ::mainActivityKt, ::mainActivityJava) }

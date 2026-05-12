@@ -811,4 +811,11 @@
     <string name="title_template_description_android_tv_activity">Create an Android TV sample based on Leanback with browse/details/playback flows.</string>
     <string name="template_arch_starter_activity">Architecture Starter Activity</string>
     <string name="title_template_description_arch_starter_activity">Create a modern architecture starter using Compose, Navigation, Room, Hilt, and layered data/domain/ui structure.</string>
+
+    <string name="template_chaquopy_xml">Chaquopy XML Console</string>
+    <string name="template_chaquopy_compose">Chaquopy Compose Console</string>
+    <string name="template_chaquopy_litho">Chaquopy Litho Console</string>
+    <string name="title_template_description_chaquopy_xml">Chaquopy XML template with Python console bridge, manifest, and resources.</string>
+    <string name="title_template_description_chaquopy_compose">Chaquopy Compose template with Python runtime bridge and Compose host activity.</string>
+    <string name="title_template_description_chaquopy_litho">Chaquopy Litho template with Python runtime bridge and Litho-ready dependencies.</string>
 </resources>
