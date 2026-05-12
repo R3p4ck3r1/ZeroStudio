@@ -40,6 +40,12 @@ jobs:
         with:
           gradle-version: '8.13'
 
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.com/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+          bun --version
+
       - name: Install the specified NDK and Android SDK CMake (3.22.1)
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
