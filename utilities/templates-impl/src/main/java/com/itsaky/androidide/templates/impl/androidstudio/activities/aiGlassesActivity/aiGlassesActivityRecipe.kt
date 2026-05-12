@@ -15,6 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.aiGlassesActivity
 
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
 import com.itsaky.androidide.templates.base.modules.android.ManifestActivity
 import com.itsaky.androidide.templates.base.util.AndroidModuleResManager.ResourceType
@@ -47,7 +48,8 @@ fun AndroidModuleTemplateBuilder.aiGlassesActivityRecipe(
   addDependency("androidx.xr.glimmer", "glimmer", "1.0.0-alpha02")
   addDependency("androidx.xr.projected", "projected", "1.0.0-alpha03")
 
-  isComposeModule = true
+  val isKotlin = data.language == Language.Kotlin
+  isComposeModule = isKotlin
   val themeName = "${data.appName}Theme"
   val glassesActivityClass = "Glasses$activityClass"
 
@@ -69,21 +71,26 @@ fun AndroidModuleTemplateBuilder.aiGlassesActivityRecipe(
     }
 
     sources {
-      writeKtSrc(
-          packageName,
-          activityClass,
-          source = { mainActivityKt(activityClass, glassesActivityClass, packageName, themeName) },
-      )
-      writeKtSrc(
-          packageName,
-          glassesActivityClass,
-          source = { glassesActivityKt(glassesActivityClass, packageName) },
-      )
-      writeKtSrc(packageName, "AudioInterface", source = { audioInterfaceKt(packageName) })
+      if (isKotlin) {
+        writeKtSrc(
+            packageName,
+            activityClass,
+            source = { mainActivityKt(activityClass, glassesActivityClass, packageName, themeName) },
+        )
+        writeKtSrc(
+            packageName,
+            glassesActivityClass,
+            source = { glassesActivityKt(glassesActivityClass, packageName) },
+        )
+        writeKtSrc(packageName, "AudioInterface", source = { audioInterfaceKt(packageName) })
 
-      writeKtSrc("$packageName.ui.theme", "Color", source = { themeColorSrc() })
-      writeKtSrc("$packageName.ui.theme", "Theme", source = { themeThemeSrc() })
-      writeKtSrc("$packageName.ui.theme", "Type", source = { themeTypeSrc() })
+        writeKtSrc("$packageName.ui.theme", "Color", source = { themeColorSrc() })
+        writeKtSrc("$packageName.ui.theme", "Theme", source = { themeThemeSrc() })
+        writeKtSrc("$packageName.ui.theme", "Type", source = { themeTypeSrc() })
+      } else {
+        writeJavaSrc(packageName, activityClass, source = { aiGlassesMainActivityJava(activityClass, glassesActivityClass) })
+        writeJavaSrc(packageName, glassesActivityClass, source = { aiGlassesSecondaryActivityJava(glassesActivityClass) })
+      }
     }
   }
 }

@@ -40,7 +40,8 @@ fun aiGlassesActivityTemplate(): ProjectTemplate {
 
   return baseProjectImpl {
     templateName = R.string.template_ai_glasses_activity
-    thumb = R.drawable.template_basic_activity
+    thumb = R.drawable.template_ai_glasses_activity
+    description = R.string.title_template_description_ai_glasses_activity
 
     widgets(TextFieldWidget(activityClass))
 

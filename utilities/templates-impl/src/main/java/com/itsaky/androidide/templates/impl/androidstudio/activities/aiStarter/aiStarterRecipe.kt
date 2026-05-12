@@ -15,6 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.aiStarter
 
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
 import com.itsaky.androidide.templates.base.modules.android.ManifestActivity
 import com.itsaky.androidide.templates.base.util.AndroidModuleResManager.ResourceType
@@ -85,7 +86,8 @@ fun AndroidModuleTemplateBuilder.aiStarterRecipe(
   val dataStoreVersion = "1.1.7"
   addDependency("androidx.datastore", "datastore-preferences", dataStoreVersion)
 
-  isComposeModule = true
+  val isKotlin = data.language == Language.Kotlin
+  isComposeModule = isKotlin
   val themeName = "${data.appName}Theme"
 
   manifest {
@@ -96,17 +98,37 @@ fun AndroidModuleTemplateBuilder.aiStarterRecipe(
   recipe = createRecipe {
     res { writeXmlResource("themes", ResourceType.VALUES, source = { composeThemesXml() }) }
     sources {
-      writeKtSrc(
-          packageName,
-          activityClass,
-          source = {
-            mainActivityKt(activityClass, "GreetingPreview", "Greeting", packageName, themeName)
-          },
-      )
+      if (isKotlin) {
+        writeKtSrc(
+            packageName,
+            activityClass,
+            source = {
+              mainActivityKt(activityClass, "GreetingPreview", "Greeting", packageName, themeName)
+            },
+        )
 
-      writeKtSrc("$packageName.ui.theme", "Color", source = { themeColorSrc() })
-      writeKtSrc("$packageName.ui.theme", "Theme", source = { themeThemeSrc() })
-      writeKtSrc("$packageName.ui.theme", "Type", source = { themeTypeSrc() })
+        writeKtSrc("$packageName.ui.theme", "Color", source = { themeColorSrc() })
+        writeKtSrc("$packageName.ui.theme", "Theme", source = { themeThemeSrc() })
+        writeKtSrc("$packageName.ui.theme", "Type", source = { themeTypeSrc() })
+      } else {
+        writeJavaSrc(packageName, activityClass, source = { aiStarterMainActivityJava(activityClass) })
+      }
     }
   }
 }
+
+
+private fun AndroidModuleTemplateBuilder.aiStarterMainActivityJava(activityClass: String): String = """
+package ${data.packageName};
+
+import android.os.Bundle;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class ${activityClass} extends AppCompatActivity {
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(android.R.layout.simple_list_item_1);
+  }
+}
+"""

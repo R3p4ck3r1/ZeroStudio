@@ -82,7 +82,8 @@ fun androidTVActivityTemplate(): ProjectTemplate {
 
   return baseProjectImpl {
     templateName = R.string.template_android_tv_activity
-    thumb = R.drawable.template_basic_activity
+    thumb = R.drawable.template_leanback_tv
+    description = R.string.title_template_description_android_tv_activity
 
     widgets(
         TextFieldWidget(activityClass),

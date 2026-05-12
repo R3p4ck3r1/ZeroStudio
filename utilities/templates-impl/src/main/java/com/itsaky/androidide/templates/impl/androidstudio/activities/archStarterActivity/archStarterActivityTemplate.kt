@@ -46,7 +46,8 @@ fun archStarterActivityTemplate(): ProjectTemplate {
 
   return baseProjectImpl {
     templateName = R.string.template_arch_starter_activity
-    thumb = R.drawable.template_basic_activity
+    thumb = R.drawable.template_compose_empty_activity_material3
+    description = R.string.title_template_description_arch_starter_activity
 
     widgets(TextFieldWidget(activityClass), CheckBoxWidget(isLauncher))
 

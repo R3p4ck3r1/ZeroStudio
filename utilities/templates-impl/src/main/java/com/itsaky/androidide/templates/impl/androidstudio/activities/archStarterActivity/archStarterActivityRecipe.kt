@@ -15,6 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.archStarterActivity
 
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
 import com.itsaky.androidide.templates.base.modules.android.ManifestActivity
 import com.itsaky.androidide.templates.impl.androidstudio.activities.archStarterActivity.src.app_package.application
@@ -83,7 +84,8 @@ fun AndroidModuleTemplateBuilder.archStarterActivityRecipe(
   addDependency("com.squareup.moshi", "moshi-kotlin", "1.15.2")
   addDependency("androidx.datastore", "datastore-preferences", "1.1.7")
 
-  isComposeModule = true
+  val isKotlin = data.language == Language.Kotlin
+  isComposeModule = isKotlin
 
   val themeName = "${data.appName ?: "App"}Theme"
   val modelName = "${data.appName ?: "App"}Model"
@@ -105,7 +107,8 @@ fun AndroidModuleTemplateBuilder.archStarterActivityRecipe(
 
   recipe = createRecipe {
     sources {
-      with(recipeVariables) {
+      if (isKotlin) {
+        with(recipeVariables) {
         writeKtSrc(packageName, appName, source = { application() })
 
         writeKtSrc("$packageName.ui", activityClass, source = { mainActivityKt() })
@@ -134,6 +137,9 @@ fun AndroidModuleTemplateBuilder.archStarterActivityRecipe(
         writeKtSrc("$packageName.data.local.di", "DatabaseModule", source = { databaseModule() })
 
         writeKtSrc("$packageName.data", repositoryName, source = { repository() })
+        }
+      } else {
+        writeJavaSrc(packageName, activityClass, source = { archStarterMainActivityJava(activityClass) })
       }
     }
   }
