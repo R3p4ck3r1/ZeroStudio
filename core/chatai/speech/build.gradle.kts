@@ -47,7 +47,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":common"))
+    implementation(projects.core.common)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.okhttp)
