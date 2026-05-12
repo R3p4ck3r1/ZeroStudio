@@ -876,4 +876,13 @@ SHA256：%9$s</string>
      <string name="template_litho_compose">Litho Compose Activity</string>
      <string name="title_template_description_litho_classic">经典 Litho 模板，内置 SoLoader、Litho core/widgets、sections 依赖，并提供可直接运行的 Hello Litho 页面。</string>
      <string name="title_template_description_litho_compose">Compose + Litho 混合模板，内置 SoLoader 初始化与 AndroidView 承载的 Litho 内容示例。</string>
+
+    <string name="template_ai_starter_activity">AI 入门 Activity</string>
+    <string name="title_template_description_ai_starter_activity">创建现代 AI 入门应用模板，预置 Compose、Navigation、CameraX、Retrofit、Room 与 DataStore。</string>
+    <string name="template_ai_glasses_activity">AI 眼镜 Activity</string>
+    <string name="title_template_description_ai_glasses_activity">创建 AI 眼镜示例模板，包含 Compose 界面与 XR 投影显示清单配置。</string>
+    <string name="template_android_tv_activity">Android TV Activity</string>
+    <string name="title_template_description_android_tv_activity">创建基于 Leanback 的 Android TV 示例，包含浏览、详情与播放流程。</string>
+    <string name="template_arch_starter_activity">架构入门 Activity</string>
+    <string name="title_template_description_arch_starter_activity">创建现代架构入门模板，预置 Compose、Navigation、Room、Hilt 与分层结构。</string>
 </resources>
