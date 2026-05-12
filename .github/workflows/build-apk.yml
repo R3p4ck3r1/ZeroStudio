@@ -43,6 +43,7 @@ jobs:
       - name: Install Bun
         run: |
           curl -fsSL https://bun.com/install | bash
+          export PATH="$HOME/.bun/bin:$PATH"
           echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
           bun --version
 
