@@ -1,14 +1,9 @@
-import com.android.build.api.dsl.Packaging
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import java.io.FileInputStream
-import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  // alias(libs.plugins.android.application)
-  alias(libs.plugins.android.library)
+  alias(libs.plugins.android.application)
+  alias(libs.plugins.kotlin.android)
   alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
   alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
   alias(libs.plugins.com.google.devtools.ksp)
@@ -206,7 +201,6 @@ dependencies {
     implementation(libs.io.coil.gif)
     implementation(libs.io.coil.okhttp)
     implementation(libs.io.coil.svg)
-    implementation(libs.io.coil.cache.control)
 
     // serialization
     implementation(libs.kotlinx.serialization.json)
@@ -230,7 +224,7 @@ dependencies {
     implementation(libs.androidx.paging.compose)
 
     // Apache Commons Text
-    implementation(libs.commonsText)
+    implementation(libs.commons.text)
 
     // Toast (Sonner)
     implementation(libs.sonner)
@@ -258,7 +252,7 @@ dependencies {
     implementation(libs.jmdns)
 
     // SLF4J Android binding — routes Ktor/SLF4J logs to logcat
-    implementation(libs.slf4j.api)
+    implementation(libs.tooling.slf4j)
     implementation(libs.slf4j.android)
 
     // sqlite-android (requery SQLite for Android)
