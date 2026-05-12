@@ -26,6 +26,8 @@ import com.itsaky.androidide.templates.impl.basicCpp.basicCppProject
 import com.itsaky.androidide.templates.impl.bottomNavActivity.bottomNavActivityProject
 import com.itsaky.androidide.templates.impl.composeActivity.composeActivityProject
 import com.itsaky.androidide.templates.impl.emptyActivity.emptyActivityProject
+import com.itsaky.androidide.templates.impl.lithoClassic.lithoClassicProject
+import com.itsaky.androidide.templates.impl.lithoCompose.lithoComposeProject
 import com.itsaky.androidide.templates.impl.nativeTemplate.imguiActivityProject.imguiActivityProject
 import com.itsaky.androidide.templates.impl.navDrawerActivity.navDrawerActivityProject
 import com.itsaky.androidide.templates.impl.noActivity.*
@@ -102,6 +104,8 @@ class TemplateProviderImpl : ITemplateProvider {
     registerTemplate(TemplateCategory.BasicZeroStudio, tabbedActivityProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, basicCppProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, noAndroidXActivityProject())
+    registerTemplate(TemplateCategory.BasicZeroStudio, lithoClassicProject())
+    registerTemplate(TemplateCategory.BasicZeroStudio, lithoComposeProject())
 
     // Native build（C/C++/Cmake） template category
     registerTemplate(TemplateCategory.Native, imguiActivityProject())
