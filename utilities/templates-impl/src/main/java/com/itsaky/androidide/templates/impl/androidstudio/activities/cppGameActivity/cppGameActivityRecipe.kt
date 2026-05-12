@@ -15,12 +15,12 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.cppGameActivity
 
-import com.android.tools.idea.wizard.template.DEFAULT_CMAKE_VERSION
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.PackageName
-import com.android.tools.idea.wizard.template.RecipeExecutor
-import com.android.tools.idea.wizard.template.deriveNativeLibraryName
+import com.itsaky.androidide.templates.DEFAULT_CMAKE_VERSION
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.PackageName
+import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.deriveNativeLibraryName
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.generateManifest
 import com.itsaky.androidide.templates.impl.androidstudio.activities.cppGameActivity.src.androidOutCpp

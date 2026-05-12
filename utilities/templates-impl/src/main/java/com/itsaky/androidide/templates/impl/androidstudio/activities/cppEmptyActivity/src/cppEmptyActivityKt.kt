@@ -15,13 +15,13 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.cppEmptyActivity.src
 
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.getMaterialComponentName
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.findViewById
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.importViewBindingClass
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.layoutToViewBindingClass
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 
 fun cppEmptyActivityKt(
     packageName: String,

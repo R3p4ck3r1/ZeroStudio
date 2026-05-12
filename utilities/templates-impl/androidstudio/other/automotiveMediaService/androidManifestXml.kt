@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.automotiveMediaService
 
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 
 fun androidManifestXml(
     customThemeName: String,

@@ -16,18 +16,18 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.emptyCalApp
 
-import com.android.tools.idea.wizard.template.Category
-import com.android.tools.idea.wizard.template.Constraint
-import com.android.tools.idea.wizard.template.FormFactor
-import com.android.tools.idea.wizard.template.LanguageWidget
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.PackageNameWidget
-import com.android.tools.idea.wizard.template.TemplateConstraint
-import com.android.tools.idea.wizard.template.TemplateData
-import com.android.tools.idea.wizard.template.TextFieldWidget
-import com.android.tools.idea.wizard.template.WizardUiContext
-import com.android.tools.idea.wizard.template.stringParameter
-import com.android.tools.idea.wizard.template.template
+import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.Constraint
+import com.itsaky.androidide.templates.FormFactor
+import com.itsaky.androidide.templates.LanguageWidget
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.PackageNameWidget
+import com.itsaky.androidide.templates.TemplateConstraint
+import com.itsaky.androidide.templates.TemplateData
+import com.itsaky.androidide.templates.TextFieldWidget
+import com.itsaky.androidide.templates.WizardUiContext
+import com.itsaky.androidide.templates.stringParameter
+import com.itsaky.androidide.templates.template
 import com.itsaky.androidide.templates.impl.androidstudio.defaultPackageNameParameter
 import java.io.File
 

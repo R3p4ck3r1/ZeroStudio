@@ -16,16 +16,16 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.files.shortcutResourceFile
 
-import com.android.tools.idea.wizard.template.Category
-import com.android.tools.idea.wizard.template.Constraint.NONEMPTY
-import com.android.tools.idea.wizard.template.Constraint.UNIQUE
-import com.android.tools.idea.wizard.template.FormFactor
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.TemplateData
-import com.android.tools.idea.wizard.template.TextFieldWidget
-import com.android.tools.idea.wizard.template.WizardUiContext
-import com.android.tools.idea.wizard.template.stringParameter
-import com.android.tools.idea.wizard.template.template
+import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.Constraint.NONEMPTY
+import com.itsaky.androidide.templates.Constraint.UNIQUE
+import com.itsaky.androidide.templates.FormFactor
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.TemplateData
+import com.itsaky.androidide.templates.TextFieldWidget
+import com.itsaky.androidide.templates.WizardUiContext
+import com.itsaky.androidide.templates.stringParameter
+import com.itsaky.androidide.templates.template
 import java.io.File
 
 val shortcutsResourceFileTemplate

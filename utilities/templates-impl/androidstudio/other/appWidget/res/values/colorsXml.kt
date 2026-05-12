@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.values
 
-import com.android.tools.idea.wizard.template.MaterialColor.*
+import com.itsaky.androidide.templates.MaterialColor.*
 
 fun colorsXml() =
     """

@@ -15,9 +15,9 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.emptyActivity.src
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
-import com.android.tools.idea.wizard.template.getMaterialComponentName
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.getMaterialComponentName
+import com.itsaky.androidide.templates.renderIf
 
 fun emptyActivityKt(
     packageName: String,

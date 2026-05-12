@@ -15,18 +15,18 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.common
 
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.PackageName
-import com.android.tools.idea.wizard.template.RecipeExecutor
-import com.android.tools.idea.wizard.template.ThemeData
-import com.android.tools.idea.wizard.template.ThemesData
-import com.android.tools.idea.wizard.template.ViewBindingSupport
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.PackageName
+import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.ThemeData
+import com.itsaky.androidide.templates.ThemesData
+import com.itsaky.androidide.templates.ViewBindingSupport
+import com.itsaky.androidide.templates.getMaterialComponentName
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.res.layout.simpleLayoutXml
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.res.menu.simpleMenu
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.res.values.manifestStrings
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.res.values.themeStyles
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 import java.io.File
 
 fun RecipeExecutor.generateSimpleMenu(

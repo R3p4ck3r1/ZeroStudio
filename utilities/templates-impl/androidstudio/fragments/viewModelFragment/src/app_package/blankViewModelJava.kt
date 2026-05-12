@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.viewModelFragment.src.app_package
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun blankViewModelJava(packageName: String, useAndroidX: Boolean, viewModelName: String) =
     """

@@ -15,14 +15,14 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarativeWatchFace
 
-import com.android.tools.idea.wizard.template.Category
-import com.android.tools.idea.wizard.template.FormFactor
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.PackageNameWidget
-import com.android.tools.idea.wizard.template.TemplateData
-import com.android.tools.idea.wizard.template.TemplateFlag
-import com.android.tools.idea.wizard.template.WizardUiContext
-import com.android.tools.idea.wizard.template.template
+import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.FormFactor
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.PackageNameWidget
+import com.itsaky.androidide.templates.TemplateData
+import com.itsaky.androidide.templates.TemplateFlag
+import com.itsaky.androidide.templates.WizardUiContext
+import com.itsaky.androidide.templates.template
 import com.itsaky.androidide.templates.impl.androidstudio.defaultPackageNameParameter
 import java.io.File
 

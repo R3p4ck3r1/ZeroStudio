@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.composeNavigationUiActivityMaterial3
 
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.RecipeExecutor
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.RecipeExecutor
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addComposeDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.generateManifest

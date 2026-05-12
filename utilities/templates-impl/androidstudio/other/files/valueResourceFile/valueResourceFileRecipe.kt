@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.files.valueResourceFile
 
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.RecipeExecutor
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.RecipeExecutor
 import com.itsaky.androidide.templates.impl.androidstudio.other.files.valueResourceFile.res.valuesXml
 
 fun RecipeExecutor.valueResourceFileRecipe(moduleData: ModuleTemplateData, fileName: String) {

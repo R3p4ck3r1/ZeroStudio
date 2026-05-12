@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.fullscreenFragment.res.layout
 
-import com.android.tools.idea.wizard.template.ThemesData
+import com.itsaky.androidide.templates.ThemesData
 import com.itsaky.androidide.templates.impl.androidstudio.activities.fullscreenActivity.res.values.getFullscreenButtonBarStyle
 import com.itsaky.androidide.templates.impl.androidstudio.activities.fullscreenActivity.res.values.getFullscreenContainerThemeOverlay
 

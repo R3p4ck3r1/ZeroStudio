@@ -16,24 +16,24 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.composeActivityMaterial3
 
-import com.android.tools.idea.wizard.template.Category
-import com.android.tools.idea.wizard.template.CheckBoxWidget
-import com.android.tools.idea.wizard.template.Constraint.CLASS
-import com.android.tools.idea.wizard.template.Constraint.KOTLIN_FUNCTION
-import com.android.tools.idea.wizard.template.Constraint.NONEMPTY
-import com.android.tools.idea.wizard.template.Constraint.UNIQUE
-import com.android.tools.idea.wizard.template.FormFactor
-import com.android.tools.idea.wizard.template.LanguageWidget
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.PackageNameWidget
-import com.android.tools.idea.wizard.template.TemplateConstraint
-import com.android.tools.idea.wizard.template.TemplateData
-import com.android.tools.idea.wizard.template.TextFieldWidget
-import com.android.tools.idea.wizard.template.WizardUiContext
-import com.android.tools.idea.wizard.template.booleanParameter
+import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.CheckBoxWidget
+import com.itsaky.androidide.templates.Constraint.CLASS
+import com.itsaky.androidide.templates.Constraint.KOTLIN_FUNCTION
+import com.itsaky.androidide.templates.Constraint.NONEMPTY
+import com.itsaky.androidide.templates.Constraint.UNIQUE
+import com.itsaky.androidide.templates.FormFactor
+import com.itsaky.androidide.templates.LanguageWidget
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.PackageNameWidget
+import com.itsaky.androidide.templates.TemplateConstraint
+import com.itsaky.androidide.templates.TemplateData
+import com.itsaky.androidide.templates.TextFieldWidget
+import com.itsaky.androidide.templates.WizardUiContext
+import com.itsaky.androidide.templates.booleanParameter
 import com.itsaky.androidide.templates.impl.androidstudio.defaultPackageNameParameter
-import com.android.tools.idea.wizard.template.stringParameter
-import com.android.tools.idea.wizard.template.template
+import com.itsaky.androidide.templates.stringParameter
+import com.itsaky.androidide.templates.template
 import java.io.File
 
 val composeActivityMaterial3Template

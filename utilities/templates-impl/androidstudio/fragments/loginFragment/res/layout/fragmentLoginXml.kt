@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.loginFragment.res.layout
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.getMaterialComponentName
+import com.itsaky.androidide.templates.renderIf
 
 fun fragmentLoginXml(
     fragmentClass: String,

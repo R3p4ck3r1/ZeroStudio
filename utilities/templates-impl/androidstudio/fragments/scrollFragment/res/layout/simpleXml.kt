@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.scrollFragment.res.layout
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun simpleXml(fragmentClass: String, packageName: String, useAndroidX: Boolean) =
     """

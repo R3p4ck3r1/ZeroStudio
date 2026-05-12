@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.listFragment.res.layout
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun fragmentListXml(
     fragmentClass: String,

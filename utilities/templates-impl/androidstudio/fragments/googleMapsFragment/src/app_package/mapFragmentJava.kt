@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.fragments.googleMapsFragment.src.app_package
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun mapFragmentJava(
     fragmentClass: String,

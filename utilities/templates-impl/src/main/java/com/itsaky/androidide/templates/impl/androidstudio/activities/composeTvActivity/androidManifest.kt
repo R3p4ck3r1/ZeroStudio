@@ -16,7 +16,7 @@
 package com.itsaky.androidide.templates.impl.androidstudio.activities.composeTvActivity
 
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.collapseEmptyActivityTags
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 
 fun androidManifestXml(
     isNewModule: Boolean,

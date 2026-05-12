@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.res.xml
 
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 import com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.Placement
 import com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.Resizeable
 

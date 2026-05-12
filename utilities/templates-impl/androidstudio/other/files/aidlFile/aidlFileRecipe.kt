@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.files.aidlFile
 
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.RecipeExecutor
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.RecipeExecutor
 import com.itsaky.androidide.templates.impl.androidstudio.other.files.aidlFile.src.app_package.interfaceAidl
 
 fun RecipeExecutor.aidlFileRecipe(moduleData: ModuleTemplateData, interfaceName: String) {

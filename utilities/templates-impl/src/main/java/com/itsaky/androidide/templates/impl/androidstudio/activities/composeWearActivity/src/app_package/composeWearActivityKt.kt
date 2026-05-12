@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.composeWearActivity.src.app_package
 
-import com.android.tools.idea.wizard.template.PackageName
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.PackageName
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
 
 fun mainActivityKt(
     applicationPackage: PackageName,

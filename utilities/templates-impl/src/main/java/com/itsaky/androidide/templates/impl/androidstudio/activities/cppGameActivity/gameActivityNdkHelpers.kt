@@ -15,7 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.cppGameActivity
 
-import com.android.tools.idea.wizard.template.DEFAULT_CMAKE_VERSION
+import com.itsaky.androidide.templates.DEFAULT_CMAKE_VERSION
 
 fun gameActivityCMakeListsTxt(nativeSourceName: String, libraryName: String) =
     """

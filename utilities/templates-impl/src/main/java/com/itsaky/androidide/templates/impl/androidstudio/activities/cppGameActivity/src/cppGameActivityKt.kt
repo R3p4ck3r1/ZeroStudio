@@ -15,7 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activities.cppGameActivity.src
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
 
 fun cppGameActivityKt(packageName: String, activityClass: String, libraryName: String): String {
   return """

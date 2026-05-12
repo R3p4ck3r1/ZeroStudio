@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.appWidget.src.app_package
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.renderIf
 
 fun appWidgetKt(
     applicationPackage: String?,

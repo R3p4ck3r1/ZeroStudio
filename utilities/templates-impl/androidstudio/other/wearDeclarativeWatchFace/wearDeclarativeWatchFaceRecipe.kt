@@ -15,8 +15,8 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarativeWatchFace
 
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.RecipeExecutor
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.RecipeExecutor
 import com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarativeWatchFace.res.raw.rawWatchFaceXml
 import com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarativeWatchFace.res.values.stringsXml
 import com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarativeWatchFace.res.xml.watchFaceInfoXml

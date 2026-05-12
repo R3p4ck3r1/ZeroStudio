@@ -16,8 +16,8 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.other.automotiveMessagingService.src.app_package
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun messageReadReceiverKt(packageName: String, readReceiverName: String, useAndroidX: Boolean) =
     """

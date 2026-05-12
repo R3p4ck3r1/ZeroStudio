@@ -18,11 +18,11 @@ package com.itsaky.androidide.templates.impl.androidstudio.other.automotiveMedia
 
 import com.android.sdklib.AndroidMajorVersion
 import com.android.sdklib.AndroidVersion
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.ProjectTemplateData
-import com.android.tools.idea.wizard.template.TemplateKotlinSupport
-import com.android.tools.idea.wizard.template.getMaterialComponentName
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.ProjectTemplateData
+import com.itsaky.androidide.templates.TemplateKotlinSupport
+import com.itsaky.androidide.templates.getMaterialComponentName
+import com.itsaky.androidide.templates.renderIf
 import com.itsaky.androidide.templates.impl.androidstudio.compileSdk
 import com.itsaky.androidide.templates.impl.androidstudio.minSdk
 import com.itsaky.androidide.templates.impl.androidstudio.targetSdk
