@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package com.itsaky.androidide.templates.impl.androidstudio.fragments.googleMapsFragment
+package com.itsaky.androidide.templates.impl.androidstudio.fragments.listFragment.res.values
 
-import com.itsaky.androidide.templates.impl.activities.googleMapsActivity.geoApiKeyMetadataEntry
-
-fun androidManifestXml() =
+fun dimensXml() =
     """
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
-
-        ${geoApiKeyMetadataEntry()}
-    </application>
-
-</manifest>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="text_margin">16dp</dimen>
+</resources>
 """

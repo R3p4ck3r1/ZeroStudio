@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.itsaky.androidide.templates.impl.androidstudio.fragments.googleMapsFragment
+package com.itsaky.androidide.templates.impl.androidstudio.fragments.fullscreenFragment
 
 import com.itsaky.androidide.templates.Category
 import com.itsaky.androidide.templates.Constraint.CLASS
@@ -25,7 +25,6 @@ import com.itsaky.androidide.templates.FormFactor
 import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.PackageNameWidget
-import com.itsaky.androidide.templates.TemplateConstraint
 import com.itsaky.androidide.templates.TemplateData
 import com.itsaky.androidide.templates.TextFieldWidget
 import com.itsaky.androidide.templates.WizardUiContext
@@ -36,20 +35,19 @@ import com.itsaky.androidide.templates.stringParameter
 import com.itsaky.androidide.templates.template
 import java.io.File
 
-val googleMapsFragmentTemplate
+val fullscreenFragmentTemplate
   get() = template {
-    name = "Google Maps Fragment"
-    description = "Creates a new fragment with a Google Map"
+    name = "Fullscreen Fragment"
+    description =
+        "Creates a new fragment that toggles the visibility of the system UI (status and navigation bars) and action bar upon user interaction"
     minApi = MIN_API
-    constraints = listOf(TemplateConstraint.AndroidX)
-
     category = Category.Fragment
     formFactor = FormFactor.Mobile
     screens = listOf(WizardUiContext.FragmentGallery, WizardUiContext.MenuEntry)
 
     val fragmentClass = stringParameter {
       name = "Fragment Name"
-      default = "MapsFragment"
+      default = "FullscreenFragment"
       help = "The name of the fragment class to create"
       constraints = listOf(CLASS, UNIQUE, NONEMPTY)
       loggable = true
@@ -57,7 +55,7 @@ val googleMapsFragmentTemplate
 
     val layoutName = stringParameter {
       name = "Layout Name"
-      default = "fragment_map"
+      default = "fragment_fullscreen"
       help = "The name of the layout to create for the fragment"
       constraints = listOf(LAYOUT, UNIQUE, NONEMPTY)
       suggest = { fragmentToLayout(fragmentClass.value) }
@@ -73,10 +71,10 @@ val googleMapsFragmentTemplate
         LanguageWidget(),
     )
 
-    thumb { File("google-maps-fragment").resolve("template_map_fragment.png") }
+    thumb { File("fullscreen-fragment").resolve("template_fullscreen_fragment.png") }
 
     recipe = { data: TemplateData ->
-      googleMapsFragmentRecipe(
+      fullscreenFragmentRecipe(
           data as ModuleTemplateData,
           fragmentClass.value,
           layoutName.value,

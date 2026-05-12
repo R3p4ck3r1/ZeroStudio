@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package com.itsaky.androidide.templates.impl.androidstudio.fragments.googleMapsFragment
+package com.itsaky.androidide.templates.impl.androidstudio.fragments.blankFragment.res.values
 
-import com.itsaky.androidide.templates.impl.activities.googleMapsActivity.geoApiKeyMetadataEntry
-
-fun androidManifestXml() =
+fun stringsXml() =
     """
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
-
-        ${geoApiKeyMetadataEntry()}
-    </application>
-
-</manifest>
+<resources>
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>
 """

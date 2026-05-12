@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-package com.itsaky.androidide.templates.impl.androidstudio.fragments.googleMapsFragment
+package com.itsaky.androidide.templates.impl.androidstudio.fragments.blankFragment.res.layout
 
-import com.itsaky.androidide.templates.impl.activities.googleMapsActivity.geoApiKeyMetadataEntry
-
-fun androidManifestXml() =
+fun fragmentBlankXml(className: String, packageName: String) =
     """
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="${packageName}.${className}">
 
-        ${geoApiKeyMetadataEntry()}
-    </application>
+    <!-- TODO: Update blank fragment layout -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="@string/hello_blank_fragment" />
 
-</manifest>
+</FrameLayout>
 """

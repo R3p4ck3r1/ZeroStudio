@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.itsaky.androidide.templates.impl.androidstudio.fragments.googleMapsFragment
+package com.itsaky.androidide.templates.impl.androidstudio.fragments.blankFragment
 
 import com.itsaky.androidide.templates.Category
 import com.itsaky.androidide.templates.Constraint.CLASS
@@ -24,63 +24,46 @@ import com.itsaky.androidide.templates.Constraint.UNIQUE
 import com.itsaky.androidide.templates.FormFactor
 import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.ModuleTemplateData
-import com.itsaky.androidide.templates.PackageNameWidget
-import com.itsaky.androidide.templates.TemplateConstraint
 import com.itsaky.androidide.templates.TemplateData
 import com.itsaky.androidide.templates.TextFieldWidget
 import com.itsaky.androidide.templates.WizardUiContext
 import com.itsaky.androidide.templates.fragmentToLayout
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.MIN_API
-import com.itsaky.androidide.templates.impl.androidstudio.defaultPackageNameParameter
 import com.itsaky.androidide.templates.stringParameter
 import com.itsaky.androidide.templates.template
 import java.io.File
 
-val googleMapsFragmentTemplate
+val blankFragmentTemplate
   get() = template {
-    name = "Google Maps Fragment"
-    description = "Creates a new fragment with a Google Map"
+    name = "Fragment (Blank)"
+    description = "Creates a blank fragment that is compatible back to API level $MIN_API"
     minApi = MIN_API
-    constraints = listOf(TemplateConstraint.AndroidX)
-
     category = Category.Fragment
     formFactor = FormFactor.Mobile
     screens = listOf(WizardUiContext.FragmentGallery, WizardUiContext.MenuEntry)
 
-    val fragmentClass = stringParameter {
+    val className = stringParameter {
       name = "Fragment Name"
-      default = "MapsFragment"
+      default = "BlankFragment"
       help = "The name of the fragment class to create"
-      constraints = listOf(CLASS, UNIQUE, NONEMPTY)
+      constraints = listOf(CLASS, NONEMPTY, UNIQUE)
       loggable = true
     }
 
     val layoutName = stringParameter {
-      name = "Layout Name"
-      default = "fragment_map"
-      help = "The name of the layout to create for the fragment"
-      constraints = listOf(LAYOUT, UNIQUE, NONEMPTY)
-      suggest = { fragmentToLayout(fragmentClass.value) }
+      name = "Fragment Layout Name"
+      default = "fragment_blank"
+      help = "The name of the layout to create"
+      constraints = listOf(LAYOUT, NONEMPTY, UNIQUE)
+      suggest = { fragmentToLayout(className.value) }
       loggable = true
     }
 
-    val packageName = defaultPackageNameParameter
+    widgets(TextFieldWidget(className), TextFieldWidget(layoutName), LanguageWidget())
 
-    widgets(
-        TextFieldWidget(fragmentClass),
-        TextFieldWidget(layoutName),
-        PackageNameWidget(packageName),
-        LanguageWidget(),
-    )
-
-    thumb { File("google-maps-fragment").resolve("template_map_fragment.png") }
+    thumb { File("blank-fragment").resolve("template_blank_fragment.png") }
 
     recipe = { data: TemplateData ->
-      googleMapsFragmentRecipe(
-          data as ModuleTemplateData,
-          fragmentClass.value,
-          layoutName.value,
-          packageName.value,
-      )
+      blankFragmentRecipe(data as ModuleTemplateData, className.value, layoutName.value)
     }
   }

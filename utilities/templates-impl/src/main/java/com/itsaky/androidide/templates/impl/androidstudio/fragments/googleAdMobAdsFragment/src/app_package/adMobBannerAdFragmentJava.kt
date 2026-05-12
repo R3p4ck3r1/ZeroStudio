@@ -18,10 +18,10 @@ package com.itsaky.androidide.templates.impl.androidstudio.fragments.googleAdMob
 
 import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.getMaterialComponentName
-import com.itsaky.androidide.templates.renderIf
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.findViewById
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.importViewBindingClass
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.layoutToViewBindingClass
+import com.itsaky.androidide.templates.renderIf
 
 fun adMobBannerAdFragmentJava(
     applicationPackage: String?,

@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.itsaky.androidide.templates.impl.androidstudio.fragments.googleMapsFragment
+package com.itsaky.androidide.templates.impl.androidstudio.fragments.fullscreenFragment.res.values
 
-import com.itsaky.androidide.templates.impl.activities.googleMapsActivity.geoApiKeyMetadataEntry
+import com.itsaky.androidide.templates.MaterialColor.*
 
-fun androidManifestXml() =
+fun fullScreenColorsXml() =
     """
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
-
-        ${geoApiKeyMetadataEntry()}
-    </application>
-
-</manifest>
+<resources>
+    ${LIGHT_BLUE_600.xmlElement()}
+    ${LIGHT_BLUE_900.xmlElement()}
+    ${LIGHT_BLUE_A200.xmlElement()}
+    ${LIGHT_BLUE_A400.xmlElement()}
+    <color name="black_overlay">#66000000</color>
+</resources>
 """
