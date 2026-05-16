@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  alias(libs.plugins.android.application)
+  alias(libs.plugins.android.library)
   alias(libs.plugins.kotlin.android)
   alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
   alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
@@ -114,8 +114,8 @@ composeCompiler {
 }
 
 tasks.register("buildAll") {
-    dependsOn("assembleRelease", "bundleRelease")
-    description = "Build both APK and AAB"
+    dependsOn("assembleRelease")
+    description = "Build release AAR"
 }
 
 ksp {
