@@ -67,10 +67,8 @@ android {
             initWith(getByName("release"))
             matchingFallbacks.add("release")
             // signingConfig = signingConfigs.getByName("debug")
-            isDebuggable = false
             isMinifyEnabled = false
             isShrinkResources = false
-            isProfileable = true
         }
     }
     compileOptions {
@@ -83,9 +81,6 @@ android {
     }
     sourceSets {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
-    }
-    androidResources {
-        generateLocaleConfig = true
     }
     packaging {
         jniLibs {
