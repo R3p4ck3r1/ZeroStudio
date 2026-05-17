@@ -5,10 +5,11 @@ import com.itsaky.androidide.templates.ProjectTemplate
 import com.itsaky.androidide.templates.base.modules.android.defaultAppModule
 import com.itsaky.androidide.templates.impl.R
 import com.itsaky.androidide.templates.impl.base.createRecipe
-import com.itsaky.androidide.templates.impl.base.emptyThemesAndColors
 import com.itsaky.androidide.templates.impl.base.writeMainActivity
 import com.itsaky.androidide.templates.impl.baseProjectImpl
-import com.itsaky.androidide.templates.impl.chaquopy.base.writeChaquopyCommonFiles
+import com.itsaky.androidide.templates.impl.chaquopy.base.ChaquopyTemplateSpec
+import com.itsaky.androidide.templates.impl.chaquopy.base.ChaquopyUiKind
+import com.itsaky.androidide.templates.impl.chaquopy.base.writeChaquopyTemplate
 
 fun chaquopyComposeDemoProject(): ProjectTemplate = baseProjectImpl {
   templateName = R.string.template_chaquopy_compose
@@ -18,14 +19,12 @@ fun chaquopyComposeDemoProject(): ProjectTemplate = baseProjectImpl {
   defaultAppModule {
     recipe = createRecipe {
       sources { writeMainActivity(this, ::mainActivityKt, ::mainActivityJava) }
-      res { emptyThemesAndColors() }
-      writeChaquopyCommonFiles(
-          appDependencies =
-              "  implementation(\"androidx.activity:activity-compose:1.10.1\")\n" +
-                  "  implementation(\"androidx.compose.material3:material3:1.3.2\")\n" +
-                  "  implementation(\"androidx.compose.ui:ui-tooling-preview:1.7.8\")",
-          extraKts = "buildFeatures { compose = true }",
-          extraGroovy = "buildFeatures { compose true }",
+      writeChaquopyTemplate(
+          ChaquopyTemplateSpec(
+              uiKind = ChaquopyUiKind.Compose,
+              pythonModuleName = "main",
+              pythonMessageArgument = "Compose Demo",
+          )
       )
     }
   }

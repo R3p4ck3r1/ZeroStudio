@@ -5,10 +5,11 @@ import com.itsaky.androidide.templates.ProjectTemplate
 import com.itsaky.androidide.templates.base.modules.android.defaultAppModule
 import com.itsaky.androidide.templates.impl.R
 import com.itsaky.androidide.templates.impl.base.createRecipe
-import com.itsaky.androidide.templates.impl.base.emptyThemesAndColors
 import com.itsaky.androidide.templates.impl.base.writeMainActivity
 import com.itsaky.androidide.templates.impl.baseProjectImpl
-import com.itsaky.androidide.templates.impl.chaquopy.base.writeChaquopyCommonFiles
+import com.itsaky.androidide.templates.impl.chaquopy.base.ChaquopyTemplateSpec
+import com.itsaky.androidide.templates.impl.chaquopy.base.ChaquopyUiKind
+import com.itsaky.androidide.templates.impl.chaquopy.base.writeChaquopyTemplate
 
 fun chaquopyLithoDemoProject(): ProjectTemplate = baseProjectImpl {
   templateName = R.string.template_chaquopy_litho
@@ -18,12 +19,12 @@ fun chaquopyLithoDemoProject(): ProjectTemplate = baseProjectImpl {
   defaultAppModule {
     recipe = createRecipe {
       sources { writeMainActivity(this, ::mainActivityKt, ::mainActivityJava) }
-      res { emptyThemesAndColors() }
-      writeChaquopyCommonFiles(
-          appDependencies =
-              "  implementation(\"com.facebook.litho:litho-core:0.52.0\")\n" +
-                  "  implementation(\"com.facebook.litho:litho-widget:0.52.0\")\n" +
-                  "  kapt(\"com.facebook.litho:litho-processor:0.52.0\")",
+      writeChaquopyTemplate(
+          ChaquopyTemplateSpec(
+              uiKind = ChaquopyUiKind.Litho,
+              pythonModuleName = "main",
+              pythonMessageArgument = "Litho Demo",
+          )
       )
     }
   }

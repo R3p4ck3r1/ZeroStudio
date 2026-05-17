@@ -6,10 +6,11 @@ import com.itsaky.androidide.templates.base.modules.android.defaultAppModule
 import com.itsaky.androidide.templates.base.util.AndroidModuleResManager.ResourceType.LAYOUT
 import com.itsaky.androidide.templates.impl.R
 import com.itsaky.androidide.templates.impl.base.createRecipe
-import com.itsaky.androidide.templates.impl.base.emptyThemesAndColors
 import com.itsaky.androidide.templates.impl.base.writeMainActivity
 import com.itsaky.androidide.templates.impl.baseProjectImpl
-import com.itsaky.androidide.templates.impl.chaquopy.base.writeChaquopyCommonFiles
+import com.itsaky.androidide.templates.impl.chaquopy.base.ChaquopyTemplateSpec
+import com.itsaky.androidide.templates.impl.chaquopy.base.ChaquopyUiKind
+import com.itsaky.androidide.templates.impl.chaquopy.base.writeChaquopyTemplate
 
 fun chaquopyXmlDemoProject(): ProjectTemplate = baseProjectImpl {
   templateName = R.string.template_chaquopy_xml
@@ -19,11 +20,14 @@ fun chaquopyXmlDemoProject(): ProjectTemplate = baseProjectImpl {
   defaultAppModule {
     recipe = createRecipe {
       sources { writeMainActivity(this, ::mainActivityKt, ::mainActivityJava) }
-      res {
-        writeXmlResource("activity_main", LAYOUT, source = ::activityMainXml)
-        emptyThemesAndColors()
-      }
-      writeChaquopyCommonFiles(appDependencies = "")
+      res { writeXmlResource("activity_main", LAYOUT, source = ::activityMainXml) }
+      writeChaquopyTemplate(
+          ChaquopyTemplateSpec(
+              uiKind = ChaquopyUiKind.Xml,
+              pythonModuleName = "main",
+              pythonMessageArgument = "XML Demo",
+          )
+      )
     }
   }
 }
@@ -41,11 +45,7 @@ class MainActivity : AppCompatActivity() {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
 
-    val message = Python.getInstance()
-      .getModule("main")
-      .callAttr("get_message", "XML Demo")
-      .toString()
-
+    val message = Python.getInstance().getModule("main").callAttr("get_message", "XML Demo").toString()
     findViewById<TextView>(R.id.message).text = message
   }
 }
@@ -65,11 +65,7 @@ public class MainActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
-    String message = Python.getInstance()
-        .getModule("main")
-        .callAttr("get_message", "XML Demo")
-        .toString();
-
+    String message = Python.getInstance().getModule("main").callAttr("get_message", "XML Demo").toString();
     ((TextView) findViewById(R.id.message)).setText(message);
   }
 }
