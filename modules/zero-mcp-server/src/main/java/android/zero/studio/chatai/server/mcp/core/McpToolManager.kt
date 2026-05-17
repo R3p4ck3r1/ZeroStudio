@@ -42,6 +42,7 @@ object McpToolManager {
       ToolSpec("diagnostics_workspace_summary", "工作区基础诊断统计", listOf("diagnostics", "analysis"), "{}"),
       ToolSpec("system_health_check", "MCP 服务健康检查", listOf("system", "health"), "{}"),
       ToolSpec("system_policy_get", "获取当前工具安全策略", listOf("system", "policy"), "{}"),
+      ToolSpec("system_tools_set_bulk", "批量设置工具开关", listOf("system", "tool-control", "write"), "{\"enabled\":false,\"toolNames\":[\"shell_execute\",\"workspace_delete\"]}"),
       ToolSpec("project_modules_list", "解析 settings.gradle(.kts) 输出模块列表", listOf("project", "gradle", "modules"), "{}"),
       ToolSpec("gradle_task_list", "执行 ./gradlew tasks --all", listOf("gradle", "task", "build"), "{}"),
       ToolSpec("gradle_task_run", "运行指定 gradle task", listOf("gradle", "task", "build", "execute"), "{\"task\":\":app:assembleDebug\"}"),
@@ -50,6 +51,8 @@ object McpToolManager {
       ToolSpec("git_diff", "执行 git diff", listOf("git", "diff"), "{}"),
       ToolSpec("test_unit_run", "执行 ./gradlew test", listOf("test", "gradle"), "{}"),
       ToolSpec("quality_lint_run", "执行 ./gradlew lint", listOf("quality", "lint"), "{}"),
+      ToolSpec("test_android_run", "执行 Android instrument tests", listOf("test", "android"), "{\"modulePath\":\"app\"}"),
+      ToolSpec("dependency_list", "列出模块依赖树", listOf("dependency", "gradle"), "{\"modulePath\":\"app\",\"configuration\":\"implementation\"}"),
       ToolSpec("diagnostics_file_get", "读取文件诊断基础上下文（当前实现=读取文件）", listOf("diagnostics", "read"), "{\"path\":\"app/build.gradle.kts\"}"),
       ToolSpec("android_manifest_inspect", "解析 AndroidManifest 关键计数", listOf("android", "manifest", "inspect"), "{\"path\":\"app/src/main/AndroidManifest.xml\"}"),
       ToolSpec("system_tools_list", "列出全部工具开关状态", listOf("system", "tool-control"), "{}"),
@@ -85,6 +88,7 @@ object McpToolManager {
         "diagnostics_workspace_summary" -> diagnosticsWorkspaceSummary(rootDir)
         "system_health_check" -> systemHealthCheck(rootDir)
         "system_policy_get" -> systemPolicyGet()
+        "system_tools_set_bulk" -> systemToolsSetBulk(args)
         "gradle_task_list" -> runCommand(rootDir, listOf("./gradlew", "tasks", "--all"), canonicalName)
         "gradle_task_run" -> runCommand(rootDir, listOf("./gradlew", requireArg(args, "task")!!), canonicalName)
         "gradle_wrapper_info" -> gradleWrapperInfo(rootDir)
@@ -94,6 +98,8 @@ object McpToolManager {
         "git_diff" -> runCommand(rootDir, listOf("git", "diff"), canonicalName)
         "test_unit_run" -> runCommand(rootDir, listOf("./gradlew", "test"), canonicalName)
         "quality_lint_run" -> runCommand(rootDir, listOf("./gradlew", "lint"), canonicalName)
+        "test_android_run" -> testAndroidRun(rootDir, args)
+        "dependency_list" -> dependencyList(rootDir, args)
         "diagnostics_file_get" -> workspaceReadText(rootDir, args)
         "android_manifest_inspect" -> androidManifestInspect(rootDir, args)
         "system_tools_list" -> systemToolsList()
@@ -498,6 +504,33 @@ object McpToolManager {
     addProperty("maxReadSizeBytes", MAX_READ_SIZE_BYTES)
     addProperty("defaultSearchLimit", DEFAULT_SEARCH_LIMIT)
   }.toString()
+
+  private fun testAndroidRun(root: File, args: JsonObject): String {
+    val modulePath = args.get("modulePath")?.asString ?: "app"
+    return runCommand(root, listOf("./gradlew", ":$modulePath:connectedDebugAndroidTest"), "test_android_run")
+  }
+
+  private fun dependencyList(root: File, args: JsonObject): String {
+    val modulePath = args.get("modulePath")?.asString ?: "app"
+    val configuration = args.get("configuration")?.asString ?: "implementation"
+    return runCommand(root, listOf("./gradlew", ":$modulePath:dependencies", "--configuration", configuration), "dependency_list")
+  }
+
+  private fun systemToolsSetBulk(args: JsonObject): String {
+    val enabled = args.get("enabled")?.asBoolean ?: return errorJson("INVALID_ARGUMENT", "'enabled' is required")
+    val namesJson = args.get("toolNames")?.asJsonArray ?: return errorJson("INVALID_ARGUMENT", "'toolNames' is required")
+    val updated = JsonArray()
+    for (item in namesJson) {
+      val name = item.asString
+      ToolControlCenter.setEnabled(name, enabled)
+      updated.add(name)
+    }
+    return ok("system_tools_set_bulk").apply {
+      addProperty("enabled", enabled)
+      add("toolNames", updated)
+      addProperty("count", updated.size())
+    }.toString()
+  }
   private fun resolvePath(root: File, subPath: String): File? {
     val canonicalRoot = root.canonicalFile
     val target = File(canonicalRoot, subPath).canonicalFile
