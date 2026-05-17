@@ -27,6 +27,10 @@ object McpToolManager {
       ToolSpec("workspace_write_text", "写入文本文件（覆盖/追加）", listOf("workspace", "write", "text"), "{\"path\":\"README.md\",\"content\":\"hello\",\"append\":false}"),
       ToolSpec("workspace_search_text", "搜索工作区文本", listOf("workspace", "search"), "{\"path\":\".\",\"keyword\":\"McpService\",\"limit\":20}"),
       ToolSpec("workspace_analyze", "分析工作区结构", listOf("workspace", "analysis"), "{}"),
+      ToolSpec("workspace_info", "获取文件/目录统计信息", listOf("workspace", "metadata"), "{\"path\":\"app\"}"),
+      ToolSpec("workspace_rename", "重命名文件/目录", listOf("workspace", "write"), "{\"fromPath\":\"a.txt\",\"toPath\":\"b.txt\"}"),
+      ToolSpec("workspace_copy", "复制文件/目录", listOf("workspace", "write"), "{\"fromPath\":\"a.txt\",\"toPath\":\"backup/a.txt\"}"),
+      ToolSpec("workspace_move", "移动文件/目录", listOf("workspace", "write"), "{\"fromPath\":\"a.txt\",\"toPath\":\"docs/a.txt\"}"),
       ToolSpec("project_modules_list", "解析 settings.gradle(.kts) 输出模块列表", listOf("project", "gradle", "modules"), "{}"),
       ToolSpec("gradle_task_list", "执行 ./gradlew tasks --all", listOf("gradle", "task", "build"), "{}"),
       ToolSpec("gradle_task_run", "运行指定 gradle task", listOf("gradle", "task", "build", "execute"), "{\"task\":\":app:assembleDebug\"}"),
@@ -56,6 +60,10 @@ object McpToolManager {
         "workspace_write_text" -> workspaceWriteText(rootDir, args)
         "workspace_search_text" -> workspaceSearchText(rootDir, args)
         "workspace_analyze" -> workspaceAnalyze(rootDir)
+        "workspace_info" -> workspaceInfo(rootDir, args)
+        "workspace_rename" -> workspaceRename(rootDir, args)
+        "workspace_copy" -> workspaceCopy(rootDir, args)
+        "workspace_move" -> workspaceMove(rootDir, args)
         "project_modules_list" -> projectModulesList(rootDir)
         "gradle_task_list" -> runCommand(rootDir, listOf("./gradlew", "tasks", "--all"), canonicalName)
         "gradle_task_run" -> runCommand(rootDir, listOf("./gradlew", requireArg(args, "task")!!), canonicalName)
@@ -238,6 +246,100 @@ object McpToolManager {
     addProperty("existsSettingsGradle", File(root, "settings.gradle").exists())
   }.toString()
 
+
+  private fun workspaceInfo(root: File, args: JsonObject): String {
+    val path = args.get("path")?.asString ?: "."
+    val target = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
+    if (!target.exists()) return errorJson("PATH_NOT_FOUND", "Path not found: $path")
+
+    var fileCount = 0
+    var dirCount = 0
+    var totalBytes = 0L
+    if (target.isDirectory) {
+      target.walkTopDown().forEach {
+        if (it.isDirectory) dirCount++ else {
+          fileCount++
+          totalBytes += it.length()
+        }
+      }
+    } else {
+      fileCount = 1
+      totalBytes = target.length()
+    }
+
+    return ok("workspace_info").apply {
+      addProperty("path", target.relativeTo(root).path.ifEmpty { "." })
+      addProperty("isDirectory", target.isDirectory)
+      addProperty("fileCount", fileCount)
+      addProperty("directoryCount", dirCount)
+      addProperty("totalBytes", totalBytes)
+      addProperty("lastModified", target.lastModified())
+    }.toString()
+  }
+
+  private fun workspaceRename(root: File, args: JsonObject): String {
+    val fromPath = requireArg(args, "fromPath")!!
+    val toPath = requireArg(args, "toPath")!!
+    val from = resolvePath(root, fromPath) ?: return errorJson("ACCESS_DENIED", "fromPath outside workspace")
+    val to = resolvePath(root, toPath) ?: return errorJson("ACCESS_DENIED", "toPath outside workspace")
+    if (!from.exists()) return errorJson("FILE_NOT_FOUND", "Source not found: $fromPath")
+    to.parentFile?.mkdirs()
+    val ok = from.renameTo(to)
+    if (!ok) return errorJson("EXECUTION_FAILED", "Rename failed: $fromPath -> $toPath")
+    return ok("workspace_rename").apply {
+      addProperty("fromPath", fromPath)
+      addProperty("toPath", toPath)
+    }.toString()
+  }
+
+  private fun workspaceCopy(root: File, args: JsonObject): String {
+    val fromPath = requireArg(args, "fromPath")!!
+    val toPath = requireArg(args, "toPath")!!
+    val from = resolvePath(root, fromPath) ?: return errorJson("ACCESS_DENIED", "fromPath outside workspace")
+    val to = resolvePath(root, toPath) ?: return errorJson("ACCESS_DENIED", "toPath outside workspace")
+    if (!from.exists()) return errorJson("FILE_NOT_FOUND", "Source not found: $fromPath")
+
+    copyRecursively(from, to)
+    return ok("workspace_copy").apply {
+      addProperty("fromPath", fromPath)
+      addProperty("toPath", toPath)
+    }.toString()
+  }
+
+  private fun workspaceMove(root: File, args: JsonObject): String {
+    val fromPath = requireArg(args, "fromPath")!!
+    val toPath = requireArg(args, "toPath")!!
+    val from = resolvePath(root, fromPath) ?: return errorJson("ACCESS_DENIED", "fromPath outside workspace")
+    val to = resolvePath(root, toPath) ?: return errorJson("ACCESS_DENIED", "toPath outside workspace")
+    if (!from.exists()) return errorJson("FILE_NOT_FOUND", "Source not found: $fromPath")
+
+    copyRecursively(from, to)
+    if (!deleteRecursivelySafe(from)) return errorJson("EXECUTION_FAILED", "Move cleanup failed at: $fromPath")
+    return ok("workspace_move").apply {
+      addProperty("fromPath", fromPath)
+      addProperty("toPath", toPath)
+    }.toString()
+  }
+
+  private fun copyRecursively(source: File, target: File) {
+    if (source.isDirectory) {
+      target.mkdirs()
+      source.listFiles()?.forEach { child ->
+        copyRecursively(child, File(target, child.name))
+      }
+    } else {
+      target.parentFile?.mkdirs()
+      source.inputStream().use { input ->
+        target.outputStream().use { output -> input.copyTo(output) }
+      }
+    }
+  }
+
+  private fun deleteRecursivelySafe(target: File): Boolean {
+    if (!target.exists()) return true
+    if (target.isDirectory) target.listFiles()?.forEach { if (!deleteRecursivelySafe(it)) return false }
+    return target.delete()
+  }
   private fun resolvePath(root: File, subPath: String): File? {
     val canonicalRoot = root.canonicalFile
     val target = File(canonicalRoot, subPath).canonicalFile
