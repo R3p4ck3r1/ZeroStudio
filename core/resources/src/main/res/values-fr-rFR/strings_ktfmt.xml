@@ -1,21 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Ktfmt 设置页面 -->
-    <string name="format_ktfmt_settings">Ktfmt Formatter</string>
-    <string name="format_ktfmt_settings_desc">Format Kotlin code via ktfmt CLI</string>
-    
-    <string name="ktfmt_format_mode_title">Format Mode</string>
-    <string name="ktfmt_style_title">Formatting Style</string>
-    <string name="ktfmt_keep_imports_title">Keep unused imports</string>
-    <string name="ktfmt_keep_imports_desc">Do not remove unused imports automatically</string>
-    <string name="ktfmt_editorconfig_title">Enable .editorconfig</string>
-    <string name="ktfmt_editorconfig_desc">Use .editorconfig overrides if present</string>
-    <string name="ktfmt_quiet_title">Quiet Mode</string>
-    <string name="ktfmt_quiet_desc">Suppress non-error output</string>
-    
-    <!-- 提示 -->
-    <string name="ktfmt_downloading_msg">Downloading ktfmt dependencies...</string>
-    <string name="ktfmt_install_success">Ktfmt installed successfully!</string>
-    <string name="ktfmt_install_failed">Failed to download Ktfmt.</string>
-    <string name="ktfmt_formatted_msg">Formatted via Ktfmt.</string>
+    <string name="format_ktfmt_settings">Formateur Ktfmt</string>
+    <string name="format_ktfmt_settings_desc">Formater le code Kotlin via l’interface CLI de ktfmt</string>
+    <string name="ktfmt_format_mode_title">Mode de formatage</string>
+    <string name="ktfmt_style_title">Style de formatage</string>
+    <string name="ktfmt_keep_imports_title">Conserver les imports inutilisés</string>
+    <string name="ktfmt_keep_imports_desc">Ne pas supprimer automatiquement les imports inutilisés</string>
+    <string name="ktfmt_editorconfig_title">Activer .editorconfig</string>
+    <string name="ktfmt_editorconfig_desc">Utiliser les options .editorconfig si présentes</string>
+    <string name="ktfmt_quiet_title">Mode silencieux</string>
+    <string name="ktfmt_quiet_desc">Masquer les sorties non liées aux erreurs</string>
+    <string name="ktfmt_downloading_msg">Téléchargement des dépendances ktfmt...</string>
+    <string name="ktfmt_install_success">Ktfmt a été installé avec succès !</string>
+    <string name="ktfmt_install_failed">Échec du téléchargement de Ktfmt.</string>
+    <string name="ktfmt_formatted_msg">Formaté via Ktfmt.</string>
 </resources>

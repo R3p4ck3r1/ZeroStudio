@@ -1,21 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Ktfmt 设置页面 -->
-    <string name="format_ktfmt_settings">Ktfmt Formatter</string>
-    <string name="format_ktfmt_settings_desc">Format Kotlin code via ktfmt CLI</string>
-    
-    <string name="ktfmt_format_mode_title">Format Mode</string>
-    <string name="ktfmt_style_title">Formatting Style</string>
-    <string name="ktfmt_keep_imports_title">Keep unused imports</string>
-    <string name="ktfmt_keep_imports_desc">Do not remove unused imports automatically</string>
-    <string name="ktfmt_editorconfig_title">Enable .editorconfig</string>
-    <string name="ktfmt_editorconfig_desc">Use .editorconfig overrides if present</string>
-    <string name="ktfmt_quiet_title">Quiet Mode</string>
-    <string name="ktfmt_quiet_desc">Suppress non-error output</string>
-    
-    <!-- 提示 -->
-    <string name="ktfmt_downloading_msg">Downloading ktfmt dependencies...</string>
-    <string name="ktfmt_install_success">Ktfmt installed successfully!</string>
-    <string name="ktfmt_install_failed">Failed to download Ktfmt.</string>
-    <string name="ktfmt_formatted_msg">Formatted via Ktfmt.</string>
+    <string name="format_ktfmt_settings">Форматтер Ktfmt</string>
+    <string name="format_ktfmt_settings_desc">Форматировать код Kotlin через CLI ktfmt</string>
+    <string name="ktfmt_format_mode_title">Режим форматирования</string>
+    <string name="ktfmt_style_title">Стиль форматирования</string>
+    <string name="ktfmt_keep_imports_title">Сохранять неиспользуемые импорты</string>
+    <string name="ktfmt_keep_imports_desc">Не удалять неиспользуемые импорты автоматически</string>
+    <string name="ktfmt_editorconfig_title">Включить .editorconfig</string>
+    <string name="ktfmt_editorconfig_desc">Использовать переопределения .editorconfig при наличии</string>
+    <string name="ktfmt_quiet_title">Тихий режим</string>
+    <string name="ktfmt_quiet_desc">Подавлять вывод, не являющийся ошибками</string>
+    <string name="ktfmt_downloading_msg">Загрузка зависимостей ktfmt...</string>
+    <string name="ktfmt_install_success">Ktfmt успешно установлен!</string>
+    <string name="ktfmt_install_failed">Не удалось загрузить Ktfmt.</string>
+    <string name="ktfmt_formatted_msg">Отформатировано через Ktfmt.</string>
 </resources>
