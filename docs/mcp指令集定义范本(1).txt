@@ -364,3 +364,182 @@ H. System / Control 组（新增）
 - 高风险工具必须不可在无确认下执行。
 - 兼容旧指令但在日志中提示迁移到新指令。
 - 文档与实现保持一一对应，版本号同步。
+
+
+========================================
+十、扩展工具集（v2.1 新增建议）
+========================================
+以下为在 v2.0 基础上建议继续增加的标准工具，便于形成更完整的 MCP IDE 能力闭环。
+
+----------------------------------------
+I. Git / VCS 组（新增）
+----------------------------------------
+1) git.status
+用途：获取当前工作区 Git 状态。
+返回：branch, aheadBehind, changedFiles, untrackedFiles
+
+2) git.diff
+用途：获取文件差异。
+参数：path(optional), staged(false), contextLines(3)
+
+3) git.commit
+用途：提交变更（高风险）。
+参数：message, addAll(false), paths[]
+
+4) git.branch.list
+5) git.branch.checkout（高风险）
+参数：name, createIfMissing(false)
+
+6) git.log
+参数：limit, author, sinceTs
+
+----------------------------------------
+J. Dependency / Package 组（新增）
+----------------------------------------
+1) dependency.list
+用途：列出模块依赖（Gradle）。
+参数：module, configuration(implementation/testImplementation...)
+
+2) dependency.search
+用途：搜索依赖坐标（组、artifact、版本）。
+参数：query, repoScope(local|mavenCentral|google)
+
+3) dependency.upgrade.suggest
+用途：给出可升级依赖建议。
+参数：module, includePreRelease(false)
+
+4) dependency.upgrade.apply（高风险）
+用途：自动修改 build.gradle(.kts) 依赖版本。
+参数：module, dependencyId, targetVersion, requireConfirmToken(true)
+
+----------------------------------------
+K. Test 组（新增）
+----------------------------------------
+1) test.unit.run
+用途：运行单元测试。
+参数：module, pattern(optional), timeoutSec
+
+2) test.android.run
+用途：运行仪器测试。
+参数：module, deviceId(optional), timeoutSec
+
+3) test.report.get
+用途：获取测试报告摘要。
+参数：module, format(json|text)
+返回：passed, failed, skipped, durationMs, reportPath
+
+----------------------------------------
+L. Lint / Quality 组（新增）
+----------------------------------------
+1) quality.lint.run
+用途：执行 lint 检查。
+参数：module(optional), severity(min)
+
+2) quality.detekt.run（Kotlin 项目）
+3) quality.ktlint.run
+4) quality.format.apply（低风险写）
+用途：应用格式化修复。
+参数：scope(file|module|workspace), requireConfirmToken(optional)
+
+----------------------------------------
+M. Refactor / CodeAction 组（新增）
+----------------------------------------
+1) code.rename.symbol
+用途：重命名符号并应用全工程引用变更。
+参数：symbol, newName, scope
+
+2) code.extract.method
+用途：提取选区为新函数。
+参数：filePath, range, methodName
+
+3) code.organize.imports
+用途：整理导入。
+参数：filePath
+
+4) code.fix.diagnostics
+用途：根据诊断批量修复可自动修复项。
+参数：filePath(optional), maxFixes
+
+----------------------------------------
+N. Diagnostics 组（新增）
+----------------------------------------
+1) diagnostics.workspace.get
+用途：获取当前工作区全部诊断。
+参数：severity(min), limit
+
+2) diagnostics.file.get
+用途：获取单文件诊断。
+参数：path
+返回：items[{line,column,severity,code,message,source}]
+
+3) diagnostics.explain
+用途：解释某条诊断并给出修复建议。
+参数：code,message,contextPath(optional)
+
+----------------------------------------
+O. Device / Emulator 组（新增）
+----------------------------------------
+1) device.list
+用途：列出连接设备/模拟器。
+
+2) device.select
+用途：设置默认运行设备。
+参数：deviceId
+
+3) device.install_apk（高风险）
+用途：安装指定 APK。
+参数：deviceId, apkPath, allowDowngrade(false), requireConfirmToken(true)
+
+4) device.logcat.get
+用途：读取 logcat。
+参数：deviceId, tag(optional), level(optional), limit
+
+----------------------------------------
+P. Resource / Android 专用组（新增）
+----------------------------------------
+1) android.manifest.inspect
+用途：读取并解析 AndroidManifest 关键字段。
+返回：applicationId,minSdk,targetSdk,activities,services,permissions
+
+2) android.resource.find
+用途：按名称/类型查找资源。
+参数：name, type(layout|string|drawable|color|menu...)
+
+3) android.resource.duplicate_check
+用途：检查重复资源定义。
+参数：module(optional)
+
+4) android.permission.audit
+用途：权限审计，标注高风险权限。
+参数：module(optional)
+
+----------------------------------------
+Q. MCP 自身管理组（新增）
+----------------------------------------
+1) mcp.audit.query
+用途：查询 MCP 调用审计日志。
+参数：toolName(optional), actor(optional), sinceTs, limit
+
+2) mcp.audit.export（高风险）
+用途：导出审计日志。
+参数：format(json|csv), range
+
+3) mcp.rate_limit.get
+4) mcp.rate_limit.set（高风险）
+用途：查看/设置单工具限流策略。
+参数：toolName, qps, burst
+
+5) mcp.schema.list
+用途：列出所有工具 JSON Schema。
+
+6) mcp.schema.validate
+用途：校验调用参数是否符合 schema。
+参数：toolName, payload
+
+
+----------------------------------------
+扩展工具验收补充
+----------------------------------------
+- 新增工具必须提供：风险级别、参数 schema、成功/失败示例。
+- 与已有工具保持统一返回体（ok/tool/requestId/durationMs/data/metrics/error）。
+- 高风险新增工具默认关闭，并可通过 system.tools.enable 显式开启。
