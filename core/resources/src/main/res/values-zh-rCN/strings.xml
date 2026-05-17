@@ -892,4 +892,187 @@ SHA256：%9$s</string>
     <string name="title_template_description_chaquopy_xml">Chaquopy XML template with Python console bridge, manifest, and resources.</string>
     <string name="title_template_description_chaquopy_compose">Chaquopy Compose template with Python runtime bridge and Compose host activity.</string>
     <string name="title_template_description_chaquopy_litho">Chaquopy Litho template with Python runtime bridge and Litho-ready dependencies.</string>
+
+    <string name="java_to_kotlin">Java2Kotlin</string>
+    <string
+          name="app_name"
+          translatable="false">ZeroStudio</string>
+    <string
+          name="about_footer_alternate"
+          translatable="false">ZeroStudio v\u2022 %s</string>
+    <string
+          name="title_github"
+          translatable="false">GitHub</string>
+    <string name="view_apm_panel">APM Panel</string>
+    <string
+          name="gradle"
+          translatable="false">Gradle</string>
+    <string
+          name="template_cpp"
+          translatable="false">Basic Native C++</string>
+    <string
+          name="template_compose"
+          translatable="false">Jetpack Compose</string>
+    <string
+          name="idepref_editor_category_common"
+          translatable="false">@string/title_common</string>
+    <string
+          name="idepref_editor_category_java"
+          translatable="false">Java</string>
+    <string name="msg_drawer_for_files">Open the left drawer for @@files@@.</string>
+    <string
+          name="xml"
+          translatable="false">XML</string>
+    <string
+          name="ui_category_widgets"
+          translatable="false">Widgets</string>
+    <string
+          name="ui_category_layouts"
+          translatable="false">Layouts</string>
+    <string
+          name="widget_view"
+          translatable="false">View</string>
+    <string
+          name="widget_textview"
+          translatable="false">TextView</string>
+    <string
+          name="widget_button"
+          translatable="false">Button</string>
+    <string
+          name="widget_checkbox"
+          translatable="false">CheckBox</string>
+    <string
+          name="widget_checked_textview"
+          translatable="false">CheckedTextView</string>
+    <string
+          name="widget_edittext"
+          translatable="false">EditText</string>
+    <string
+          name="widget_image_button"
+          translatable="false">ImageButton</string>
+    <string
+          name="widget_image_view"
+          translatable="false">ImageView</string>
+    <string
+          name="widget_progressbar"
+          translatable="false">ProgressBar</string>
+    <string
+          name="widget_radio_button"
+          translatable="false">RadioButton</string>
+    <string
+          name="widget_radio_group"
+          translatable="false">RadioGroup</string>
+    <string
+          name="widget_seekbar"
+          translatable="false">SeekBar</string>
+    <string
+          name="widget_spinner"
+          translatable="false">Spinner</string>
+    <string
+          name="widget_auto_complete_textview"
+          translatable="false">AutoCompleteTextView</string>
+    <string
+          name="widget_multi_auto_complete_textview"
+          translatable="false">MultiAutoCompleteTextView</string>
+    <string
+          name="widget_listview"
+          translatable="false">ListView</string>
+    <string
+          name="widget_surfaceview"
+          translatable="false">SurfaceView</string>
+    <string
+          name="widget_switch"
+          translatable="false">Switch</string>
+    <string
+          name="widget_textureview"
+          translatable="false">TextureView</string>
+    <string
+          name="widget_togglebutton"
+          translatable="false">ToggleButton</string>
+    <string
+          name="widget_webview"
+          translatable="false">WebView</string>
+    <string
+          name="widget_frame_layout"
+          translatable="false">FrameLayout</string>
+    <string
+          name="widget_grid_layout"
+          translatable="false">GridLayout</string>
+    <string
+          name="widget_linear_layout_horz"
+          translatable="false">LinearLayout (H)</string>
+    <string
+          name="widget_linear_layout_vert"
+          translatable="false">LinearLayout (V)</string>
+    <string
+          name="widget_relative_layout"
+          translatable="false">RelativeLayout</string>
+    <string
+          name="widget_scrollview"
+          translatable="false">ScrollView</string>
+    <string
+          name="widget_horizontal_scrollview"
+          translatable="false">HorizontalScrollView</string>
+    <string
+          name="widget_text_clock"
+          translatable="false">TextClock</string>
+    <string
+          name="widget_digital_clock"
+          translatable="false">DigitalClock</string>
+    <string
+          name="widget_calendar_view"
+          translatable="false">CalendarView</string>
+    <string
+          name="widget_space"
+          translatable="false">Space</string>
+    <string
+          name="widget_number_picker"
+          translatable="false">NumberPicker</string>
+    <string
+          name="widget_chronometer"
+          translatable="false">Chronometer</string>
+    <string
+          name="widget_rating_bar"
+          translatable="false">RatingBar</string>
+    <string
+          name="widget_quick_contact_badge"
+          translatable="false">QuickContactBadge</string>
+    <string
+          name="widget_videoview"
+          translatable="false">VideoView</string>
+    <string
+          name="widget_analog_clock"
+          translatable="false">AnalogClock</string>
+    <string
+          name="widget_grid_view"
+          translatable="false">GridView</string>
+    <string
+          name="widget_viewanimator"
+          translatable="false">ViewAnimator</string>
+    <string
+          name="widget_viewswitcher"
+          translatable="false">ViewSwitcher</string>
+    <string
+          name="widget_textswitcher"
+          translatable="false">TextSwitcher</string>
+    <string
+          name="widget_imageswitcher"
+          translatable="false">ImageSwitcher</string>
+    <string
+          name="widget_viewflipper"
+          translatable="false">ViewFlipper</string>
+    <string name="idepref_kotlin_lsp_settings">Kotlin 语言服务器</string>
+    <string name="idepref_kotlin_lazy_compilation">惰性编译</string>
+    <string name="idepref_kotlin_inlay_hints">内嵌提示</string>
+    <string name="idepref_kotlin_type_hints">类型提示</string>
+    <string name="idepref_kotlin_parameter_hints">参数提示</string>
+    <string name="idepref_kotlin_chained_hints">链式提示</string>
+    <string name="idepref_kotlin_diagnostics">诊断</string>
+    <string name="idepref_kotlin_remove_unused_imports">移除未使用的导入</string>
+    <string name="idepref_tree_auto_expand_single_child_title">在树中自动展开仅有单个子项的文件夹</string>
+    <string name="idepref_tree_auto_expand_single_child_summary">自动展开文件夹链，直到出现包含多个子项的分支。</string>
+    <string name="idepref_tree_remember_state_title">记住树的展开状态</string>
+    <string name="idepref_tree_remember_state_summary">刷新/重载后保留已展开路径；若禁用，树将重置为根节点折叠状态。</string>
+    <string name="bottom_sheet_page_build">构建状态</string>
+    <string name="bottom_sheet_page_symbols">符号输入</string>
 </resources>

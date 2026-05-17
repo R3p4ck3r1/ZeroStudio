@@ -51,17 +51,17 @@
     <string name="apm_hook_not_ready">Not ready</string>
     <string name="apm_metric_uss">USS</string>
     <string name="apm_metric_vss">VSS</string>
-    <string name="apm_temp_title">Device Temperature</string>
-    <string name="apm_temp_value">Battery temp: %1$s°C</string>
-    <string name="apm_temp_state">Thermal state: %1$s</string>
-    <string name="apm_temp_state_safe">Safe</string>
-    <string name="apm_temp_state_warning">Warning</string>
-    <string name="apm_temp_state_danger">Danger</string>
-    <string name="apm_temp_state_unknown">Unknown</string>
-    <string name="apm_pss_breakdown_title">PSS Breakdown (including Code/Stack/etc.)</string>
-    <string name="apm_runtime_signals_title">Runtime Deep Signals</string>
-    <string name="apm_runtime_cpu_breakdown">CPU total: user=%1$d ms, system=%2$d ms</string>
-    <string name="apm_runtime_io">I/O delta: read=%1$d bytes, write=%2$d bytes</string>
-    <string name="apm_runtime_jank">Frame drop=%1$s%% (%2$d / %3$d frames)</string>
-    <string name="apm_runtime_top_threads">Top CPU delta threads</string>
+    <string name="apm_temp_title">裝置溫度</string>
+    <string name="apm_temp_value">電池溫度：%1$s°C</string>
+    <string name="apm_temp_state">熱狀態：%1$s</string>
+    <string name="apm_temp_state_safe">安全</string>
+    <string name="apm_temp_state_warning">警告</string>
+    <string name="apm_temp_state_danger">危險</string>
+    <string name="apm_temp_state_unknown">未知</string>
+    <string name="apm_pss_breakdown_title">PSS 細分（含程式碼/堆疊等）</string>
+    <string name="apm_runtime_signals_title">執行階段深度訊號</string>
+    <string name="apm_runtime_cpu_breakdown">CPU 總計：使用者=%1$d 毫秒，系統=%2$d 毫秒</string>
+    <string name="apm_runtime_io">I/O 變化：讀取=%1$d 位元組，寫入=%2$d 位元組</string>
+    <string name="apm_runtime_jank">掉幀=%1$s%%（%2$d / %3$d 幀）</string>
+    <string name="apm_runtime_top_threads">CPU 增量最高執行緒</string>
 </resources>
