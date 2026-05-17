@@ -1043,18 +1043,11 @@ class TerminalThemeManager(private val context: Context) {
   }
 
   private fun saveTheme(themeName: String) {
-    context
-        .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        .edit()
-        .putString(KEY_CURRENT_THEME, themeName)
-        .apply()
+    prefs.edit().putString(KEY_CURRENT_THEME, themeName).commit()
   }
 
   fun getSavedTheme(): Theme {
-    val savedName =
-        context
-            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(KEY_CURRENT_THEME, themes[0].name)
+    val savedName = prefs.getString(KEY_CURRENT_THEME, themes[0].name)
     return themes.find { it.name == savedName } ?: themes[0]
   }
 
@@ -1115,3 +1108,6 @@ class TerminalThemeManager(private val context: Context) {
     fragment.terminalView?.onScreenUpdated()
   }
 }
+  private val prefs by lazy {
+    context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+  }
