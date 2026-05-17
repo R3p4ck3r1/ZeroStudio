@@ -43,6 +43,9 @@ object McpToolManager {
       ToolSpec("system_health_check", "MCP 服务健康检查", listOf("system", "health"), "{}"),
       ToolSpec("system_policy_get", "获取当前工具安全策略", listOf("system", "policy"), "{}"),
       ToolSpec("system_tools_set_bulk", "批量设置工具开关", listOf("system", "tool-control", "write"), "{\"enabled\":false,\"toolNames\":[\"shell_execute\",\"workspace_delete\"]}"),
+      ToolSpec("workspace_read_json", "读取并解析 JSON 文件", listOf("workspace", "read", "json"), "{\"path\":\"package.json\"}"),
+      ToolSpec("workspace_write_json", "写入 JSON 文件（格式化）", listOf("workspace", "write", "json"), "{\"path\":\"tmp/a.json\",\"json\":{\"k\":1}}"),
+      ToolSpec("project_workspace_info", "工作区关键信息汇总", listOf("project", "workspace", "info"), "{}"),
       ToolSpec("project_modules_list", "解析 settings.gradle(.kts) 输出模块列表", listOf("project", "gradle", "modules"), "{}"),
       ToolSpec("gradle_task_list", "执行 ./gradlew tasks --all", listOf("gradle", "task", "build"), "{}"),
       ToolSpec("gradle_task_run", "运行指定 gradle task", listOf("gradle", "task", "build", "execute"), "{\"task\":\":app:assembleDebug\"}"),
@@ -71,7 +74,9 @@ object McpToolManager {
       when (canonicalName) {
         "workspace_list" -> workspaceList(rootDir, args)
         "workspace_read_text" -> workspaceReadText(rootDir, args)
+        "workspace_read_json" -> workspaceReadJson(rootDir, args)
         "workspace_write_text" -> workspaceWriteText(rootDir, args)
+        "workspace_write_json" -> workspaceWriteJson(rootDir, args)
         "workspace_search_text" -> workspaceSearchText(rootDir, args)
         "workspace_analyze" -> workspaceAnalyze(rootDir)
         "workspace_info" -> workspaceInfo(rootDir, args)
@@ -80,6 +85,7 @@ object McpToolManager {
         "workspace_move" -> workspaceMove(rootDir, args)
         "workspace_delete" -> workspaceDelete(rootDir, args)
         "project_modules_list" -> projectModulesList(rootDir)
+        "project_workspace_info" -> projectWorkspaceInfo(rootDir)
         "project_module_src_tree" -> projectModuleSrcTree(rootDir, args)
         "project_apk_locate" -> projectApkLocate(rootDir, args)
         "search_workspace_text" -> searchWorkspaceText(rootDir, args)
@@ -529,6 +535,44 @@ object McpToolManager {
       addProperty("enabled", enabled)
       add("toolNames", updated)
       addProperty("count", updated.size())
+    }.toString()
+  }
+
+  private fun workspaceReadJson(root: File, args: JsonObject): String {
+    val path = requireArg(args, "path")!!
+    val file = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
+    if (!file.exists()) return errorJson("FILE_NOT_FOUND", "File not found: $path")
+    val parsed = runCatching { gson.fromJson(file.readText(StandardCharsets.UTF_8), JsonObject::class.java) }.getOrElse {
+      return errorJson("INVALID_ARGUMENT", "Invalid JSON file: $path")
+    }
+    return ok("workspace_read_json").apply {
+      addProperty("path", path)
+      add("json", parsed)
+    }.toString()
+  }
+
+  private fun workspaceWriteJson(root: File, args: JsonObject): String {
+    val path = requireArg(args, "path")!!
+    val json = args.get("json") ?: return errorJson("INVALID_ARGUMENT", "'json' is required")
+    val file = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
+    file.parentFile?.mkdirs()
+    val pretty = gson.toJson(json)
+    file.writeText(pretty, StandardCharsets.UTF_8)
+    return ok("workspace_write_json").apply {
+      addProperty("path", path)
+      addProperty("bytes", pretty.toByteArray(StandardCharsets.UTF_8).size)
+    }.toString()
+  }
+
+  private fun projectWorkspaceInfo(root: File): String {
+    val modules = projectModulesList(root)
+    val gitDir = File(root, ".git").exists()
+    val gradleWrapper = File(root, "gradle/wrapper/gradle-wrapper.properties").exists()
+    return ok("project_workspace_info").apply {
+      addProperty("root", root.absolutePath)
+      addProperty("hasGit", gitDir)
+      addProperty("hasGradleWrapper", gradleWrapper)
+      addProperty("modulesPreview", modules.take(2000))
     }.toString()
   }
   private fun resolvePath(root: File, subPath: String): File? {
