@@ -29,6 +29,8 @@ import com.itsaky.androidide.templates.impl.androidstudio.other.emptyCalApp.src.
 import com.itsaky.androidide.templates.impl.androidstudio.other.emptyCalApp.src.app_package.carAppSessionKt
 import java.io.File
 
+private fun buildGradleFileName(useKts: Boolean): String = if (useKts) "build.gradle.kts" else "build.gradle"
+
 fun RecipeExecutor.emptyCalAppRecipe(
     moduleData: ModuleTemplateData,
     carAppServiceName: String,
@@ -76,7 +78,7 @@ fun RecipeExecutor.emptyCalAppRecipe(
                 minApi = apis.minApi,
                 targetApi = apis.targetApi,
             ),
-        to = sharedModuleDir.resolve("build.gradle"),
+        to = sharedModuleDir.resolve(buildGradleFileName(projectData.useKts)),
     )
     setJavaKotlinCompileOptions(projectData.language == Language.Kotlin, sharedModuleDir)
 

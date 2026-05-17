@@ -18,6 +18,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.composeNav
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addComposeDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.generateManifest
@@ -38,6 +39,9 @@ fun RecipeExecutor.composeNavigationUiActivityRecipe(
     greeting: String,
     defaultPreview: String,
 ) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   val (_, srcOut, resOut, _) = moduleData
   addAllKotlinDependencies(moduleData)
 

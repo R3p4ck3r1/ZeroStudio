@@ -17,6 +17,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.xrActivity
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addComposeDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.generateManifest
@@ -33,6 +34,9 @@ fun RecipeExecutor.xrActivityRecipe(
     activityClass: String,
     packageName: String,
 ) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   val (_, srcOut, resOut, _, _, _, _, rootDir) = moduleData
   addAllKotlinDependencies(moduleData)
 

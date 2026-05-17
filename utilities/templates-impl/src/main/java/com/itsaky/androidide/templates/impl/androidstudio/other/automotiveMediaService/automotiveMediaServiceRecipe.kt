@@ -26,6 +26,8 @@ import com.itsaky.androidide.templates.impl.androidstudio.other.automotiveMediaS
 import com.itsaky.androidide.templates.impl.androidstudio.other.automotiveMediaService.src.app_package.musicServiceKt
 import java.io.File
 
+private fun buildGradleFileName(useKts: Boolean): String = if (useKts) "build.gradle.kts" else "build.gradle"
+
 fun RecipeExecutor.automotiveMediaServiceRecipe(
     moduleData: ModuleTemplateData,
     mediaBrowserServiceName: String,
@@ -70,7 +72,7 @@ fun RecipeExecutor.automotiveMediaServiceRecipe(
                 minApi = apis.minApi,
                 targetApi = apis.targetApi,
             ),
-        to = projectData.rootDir.resolve(sharedModule).resolve("build.gradle"),
+        to = projectData.rootDir.resolve(sharedModule).resolve(buildGradleFileName(projectData.useKts)),
     )
     setJavaKotlinCompileOptions(
         projectData.language == Language.Kotlin,

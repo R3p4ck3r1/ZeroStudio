@@ -17,6 +17,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.composeTvA
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.COMPOSE_BOM_VERSION
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addComposeDependencies
@@ -37,6 +38,9 @@ fun RecipeExecutor.composeTvActivityRecipe(
     defaultPreview: String,
     composeBomVersion: String = COMPOSE_BOM_VERSION,
 ) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   val (_, srcOut, resOut, _) = moduleData
 
   addAllKotlinDependencies(moduleData)
