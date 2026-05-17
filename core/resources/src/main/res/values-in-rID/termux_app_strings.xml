@@ -109,4 +109,11 @@
   <string name="termux_terminal_view_terminal_margin_adjustment_title">Penyesuaian Margin Terminal</string>
   <string name="termux_terminal_view_terminal_margin_adjustment_off">Penyesuaian margin terminal akan dinonaktifkan.</string>
   <string name="termux_terminal_view_terminal_margin_adjustment_on">Penyesuaian margin terminal akan diaktifkan. Ini harus diaktifkan untuk mencoba memperbaiki masalah ketika keyboard lunak menutupi bagian tombol tambahan/tampilan terminal. Jika itu menyebabkan layar berkedip pada perangkat Anda, nonaktifkan. (Default)</string>
+
+    <string name="notification_action_exit" translatable="false">@string/exit</string>
+    <string name="error_termux_service_invalid_execution_command_runner" translatable="false">Invalid execution command runner to TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner" translatable="false">Unsupported execution command runner to TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_shell_create_mode" translatable="false">Unsupported execution command shell create mode to TermuxService: `%1$s`</string>
+    <string name="error_termux_service_execution_command_shell_name_unset" translatable="false">Shell name not set but `%1$s` shell create mode passed</string>
+    <string name="termux_preferences_title" translatable="false">Termux</string>
 </resources>

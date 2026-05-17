@@ -548,4 +548,217 @@
     <string name="title_template_description_chaquopy_xml">Chaquopy XML template with Python console bridge, manifest, and resources.</string>
     <string name="title_template_description_chaquopy_compose">Chaquopy Compose template with Python runtime bridge and Compose host activity.</string>
     <string name="title_template_description_chaquopy_litho">Chaquopy Litho template with Python runtime bridge and Litho-ready dependencies.</string>
+
+    <string name="title_template_description_tablayout_tabactivity">TabLayout Activity: Multi-page management components</string>
+    <string name="title_template_description_basicactivity">Basic Activity Demonstration</string>
+    <string name="title_menus_editor_lines_swapUp">Swap with the previous line</string>
+    <string name="title_menus_editor_lines_swapDown">Swap with the next line</string>
+    <string name="title_menus_editor_selection_moveUp">Move selected text up</string>
+    <string name="title_menus_editor_selection_moveRight">Move the selected text to the right</string>
+    <string name="title_menus_editor_selection_moveLeft">Move selected text to the left</string>
+    <string name="title_menus_editor_selection_moveDown">Move the selected text down</string>
+    <string name="title_menus_editor_cursor_nextLocation">Redo cursor position</string>
+    <string name="title_menus_editor_cursor_prevLocation">Retract cursor position</string>
+    <string name="java_to_kotlin">Java2Kotlin</string>
+    <string name="action_format_code">Format Code</string>
+    <string name="action_show_snippets">Insert Snippet…</string>
+    <string name="action_show_code_outline">Code Outline</string>
+    <string name="action_intelligent_expand_selection">intelligent Expand Selection</string>
+    <string name="action_shrink_selection">Shrink Selection</string>
+    <string name="action_add_cursor_above">Add Cursor Above</string>
+    <string name="action_add_cursor_below">Add Cursor Below</string>
+    <string name="action_select_all_occurrences">Select All Occurrences</string>
+    <string
+          name="app_name"
+          translatable="false">ZeroStudio</string>
+    <string
+          name="about_footer_alternate"
+          translatable="false">ZeroStudio v\u2022 %s</string>
+    <string
+          name="title_github"
+          translatable="false">GitHub</string>
+    <string name="view_apm_panel">APM Panel</string>
+    <string
+          name="gradle"
+          translatable="false">Gradle</string>
+    <string
+          name="template_cpp"
+          translatable="false">Basic Native C++</string>
+    <string
+          name="template_compose"
+          translatable="false">Jetpack Compose</string>
+    <string
+          name="idepref_editor_category_common"
+          translatable="false">@string/title_common</string>
+    <string
+          name="idepref_editor_category_java"
+          translatable="false">Java</string>
+    <string
+          name="xml"
+          translatable="false">XML</string>
+    <string
+          name="ui_category_widgets"
+          translatable="false">Widgets</string>
+    <string
+          name="ui_category_layouts"
+          translatable="false">Layouts</string>
+    <string
+          name="widget_view"
+          translatable="false">View</string>
+    <string
+          name="widget_textview"
+          translatable="false">TextView</string>
+    <string
+          name="widget_button"
+          translatable="false">Button</string>
+    <string
+          name="widget_checkbox"
+          translatable="false">CheckBox</string>
+    <string
+          name="widget_checked_textview"
+          translatable="false">CheckedTextView</string>
+    <string
+          name="widget_edittext"
+          translatable="false">EditText</string>
+    <string
+          name="widget_image_button"
+          translatable="false">ImageButton</string>
+    <string
+          name="widget_image_view"
+          translatable="false">ImageView</string>
+    <string
+          name="widget_progressbar"
+          translatable="false">ProgressBar</string>
+    <string
+          name="widget_radio_button"
+          translatable="false">RadioButton</string>
+    <string
+          name="widget_radio_group"
+          translatable="false">RadioGroup</string>
+    <string
+          name="widget_seekbar"
+          translatable="false">SeekBar</string>
+    <string
+          name="widget_spinner"
+          translatable="false">Spinner</string>
+    <string
+          name="widget_auto_complete_textview"
+          translatable="false">AutoCompleteTextView</string>
+    <string
+          name="widget_multi_auto_complete_textview"
+          translatable="false">MultiAutoCompleteTextView</string>
+    <string
+          name="widget_listview"
+          translatable="false">ListView</string>
+    <string
+          name="widget_surfaceview"
+          translatable="false">SurfaceView</string>
+    <string
+          name="widget_switch"
+          translatable="false">Switch</string>
+    <string
+          name="widget_textureview"
+          translatable="false">TextureView</string>
+    <string
+          name="widget_togglebutton"
+          translatable="false">ToggleButton</string>
+    <string
+          name="widget_webview"
+          translatable="false">WebView</string>
+    <string
+          name="widget_frame_layout"
+          translatable="false">FrameLayout</string>
+    <string
+          name="widget_grid_layout"
+          translatable="false">GridLayout</string>
+    <string
+          name="widget_linear_layout_horz"
+          translatable="false">LinearLayout (H)</string>
+    <string
+          name="widget_linear_layout_vert"
+          translatable="false">LinearLayout (V)</string>
+    <string
+          name="widget_relative_layout"
+          translatable="false">RelativeLayout</string>
+    <string
+          name="widget_scrollview"
+          translatable="false">ScrollView</string>
+    <string
+          name="widget_horizontal_scrollview"
+          translatable="false">HorizontalScrollView</string>
+    <string
+          name="widget_text_clock"
+          translatable="false">TextClock</string>
+    <string
+          name="widget_digital_clock"
+          translatable="false">DigitalClock</string>
+    <string
+          name="widget_calendar_view"
+          translatable="false">CalendarView</string>
+    <string
+          name="widget_space"
+          translatable="false">Space</string>
+    <string
+          name="widget_number_picker"
+          translatable="false">NumberPicker</string>
+    <string
+          name="widget_chronometer"
+          translatable="false">Chronometer</string>
+    <string
+          name="widget_rating_bar"
+          translatable="false">RatingBar</string>
+    <string
+          name="widget_quick_contact_badge"
+          translatable="false">QuickContactBadge</string>
+    <string
+          name="widget_videoview"
+          translatable="false">VideoView</string>
+    <string
+          name="widget_analog_clock"
+          translatable="false">AnalogClock</string>
+    <string
+          name="widget_grid_view"
+          translatable="false">GridView</string>
+    <string
+          name="widget_viewanimator"
+          translatable="false">ViewAnimator</string>
+    <string
+          name="widget_viewswitcher"
+          translatable="false">ViewSwitcher</string>
+    <string
+          name="widget_textswitcher"
+          translatable="false">TextSwitcher</string>
+    <string
+          name="widget_imageswitcher"
+          translatable="false">ImageSwitcher</string>
+    <string
+          name="widget_viewflipper"
+          translatable="false">ViewFlipper</string>
+    <string name="idepref_kotlin_lsp_settings">Kotlin LSP</string>
+    <string name="idepref_kotlin_lazy_compilation">Lazy compilation</string>
+    <string name="idepref_kotlin_inlay_hints">Inlay hints</string>
+    <string name="idepref_kotlin_type_hints">Type hints</string>
+    <string name="idepref_kotlin_parameter_hints">Parameter hints</string>
+    <string name="idepref_kotlin_chained_hints">Chained hints</string>
+    <string name="idepref_kotlin_diagnostics">Diagnostics</string>
+    <string name="idepref_kotlin_remove_unused_imports">Remove unused imports</string>
+    <string name="idepref_tree_auto_expand_single_child_title">Auto expand single-child folders in tree</string>
+    <string name="idepref_tree_auto_expand_single_child_summary">Automatically expands folder chains until a branch with multiple items is reached.</string>
+    <string name="idepref_tree_remember_state_title">Remember tree expanded state</string>
+    <string name="idepref_tree_remember_state_summary">Keep expanded paths after refresh/reload; if disabled, tree resets to collapsed root state.</string>
+    <string name="bottom_sheet_page_build">Build status</string>
+    <string name="bottom_sheet_page_symbols">Symbol input</string>
+    <string name="action_color_query">Color Query</string>
+    <string name="template_litho_classic">Litho Classic Activity</string>
+    <string name="template_litho_compose">Litho Compose Activity</string>
+    <string name="title_template_description_litho_classic">Classic Litho template with SoLoader, Litho core/widgets, sections and a ready-to-run Hello Litho screen.</string>
+    <string name="title_template_description_litho_compose">Compose + Litho hybrid template with SoLoader init and AndroidView-hosted Litho content.</string>
+    <string name="template_ai_starter_activity">AI Starter Activity</string>
+    <string name="title_template_description_ai_starter_activity">Create a modern AI-ready starter app with Compose, Navigation, CameraX, Retrofit, Room, and DataStore setup.</string>
+    <string name="template_ai_glasses_activity">AI Glasses Activity</string>
+    <string name="title_template_description_ai_glasses_activity">Create an AI glasses sample with Compose UI and XR projected display manifest setup.</string>
+    <string name="template_android_tv_activity">Android TV Activity</string>
+    <string name="title_template_description_android_tv_activity">Create an Android TV sample based on Leanback with browse/details/playback flows.</string>
+    <string name="template_arch_starter_activity">Architecture Starter Activity</string>
+    <string name="title_template_description_arch_starter_activity">Create a modern architecture starter using Compose, Navigation, Room, Hilt, and layered data/domain/ui structure.</string>
 </resources>

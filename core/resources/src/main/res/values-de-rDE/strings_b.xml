@@ -317,4 +317,24 @@ Permission: %5$s
 %6$s
 MD5: %7$s
 SHA1: %8$s
-SHA256: %9$s</string></resources>
+SHA256: %9$s</string>
+    <string name="main_nav_projects">Projects</string>
+    <string name="lsp_clangd_title">clangd (C/C++/ObjC/ObjC++)</string>
+    <string name="lsp_clangd_desc">Configure built-in clangd options for C family language intelligence.</string>
+    <string name="lsp_clangd_enabled">Enable clangd server</string>
+    <string name="lsp_clangd_binary_path">clangd binary path</string>
+    <string name="lsp_clangd_completion_limit">Completion limit (1-500)</string>
+    <string name="lsp_clangd_request_timeout">Request timeout ms (200-15000)</string>
+    <string name="lsp_clangd_features">Feature toggles</string>
+    <string name="lsp_clangd_feature_diagnostics">Diagnostics</string>
+    <string name="lsp_clangd_feature_completion">Completion</string>
+    <string name="lsp_clangd_feature_definition">Definition</string>
+    <string name="lsp_clangd_feature_references">References</string>
+    <string name="lsp_clangd_feature_signature">Signature help</string>
+    <string name="lsp_clangd_feature_selection">Smart selection</string>
+    <string name="lsp_clangd_feature_actions">Code actions</string>
+    <string name="lsp_clangd_feature_match_lowercase">Lowercase completion matching</string>
+    <string name="lsp_clangd_fuzzy_ratio">Fuzzy match ratio: %1$d</string>
+    <string name="lsp_clangd_reset_defaults">Reset defaults</string>
+    <string name="title_template_native_build_imgui">C++ image gui</string>
+</resources>

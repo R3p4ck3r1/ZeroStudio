@@ -61,4 +61,8 @@
     <string name="apm_runtime_io">I/O delta: read=%1$d bytes, write=%2$d bytes</string>
     <string name="apm_runtime_jank">Frame drop=%1$s%% (%2$d / %3$d frames)</string>
     <string name="apm_runtime_top_threads">Top CPU delta threads</string>
+
+    <string name="apm_start_monitoring">Start Monitoring</string>
+    <string name="apm_stop_monitoring">Stop Monitoring</string>
+    <string name="apm_monitoring_paused_desc">Monitoring is paused. Start monitoring to collect CPU/memory/process metrics.</string>
 </resources>

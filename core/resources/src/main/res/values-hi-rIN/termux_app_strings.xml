@@ -109,4 +109,11 @@
   <string name="termux_terminal_view_terminal_margin_adjustment_title">टर्मिनल मार्जिन समायोजन</string>
   <string name="termux_terminal_view_terminal_margin_adjustment_off">टर्मिनल मार्जिन समायोजन अक्षम कर दिया जाएगा.</string>
   <string name="termux_terminal_view_terminal_margin_adjustment_on">टर्मिनल मार्जिन समायोजन सक्षम किया जाएगा. इसे उस समस्या को ठीक करने का प्रयास करने के लिए सक्षम किया जाना चाहिए जहां सॉफ्ट कीबोर्ड अतिरिक्त कुंजियों/टर्मिनल दृश्य के हिस्से को कवर करता है। यदि यह आपके डिवाइस पर स्क्रीन फ़्लिकरिंग का कारण बनता है, तो इसे अक्षम करें। (डिफ़ॉल्ट)</string>
+
+    <string name="notification_action_exit" translatable="false">@string/exit</string>
+    <string name="error_termux_service_invalid_execution_command_runner" translatable="false">Invalid execution command runner to TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_runner" translatable="false">Unsupported execution command runner to TermuxService: `%1$s`</string>
+    <string name="error_termux_service_unsupported_execution_command_shell_create_mode" translatable="false">Unsupported execution command shell create mode to TermuxService: `%1$s`</string>
+    <string name="error_termux_service_execution_command_shell_name_unset" translatable="false">Shell name not set but `%1$s` shell create mode passed</string>
+    <string name="termux_preferences_title" translatable="false">Termux</string>
 </resources>

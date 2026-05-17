@@ -79,4 +79,16 @@
   <string name="log_level_verbose">Verbose</string>
   <string name="log_level_unknown">*Tidak dikenal*</string>
   <string name="log_level_value">Tingkat log logcat disetel ke \"%1$s\"</string>
+
+    <string name="error_attempted_to_check_for_permissions_not_requested" translatable="false">Attempted to check for permissions that have not been requested in app manifest: %1$s</string>
+    <string name="error_sending_sigkill_to_process" translatable="false">Sending SIGKILL to process on user request or because android is killing the execution service</string>
+    <string name="error_executable_unset" translatable="false">Executable not set \"%1$s\" for shell command</string>
+    <string name="error_execution_cancelled" translatable="false">Execution has been cancelled since execution service is being killed</string>
+    <string name="error_failed_to_execute_termux_session_command" translatable="false">Failed to execute \"%1$s\" termux session command</string>
+    <string name="error_failed_to_execute_app_shell_command" translatable="false">Failed to execute \"%1$s\" app shell command</string>
+    <string name="error_exception_received_while_executing_app_shell_command" translatable="false">Exception received while to executing \"%1$s\" app shell command.\nException: %2$s</string>
+    <string name="action_yes" translatable="false">@string/yes</string>
+    <string name="action_no" translatable="false">@string/no</string>
+    <string name="action_copy" translatable="false">@string/copy</string>
+    <string name="action_cancel" translatable="false">@android:string/cancel</string>
 </resources>
