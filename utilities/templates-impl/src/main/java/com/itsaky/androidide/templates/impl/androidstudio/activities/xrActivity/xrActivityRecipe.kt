@@ -35,7 +35,9 @@ fun RecipeExecutor.xrActivityRecipe(
     packageName: String,
 ) {
   when (moduleData.language) {
-    Language.Java, Language.Kotlin -> Unit
+    Language.Kotlin -> Unit
+    Language.Java ->
+        error("Basic Headset Activity currently generates Kotlin-only sources. Please select Kotlin.")
   }
   val (_, srcOut, resOut, _, _, _, _, rootDir) = moduleData
   addAllKotlinDependencies(moduleData)

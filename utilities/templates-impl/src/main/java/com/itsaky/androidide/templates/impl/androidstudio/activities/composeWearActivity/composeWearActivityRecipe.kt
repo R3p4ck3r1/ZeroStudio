@@ -43,7 +43,8 @@ private fun RecipeExecutor.commonComposeRecipe(
     composeBomVersion: String = COMPOSE_BOM_VERSION,
 ) {
   when (moduleData.language) {
-    Language.Java, Language.Kotlin -> Unit
+    Language.Kotlin -> Unit
+    Language.Java -> error("Empty Wear App templates currently generate Kotlin-only sources. Please select Kotlin.")
   }
   addAllKotlinDependencies(moduleData)
 

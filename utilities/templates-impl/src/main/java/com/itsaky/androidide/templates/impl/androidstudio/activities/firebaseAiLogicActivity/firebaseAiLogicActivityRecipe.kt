@@ -38,7 +38,9 @@ fun RecipeExecutor.firebaseAiLogicActivityRecipe(
     packageName: String,
 ) {
   when (moduleData.language) {
-    Language.Java, Language.Kotlin -> Unit
+    Language.Kotlin -> Unit
+    Language.Java ->
+        error("Gemini API Starter with Firebase currently generates Kotlin-only sources. Please select Kotlin.")
   }
   val (_, srcOut, resOut, _, _, _, _, rootOut) = moduleData
   addAllKotlinDependencies(moduleData)

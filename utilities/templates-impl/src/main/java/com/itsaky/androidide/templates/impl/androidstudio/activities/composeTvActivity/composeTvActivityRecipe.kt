@@ -39,7 +39,9 @@ fun RecipeExecutor.composeTvActivityRecipe(
     composeBomVersion: String = COMPOSE_BOM_VERSION,
 ) {
   when (moduleData.language) {
-    Language.Java, Language.Kotlin -> Unit
+    Language.Kotlin -> Unit
+    Language.Java ->
+        error("Compose TV Activity currently generates Kotlin-only sources. Please select Kotlin.")
   }
   val (_, srcOut, resOut, _) = moduleData
 

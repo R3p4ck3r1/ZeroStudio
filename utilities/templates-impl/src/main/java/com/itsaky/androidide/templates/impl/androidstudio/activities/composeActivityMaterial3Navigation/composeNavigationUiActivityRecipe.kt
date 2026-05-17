@@ -40,7 +40,9 @@ fun RecipeExecutor.composeNavigationUiActivityRecipe(
     defaultPreview: String,
 ) {
   when (moduleData.language) {
-    Language.Java, Language.Kotlin -> Unit
+    Language.Kotlin -> Unit
+    Language.Java ->
+        error("Navigation Compose Activity currently generates Kotlin-only sources. Please select Kotlin.")
   }
   val (_, srcOut, resOut, _) = moduleData
   addAllKotlinDependencies(moduleData)
