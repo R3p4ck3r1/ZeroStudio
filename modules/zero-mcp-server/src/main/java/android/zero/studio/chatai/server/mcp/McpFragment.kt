@@ -18,7 +18,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import android.zero.studio.chatai.server.mcp.databinding.ActivityChataiFileMcpServerBinding
+import android.zero.studio.chatai.server.mcp.core.ToolControlCenter
 import android.zero.studio.chatai.server.mcp.ui.LogAdapter
+import android.zero.studio.chatai.server.mcp.ui.ToolControlDialogFragment
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
@@ -116,6 +118,9 @@ class McpFragment : Fragment() {
 
     // Buttons
     binding.clearLogs.setOnClickListener { adapter.clear() }
+    binding.manageTools.setOnClickListener {
+      ToolControlDialogFragment().show(parentFragmentManager, "tool_control")
+    }
     binding.copyLocal.setOnClickListener { copyToClipboard(binding.localUrl.text.toString()) }
     binding.copyWifi.setOnClickListener { copyToClipboard(binding.wifiUrl.text.toString()) }
 
@@ -141,10 +146,30 @@ class McpFragment : Fragment() {
       updateStatusUI()
     }
 
+    initToolControlState()
+
     val wifiIp = getWifiIpAddress()
     binding.wifiUrl.text = "http://$wifiIp:8080/ZeroStudio"
   }
 
+
+  private fun initToolControlState() {
+    val prefs = requireContext().getSharedPreferences("McpToolControl", Context.MODE_PRIVATE)
+    val names =
+        listOf(
+            "workspace_list",
+            "workspace_read_text",
+            "workspace_write_text",
+            "workspace_search_text",
+            "workspace_analyze",
+            "ls",
+            "read_file",
+            "write_file",
+            "search_code",
+            "get_project_structure",
+        )
+    names.forEach { ToolControlCenter.setEnabled(it, prefs.getBoolean(it, true)) }
+  }
   private fun handleSelectedWorkspace(uri: Uri) {
     try {
       val ctx = requireContext()

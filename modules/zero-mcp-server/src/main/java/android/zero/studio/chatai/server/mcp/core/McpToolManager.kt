@@ -113,6 +113,9 @@ object McpToolManager {
   }
 
   fun handleCall(name: String, args: JsonObject, rootDir: File): String {
+    if (!ToolControlCenter.isEnabled(name)) {
+      return errorJson("TOOL_DISABLED", "Tool is disabled: $name")
+    }
     return try {
       when (name) {
         "workspace_list", "ls" -> workspaceList(rootDir, args)
@@ -324,6 +327,7 @@ object McpToolManager {
     return JsonObject().apply {
       addProperty("name", name)
       addProperty("description", desc)
+      addProperty("enabled", ToolControlCenter.isEnabled(name))
       add("inputSchema", gson.fromJson(schemaJson, JsonObject::class.java))
     }
   }
