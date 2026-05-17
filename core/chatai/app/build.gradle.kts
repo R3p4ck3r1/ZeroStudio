@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  alias(libs.plugins.android.application)
+  alias(libs.plugins.android.library)
   alias(libs.plugins.kotlin.android)
   alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
   alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
@@ -55,7 +55,6 @@ android {
         release {
             // signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
-            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -67,10 +66,7 @@ android {
             initWith(getByName("release"))
             matchingFallbacks.add("release")
             // signingConfig = signingConfigs.getByName("debug")
-            isDebuggable = false
             isMinifyEnabled = false
-            isShrinkResources = false
-            isProfileable = true
         }
     }
     compileOptions {
@@ -83,9 +79,6 @@ android {
     }
     sourceSets {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
-    }
-    androidResources {
-        generateLocaleConfig = true
     }
     packaging {
         jniLibs {
@@ -114,8 +107,8 @@ composeCompiler {
 }
 
 tasks.register("buildAll") {
-    dependsOn("assembleRelease", "bundleRelease")
-    description = "Build both APK and AAB"
+    dependsOn("assembleRelease")
+    description = "Build release AAR"
 }
 
 ksp {
