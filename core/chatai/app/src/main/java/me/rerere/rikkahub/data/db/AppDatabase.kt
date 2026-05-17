@@ -62,7 +62,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDAO
 }
 
-object TokenUsageConverter {
+class TokenUsageConverter {
     @TypeConverter
     fun fromTokenUsage(usage: TokenUsage?): String {
         return JsonInstant.encodeToString(usage)
