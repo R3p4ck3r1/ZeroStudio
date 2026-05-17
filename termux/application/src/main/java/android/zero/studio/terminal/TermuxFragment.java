@@ -27,6 +27,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
+import com.google.android.material.button.MaterialButton;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
@@ -178,6 +179,7 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
 
     protected TerminalSessionTabsView mTabsView;
     protected SessionTabManager mSessionTabManager;
+    private View mTerminalEmptyStateContainer;
 
     // Theme Manager instance
     private TerminalThemeManager mThemeManager;
@@ -190,6 +192,10 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
     // Project specific
     private String mInitialWorkingDir;
     private String mInitialSessionName;
+    private boolean mPendingCreateSession;
+    private boolean mPendingCreateFailsafe;
+    private String mPendingCreateSessionName;
+    private String mPendingCreateWorkingDir;
 
     protected static final int CONTEXT_MENU_SELECT_URL_ID = 0;
     protected static final int CONTEXT_MENU_SHARE_TRANSCRIPT_ID = 1;
@@ -340,6 +346,11 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         }
 
         mTabsView = view.findViewById(R.id.terminal_tabs_view);
+        mTerminalEmptyStateContainer = view.findViewById(R.id.terminal_empty_state_container);
+        MaterialButton newSessionButton = view.findViewById(R.id.terminal_empty_state_new_session_button);
+        if (newSessionButton != null) {
+            newSessionButton.setOnClickListener(v -> onCreateNewSession(false, null, null));
+        }
         mSessionTabManager = new SessionTabManager(requireContext());
 
         // Set default working directory to manager
@@ -632,22 +643,7 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         final String sessionName = intent != null && intent.getExtras() != null ? intent.getExtras().getString(TERMUX_ACTIVITY.EXTRA_SESSION_NAME, null) : null;
         boolean launchFailsafe = intent != null && intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_FAILSAFE_SESSION, false);
 
-        if (mTermuxService.isTermuxSessionsEmpty()) {
-            if (mIsVisible) {
-                TermuxInstaller.setupBootstrapIfNeeded(requireActivity(), () -> {
-                    if (mTermuxService == null) return;
-                    try {
-                        if (mTermuxService.isTermuxSessionsEmpty()) {
-                            String cwd = mInitialWorkingDir != null ? mInitialWorkingDir : mSessionTabManager.getDefaultWorkingDirectory();
-                            mSessionTabManager.createNewSession(launchFailsafe, sessionName, cwd);
-                        }
-                    } catch (WindowManager.BadTokenException e) {
-                    }
-                });
-            } else {
-                finishActivityIfNotFinishing();
-            }
-        } else {
+        if (!mTermuxService.isTermuxSessionsEmpty()) {
             if (mThemeManager != null) {
                 for(int i = 0; i < mTermuxService.getTermuxSessionsSize(); i++) {
                     TermuxSession ts = mTermuxService.getTermuxSession(i);
@@ -660,15 +656,24 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
             final Optional<TermuxSession> existingSession = workingDir == null ? Optional.empty() : mTermuxService.getTermuxSessions().stream().filter(session -> Objects.equals(
                             session.getTerminalSession().getCwd(), workingDir)).findFirst();
             setupTermuxSessionOnServiceConnected(intent, workingDir, sessionName, existingSession.orElse(null), launchFailsafe);
+        } else {
+            updateTerminalEmptyState();
         }
         mTermuxService.setTermuxTerminalSessionClient(mTermuxTerminalSessionActivityClient);
+
+        if (mPendingCreateSession) {
+            boolean pendingFailsafe = mPendingCreateFailsafe;
+            String pendingSessionName = mPendingCreateSessionName;
+            String pendingWorkingDir = mPendingCreateWorkingDir;
+            mPendingCreateSession = false;
+            mPendingCreateSessionName = null;
+            mPendingCreateWorkingDir = null;
+            onCreateNewSession(pendingFailsafe, pendingSessionName, pendingWorkingDir);
+        }
     }
 
     protected void setupTermuxSessionOnServiceConnected(Intent intent, String workingDir, String sessionName, TermuxSession existingSession, boolean launchFailsafe) {
-        if (mTermuxService.isTermuxSessionsEmpty()) {
-            onCreateNewSession(launchFailsafe, sessionName, workingDir);
-            return;
-        }
+        if (mTermuxService.isTermuxSessionsEmpty()) return;
         if (existingSession != null) {
             if (existingSession.getExecutionCommand().isFailsafe != launchFailsafe) {
                 onCreateNewSession(launchFailsafe, sessionName, workingDir);
@@ -684,14 +689,14 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         if (mTabsView != null) {
             mTabsView.refreshSessions();
         }
+        updateTerminalEmptyState();
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
         Logger.logDebug(LOG_TAG, "onServiceDisconnected");
-
-        // Respect being stopped from the {@link TermuxService} notification action.
-        finishActivityIfNotFinishing();
+        mTermuxService = null;
+        updateTerminalEmptyState();
     }
 
     private void reloadProperties() {
@@ -800,11 +805,25 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
     }
 
     public void onCreateNewSession(boolean isFailsafe, String sessionName, String workingDirectory) {
-        // Use default working directory if not provided
-        if (workingDirectory == null) {
-            workingDirectory = mInitialWorkingDir;
+        if (mTermuxService == null) {
+            mPendingCreateSession = true;
+            mPendingCreateFailsafe = isFailsafe;
+            mPendingCreateSessionName = sessionName;
+            mPendingCreateWorkingDir = workingDirectory;
+            Intent serviceIntent = new Intent(requireActivity(), TermuxService.class);
+            requireActivity().startService(serviceIntent);
+            requireActivity().bindService(serviceIntent, this, 0);
+            return;
         }
-        mTermuxTerminalSessionActivityClient.addNewSession(isFailsafe, sessionName, workingDirectory);
+
+        final String requestedWorkingDirectory = workingDirectory;
+        TermuxInstaller.setupBootstrapIfNeeded(requireActivity(), () -> {
+            if (mTermuxService == null) return;
+        String targetWorkingDirectory = requestedWorkingDirectory;
+        if (targetWorkingDirectory == null) {
+            targetWorkingDirectory = mInitialWorkingDir;
+        }
+        mTermuxTerminalSessionActivityClient.addNewSession(isFailsafe, sessionName, targetWorkingDirectory);
         
         // Ensure the theme is applied to the newly created session
         if (mThemeManager != null) {
@@ -816,6 +835,8 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         }
 
         if (mTabsView != null) mTabsView.refreshSessions();
+            updateTerminalEmptyState();
+        });
     }
 
     private void setToggleKeyboardView() {
@@ -1041,7 +1062,24 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
            if (mTabsView != null) {
                 mTabsView.refreshSessions();
              }
+           updateTerminalEmptyState();
      }
+
+    private void updateTerminalEmptyState() {
+        if (mTerminalEmptyStateContainer == null || mTerminalView == null) return;
+        boolean hasSessions = mTermuxService != null && !mTermuxService.isTermuxSessionsEmpty();
+        mTerminalEmptyStateContainer.setVisibility(hasSessions ? View.GONE : View.VISIBLE);
+        mTerminalView.setVisibility(hasSessions ? View.VISIBLE : View.INVISIBLE);
+        if (mBottomSheetContainer != null) {
+            mBottomSheetContainer.setVisibility(hasSessions ? View.VISIBLE : View.GONE);
+        }
+
+        if (!hasSessions && mTermuxService != null && !mTermuxService.wantsToStop()) {
+            Intent stopServiceIntent = new Intent(requireActivity(), TermuxService.class);
+            stopServiceIntent.setAction(com.termux.shared.termux.TermuxConstants.TERMUX_SERVICE.ACTION_STOP_SERVICE);
+            requireActivity().startService(stopServiceIntent);
+        }
+    }
 
     public boolean isVisibles() {
         return mIsVisible;
