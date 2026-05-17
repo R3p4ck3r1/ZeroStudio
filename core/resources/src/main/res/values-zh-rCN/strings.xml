@@ -1061,18 +1061,18 @@ SHA256：%9$s</string>
     <string
           name="widget_viewflipper"
           translatable="false">ViewFlipper</string>
-    <string name="idepref_kotlin_lsp_settings">Kotlin LSP</string>
-    <string name="idepref_kotlin_lazy_compilation">Lazy compilation</string>
-    <string name="idepref_kotlin_inlay_hints">Inlay hints</string>
-    <string name="idepref_kotlin_type_hints">Type hints</string>
-    <string name="idepref_kotlin_parameter_hints">Parameter hints</string>
-    <string name="idepref_kotlin_chained_hints">Chained hints</string>
-    <string name="idepref_kotlin_diagnostics">Diagnostics</string>
-    <string name="idepref_kotlin_remove_unused_imports">Remove unused imports</string>
-    <string name="idepref_tree_auto_expand_single_child_title">Auto expand single-child folders in tree</string>
-    <string name="idepref_tree_auto_expand_single_child_summary">Automatically expands folder chains until a branch with multiple items is reached.</string>
-    <string name="idepref_tree_remember_state_title">Remember tree expanded state</string>
-    <string name="idepref_tree_remember_state_summary">Keep expanded paths after refresh/reload; if disabled, tree resets to collapsed root state.</string>
-    <string name="bottom_sheet_page_build">Build status</string>
-    <string name="bottom_sheet_page_symbols">Symbol input</string>
+    <string name="idepref_kotlin_lsp_settings">Kotlin 语言服务器</string>
+    <string name="idepref_kotlin_lazy_compilation">惰性编译</string>
+    <string name="idepref_kotlin_inlay_hints">内嵌提示</string>
+    <string name="idepref_kotlin_type_hints">类型提示</string>
+    <string name="idepref_kotlin_parameter_hints">参数提示</string>
+    <string name="idepref_kotlin_chained_hints">链式提示</string>
+    <string name="idepref_kotlin_diagnostics">诊断</string>
+    <string name="idepref_kotlin_remove_unused_imports">移除未使用的导入</string>
+    <string name="idepref_tree_auto_expand_single_child_title">在树中自动展开仅有单个子项的文件夹</string>
+    <string name="idepref_tree_auto_expand_single_child_summary">自动展开文件夹链，直到出现包含多个子项的分支。</string>
+    <string name="idepref_tree_remember_state_title">记住树的展开状态</string>
+    <string name="idepref_tree_remember_state_summary">刷新/重载后保留已展开路径；若禁用，树将重置为根节点折叠状态。</string>
+    <string name="bottom_sheet_page_build">构建状态</string>
+    <string name="bottom_sheet_page_symbols">符号输入</string>
 </resources>
