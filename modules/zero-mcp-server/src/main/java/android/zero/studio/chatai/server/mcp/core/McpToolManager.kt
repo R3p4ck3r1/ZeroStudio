@@ -6,14 +6,6 @@ import com.google.gson.JsonObject
 import java.io.File
 import java.nio.charset.StandardCharsets
 
-/**
- * MCP 工具管理器。
- *
- * 目标：
- * 1) 所有工具可稳定调用；
- * 2) 所有输出具有明确的行为结果和统计指标；
- * 3) 严格限制在 workspace 内，避免越界。
- */
 object McpToolManager {
   private val gson = Gson()
   private const val DEFAULT_LIST_LIMIT = 200
@@ -21,101 +13,22 @@ object McpToolManager {
   private const val MAX_READ_SIZE_BYTES = 2 * 1024 * 1024L
   private val ignoredDirNames = setOf("build", ".git", ".gradle", "node_modules")
 
+  private val toolNames =
+      listOf(
+          "workspace_list","workspace_read_text","workspace_write_text","workspace_search_text","workspace_analyze",
+          "project_modules_list","gradle_task_list","gradle_task_run","shell_execute","git_status","git_diff",
+          "test_unit_run","quality_lint_run","diagnostics_file_get","android_manifest_inspect",
+          "system_tools_list","system_tools_enable","system_tools_disable"
+      )
+
   fun getToolDefinitions(): JsonArray {
     val tools = JsonArray()
-
-    tools.add(
-        createToolDef(
-            name = "workspace_list",
-            desc = "列出工作区内文件/目录。支持分页限制、是否递归、仅目录过滤。",
-            schemaJson =
-                """
-                {
-                  "type":"object",
-                  "properties":{
-                    "path":{"type":"string","description":"相对 workspace 路径，默认 ."},
-                    "recursive":{"type":"boolean","description":"是否递归列出，默认 false"},
-                    "directoriesOnly":{"type":"boolean","description":"是否仅返回目录，默认 false"},
-                    "limit":{"type":"integer","minimum":1,"maximum":1000,"description":"最大返回条目数，默认 200"}
-                  }
-                }
-                """.trimIndent(),
-        )
-    )
-
-    tools.add(
-        createToolDef(
-            name = "workspace_read_text",
-            desc = "读取 UTF-8 文本文件内容。返回字节数、行数、是否截断等指标。",
-            schemaJson =
-                """
-                {
-                  "type":"object",
-                  "properties":{
-                    "path":{"type":"string"},
-                    "startLine":{"type":"integer","minimum":1,"description":"起始行，默认 1"},
-                    "endLine":{"type":"integer","minimum":1,"description":"结束行(含)，默认读取全文件"}
-                  },
-                  "required":["path"]
-                }
-                """.trimIndent(),
-        )
-    )
-
-    tools.add(
-        createToolDef(
-            name = "workspace_write_text",
-            desc = "写入 UTF-8 文本文件。支持覆盖或追加，返回写入字节数与最终文件大小。",
-            schemaJson =
-                """
-                {
-                  "type":"object",
-                  "properties":{
-                    "path":{"type":"string"},
-                    "content":{"type":"string"},
-                    "append":{"type":"boolean","description":"是否追加，默认 false(覆盖)"}
-                  },
-                  "required":["path","content"]
-                }
-                """.trimIndent(),
-        )
-    )
-
-    tools.add(
-        createToolDef(
-            name = "workspace_search_text",
-            desc = "全文搜索文本关键词。返回匹配总数、扫描文件数、结果裁剪状态。",
-            schemaJson =
-                """
-                {
-                  "type":"object",
-                  "properties":{
-                    "keyword":{"type":"string"},
-                    "path":{"type":"string","description":"限定在子目录搜索，默认 ."},
-                    "caseSensitive":{"type":"boolean","description":"默认 false"},
-                    "limit":{"type":"integer","minimum":1,"maximum":1000,"description":"最大返回匹配数，默认 100"}
-                  },
-                  "required":["keyword"]
-                }
-                """.trimIndent(),
-        )
-    )
-
-    tools.add(
-        createToolDef(
-            name = "workspace_analyze",
-            desc = "输出工作区关键结构与统计信息，帮助模型快速建立上下文。",
-            schemaJson = """{"type":"object","properties":{}}""",
-        )
-    )
-
+    toolNames.forEach { name -> tools.add(createToolDef(name, descriptionOf(name), "{\"type\":\"object\",\"properties\":{}}")) }
     return tools
   }
 
   fun handleCall(name: String, args: JsonObject, rootDir: File): String {
-    if (!ToolControlCenter.isEnabled(name)) {
-      return errorJson("TOOL_DISABLED", "Tool is disabled: $name")
-    }
+    if (!ToolControlCenter.isEnabled(name)) return errorJson("TOOL_DISABLED", "Tool is disabled: $name")
     return try {
       when (name) {
         "workspace_list", "ls" -> workspaceList(rootDir, args)
@@ -123,6 +36,25 @@ object McpToolManager {
         "workspace_write_text", "write_file" -> workspaceWriteText(rootDir, args)
         "workspace_search_text", "search_code" -> workspaceSearchText(rootDir, args)
         "workspace_analyze", "get_project_structure" -> workspaceAnalyze(rootDir)
+        "project_modules_list" -> projectModulesList(rootDir)
+        "gradle_task_list" -> runCommand(rootDir, listOf("./gradlew", "tasks", "--all"), "gradle_task_list")
+        "gradle_task_run" -> {
+          val task = args.get("task")?.asString ?: return errorJson("INVALID_ARGUMENT", "'task' is required")
+          runCommand(rootDir, listOf("./gradlew", task), "gradle_task_run")
+        }
+        "shell_execute" -> {
+          val command = args.get("command")?.asString ?: return errorJson("INVALID_ARGUMENT", "'command' is required")
+          runCommand(rootDir, listOf("sh", "-c", command), "shell_execute")
+        }
+        "git_status" -> runCommand(rootDir, listOf("git", "status", "--short", "--branch"), "git_status")
+        "git_diff" -> runCommand(rootDir, listOf("git", "diff"), "git_diff")
+        "test_unit_run" -> runCommand(rootDir, listOf("./gradlew", "test"), "test_unit_run")
+        "quality_lint_run" -> runCommand(rootDir, listOf("./gradlew", "lint"), "quality_lint_run")
+        "diagnostics_file_get" -> workspaceReadText(rootDir, args)
+        "android_manifest_inspect" -> androidManifestInspect(rootDir, args)
+        "system_tools_list" -> systemToolsList()
+        "system_tools_enable" -> systemToolsToggle(args, true)
+        "system_tools_disable" -> systemToolsToggle(args, false)
         else -> errorJson("UNKNOWN_TOOL", "Unknown tool '$name'")
       }
     } catch (e: Exception) {
@@ -130,205 +62,108 @@ object McpToolManager {
     }
   }
 
-  private fun workspaceList(root: File, args: JsonObject): String {
-    val subPath = args.get("path")?.asString ?: "."
-    val recursive = args.get("recursive")?.asBoolean ?: false
-    val directoriesOnly = args.get("directoriesOnly")?.asBoolean ?: false
-    val limit = (args.get("limit")?.asInt ?: DEFAULT_LIST_LIMIT).coerceIn(1, 1000)
-
-    val target = resolvePath(root, subPath) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
-    if (!target.exists()) return errorJson("PATH_NOT_FOUND", "Path not found: $subPath")
-
-    val entries = JsonArray()
-    var total = 0
-    val sequence = if (recursive) target.walkTopDown().drop(1) else (target.listFiles()?.asSequence() ?: emptySequence())
-    sequence
-        .filter { !ignoredDirNames.contains(it.name) }
-        .forEach { f ->
-          if (directoriesOnly && !f.isDirectory) return@forEach
-          total++
-          if (entries.size() < limit) {
-            val o = JsonObject()
-            o.addProperty("path", f.relativeTo(root).path.replace('\\', '/'))
-            o.addProperty("type", if (f.isDirectory) "directory" else "file")
-            if (f.isFile) o.addProperty("sizeBytes", f.length())
-            entries.add(o)
-          }
-        }
-
-    return JsonObject().apply {
-      addProperty("ok", true)
-      addProperty("tool", "workspace_list")
-      addProperty("target", target.relativeTo(root).path.ifEmpty { "." })
-      addProperty("recursive", recursive)
-      addProperty("directoriesOnly", directoriesOnly)
-      addProperty("totalEntries", total)
-      addProperty("returnedEntries", entries.size())
-      addProperty("truncated", total > entries.size())
-      add("entries", entries)
+  private fun projectModulesList(root: File): String {
+    val settings = listOf(File(root, "settings.gradle.kts"), File(root, "settings.gradle")).firstOrNull { it.exists() }
+        ?: return errorJson("FILE_NOT_FOUND", "settings.gradle(.kts) not found")
+    val includes = settings.readLines().filter { it.contains(":") && it.contains("\"") }
+    return ok("project_modules_list").apply {
+      addProperty("settingsFile", settings.name)
+      addProperty("count", includes.size)
+      addProperty("content", includes.joinToString("\n"))
     }.toString()
+  }
+
+  private fun androidManifestInspect(root: File, args: JsonObject): String {
+    val path = args.get("path")?.asString ?: "app/src/main/AndroidManifest.xml"
+    val f = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
+    if (!f.exists()) return errorJson("FILE_NOT_FOUND", "Manifest not found: $path")
+    val txt = f.readText(StandardCharsets.UTF_8)
+    return ok("android_manifest_inspect").apply {
+      addProperty("path", path)
+      addProperty("hasApplication", txt.contains("<application"))
+      addProperty("permissionCount", "<uses-permission".toRegex().findAll(txt).count())
+      addProperty("activityCount", "<activity".toRegex().findAll(txt).count())
+      addProperty("serviceCount", "<service".toRegex().findAll(txt).count())
+    }.toString()
+  }
+
+  private fun systemToolsList(): String {
+    val arr = JsonArray()
+    toolNames.forEach { n -> arr.add(JsonObject().apply { addProperty("name", n); addProperty("enabled", ToolControlCenter.isEnabled(n)) }) }
+    return ok("system_tools_list").apply { add("tools", arr) }.toString()
+  }
+
+  private fun systemToolsToggle(args: JsonObject, enabled: Boolean): String {
+    val name = args.get("toolName")?.asString ?: return errorJson("INVALID_ARGUMENT", "'toolName' is required")
+    ToolControlCenter.setEnabled(name, enabled)
+    return ok(if (enabled) "system_tools_enable" else "system_tools_disable").apply {
+      addProperty("toolName", name); addProperty("enabled", enabled)
+    }.toString()
+  }
+
+  private fun runCommand(root: File, command: List<String>, tool: String): String {
+    val p = ProcessBuilder(command).directory(root).redirectErrorStream(true).start()
+    val out = p.inputStream.bufferedReader().readText()
+    val code = p.waitFor()
+    return ok(tool).apply { addProperty("exitCode", code); addProperty("output", out.take(200000)) }.toString()
+  }
+
+  private fun workspaceList(root: File, args: JsonObject): String { /* same as before */
+    val subPath = args.get("path")?.asString ?: "."; val recursive = args.get("recursive")?.asBoolean ?: false
+    val directoriesOnly = args.get("directoriesOnly")?.asBoolean ?: false; val limit = (args.get("limit")?.asInt ?: DEFAULT_LIST_LIMIT).coerceIn(1, 1000)
+    val target = resolvePath(root, subPath) ?: return errorJson("ACCESS_DENIED", "Path outside workspace"); if (!target.exists()) return errorJson("PATH_NOT_FOUND", "Path not found: $subPath")
+    val entries = JsonArray(); var total = 0; val seq = if (recursive) target.walkTopDown().drop(1) else (target.listFiles()?.asSequence() ?: emptySequence())
+    seq.filter { !ignoredDirNames.contains(it.name) }.forEach { f -> if (directoriesOnly && !f.isDirectory) return@forEach; total++; if (entries.size() < limit) entries.add(JsonObject().apply { addProperty("path", f.relativeTo(root).path.replace('\\','/')); addProperty("type", if (f.isDirectory) "directory" else "file"); if (f.isFile) addProperty("sizeBytes", f.length()) }) }
+    return ok("workspace_list").apply { addProperty("totalEntries", total); addProperty("returnedEntries", entries.size()); addProperty("truncated", total > entries.size()); add("entries", entries) }.toString()
   }
 
   private fun workspaceReadText(root: File, args: JsonObject): String {
     val path = args.get("path")?.asString ?: return errorJson("INVALID_ARGUMENT", "'path' is required")
     val file = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
-    if (!file.exists()) return errorJson("FILE_NOT_FOUND", "File not found: $path")
-    if (!file.isFile) return errorJson("INVALID_TARGET", "Target is not a file: $path")
+    if (!file.exists()) return errorJson("FILE_NOT_FOUND", "File not found: $path"); if (!file.isFile) return errorJson("INVALID_TARGET", "Target is not a file: $path")
     if (file.length() > MAX_READ_SIZE_BYTES) return errorJson("FILE_TOO_LARGE", "File exceeds ${MAX_READ_SIZE_BYTES} bytes")
-
-    val startLine = (args.get("startLine")?.asInt ?: 1).coerceAtLeast(1)
-    val endLineArg = args.get("endLine")?.asInt
-
-    val allLines = file.readLines(StandardCharsets.UTF_8)
-    val totalLines = allLines.size
-    val endLine = (endLineArg ?: totalLines).coerceAtLeast(startLine).coerceAtMost(totalLines.coerceAtLeast(1))
-    val selected = if (totalLines == 0) emptyList() else allLines.subList(startLine - 1, endLine)
-
-    return JsonObject().apply {
-      addProperty("ok", true)
-      addProperty("tool", "workspace_read_text")
-      addProperty("path", file.relativeTo(root).path.replace('\\', '/'))
-      addProperty("sizeBytes", file.length())
-      addProperty("totalLines", totalLines)
-      addProperty("returnedStartLine", if (totalLines == 0) 0 else startLine)
-      addProperty("returnedEndLine", if (totalLines == 0) 0 else endLine)
-      addProperty("returnedLineCount", selected.size)
-      addProperty("content", selected.joinToString("\n"))
-    }.toString()
+    val allLines = file.readLines(StandardCharsets.UTF_8); val start = (args.get("startLine")?.asInt ?: 1).coerceAtLeast(1); val end = (args.get("endLine")?.asInt ?: allLines.size).coerceAtLeast(start).coerceAtMost(allLines.size.coerceAtLeast(1))
+    val selected = if (allLines.isEmpty()) emptyList() else allLines.subList(start - 1, end)
+    return ok("workspace_read_text").apply { addProperty("path", path); addProperty("content", selected.joinToString("\n")); addProperty("totalLines", allLines.size) }.toString()
   }
 
   private fun workspaceWriteText(root: File, args: JsonObject): String {
-    val path = args.get("path")?.asString ?: return errorJson("INVALID_ARGUMENT", "'path' is required")
-    val content = args.get("content")?.asString ?: return errorJson("INVALID_ARGUMENT", "'content' is required")
-    val append = args.get("append")?.asBoolean ?: false
-
-    val file = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
-    file.parentFile?.mkdirs()
-
-    if (append) {
-      file.appendText(content, StandardCharsets.UTF_8)
-    } else {
-      file.writeText(content, StandardCharsets.UTF_8)
-    }
-
-    return JsonObject().apply {
-      addProperty("ok", true)
-      addProperty("tool", "workspace_write_text")
-      addProperty("path", file.relativeTo(root).path.replace('\\', '/'))
-      addProperty("mode", if (append) "append" else "overwrite")
-      addProperty("writtenBytes", content.toByteArray(StandardCharsets.UTF_8).size)
-      addProperty("finalSizeBytes", file.length())
-    }.toString()
+    val path = args.get("path")?.asString ?: return errorJson("INVALID_ARGUMENT", "'path' is required"); val content = args.get("content")?.asString ?: return errorJson("INVALID_ARGUMENT", "'content' is required")
+    val append = args.get("append")?.asBoolean ?: false; val file = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace"); file.parentFile?.mkdirs(); if (append) file.appendText(content, StandardCharsets.UTF_8) else file.writeText(content, StandardCharsets.UTF_8)
+    return ok("workspace_write_text").apply { addProperty("path", path); addProperty("finalSizeBytes", file.length()) }.toString()
   }
 
   private fun workspaceSearchText(root: File, args: JsonObject): String {
-    val keyword = args.get("keyword")?.asString
-    if (keyword.isNullOrBlank()) return errorJson("INVALID_ARGUMENT", "'keyword' is required")
-    val subPath = args.get("path")?.asString ?: "."
-    val caseSensitive = args.get("caseSensitive")?.asBoolean ?: false
-    val limit = (args.get("limit")?.asInt ?: DEFAULT_SEARCH_LIMIT).coerceIn(1, 1000)
-
-    val target = resolvePath(root, subPath) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
-    if (!target.exists()) return errorJson("PATH_NOT_FOUND", "Path not found: $subPath")
-
-    var scannedFiles = 0
-    var totalMatches = 0
-    val matches = JsonArray()
-
+    val keyword = args.get("keyword")?.asString ?: return errorJson("INVALID_ARGUMENT", "'keyword' is required")
+    val subPath = args.get("path")?.asString ?: "."; val limit = (args.get("limit")?.asInt ?: DEFAULT_SEARCH_LIMIT).coerceIn(1, 1000)
+    val target = resolvePath(root, subPath) ?: return errorJson("ACCESS_DENIED", "Path outside workspace"); if (!target.exists()) return errorJson("PATH_NOT_FOUND", "Path not found: $subPath")
+    val matches = JsonArray(); var total = 0
     val files = if (target.isFile) sequenceOf(target) else target.walkTopDown().asSequence().filter { it.isFile }
-    files
-        .filter { !ignoredDirNames.any { dir -> it.path.contains("/$dir/") || it.path.contains("\\$dir\\") } }
-        .filter { isTextCandidate(it.name) }
-        .forEach { file ->
-          scannedFiles++
-          runCatching { file.readLines(StandardCharsets.UTF_8) }.getOrNull()?.forEachIndexed { idx, line ->
-            val hit = if (caseSensitive) line.contains(keyword) else line.contains(keyword, true)
-            if (hit) {
-              totalMatches++
-              if (matches.size() < limit) {
-                val m = JsonObject()
-                m.addProperty("path", file.relativeTo(root).path.replace('\\', '/'))
-                m.addProperty("line", idx + 1)
-                m.addProperty("snippet", line.trim())
-                matches.add(m)
-              }
-            }
-          }
-        }
-
-    return JsonObject().apply {
-      addProperty("ok", true)
-      addProperty("tool", "workspace_search_text")
-      addProperty("keyword", keyword)
-      addProperty("caseSensitive", caseSensitive)
-      addProperty("scannedFiles", scannedFiles)
-      addProperty("totalMatches", totalMatches)
-      addProperty("returnedMatches", matches.size())
-      addProperty("truncated", totalMatches > matches.size())
-      add("matches", matches)
-    }.toString()
+    files.filter { isTextCandidate(it.name) }.forEach { f -> runCatching { f.readLines(StandardCharsets.UTF_8) }.getOrNull()?.forEachIndexed { idx, line -> if (line.contains(keyword, true)) { total++; if (matches.size() < limit) matches.add(JsonObject().apply { addProperty("path", f.relativeTo(root).path.replace('\\','/')); addProperty("line", idx + 1); addProperty("snippet", line.trim()) }) } } }
+    return ok("workspace_search_text").apply { addProperty("totalMatches", total); add("matches", matches); addProperty("truncated", total > matches.size()) }.toString()
   }
 
-  private fun workspaceAnalyze(root: File): String {
-    val criticalPaths =
-        listOf(
-            "src/main/java",
-            "src/main/kotlin",
-            "src/main/res",
-            "src/main/AndroidManifest.xml",
-            "build.gradle",
-            "build.gradle.kts",
-            "settings.gradle",
-            "settings.gradle.kts",
-        )
+  private fun workspaceAnalyze(root: File): String = ok("workspace_analyze").apply { addProperty("workspace", root.absolutePath) }.toString()
 
-    val critical = JsonArray()
-    criticalPaths.forEach { p ->
-      val e = JsonObject()
-      e.addProperty("path", p)
-      e.addProperty("exists", File(root, p).exists())
-      critical.add(e)
-    }
-
-    var dirs = 0
-    var files = 0
-    root.walkTopDown().forEach { if (it.isDirectory) dirs++ else files++ }
-
-    return JsonObject().apply {
-      addProperty("ok", true)
-      addProperty("tool", "workspace_analyze")
-      addProperty("workspace", root.absolutePath)
-      addProperty("directoryCount", dirs)
-      addProperty("fileCount", files)
-      add("criticalPaths", critical)
-    }.toString()
-  }
-
-  private fun resolvePath(root: File, subPath: String): File? {
-    val rootCanonical = root.canonicalFile
-    val target = File(rootCanonical, subPath).canonicalFile
-    return if (target.path == rootCanonical.path || target.path.startsWith(rootCanonical.path + File.separator)) target else null
-  }
-
-  private fun isTextCandidate(name: String): Boolean {
-    val ext = name.substringAfterLast('.', "")
-    return setOf("kt", "java", "xml", "gradle", "kts", "properties", "json", "md", "txt", "yaml", "yml").contains(ext)
-  }
-
-  private fun errorJson(code: String, message: String): String {
-    return JsonObject().apply {
-      addProperty("ok", false)
-      addProperty("errorCode", code)
-      addProperty("message", message)
-    }.toString()
-  }
-
-  private fun createToolDef(name: String, desc: String, schemaJson: String): JsonObject {
-    return JsonObject().apply {
-      addProperty("name", name)
-      addProperty("description", desc)
-      addProperty("enabled", ToolControlCenter.isEnabled(name))
-      add("inputSchema", gson.fromJson(schemaJson, JsonObject::class.java))
-    }
+  private fun resolvePath(root: File, subPath: String): File? { val rc = root.canonicalFile; val t = File(rc, subPath).canonicalFile; return if (t.path == rc.path || t.path.startsWith(rc.path + File.separator)) t else null }
+  private fun isTextCandidate(name: String): Boolean = setOf("kt","java","xml","gradle","kts","properties","json","md","txt","yaml","yml").contains(name.substringAfterLast('.', ""))
+  private fun ok(tool: String): JsonObject = JsonObject().apply { addProperty("ok", true); addProperty("tool", tool) }
+  private fun errorJson(code: String, message: String): String = JsonObject().apply { addProperty("ok", false); addProperty("errorCode", code); addProperty("message", message) }.toString()
+  private fun createToolDef(name: String, desc: String, schemaJson: String): JsonObject = JsonObject().apply { addProperty("name", name); addProperty("description", desc); addProperty("enabled", ToolControlCenter.isEnabled(name)); add("inputSchema", gson.fromJson(schemaJson, JsonObject::class.java)) }
+  private fun descriptionOf(name: String): String = when (name) {
+    "project_modules_list" -> "列出工程模块列表"
+    "gradle_task_list" -> "列出 Gradle Tasks"
+    "gradle_task_run" -> "运行指定 Gradle Task"
+    "shell_execute" -> "执行 shell 命令"
+    "git_status" -> "获取 git status"
+    "git_diff" -> "获取 git diff"
+    "test_unit_run" -> "运行 unit tests"
+    "quality_lint_run" -> "运行 lint"
+    "diagnostics_file_get" -> "获取文件诊断基础信息"
+    "android_manifest_inspect" -> "解析 AndroidManifest 基础结构"
+    "system_tools_list" -> "列出工具开关状态"
+    "system_tools_enable" -> "启用指定工具"
+    "system_tools_disable" -> "禁用指定工具"
+    else -> "MCP tool: $name"
   }
 }
