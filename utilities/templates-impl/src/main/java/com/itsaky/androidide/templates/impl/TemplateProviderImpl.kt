@@ -22,7 +22,7 @@ import com.itsaky.androidide.templates.ITemplateProvider
 import com.itsaky.androidide.templates.Template
 import com.itsaky.androidide.templates.TemplateCategory
 import com.itsaky.androidide.templates.impl.basicActivity.basicActivityProject
-import com.itsaky.androidide.templates.impl.aiGlassesActivity.aiGlassesActivityProject
+import com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesActivity.aiGlassesActivityProject
 import com.itsaky.androidide.templates.impl.basicCpp.basicCppProject
 import com.itsaky.androidide.templates.impl.bottomNavActivity.bottomNavActivityProject
 import com.itsaky.androidide.templates.impl.chaquopy.compose.chaquopyComposeDemoProject
