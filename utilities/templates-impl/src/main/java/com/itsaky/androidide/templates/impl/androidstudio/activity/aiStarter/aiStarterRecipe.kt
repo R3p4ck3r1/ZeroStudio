@@ -4,10 +4,10 @@ import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
 import com.itsaky.androidide.templates.base.composeDependencies
 import com.itsaky.androidide.templates.base.models.parseDependency
 import com.itsaky.androidide.templates.base.util.SourceWriter
+import com.itsaky.androidide.templates.base.util.SourceWriter.writeKtSrc
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiStarter.src.app_package.mainActivityKt
 import com.itsaky.androidide.templates.impl.base.createRecipe
 import com.itsaky.androidide.templates.impl.base.writeMainActivity
-import com.itsaky.androidide.templates.impl.composeActivity.srcThemesXml
 import com.itsaky.androidide.templates.impl.composeActivity.themeColorSrc
 import com.itsaky.androidide.templates.impl.composeActivity.themeThemeSrc
 import com.itsaky.androidide.templates.impl.composeActivity.themeTypeSrc
@@ -32,5 +32,5 @@ internal fun AndroidModuleTemplateBuilder.aiStarterRecipe() = createRecipe {
     writeKtSrc("${data.packageName}.ui.theme", "Theme", source = ::themeThemeSrc)
     writeKtSrc("${data.packageName}.ui.theme", "Type", source = ::themeTypeSrc)
   }
-  res { writeXmlResource("themes", com.itsaky.androidide.templates.base.util.AndroidModuleResManager.ResourceType.VALUES, source = ::srcThemesXml) }
+  res { writeXmlResource("themes", com.itsaky.androidide.templates.base.util.AndroidModuleResManager.ResourceType.VALUES, source = ::composeThemesXml) }
 }

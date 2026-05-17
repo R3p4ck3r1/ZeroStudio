@@ -5,6 +5,8 @@ import com.itsaky.androidide.templates.base.models.Dependency
 import com.itsaky.androidide.templates.base.models.parseDependency
 import com.itsaky.androidide.templates.base.modules.android.ManifestActivity
 import com.itsaky.androidide.templates.base.util.SourceWriter
+import com.itsaky.androidide.templates.base.util.SourceWriter.writeJavaSrc
+import com.itsaky.androidide.templates.base.util.SourceWriter.writeKtSrc
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesActivity.res.values.stringsXml
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesActivity.src.app_package.audioInterfaceJava
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesActivity.src.app_package.audioInterfaceKt
@@ -32,18 +34,19 @@ internal fun AndroidModuleTemplateBuilder.aiGlassesActivityRecipe() = createReci
         ManifestActivity(
             name = "GlassesMainActivity",
             isExported = true,
-            configureAttrs = { attribute("android:requiredDisplayCategory", "@string/display_category_xr_projected") },
         ))
   }
 }
 
 private fun AndroidModuleTemplateBuilder.writeAiGlassesSources(writer: SourceWriter) {
   writeMainActivity(writer, ktSrc = ::mainActivityKt, javaSrc = ::mainActivityJava)
-  if (data.language == com.itsaky.androidide.templates.Language.Kotlin) {
-    writeKtSrc(data.packageName, "GlassesMainActivity", source = ::glassesActivityKt)
-    writeKtSrc(data.packageName, "AudioInterface", source = ::audioInterfaceKt)
-  } else {
-    writeJavaSrc(data.packageName, "GlassesMainActivity", source = ::glassesActivityJava)
-    writeJavaSrc(data.packageName, "AudioInterface", source = ::audioInterfaceJava)
+  writer.apply {
+    if (data.language == com.itsaky.androidide.templates.Language.Kotlin) {
+      writeKtSrc(data.packageName, "GlassesMainActivity", source = ::glassesActivityKt)
+      writeKtSrc(data.packageName, "AudioInterface", source = ::audioInterfaceKt)
+    } else {
+      writeJavaSrc(data.packageName, "GlassesMainActivity", source = ::glassesActivityJava)
+      writeJavaSrc(data.packageName, "AudioInterface", source = ::audioInterfaceJava)
+    }
   }
 }

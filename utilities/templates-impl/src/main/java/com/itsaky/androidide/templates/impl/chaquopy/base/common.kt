@@ -1,7 +1,6 @@
 package com.itsaky.androidide.templates.impl.chaquopy.base
 
 import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
-import com.itsaky.androidide.templates.impl.base.emptyThemesAndColors
 import java.io.File
 
 private const val AGP_VERSION = "8.13.0"
@@ -26,7 +25,6 @@ data class ChaquopyTemplateSpec(
 internal fun AndroidModuleTemplateBuilder.writeChaquopyTemplate(spec: ChaquopyTemplateSpec) {
   writeChaquopyBuildFiles(spec.uiKind)
   writeChaquopyPythonSource(spec)
-  res { emptyThemesAndColors() }
 }
 
 private fun AndroidModuleTemplateBuilder.writeChaquopyBuildFiles(uiKind: ChaquopyUiKind) {

@@ -16,7 +16,6 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
-import 
 
 fun browseErrorActivityKt(layoutName: String, packageName: String, mainFragment: String) =
     """

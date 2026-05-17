@@ -16,7 +16,6 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
-import 
 
 fun errorFragmentKt(minApiLevel: Int, packageName: String): String {
   val getDrawableArgBlock = if (minApiLevel >= 23) "context!!" else "activity!!"

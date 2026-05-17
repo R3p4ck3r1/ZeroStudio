@@ -16,7 +16,6 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
-import 
 
 fun playbackActivityKt(packageName: String) =
     """
