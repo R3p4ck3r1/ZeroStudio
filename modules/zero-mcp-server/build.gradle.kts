@@ -57,6 +57,9 @@ dependencies {
 
   implementation(libs.google.gson)
 
+  // composite-builds/build-deps/editor
+  implementation(libs.common.editor)
+
   implementation(libs.androidx.documentfile)
   implementation(projects.core.resources)
 
