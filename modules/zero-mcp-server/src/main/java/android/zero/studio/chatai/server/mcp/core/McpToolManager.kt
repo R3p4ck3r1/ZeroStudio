@@ -35,6 +35,9 @@ object McpToolManager {
       ToolSpec("gradle_wrapper_info", "读取 gradle-wrapper.properties", listOf("gradle", "wrapper", "read"), "{}"),
       ToolSpec("gradle_wrapper_update", "更新 gradle-wrapper distributionUrl", listOf("gradle", "wrapper", "write"), "{\"version\":\"8.7\",\"distributionType\":\"all\"}"),
       ToolSpec("project_module_src_tree", "列出模块 src 目录树", listOf("project", "module", "src"), "{\"modulePath\":\"app\",\"limit\":300}"),
+      ToolSpec("project_apk_locate", "定位模块 APK 输出", listOf("project", "apk", "read"), "{\"modulePath\":\"app\",\"variant\":\"debug\"}"),
+      ToolSpec("search_workspace_text", "全工程文本检索（高级过滤）", listOf("search", "workspace"), "{\"query\":\"McpService\",\"path\":\".\",\"limit\":100}"),
+      ToolSpec("logs_file_get", "读取指定日志文件内容", listOf("logs", "read"), "{\"path\":\"build.log\",\"maxLines\":400}"),
       ToolSpec("project_modules_list", "解析 settings.gradle(.kts) 输出模块列表", listOf("project", "gradle", "modules"), "{}"),
       ToolSpec("gradle_task_list", "执行 ./gradlew tasks --all", listOf("gradle", "task", "build"), "{}"),
       ToolSpec("gradle_task_run", "运行指定 gradle task", listOf("gradle", "task", "build", "execute"), "{\"task\":\":app:assembleDebug\"}"),
@@ -71,6 +74,9 @@ object McpToolManager {
         "workspace_delete" -> workspaceDelete(rootDir, args)
         "project_modules_list" -> projectModulesList(rootDir)
         "project_module_src_tree" -> projectModuleSrcTree(rootDir, args)
+        "project_apk_locate" -> projectApkLocate(rootDir, args)
+        "search_workspace_text" -> searchWorkspaceText(rootDir, args)
+        "logs_file_get" -> logsFileGet(rootDir, args)
         "gradle_task_list" -> runCommand(rootDir, listOf("./gradlew", "tasks", "--all"), canonicalName)
         "gradle_task_run" -> runCommand(rootDir, listOf("./gradlew", requireArg(args, "task")!!), canonicalName)
         "gradle_wrapper_info" -> gradleWrapperInfo(rootDir)
@@ -395,6 +401,47 @@ object McpToolManager {
       if (arr.size() < limit) arr.add(it.relativeTo(root).path.replace('\\','/'))
     }
     return ok("project_module_src_tree").apply { addProperty("total", total); addProperty("truncated", total > arr.size()); add("entries", arr) }.toString()
+  }
+
+  private fun projectApkLocate(root: File, args: JsonObject): String {
+    val modulePath = args.get("modulePath")?.asString ?: "app"
+    val variant = args.get("variant")?.asString ?: "debug"
+    val apkDir = resolvePath(root, "$modulePath/build/outputs/apk/$variant") ?: return errorJson("ACCESS_DENIED", "module path outside workspace")
+    if (!apkDir.exists()) return errorJson("PATH_NOT_FOUND", "APK output path not found: $modulePath/build/outputs/apk/$variant")
+    val apks = apkDir.walkTopDown().filter { it.isFile && it.extension.equals("apk", true) }.toList()
+    val arr = JsonArray()
+    apks.forEach { arr.add(it.relativeTo(root).path.replace('\\','/')) }
+    return ok("project_apk_locate").apply { addProperty("count", apks.size); add("apks", arr) }.toString()
+  }
+
+  private fun searchWorkspaceText(root: File, args: JsonObject): String {
+    val query = requireArg(args, "query")!!
+    val path = args.get("path")?.asString ?: "."
+    val limit = (args.get("limit")?.asInt ?: 100).coerceIn(1, 5000)
+    val caseSensitive = args.get("caseSensitive")?.asBoolean ?: false
+    val target = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
+    if (!target.exists()) return errorJson("PATH_NOT_FOUND", "Path not found: $path")
+
+    val matches = JsonArray(); var total=0
+    val files = if (target.isFile) sequenceOf(target) else target.walkTopDown().asSequence().filter { it.isFile }
+    files.filter { isTextCandidate(it.name) }.forEach { f ->
+      runCatching { f.readLines(StandardCharsets.UTF_8) }.getOrNull()?.forEachIndexed { idx, line ->
+        val hit = if (caseSensitive) line.contains(query) else line.contains(query, true)
+        if (hit) { total++; if (matches.size() < limit) matches.add(JsonObject().apply { addProperty("path", f.relativeTo(root).path.replace('\\','/')); addProperty("line", idx+1); addProperty("snippet", line.trim()) }) }
+      }
+    }
+    return ok("search_workspace_text").apply { addProperty("totalMatches", total); addProperty("truncated", total > matches.size()); add("matches", matches) }.toString()
+  }
+
+  private fun logsFileGet(root: File, args: JsonObject): String {
+    val path = requireArg(args, "path")!!
+    val maxLines = (args.get("maxLines")?.asInt ?: 400).coerceIn(1, 5000)
+    val file = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
+    if (!file.exists()) return errorJson("FILE_NOT_FOUND", "File not found: $path")
+    val lines = file.readLines(StandardCharsets.UTF_8)
+    val out = lines.takeLast(maxLines)
+    return ok("logs_file_get").apply { addProperty("path", path); addProperty("totalLines", lines.size); addProperty("returnedLines", out.size); addProperty("content", out.joinToString("
+")) }.toString()
   }
   private fun resolvePath(root: File, subPath: String): File? {
     val canonicalRoot = root.canonicalFile
