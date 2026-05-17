@@ -82,9 +82,13 @@ dependencyResolutionManagement {
   // versionCatalogs { create("ktlib") { from(files("gradle/kotlin.versions.toml")) } }
 }
 
+val skipNyx = System.getenv("ZEROSTUDIO_SKIP_NYX") == "true"
+
 buildscript {
   repositories { mavenCentral() }
-  dependencies { classpath("com.mooltiverse.oss.nyx:gradle:2.5.2") }
+  dependencies {
+    if (System.getenv("ZEROSTUDIO_SKIP_NYX") != "true") classpath("com.mooltiverse.oss.nyx:gradle:2.5.2")
+  }
 }
 
 val isGitRepo by lazy {
@@ -117,7 +121,7 @@ if (FDroidConfig.hasRead && FDroidConfig.isFDroidBuild) {
 
     project.setProperty("version", simpleVersion)
   }
-} else if (isGitRepo) {
+} else if (isGitRepo && !skipNyx) {
   apply { plugin("com.mooltiverse.oss.nyx") }
 }
 
