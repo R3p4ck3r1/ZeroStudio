@@ -18,6 +18,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.other.files.layoutRes
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.other.files.layoutResourceFile.res.layoutXml
 
 fun RecipeExecutor.layoutResourceFileRecipe(
@@ -25,6 +26,9 @@ fun RecipeExecutor.layoutResourceFileRecipe(
     layoutName: String,
     rootTag: String,
 ) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   val resOut = moduleData.resDir
   save(layoutXml(rootTag), moduleData.resDir.resolve("layout/${layoutName}.xml"))
   open(resOut.resolve("layout/${layoutName}.xml"))

@@ -21,6 +21,7 @@ import com.itsaky.androidide.templates.Constraint.CLASS
 import com.itsaky.androidide.templates.Constraint.NONEMPTY
 import com.itsaky.androidide.templates.Constraint.UNIQUE
 import com.itsaky.androidide.templates.FormFactor
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.PackageNameWidget
 import com.itsaky.androidide.templates.TemplateConstraint
@@ -60,7 +61,7 @@ val xrActivityTemplate
 
     val packageName = defaultPackageNameParameter
 
-    widgets(TextFieldWidget(activityClass), PackageNameWidget(packageName))
+    widgets(TextFieldWidget(activityClass), PackageNameWidget(packageName), LanguageWidget())
 
     thumb { File("xr-activity").resolve("template_xr_activity.png") }
 

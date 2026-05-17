@@ -16,13 +16,13 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.googleAdMobAdsActivity.src.app_package
 
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.findViewById
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.importViewBindingClass
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.layoutToViewBindingClass
 import com.itsaky.androidide.templates.impl.androidstudio.fragments.googleAdMobAdsFragment.AdFormat
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 
 fun simpleActivityKt(
     activityClass: String,

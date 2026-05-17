@@ -18,6 +18,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.other.androidManifest
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.SourceSetType
 import java.io.File
 
@@ -27,6 +28,9 @@ fun RecipeExecutor.androidManifestRecipe(
     relativeNewLocation: String,
     sourceProviderNameSupplier: () -> String,
 ) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   if (remapFolder) {
     val newLocation = moduleData.rootDir.resolve(relativeNewLocation)
     mergeXml(androidManifestXml(), newLocation)

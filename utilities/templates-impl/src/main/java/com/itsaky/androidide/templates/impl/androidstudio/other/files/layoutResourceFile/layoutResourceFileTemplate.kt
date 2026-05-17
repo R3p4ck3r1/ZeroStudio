@@ -17,6 +17,7 @@
 package com.itsaky.androidide.templates.impl.androidstudio.other.files.layoutResourceFile
 
 import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.Constraint.LAYOUT
 import com.itsaky.androidide.templates.Constraint.NONEMPTY
 import com.itsaky.androidide.templates.Constraint.UNIQUE
@@ -55,7 +56,7 @@ val layoutResourceFileTemplate
       loggable = true
     }
 
-    widgets(TextFieldWidget(layoutName), TextFieldWidget(rootTag))
+    widgets(TextFieldWidget(layoutName), TextFieldWidget(rootTag), LanguageWidget())
 
     thumb {
       // TODO(b/147126989)

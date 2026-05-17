@@ -16,10 +16,10 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.googleWalletActivity.app_package
 
-import com.android.tools.idea.wizard.template.Language
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.importViewBindingClass
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.layoutToViewBindingClass
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 
 fun walletActivityJava(
     activityClass: String,

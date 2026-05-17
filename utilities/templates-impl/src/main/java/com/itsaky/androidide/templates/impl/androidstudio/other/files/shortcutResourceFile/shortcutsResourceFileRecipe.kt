@@ -18,9 +18,13 @@ package com.itsaky.androidide.templates.impl.androidstudio.other.files.shortcutR
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.other.files.shortcutResourceFile.res.xml.shortcutXml
 
 fun RecipeExecutor.shortcutsResourceFileRecipe(moduleData: ModuleTemplateData, fileName: String) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   val (_, _, resOut) = moduleData
 
   save(shortcutXml(), resOut.resolve("xml/${fileName}.xml"))

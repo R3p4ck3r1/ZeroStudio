@@ -18,6 +18,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.composeNav
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addComposeDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.generateManifest
@@ -38,6 +39,11 @@ fun RecipeExecutor.composeNavigationUiActivityRecipe(
     greeting: String,
     defaultPreview: String,
 ) {
+  when (moduleData.language) {
+    Language.Kotlin -> Unit
+    Language.Java ->
+        error("Navigation Compose Activity currently generates Kotlin-only sources. Please select Kotlin.")
+  }
   val (_, srcOut, resOut, _) = moduleData
   addAllKotlinDependencies(moduleData)
 

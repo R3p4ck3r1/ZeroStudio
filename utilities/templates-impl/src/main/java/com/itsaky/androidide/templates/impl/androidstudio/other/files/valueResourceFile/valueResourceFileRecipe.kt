@@ -18,9 +18,13 @@ package com.itsaky.androidide.templates.impl.androidstudio.other.files.valueReso
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.other.files.valueResourceFile.res.valuesXml
 
 fun RecipeExecutor.valueResourceFileRecipe(moduleData: ModuleTemplateData, fileName: String) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   val resOut = moduleData.resDir
   save(valuesXml(), resOut.resolve("values/${fileName}.xml"))
   open(resOut.resolve("values/${fileName}.xml"))

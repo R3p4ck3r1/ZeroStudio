@@ -17,6 +17,7 @@
 package com.itsaky.androidide.templates.impl.androidstudio.activities.composeWearActivity
 
 import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.CheckBoxWidget
 import com.itsaky.androidide.templates.Constraint
 import com.itsaky.androidide.templates.Constraint.CLASS
@@ -87,6 +88,7 @@ val composeWearActivityTemplate
         TextFieldWidget(activityClass),
         PackageNameWidget(packageName),
         CheckBoxWidget(isLauncher),
+        LanguageWidget(),
         // Invisible widgets to pass data
         TextFieldWidget(defaultPreview),
     )
@@ -182,6 +184,7 @@ val composeWearActivityWithTileAndComplicationTemplate
         TextFieldWidget(complicationServiceClass),
         PackageNameWidget(packageName),
         CheckBoxWidget(isLauncher),
+        LanguageWidget(),
         // Invisible widgets to pass data
         TextFieldWidget(defaultPreview),
         TextFieldWidget(tilePreview),

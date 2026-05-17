@@ -18,6 +18,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.composeWea
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.COMPOSE_BOM_VERSION
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addComposeDependencies
@@ -41,6 +42,10 @@ private fun RecipeExecutor.commonComposeRecipe(
     defaultPreview: String,
     composeBomVersion: String = COMPOSE_BOM_VERSION,
 ) {
+  when (moduleData.language) {
+    Language.Kotlin -> Unit
+    Language.Java -> error("Empty Wear App templates currently generate Kotlin-only sources. Please select Kotlin.")
+  }
   addAllKotlinDependencies(moduleData)
 
   // Add Compose dependencies, using the BOM to set versions

@@ -36,11 +36,40 @@ fun buildGradle(
 ): String {
   val agpVersion = projectData.agpVersion
   val useAndroidX = projectData.androidXSupport
+  val isKotlin = projectData.language == Language.Kotlin
+  val useBuiltInKotlin =
+      isKotlin && projectData.kotlinSupport == TemplateKotlinSupport.EXPLICIT_BUILT_IN_KOTLIN
+  val useLegacyKotlinPlugin =
+      isKotlin &&
+          projectData.kotlinSupport == TemplateKotlinSupport.LEGACY_KOTLIN_GRADLE_PLUGIN_BEFORE_AGP9
+
+  if (projectData.useKts) {
+    return """
+plugins {
+    id("com.android.library")
+    ${renderIf(useLegacyKotlinPlugin) { """id("org.jetbrains.kotlin.android")""" }}
+    ${renderIf(useBuiltInKotlin) { """id("com.android.built-in-kotlin")""" }}
+}
+android {
+    namespace = "$packageName"
+    ${compileSdk(buildApi, agpVersion)}
+
+    defaultConfig {
+        ${minSdk(minApi, agpVersion)}
+        ${targetSdk(targetApi, agpVersion)}
+
+        testInstrumentationRunner = "${getMaterialComponentName("android.support.test.runner.AndroidJUnitRunner", useAndroidX)}"
+    }
+}
+
+"""
+  }
+
   return """
 plugins {
     id 'com.android.library'
-    ${renderIf(projectData.language == Language.Kotlin && projectData.kotlinSupport == TemplateKotlinSupport.LEGACY_KOTLIN_GRADLE_PLUGIN_BEFORE_AGP9) {"    id 'org.jetbrains.kotlin.android'"}}
-    ${renderIf(projectData.language == Language.Kotlin && projectData.kotlinSupport == TemplateKotlinSupport.EXPLICIT_BUILT_IN_KOTLIN) { "    id 'com.android.built-in-kotlin'" }}
+    ${renderIf(useLegacyKotlinPlugin) {"    id 'org.jetbrains.kotlin.android'"}}
+    ${renderIf(useBuiltInKotlin) { "    id 'com.android.built-in-kotlin'" }}
 }
 android {
     namespace '$packageName'

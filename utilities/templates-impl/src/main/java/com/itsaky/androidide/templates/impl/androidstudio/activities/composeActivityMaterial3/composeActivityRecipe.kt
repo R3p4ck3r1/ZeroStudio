@@ -18,6 +18,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.composeAct
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addComposeDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.generateManifest
@@ -35,6 +36,11 @@ fun RecipeExecutor.composeActivityRecipe(
     greeting: String,
     defaultPreview: String,
 ) {
+  when (moduleData.language) {
+    Language.Kotlin -> Unit
+    Language.Java ->
+        error("Empty Compose Activity currently generates Kotlin-only sources. Please select Kotlin.")
+  }
   val (_, srcOut, resOut, _) = moduleData
   addAllKotlinDependencies(moduleData)
 

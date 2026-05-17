@@ -16,6 +16,7 @@
 package com.itsaky.androidide.templates.impl.androidstudio.other.androidManifest
 
 import com.itsaky.androidide.templates.BooleanParameter
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.Category
 import com.itsaky.androidide.templates.CheckBoxWidget
 import com.itsaky.androidide.templates.Constraint
@@ -65,6 +66,7 @@ val androidManifestTemplate
         CheckBoxWidget(remapFolder),
         TextFieldWidget(newLocation),
         TextFieldWidget(sourceProviderName),
+        LanguageWidget(),
     )
 
     thumb {

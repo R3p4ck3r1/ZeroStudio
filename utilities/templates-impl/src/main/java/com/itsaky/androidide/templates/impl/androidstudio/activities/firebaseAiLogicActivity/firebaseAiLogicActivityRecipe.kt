@@ -17,6 +17,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.firebaseAi
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addAllKotlinDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addComposeDependencies
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.generateManifest
@@ -36,6 +37,11 @@ fun RecipeExecutor.firebaseAiLogicActivityRecipe(
     activityClass: String,
     packageName: String,
 ) {
+  when (moduleData.language) {
+    Language.Kotlin -> Unit
+    Language.Java ->
+        error("Gemini API Starter with Firebase currently generates Kotlin-only sources. Please select Kotlin.")
+  }
   val (_, srcOut, resOut, _, _, _, _, rootOut) = moduleData
   addAllKotlinDependencies(moduleData)
 

@@ -18,6 +18,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.androidTVA
 
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.templates.CheckBoxWidget
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.ParameterConstraint
 import com.itsaky.androidide.templates.ProjectTemplate
 import com.itsaky.androidide.templates.TextFieldWidget
@@ -93,6 +94,7 @@ fun androidTVActivityTemplate(): ProjectTemplate {
         TextFieldWidget(detailsLayoutName),
         TextFieldWidget(detailsFragment),
         CheckBoxWidget(isLauncher),
+        LanguageWidget(),
     )
 
     defaultAppModule {
