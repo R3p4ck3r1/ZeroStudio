@@ -17,6 +17,7 @@
 package com.itsaky.androidide.templates.impl.androidstudio.other.files.aidlFile
 
 import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.Constraint.CLASS
 import com.itsaky.androidide.templates.Constraint.NONEMPTY
 import com.itsaky.androidide.templates.Constraint.UNIQUE
@@ -54,7 +55,7 @@ val aidlFileTemplate
       File("no_activity.png")
     }
 
-    widgets(TextFieldWidget(interfaceName))
+    widgets(TextFieldWidget(interfaceName), LanguageWidget())
 
     recipe = { data: TemplateData ->
       aidlFileRecipe(data as ModuleTemplateData, interfaceName.value)

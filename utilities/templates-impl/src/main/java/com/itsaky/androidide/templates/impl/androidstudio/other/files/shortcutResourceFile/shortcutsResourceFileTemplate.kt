@@ -17,6 +17,7 @@
 package com.itsaky.androidide.templates.impl.androidstudio.other.files.shortcutResourceFile
 
 import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.Constraint.NONEMPTY
 import com.itsaky.androidide.templates.Constraint.UNIQUE
 import com.itsaky.androidide.templates.FormFactor
@@ -47,7 +48,7 @@ val shortcutsResourceFileTemplate
 
     thumb { File("no_activity.png") }
 
-    widgets(TextFieldWidget(fileName))
+    widgets(TextFieldWidget(fileName), LanguageWidget())
 
     recipe = { data: TemplateData ->
       shortcutsResourceFileRecipe(data as ModuleTemplateData, fileName.value)

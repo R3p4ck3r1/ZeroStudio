@@ -16,6 +16,7 @@
 package com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarativeWatchFace
 
 import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.FormFactor
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.PackageNameWidget
@@ -38,7 +39,7 @@ val wearDeclarativeWatchFaceTemplate
     formFactor = FormFactor.Wear
     screens = listOf(WizardUiContext.NewProject)
     val packageName = defaultPackageNameParameter
-    widgets(PackageNameWidget(packageName))
+    widgets(PackageNameWidget(packageName), LanguageWidget())
 
     thumb { File("wear-watchface").resolve("template_watch_face.png") }
 

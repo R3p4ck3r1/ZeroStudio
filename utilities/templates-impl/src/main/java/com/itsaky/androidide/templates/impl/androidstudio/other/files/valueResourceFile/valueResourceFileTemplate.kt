@@ -17,6 +17,7 @@
 package com.itsaky.androidide.templates.impl.androidstudio.other.files.valueResourceFile
 
 import com.itsaky.androidide.templates.Category
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.Constraint.NONEMPTY
 import com.itsaky.androidide.templates.Constraint.UNIQUE
 import com.itsaky.androidide.templates.Constraint.VALUES
@@ -52,7 +53,7 @@ val valueResourceFileTemplate
       File("no_activity.png")
     }
 
-    widgets(TextFieldWidget(fileName))
+    widgets(TextFieldWidget(fileName), LanguageWidget())
 
     recipe = { data: TemplateData ->
       valueResourceFileRecipe(data as ModuleTemplateData, fileName.value)

@@ -61,7 +61,7 @@ val xrActivityTemplate
 
     val packageName = defaultPackageNameParameter
 
-    widgets(TextFieldWidget(activityClass), PackageNameWidget(packageName))
+    widgets(TextFieldWidget(activityClass), PackageNameWidget(packageName), LanguageWidget())
 
     thumb { File("xr-activity").resolve("template_xr_activity.png") }
 

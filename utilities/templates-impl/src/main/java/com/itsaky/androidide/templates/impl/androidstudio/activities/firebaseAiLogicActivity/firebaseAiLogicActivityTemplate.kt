@@ -61,7 +61,7 @@ val firebaseAiLogicActivityTemplate
 
     val packageName = defaultPackageNameParameter
 
-    widgets(TextFieldWidget(activityClass), PackageNameWidget(packageName))
+    widgets(TextFieldWidget(activityClass), PackageNameWidget(packageName), LanguageWidget())
 
     thumb { File("genai-activity").resolve("template_genai_activity.png") }
 
