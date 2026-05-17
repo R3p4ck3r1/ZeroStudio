@@ -24,6 +24,7 @@ import com.itsaky.androidide.templates.TemplateCategory
 import com.itsaky.androidide.templates.impl.basicActivity.basicActivityProject
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesActivity.aiGlassesActivityProject
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiStarter.aiStarterActivityProject
+import com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.androidTVActivityProject
 import com.itsaky.androidide.templates.impl.basicCpp.basicCppProject
 import com.itsaky.androidide.templates.impl.bottomNavActivity.bottomNavActivityProject
 import com.itsaky.androidide.templates.impl.chaquopy.compose.chaquopyComposeDemoProject
@@ -113,6 +114,7 @@ class TemplateProviderImpl : ITemplateProvider {
     registerTemplate(TemplateCategory.BasicZeroStudio, lithoComposeProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, aiGlassesActivityProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, aiStarterActivityProject())
+    registerTemplate(TemplateCategory.BasicZeroStudio, androidTVActivityProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, chaquopyXmlDemoProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, chaquopyComposeDemoProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, chaquopyLithoDemoProject())
