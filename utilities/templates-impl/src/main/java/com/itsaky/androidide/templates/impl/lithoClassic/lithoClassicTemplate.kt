@@ -34,6 +34,8 @@ fun lithoClassicProject(): ProjectTemplate = baseProjectImpl {
 
 private fun AndroidModuleTemplateBuilder.writeLithoClassicSources(writer: SourceWriter) {
   writeMainActivity(writer, ::mainActivityKt, ::mainActivityJava)
-  writer.writeKtSrc(data.packageName, "MyApplication", ::appKt)
-  writer.writeJavaSrc(data.packageName, "MyApplication", ::appJava)
+  writer.apply {
+    writeKtSrc(data.packageName, "MyApplication", ::appKt)
+    writeJavaSrc(data.packageName, "MyApplication", ::appJava)
+  }
 }
