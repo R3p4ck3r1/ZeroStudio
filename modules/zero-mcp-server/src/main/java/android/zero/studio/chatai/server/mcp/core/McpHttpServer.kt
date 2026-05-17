@@ -107,15 +107,15 @@ class McpHttpServer(
       "initialize" -> {
         logCallback("Client Handshake: Initialize")
         val result = JsonObject()
-        result.addProperty("protocolVersion", "2024-11-05")
+        result.addProperty("protocolVersion", "2025-03-26")
 
         val caps = JsonObject()
-        caps.add("tools", JsonObject()) // 支持 Tools 能力
+        caps.add("tools", JsonObject().apply { addProperty("listChanged", false) })
         result.add("capabilities", caps)
 
         val serverInfo = JsonObject()
         serverInfo.addProperty("name", "AndroidStudioMcp")
-        serverInfo.addProperty("version", "2.0")
+        serverInfo.addProperty("version", "3.0")
         result.add("serverInfo", serverInfo)
 
         response.add("result", result)
@@ -148,7 +148,7 @@ class McpHttpServer(
         // 执行工具逻辑
         val outputText = McpToolManager.handleCall(toolName, args, workspace)
 
-        // 构造响应
+        // 构造响应（兼容 MCP tools/call content 结构）
         val result = JsonObject()
         val content = JsonObject()
         content.addProperty("type", "text")
@@ -157,6 +157,7 @@ class McpHttpServer(
         val contentArray = com.google.gson.JsonArray()
         contentArray.add(content)
         result.add("content", contentArray)
+        result.addProperty("isError", outputText.contains("\"ok\":false"))
 
         response.add("result", result)
       }
