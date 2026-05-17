@@ -19,6 +19,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.aiGlassesA
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.templates.ParameterConstraint
 import com.itsaky.androidide.templates.ProjectTemplate
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.TextFieldWidget
 import com.itsaky.androidide.templates.base.modules.android.defaultAppModule
 import com.itsaky.androidide.templates.impl.baseProjectImpl
@@ -43,7 +44,7 @@ fun aiGlassesActivityTemplate(): ProjectTemplate {
     thumb = R.drawable.template_ai_glasses_activity
     description = R.string.title_template_description_ai_glasses_activity
 
-    widgets(TextFieldWidget(activityClass))
+    widgets(TextFieldWidget(activityClass), LanguageWidget())
 
     defaultAppModule { aiGlassesActivityRecipe(activityClass.value, data.packageName) }
   }

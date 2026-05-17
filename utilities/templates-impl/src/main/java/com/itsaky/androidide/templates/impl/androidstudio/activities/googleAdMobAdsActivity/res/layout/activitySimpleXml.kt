@@ -17,7 +17,7 @@
 package com.itsaky.androidide.templates.impl.androidstudio.activities.googleAdMobAdsActivity.res.layout
 
 import com.itsaky.androidide.templates.impl.androidstudio.fragments.googleAdMobAdsFragment.AdFormat
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.renderIf
 
 fun activitySimpleXml(activityClass: String, adFormat: AdFormat, packageName: String): String {
   val formatSpecificLayout =

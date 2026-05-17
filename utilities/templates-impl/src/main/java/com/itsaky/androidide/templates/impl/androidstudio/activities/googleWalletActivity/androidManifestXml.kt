@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.googleWalletActivity
 
-import com.android.tools.idea.wizard.template.ThemesData
+import com.itsaky.androidide.templates.ThemesData
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.collapseEmptyActivityTags
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.commonActivityBody
 

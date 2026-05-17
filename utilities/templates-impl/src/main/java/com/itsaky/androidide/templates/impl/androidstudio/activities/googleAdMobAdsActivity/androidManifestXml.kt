@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activities.googleAdMobAdsActivity
 
-import com.android.tools.idea.wizard.template.activityToLayout
+import com.itsaky.androidide.templates.activityToLayout
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.collapseEmptyActivityTags
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.commonActivityBody
 

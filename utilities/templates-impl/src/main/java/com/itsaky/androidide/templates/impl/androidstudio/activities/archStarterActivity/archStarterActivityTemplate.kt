@@ -19,6 +19,7 @@ import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.templates.CheckBoxWidget
 import com.itsaky.androidide.templates.ParameterConstraint
 import com.itsaky.androidide.templates.ProjectTemplate
+import com.itsaky.androidide.templates.LanguageWidget
 import com.itsaky.androidide.templates.TextFieldWidget
 import com.itsaky.androidide.templates.base.modules.android.defaultAppModule
 import com.itsaky.androidide.templates.booleanParameter
@@ -49,7 +50,7 @@ fun archStarterActivityTemplate(): ProjectTemplate {
     thumb = R.drawable.template_compose_empty_activity_material3
     description = R.string.title_template_description_arch_starter_activity
 
-    widgets(TextFieldWidget(activityClass), CheckBoxWidget(isLauncher))
+    widgets(TextFieldWidget(activityClass), CheckBoxWidget(isLauncher), LanguageWidget())
 
     defaultAppModule {
       archStarterActivityRecipe(activityClass.value, data.packageName, isLauncher.value)
