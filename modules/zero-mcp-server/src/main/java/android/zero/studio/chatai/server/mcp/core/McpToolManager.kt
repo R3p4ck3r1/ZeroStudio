@@ -31,6 +31,10 @@ object McpToolManager {
       ToolSpec("workspace_rename", "重命名文件/目录", listOf("workspace", "write"), "{\"fromPath\":\"a.txt\",\"toPath\":\"b.txt\"}"),
       ToolSpec("workspace_copy", "复制文件/目录", listOf("workspace", "write"), "{\"fromPath\":\"a.txt\",\"toPath\":\"backup/a.txt\"}"),
       ToolSpec("workspace_move", "移动文件/目录", listOf("workspace", "write"), "{\"fromPath\":\"a.txt\",\"toPath\":\"docs/a.txt\"}"),
+      ToolSpec("workspace_delete", "删除文件/目录", listOf("workspace", "write", "danger"), "{\"path\":\"tmp\",\"recursive\":true}"),
+      ToolSpec("gradle_wrapper_info", "读取 gradle-wrapper.properties", listOf("gradle", "wrapper", "read"), "{}"),
+      ToolSpec("gradle_wrapper_update", "更新 gradle-wrapper distributionUrl", listOf("gradle", "wrapper", "write"), "{\"version\":\"8.7\",\"distributionType\":\"all\"}"),
+      ToolSpec("project_module_src_tree", "列出模块 src 目录树", listOf("project", "module", "src"), "{\"modulePath\":\"app\",\"limit\":300}"),
       ToolSpec("project_modules_list", "解析 settings.gradle(.kts) 输出模块列表", listOf("project", "gradle", "modules"), "{}"),
       ToolSpec("gradle_task_list", "执行 ./gradlew tasks --all", listOf("gradle", "task", "build"), "{}"),
       ToolSpec("gradle_task_run", "运行指定 gradle task", listOf("gradle", "task", "build", "execute"), "{\"task\":\":app:assembleDebug\"}"),
@@ -64,9 +68,13 @@ object McpToolManager {
         "workspace_rename" -> workspaceRename(rootDir, args)
         "workspace_copy" -> workspaceCopy(rootDir, args)
         "workspace_move" -> workspaceMove(rootDir, args)
+        "workspace_delete" -> workspaceDelete(rootDir, args)
         "project_modules_list" -> projectModulesList(rootDir)
+        "project_module_src_tree" -> projectModuleSrcTree(rootDir, args)
         "gradle_task_list" -> runCommand(rootDir, listOf("./gradlew", "tasks", "--all"), canonicalName)
         "gradle_task_run" -> runCommand(rootDir, listOf("./gradlew", requireArg(args, "task")!!), canonicalName)
+        "gradle_wrapper_info" -> gradleWrapperInfo(rootDir)
+        "gradle_wrapper_update" -> gradleWrapperUpdate(rootDir, args)
         "shell_execute" -> runCommand(rootDir, listOf("sh", "-c", requireArg(args, "command")!!), canonicalName)
         "git_status" -> runCommand(rootDir, listOf("git", "status", "--short", "--branch"), canonicalName)
         "git_diff" -> runCommand(rootDir, listOf("git", "diff"), canonicalName)
@@ -339,6 +347,54 @@ object McpToolManager {
     if (!target.exists()) return true
     if (target.isDirectory) target.listFiles()?.forEach { if (!deleteRecursivelySafe(it)) return false }
     return target.delete()
+  }
+
+  private fun workspaceDelete(root: File, args: JsonObject): String {
+    val path = requireArg(args, "path")!!
+    val recursive = args.get("recursive")?.asBoolean ?: false
+    val target = resolvePath(root, path) ?: return errorJson("ACCESS_DENIED", "Path outside workspace")
+    if (!target.exists()) return errorJson("FILE_NOT_FOUND", "Path not found: $path")
+    if (target.isDirectory && !recursive) return errorJson("INVALID_ARGUMENT", "Directory delete requires recursive=true")
+    if (!deleteRecursivelySafe(target)) return errorJson("EXECUTION_FAILED", "Delete failed: $path")
+    return ok("workspace_delete").apply { addProperty("path", path); addProperty("deleted", true) }.toString()
+  }
+
+  private fun gradleWrapperInfo(root: File): String {
+    val file = File(root, "gradle/wrapper/gradle-wrapper.properties")
+    if (!file.exists()) return errorJson("FILE_NOT_FOUND", "gradle-wrapper.properties not found")
+    val text = file.readText(StandardCharsets.UTF_8)
+    val url = text.lineSequence().firstOrNull { it.trim().startsWith("distributionUrl=") }?.substringAfter("=") ?: ""
+    return ok("gradle_wrapper_info").apply { addProperty("distributionUrl", url); addProperty("content", text) }.toString()
+  }
+
+  private fun gradleWrapperUpdate(root: File, args: JsonObject): String {
+    val version = requireArg(args, "version")!!
+    val distributionType = args.get("distributionType")?.asString ?: "all"
+    val file = File(root, "gradle/wrapper/gradle-wrapper.properties")
+    if (!file.exists()) return errorJson("FILE_NOT_FOUND", "gradle-wrapper.properties not found")
+    val lines = file.readLines(StandardCharsets.UTF_8).toMutableList()
+    val idx = lines.indexOfFirst { it.trim().startsWith("distributionUrl=") }
+    if (idx == -1) return errorJson("EXECUTION_FAILED", "distributionUrl not found")
+    val base = "https\://services.gradle.org/distributions/"
+    val newUrl = "${base}gradle-${version}-${distributionType}.zip"
+    lines[idx] = "distributionUrl=$newUrl"
+    file.writeText(lines.joinToString("
+"), StandardCharsets.UTF_8)
+    return ok("gradle_wrapper_update").apply { addProperty("distributionUrl", newUrl) }.toString()
+  }
+
+  private fun projectModuleSrcTree(root: File, args: JsonObject): String {
+    val modulePath = requireArg(args, "modulePath")!!
+    val limit = (args.get("limit")?.asInt ?: 300).coerceIn(1, 5000)
+    val src = resolvePath(root, "$modulePath/src") ?: return errorJson("ACCESS_DENIED", "modulePath outside workspace")
+    if (!src.exists()) return errorJson("PATH_NOT_FOUND", "src path not found: $modulePath/src")
+    val arr = JsonArray()
+    var total = 0
+    src.walkTopDown().forEach {
+      total++
+      if (arr.size() < limit) arr.add(it.relativeTo(root).path.replace('\\','/'))
+    }
+    return ok("project_module_src_tree").apply { addProperty("total", total); addProperty("truncated", total > arr.size()); add("entries", arr) }.toString()
   }
   private fun resolvePath(root: File, subPath: String): File? {
     val canonicalRoot = root.canonicalFile
