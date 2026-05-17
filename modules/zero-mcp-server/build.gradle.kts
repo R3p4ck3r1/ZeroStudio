@@ -29,7 +29,6 @@ android {
     targetCompatibility = JavaVersion.VERSION_17
   }
 
-  kotlinOptions { jvmTarget = "17" }
 
   buildFeatures {
     viewBinding = true
@@ -67,11 +66,11 @@ dependencies {
   implementation(projects.core.common)
   implementation(projects.core.projects)
   implementation(projects.core.actions)
-  implementation(projects.core.lsp.api)
+  implementation(projects.core.lspApi)
 
   implementation(projects.editor.api)
   implementation(projects.editor.impl)
-  implementation(projects.editor.editor.lsp)
+  implementation(projects.editor.editorLsp)
 
   implementation(projects.termux.shared)
   implementation(projects.termux.shell)
@@ -82,3 +81,4 @@ dependencies {
   androidTestImplementation(libs.tests.androidx.junit)
   androidTestImplementation(libs.tests.androidx.espresso.core)
 }
+kotlin { jvmToolchain(17) }
