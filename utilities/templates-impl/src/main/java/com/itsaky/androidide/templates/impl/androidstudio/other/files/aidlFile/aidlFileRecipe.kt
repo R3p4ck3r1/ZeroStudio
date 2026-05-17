@@ -18,9 +18,13 @@ package com.itsaky.androidide.templates.impl.androidstudio.other.files.aidlFile
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.other.files.aidlFile.src.app_package.interfaceAidl
 
 fun RecipeExecutor.aidlFileRecipe(moduleData: ModuleTemplateData, interfaceName: String) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   // At this moment, aidrDir is guaranteed to be non-null by checking the TemplateConstraint.Aidl
   val aidlOut = moduleData.aidlDir!!
   save(

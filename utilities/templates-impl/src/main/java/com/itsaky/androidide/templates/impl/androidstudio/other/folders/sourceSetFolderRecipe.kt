@@ -17,6 +17,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.other.folders
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.SourceSetType
 
 fun RecipeExecutor.generateResourcesFolder(
@@ -27,6 +28,9 @@ fun RecipeExecutor.generateResourcesFolder(
     sourceSetType: SourceSetType = SourceSetType.RESOURCES,
     defaultDirName: String = "resources",
 ) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   val sourceProviderName = sourceProviderNameSupplier()
   if (remapFolder) {
     val newDirectory = moduleData.rootDir.resolve(location)

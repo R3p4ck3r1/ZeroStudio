@@ -17,12 +17,16 @@ package com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarative
 
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarativeWatchFace.res.raw.rawWatchFaceXml
 import com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarativeWatchFace.res.values.stringsXml
 import com.itsaky.androidide.templates.impl.androidstudio.other.wearDeclarativeWatchFace.res.xml.watchFaceInfoXml
 import java.io.File
 
 fun RecipeExecutor.wearDeclarativeWatchFaceRecipe(moduleData: ModuleTemplateData) {
+  when (moduleData.language) {
+    Language.Java, Language.Kotlin -> Unit
+  }
   val (_, _, resOut, manifestOut) = moduleData
 
   mergeXml(androidManifestXml(), manifestOut.resolve("AndroidManifest.xml"))
