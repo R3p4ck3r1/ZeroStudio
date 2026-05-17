@@ -1107,7 +1107,8 @@ class TerminalThemeManager(private val context: Context) {
     }
     fragment.terminalView?.onScreenUpdated()
   }
-}
+
   private val prefs by lazy {
     context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
   }
+}
