@@ -38,6 +38,10 @@ object McpToolManager {
       ToolSpec("project_apk_locate", "定位模块 APK 输出", listOf("project", "apk", "read"), "{\"modulePath\":\"app\",\"variant\":\"debug\"}"),
       ToolSpec("search_workspace_text", "全工程文本检索（高级过滤）", listOf("search", "workspace"), "{\"query\":\"McpService\",\"path\":\".\",\"limit\":100}"),
       ToolSpec("logs_file_get", "读取指定日志文件内容", listOf("logs", "read"), "{\"path\":\"build.log\",\"maxLines\":400}"),
+      ToolSpec("git_log", "读取 git 提交历史", listOf("git", "history"), "{\"limit\":30}"),
+      ToolSpec("diagnostics_workspace_summary", "工作区基础诊断统计", listOf("diagnostics", "analysis"), "{}"),
+      ToolSpec("system_health_check", "MCP 服务健康检查", listOf("system", "health"), "{}"),
+      ToolSpec("system_policy_get", "获取当前工具安全策略", listOf("system", "policy"), "{}"),
       ToolSpec("project_modules_list", "解析 settings.gradle(.kts) 输出模块列表", listOf("project", "gradle", "modules"), "{}"),
       ToolSpec("gradle_task_list", "执行 ./gradlew tasks --all", listOf("gradle", "task", "build"), "{}"),
       ToolSpec("gradle_task_run", "运行指定 gradle task", listOf("gradle", "task", "build", "execute"), "{\"task\":\":app:assembleDebug\"}"),
@@ -77,6 +81,10 @@ object McpToolManager {
         "project_apk_locate" -> projectApkLocate(rootDir, args)
         "search_workspace_text" -> searchWorkspaceText(rootDir, args)
         "logs_file_get" -> logsFileGet(rootDir, args)
+        "git_log" -> gitLog(rootDir, args)
+        "diagnostics_workspace_summary" -> diagnosticsWorkspaceSummary(rootDir)
+        "system_health_check" -> systemHealthCheck(rootDir)
+        "system_policy_get" -> systemPolicyGet()
         "gradle_task_list" -> runCommand(rootDir, listOf("./gradlew", "tasks", "--all"), canonicalName)
         "gradle_task_run" -> runCommand(rootDir, listOf("./gradlew", requireArg(args, "task")!!), canonicalName)
         "gradle_wrapper_info" -> gradleWrapperInfo(rootDir)
@@ -443,6 +451,53 @@ object McpToolManager {
     return ok("logs_file_get").apply { addProperty("path", path); addProperty("totalLines", lines.size); addProperty("returnedLines", out.size); addProperty("content", out.joinToString("
 ")) }.toString()
   }
+
+  private fun gitLog(root: File, args: JsonObject): String {
+    val limit = (args.get("limit")?.asInt ?: 30).coerceIn(1, 200)
+    return runCommand(root, listOf("git", "log", "--oneline", "-$limit"), "git_log")
+  }
+
+  private fun diagnosticsWorkspaceSummary(root: File): String {
+    var files = 0
+    var kotlinFiles = 0
+    var javaFiles = 0
+    var xmlFiles = 0
+    root.walkTopDown().forEach {
+      if (it.isFile) {
+        files++
+        when (it.extension.lowercase()) {
+          "kt", "kts" -> kotlinFiles++
+          "java" -> javaFiles++
+          "xml" -> xmlFiles++
+        }
+      }
+    }
+    return ok("diagnostics_workspace_summary").apply {
+      addProperty("totalFiles", files)
+      addProperty("kotlinFiles", kotlinFiles)
+      addProperty("javaFiles", javaFiles)
+      addProperty("xmlFiles", xmlFiles)
+    }.toString()
+  }
+
+  private fun systemHealthCheck(root: File): String = ok("system_health_check").apply {
+    addProperty("workspace", root.absolutePath)
+    addProperty("toolsCount", specs.size)
+    addProperty("enabledTools", specs.count { ToolControlCenter.isEnabled(it.name) })
+    addProperty("disabledTools", specs.count { !ToolControlCenter.isEnabled(it.name) })
+  }.toString()
+
+  private fun systemPolicyGet(): String = ok("system_policy_get").apply {
+    val dangerous = JsonArray().apply {
+      add("workspace_delete")
+      add("shell_execute")
+      add("gradle_wrapper_update")
+    }
+    add("dangerousTools", dangerous)
+    addProperty("workspaceBounded", true)
+    addProperty("maxReadSizeBytes", MAX_READ_SIZE_BYTES)
+    addProperty("defaultSearchLimit", DEFAULT_SEARCH_LIMIT)
+  }.toString()
   private fun resolvePath(root: File, subPath: String): File? {
     val canonicalRoot = root.canonicalFile
     val target = File(canonicalRoot, subPath).canonicalFile
