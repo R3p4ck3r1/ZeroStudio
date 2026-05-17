@@ -18,6 +18,7 @@ class McpHttpServer(
 ) : NanoHTTPD(port) {
 
   private val gson = Gson()
+  private val supportedProtocolVersions = listOf("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 
   override fun serve(session: IHTTPSession): Response {
     val uri = session.uri
@@ -106,8 +107,17 @@ class McpHttpServer(
     when (method) {
       "initialize" -> {
         logCallback("Client Handshake: Initialize")
+        val requestedVersion =
+            request.get("params")?.asJsonObject?.get("protocolVersion")?.asString
+        val selectedVersion =
+            if (requestedVersion != null && supportedProtocolVersions.contains(requestedVersion)) {
+              requestedVersion
+            } else {
+              supportedProtocolVersions.first()
+            }
+
         val result = JsonObject()
-        result.addProperty("protocolVersion", "2025-03-26")
+        result.addProperty("protocolVersion", selectedVersion)
 
         val caps = JsonObject()
         caps.add("tools", JsonObject().apply { addProperty("listChanged", false) })
@@ -157,7 +167,13 @@ class McpHttpServer(
         val contentArray = com.google.gson.JsonArray()
         contentArray.add(content)
         result.add("content", contentArray)
-        result.addProperty("isError", outputText.contains("\"ok\":false"))
+
+        runCatching { JsonParser.parseString(outputText).asJsonObject }.getOrNull()?.let { parsed ->
+          result.add("structuredContent", parsed)
+          result.addProperty("isError", parsed.get("ok")?.asBoolean == false)
+        } ?: run {
+          result.addProperty("isError", false)
+        }
 
         response.add("result", result)
       }
