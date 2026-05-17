@@ -37,6 +37,34 @@
                 android:autofillHints="password"
                 tools:ignore="UnusedAttribute" />
 
+            <LinearLayout
+                android:id="@+id/terminal_empty_state_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@id/terminal_tabs_view"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="24dp"
+                android:visibility="gone"
+                android:background="?attr/colorSurface">
+
+                <TextView
+                    android:id="@+id/terminal_empty_state_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="当前没有终端会话，请先创建一个新会话。"
+                    android:textAlignment="center"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="16dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/terminal_empty_state_new_session_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="新建会话" />
+            </LinearLayout>
+
         </RelativeLayout>
 
         <LinearLayout
@@ -49,33 +77,11 @@
             app:behavior_hideable="false"
             app:behavior_peekHeight="18dp">
 
-            <LinearLayout
+            <com.itsaky.androidide.ui.EdgeSnapBubbleView
+                android:id="@+id/terminal_toolbar_gesture_bubble"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:background="@android:color/transparent">
-
-                <FrameLayout
-                    android:id="@+id/drag_handle_view"
-                    android:layout_width="60dp"
-                    android:layout_height="18dp"
-                    android:background="@drawable/bg_handle_semicircle"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:elevation="4dp"
-                    android:foreground="@drawable/ripple_water_collision">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="6dp"
-                        android:layout_gravity="center|bottom"
-                        android:layout_marginBottom="5dp"
-                        android:src="@drawable/ic_handle_dashes"
-                        android:contentDescription="Drag Handle"
-                        android:alpha="0.6" />
-                    
-                </FrameLayout>
-            </LinearLayout>
+                android:layout_height="24dp"
+                android:background="@android:color/transparent" />
 
             <androidx.viewpager.widget.ViewPager
                 android:id="@+id/terminal_toolbar_view_pager"

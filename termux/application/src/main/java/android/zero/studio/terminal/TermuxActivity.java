@@ -72,6 +72,22 @@ public class TermuxActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (mTermuxFragment != null && mTermuxFragment.onKeyDown(keyCode, event)) {
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (mTermuxFragment != null && mTermuxFragment.onKeyUp(keyCode, event)) {
+            return true;
+        }
+        return super.onKeyUp(keyCode, event);
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Delegate options menu creation to the fragment.
         if (mTermuxFragment != null) {
