@@ -4,10 +4,10 @@ import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
 import com.itsaky.androidide.templates.base.composeDependencies
 import com.itsaky.androidide.templates.base.models.parseDependency
 import com.itsaky.androidide.templates.base.util.SourceWriter
-import com.itsaky.androidide.templates.base.util.SourceWriter.writeKtSrc
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiStarter.src.app_package.mainActivityKt
 import com.itsaky.androidide.templates.impl.base.createRecipe
 import com.itsaky.androidide.templates.impl.base.writeMainActivity
+import com.itsaky.androidide.templates.impl.composeActivity.composeThemesXml
 import com.itsaky.androidide.templates.impl.composeActivity.themeColorSrc
 import com.itsaky.androidide.templates.impl.composeActivity.themeThemeSrc
 import com.itsaky.androidide.templates.impl.composeActivity.themeTypeSrc

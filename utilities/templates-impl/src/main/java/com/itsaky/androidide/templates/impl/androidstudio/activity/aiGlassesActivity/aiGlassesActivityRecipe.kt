@@ -5,8 +5,6 @@ import com.itsaky.androidide.templates.base.models.Dependency
 import com.itsaky.androidide.templates.base.models.parseDependency
 import com.itsaky.androidide.templates.base.modules.android.ManifestActivity
 import com.itsaky.androidide.templates.base.util.SourceWriter
-import com.itsaky.androidide.templates.base.util.SourceWriter.writeJavaSrc
-import com.itsaky.androidide.templates.base.util.SourceWriter.writeKtSrc
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesActivity.res.values.stringsXml
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesActivity.src.app_package.audioInterfaceJava
 import com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesActivity.src.app_package.audioInterfaceKt

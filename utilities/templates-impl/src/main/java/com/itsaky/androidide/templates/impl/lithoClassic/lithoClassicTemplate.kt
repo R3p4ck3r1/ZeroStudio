@@ -7,8 +7,6 @@ import com.itsaky.androidide.templates.base.lithoClassicDependencies
 import com.itsaky.androidide.templates.base.modules.android.defaultAppModule
 import com.itsaky.androidide.templates.base.util.AndroidModuleResManager.ResourceType.LAYOUT
 import com.itsaky.androidide.templates.base.util.SourceWriter
-import com.itsaky.androidide.templates.base.util.SourceWriter.writeJavaSrc
-import com.itsaky.androidide.templates.base.util.SourceWriter.writeKtSrc
 import com.itsaky.androidide.templates.impl.R
 import com.itsaky.androidide.templates.impl.base.createRecipe
 import com.itsaky.androidide.templates.impl.base.emptyThemesAndColors
@@ -36,6 +34,8 @@ fun lithoClassicProject(): ProjectTemplate = baseProjectImpl {
 
 private fun AndroidModuleTemplateBuilder.writeLithoClassicSources(writer: SourceWriter) {
   writeMainActivity(writer, ::mainActivityKt, ::mainActivityJava)
-  writeKtSrc(data.packageName, "MyApplication", source = ::appKt)
-  writeJavaSrc(data.packageName, "MyApplication", source = ::appJava)
+  writer.apply {
+    writeKtSrc(data.packageName, "MyApplication", source = ::appKt)
+    writeJavaSrc(data.packageName, "MyApplication", source = ::appJava)
+  }
 }
