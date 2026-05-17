@@ -969,6 +969,67 @@ class TerminalThemeManager(private val context: Context) {
               Color.parseColor("#CAC296"),
               Color.parseColor("#CAC296"),
           ),
+          // === Monet-inspired creative palettes ===
+          Theme(
+              "Monet Water Garden Dawn",
+              Color.parseColor("#1E2E3F"),
+              Color.parseColor("#CFE8F6"),
+              Color.parseColor("#F6D7A7"),
+          ),
+          Theme(
+              "Monet Lily Mist",
+              Color.parseColor("#2C3C46"),
+              Color.parseColor("#DCEEE7"),
+              Color.parseColor("#A8D8C8"),
+          ),
+          Theme(
+              "Monet Sunset Haystack",
+              Color.parseColor("#3A2A2C"),
+              Color.parseColor("#F7D9BF"),
+              Color.parseColor("#F2A97F"),
+          ),
+          Theme(
+              "Monet Foggy Seine",
+              Color.parseColor("#2F3A48"),
+              Color.parseColor("#D7DEE8"),
+              Color.parseColor("#A9B8CF"),
+          ),
+          Theme(
+              "Monet Rose Morning",
+              Color.parseColor("#3D2F3A"),
+              Color.parseColor("#F3DFE8"),
+              Color.parseColor("#E8B7CC"),
+          ),
+          Theme(
+              "Monet Iris Twilight",
+              Color.parseColor("#2A2F45"),
+              Color.parseColor("#DADCF5"),
+              Color.parseColor("#A5A7E6"),
+          ),
+          Theme(
+              "Monet Poppy Field",
+              Color.parseColor("#3B2F27"),
+              Color.parseColor("#F6E2CF"),
+              Color.parseColor("#E57D64"),
+          ),
+          Theme(
+              "Monet Wheat Light",
+              Color.parseColor("#3A3528"),
+              Color.parseColor("#EFE6CC"),
+              Color.parseColor("#D4BC7D"),
+          ),
+          Theme(
+              "Monet Coastal Haze",
+              Color.parseColor("#243744"),
+              Color.parseColor("#D5EAF2"),
+              Color.parseColor("#8EC5D6"),
+          ),
+          Theme(
+              "Monet Violet Reflection",
+              Color.parseColor("#2D2940"),
+              Color.parseColor("#E4DFF2"),
+              Color.parseColor("#B9A4D8"),
+          ),
       )
 
   fun getAvailableThemes(): List<Theme> = themes
@@ -1039,5 +1100,18 @@ class TerminalThemeManager(private val context: Context) {
   fun restoreTheme(fragment: TermuxFragment) {
     val theme = getSavedTheme()
     fragment.terminalView?.setBackgroundColor(theme.background)
+
+    val service = fragment.termuxService
+    if (service != null) {
+      for (i in 0 until service.termuxSessionsSize) {
+        service.getTermuxSession(i)?.terminalSession?.let { session ->
+          val emulator = session.emulator ?: return@let
+          emulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_BACKGROUND] = theme.background
+          emulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_FOREGROUND] = theme.foreground
+          emulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_CURSOR] = theme.cursor
+        }
+      }
+    }
+    fragment.terminalView?.onScreenUpdated()
   }
 }
