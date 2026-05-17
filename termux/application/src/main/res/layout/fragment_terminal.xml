@@ -49,33 +49,11 @@
             app:behavior_hideable="false"
             app:behavior_peekHeight="18dp">
 
-            <LinearLayout
+            <com.itsaky.androidide.ui.EdgeSnapBubbleView
+                android:id="@+id/terminal_toolbar_gesture_bubble"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:background="@android:color/transparent">
-
-                <FrameLayout
-                    android:id="@+id/drag_handle_view"
-                    android:layout_width="60dp"
-                    android:layout_height="18dp"
-                    android:background="@drawable/bg_handle_semicircle"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:elevation="4dp"
-                    android:foreground="@drawable/ripple_water_collision">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="6dp"
-                        android:layout_gravity="center|bottom"
-                        android:layout_marginBottom="5dp"
-                        android:src="@drawable/ic_handle_dashes"
-                        android:contentDescription="Drag Handle"
-                        android:alpha="0.6" />
-                    
-                </FrameLayout>
-            </LinearLayout>
+                android:layout_height="24dp"
+                android:background="@android:color/transparent" />
 
             <androidx.viewpager.widget.ViewPager
                 android:id="@+id/terminal_toolbar_view_pager"

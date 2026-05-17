@@ -13,7 +13,6 @@ import android.os.IBinder;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
-import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -46,6 +45,7 @@ import java.util.Optional;
 
 import android.zero.studio.terminal.app.BaseIDEFragment;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.itsaky.androidide.ui.EdgeSnapBubbleView;
 import com.itsaky.androidide.projects.IProjectManager;
 import com.termux.R;
 import com.termux.app.activities.HelpActivity;
@@ -185,7 +185,7 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
     // Bottom Sheet specific variables
     private View mBottomSheetContainer;
     private BottomSheetBehavior<View> mBottomSheetBehavior;
-    private View mDragHandleView;
+    private EdgeSnapBubbleView mToolbarGestureBubble;
 
     // Project specific
     private String mInitialWorkingDir;
@@ -407,12 +407,11 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
     }
     
     /**
-     * Initializes the BottomSheet logic for the toolbar.
-     * Binds the drag handle and sets up the behavior.
+     * Initializes the BottomSheet logic for the toolbar and binds the top gesture bubble.
      */
     private void setupBottomSheet(View rootView) {
         mBottomSheetContainer = rootView.findViewById(R.id.bottom_sheet_container);
-        mDragHandleView = rootView.findViewById(R.id.drag_handle_view);
+        mToolbarGestureBubble = rootView.findViewById(R.id.terminal_toolbar_gesture_bubble);
 
         if (mBottomSheetContainer != null) {
             mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheetContainer);
@@ -424,10 +423,27 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
             }
 
-            // Handle click on the drag handle to toggle state
-            // Ripple effect is handled by XML foreground drawable
-            if (mDragHandleView != null) {
-                mDragHandleView.setOnTouchListener(new DragHandleTouchListener());
+            if (mToolbarGestureBubble != null) {
+                mToolbarGestureBubble.setOrientation(EdgeSnapBubbleView.Orientation.HORIZONTAL);
+                mToolbarGestureBubble.setPosition(EdgeSnapBubbleView.Position.TOP);
+                mToolbarGestureBubble.setOnBubbleClickListener(v -> toggleTerminalToolbar());
+                mToolbarGestureBubble.setOnBubbleGestureListener(new EdgeSnapBubbleView.OnBubbleGestureListener() {
+                    @Override
+                    public void onDrag(float fraction) {}
+
+                    @Override
+                    public void onRelease(float fraction) {
+                        if (fraction < -0.15f) {
+                            if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+                                toggleTerminalToolbar();
+                            }
+                        } else if (fraction > 0.15f) {
+                            if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_COLLAPSED) {
+                                toggleTerminalToolbar();
+                            }
+                        }
+                    }
+                });
             }
 
             // Optional: Listen to callbacks to update preferences or UI state
@@ -437,10 +453,12 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
                     if (newState == BottomSheetBehavior.STATE_EXPANDED) {
                         // Toolbar is fully visible
                         mPreferences.setShowTerminalToolbar(true);
+                        if (mToolbarGestureBubble != null) mToolbarGestureBubble.setArrowExpanded(true);
 
                         if (mTerminalView != null) mTerminalView.requestFocus();
                     } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
                         mPreferences.setShowTerminalToolbar(false);
+                        if (mToolbarGestureBubble != null) mToolbarGestureBubble.setArrowExpanded(false);
                         if (mTerminalView != null) mTerminalView.requestFocus();
                     }
                 }
@@ -448,79 +466,6 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
                 @Override
                 public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
             });
-        }
-    }
-
-    /**
-     * Touch Listener for the Floating Drag Handle (Three Dots)
-     * Handles Click (Toggle) and Horizontal Dragging
-     */
-    private class DragHandleTouchListener implements View.OnTouchListener {
-        private float dX;
-        private boolean isDragging = false;
-        private final GestureDetector gestureDetector;
-
-        public DragHandleTouchListener() {
-            gestureDetector = new GestureDetector(requireContext(), new GestureDetector.SimpleOnGestureListener() {
-                @Override
-                public boolean onSingleTapUp(MotionEvent e) {
-                    // Handle Click: Toggle Drawer
-                    toggleTerminalToolbar();
-                    return true;
-                }
-
-                @Override
-                public void onLongPress(MotionEvent e) {
-                    // Enable dragging mode on Long Press
-                    isDragging = true;
-                    // Haptic feedback
-                    mDragHandleView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
-                    // Optional: visual feedback for drag mode
-                    mDragHandleView.animate().scaleX(1.1f).scaleY(1.1f).setDuration(100).start();
-                }
-            });
-        }
-
-        @Override
-        public boolean onTouch(View view, MotionEvent event) {
-            if (gestureDetector.onTouchEvent(event)) {
-                return true;
-            }
-
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    dX = view.getX() - event.getRawX();
-                    isDragging = false; // Wait for long press to enable drag
-                    return true;
-
-                case MotionEvent.ACTION_MOVE:
-                    if (isDragging) {
-                        // Move Horizontally only
-                        float newX = event.getRawX() + dX;
-                        
-                        // Clamp to screen bounds
-                        float parentWidth = ((View) view.getParent()).getWidth();
-                        if (newX < 0) newX = 0;
-                        if (newX + view.getWidth() > parentWidth) newX = parentWidth - view.getWidth();
-
-                        view.animate()
-                                .x(newX)
-                                .setDuration(0)
-                                .start();
-                        return true;
-                    }
-                    break;
-
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    if (isDragging) {
-                        // Restore scale
-                        mDragHandleView.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
-                    }
-                    isDragging = false;
-                    return true;
-            }
-            return false;
         }
     }
 
@@ -644,7 +589,7 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         mTabsView = null;
         
         mBottomSheetContainer = null;
-        mDragHandleView = null;
+        mToolbarGestureBubble = null;
         mBottomSheetBehavior = null;
     }
 
