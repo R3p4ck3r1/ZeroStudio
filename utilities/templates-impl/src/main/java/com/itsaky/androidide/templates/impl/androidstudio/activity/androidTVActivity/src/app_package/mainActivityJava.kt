@@ -16,38 +16,32 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
-import 
-
-fun detailsActivityKt(
-    detailsActivity: String,
-    detailsFragmentClass: String,
-    detailsLayoutName: String,
+fun mainActivityJava(
+    activityClass: String,
+    layoutName: String,
+    mainFragment: String,
     packageName: String,
 ) =
     """
-package ${packageName}
+package ${packageName};
 
-import android.os.Bundle
-import androidx.fragment.app.FragmentActivity
+import android.os.Bundle;
+import androidx.fragment.app.FragmentActivity;
 
-/**
- * Details activity class that loads [VideoDetailsFragment] class.
+/*
+ * Main Activity class that loads {@link ${mainFragment}}.
  */
-class ${detailsActivity} : FragmentActivity() {
+public class ${activityClass} extends FragmentActivity {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.${detailsLayoutName})
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.${layoutName});
         if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.details_fragment, ${detailsFragmentClass}())
-                .commitNow()
+            getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_browse_fragment, new ${mainFragment}())
+                .commitNow();
         }
-    }
-
-    companion object {
-        const val SHARED_ELEMENT_NAME = "hero"
-        const val MOVIE = "Movie"
     }
 }
 """

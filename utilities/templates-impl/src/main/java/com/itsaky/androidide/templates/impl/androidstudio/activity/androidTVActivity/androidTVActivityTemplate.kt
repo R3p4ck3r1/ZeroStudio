@@ -7,9 +7,8 @@ import com.itsaky.androidide.templates.impl.R
 import com.itsaky.androidide.templates.impl.baseProjectImpl
 
 fun androidTVActivityProject(): ProjectTemplate = baseProjectImpl {
-  templateName = R.string.template_androidtv
+  templateName = R.string.template_android_tv_activity
   thumb = R.drawable.template_leanback_tv
-  description = string.title_template_description_androidtv
-
+  description = string.title_template_description_android_tv_activity
   defaultAppModule { recipe = androidTVActivityRecipe() }
 }

@@ -18,31 +18,21 @@ package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVAct
 
 import 
 
-fun mainActivityKt(
-    activityClass: String,
-    layoutName: String,
-    mainFragment: String,
-    packageName: String,
-) =
+fun detailsDescriptionPresenterKt(packageName: String) =
     """
 package ${packageName}
 
-import android.os.Bundle
-import androidx.fragment.app.FragmentActivity
+import androidx.leanback.widget.AbstractDetailsDescriptionPresenter
 
-/**
- * Loads [${mainFragment}].
- */
-class ${activityClass} : FragmentActivity() {
+class DetailsDescriptionPresenter : AbstractDetailsDescriptionPresenter() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.${layoutName})
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_browse_fragment, ${mainFragment}())
-                .commitNow()
-        }
+    override fun onBindDescription(
+            viewHolder: AbstractDetailsDescriptionPresenter.ViewHolder,
+            item: Any) {
+        val movie = item as Movie
+
+        viewHolder.title.text = movie.title
+        viewHolder.subtitle.text = movie.studio
+        viewHolder.body.text = movie.description
     }
-}
-"""
+}"""

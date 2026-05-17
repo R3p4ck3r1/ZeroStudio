@@ -16,38 +16,38 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
-import 
-
-fun detailsActivityKt(
+fun detailsActivityJava(
     detailsActivity: String,
     detailsFragmentClass: String,
     detailsLayoutName: String,
     packageName: String,
 ) =
     """
-package ${packageName}
+package ${packageName};
 
-import android.os.Bundle
-import androidx.fragment.app.FragmentActivity
+import android.os.Bundle;
+import androidx.fragment.app.FragmentActivity;
 
-/**
- * Details activity class that loads [VideoDetailsFragment] class.
+/*
+ * Details activity class that loads LeanbackDetailsFragment class
  */
-class ${detailsActivity} : FragmentActivity() {
+public class ${detailsActivity} extends FragmentActivity {
+    public static final String SHARED_ELEMENT_NAME = "hero";
+    public static final String MOVIE = "Movie";
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.${detailsLayoutName})
+    /**
+     * Called when the activity is first created.
+     */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.${detailsLayoutName});
         if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.details_fragment, ${detailsFragmentClass}())
-                .commitNow()
+            getSupportFragmentManager().beginTransaction()
+                .replace(R.id.details_fragment, new ${detailsFragmentClass}())
+                .commitNow();
         }
     }
 
-    companion object {
-        const val SHARED_ELEMENT_NAME = "hero"
-        const val MOVIE = "Movie"
-    }
 }
 """

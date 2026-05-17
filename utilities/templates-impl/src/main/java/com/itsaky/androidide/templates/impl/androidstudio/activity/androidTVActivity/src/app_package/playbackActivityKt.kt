@@ -18,36 +18,22 @@ package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVAct
 
 import 
 
-fun detailsActivityKt(
-    detailsActivity: String,
-    detailsFragmentClass: String,
-    detailsLayoutName: String,
-    packageName: String,
-) =
+fun playbackActivityKt(packageName: String) =
     """
 package ${packageName}
 
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
 
-/**
- * Details activity class that loads [VideoDetailsFragment] class.
- */
-class ${detailsActivity} : FragmentActivity() {
+/** Loads [PlaybackVideoFragment]. */
+class PlaybackActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.${detailsLayoutName})
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
-                .replace(R.id.details_fragment, ${detailsFragmentClass}())
-                .commitNow()
+                    .replace(android.R.id.content, PlaybackVideoFragment())
+                    .commit()
         }
     }
-
-    companion object {
-        const val SHARED_ELEMENT_NAME = "hero"
-        const val MOVIE = "Movie"
-    }
-}
-"""
+}"""

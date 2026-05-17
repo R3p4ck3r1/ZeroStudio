@@ -16,33 +16,24 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
-import 
-
-fun mainActivityKt(
-    activityClass: String,
-    layoutName: String,
-    mainFragment: String,
-    packageName: String,
-) =
+fun playbackActivityJava(packageName: String) =
     """
-package ${packageName}
+package ${packageName};
 
-import android.os.Bundle
-import androidx.fragment.app.FragmentActivity
+import android.os.Bundle;
+import androidx.fragment.app.FragmentActivity;
 
-/**
- * Loads [${mainFragment}].
- */
-class ${activityClass} : FragmentActivity() {
+/** Loads {@link PlaybackVideoFragment}. */
+public class PlaybackActivity extends FragmentActivity {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.${layoutName})
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_browse_fragment, ${mainFragment}())
-                .commitNow()
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if( savedInstanceState == null ){
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(android.R.id.content, new PlaybackVideoFragment())
+                    .commit();
         }
     }
-}
-"""
+}"""

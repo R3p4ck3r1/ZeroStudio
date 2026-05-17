@@ -16,32 +16,22 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
-import 
-
-fun mainActivityKt(
-    activityClass: String,
-    layoutName: String,
-    mainFragment: String,
-    packageName: String,
-) =
+fun detailsDescriptionPresenterJava(packageName: String) =
     """
-package ${packageName}
+package ${packageName};
 
-import android.os.Bundle
-import androidx.fragment.app.FragmentActivity
+import androidx.leanback.widget.AbstractDetailsDescriptionPresenter;
 
-/**
- * Loads [${mainFragment}].
- */
-class ${activityClass} : FragmentActivity() {
+public class DetailsDescriptionPresenter extends AbstractDetailsDescriptionPresenter {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.${layoutName})
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_browse_fragment, ${mainFragment}())
-                .commitNow()
+    @Override
+    protected void onBindDescription(ViewHolder viewHolder, Object item) {
+        Movie movie = (Movie) item;
+
+        if (movie != null) {
+            viewHolder.getTitle().setText(movie.getTitle());
+            viewHolder.getSubtitle().setText(movie.getStudio());
+            viewHolder.getBody().setText(movie.getDescription());
         }
     }
 }
