@@ -59,6 +59,24 @@ dependencies {
 
   implementation(libs.androidx.documentfile)
   implementation(projects.core.resources)
+
+  // MCP toolset integration: reference core/editor/termux/tooling capabilities
+  implementation(projects.core.common)
+  implementation(projects.core.projects)
+  implementation(projects.core.actions)
+  implementation(projects.core.lsp.api)
+
+  implementation(projects.editor.api)
+  implementation(projects.editor.impl)
+  implementation(projects.editor.editor.lsp)
+
+  implementation(projects.termux.shared)
+  implementation(projects.termux.shell)
+
+  implementation(projects.tooling.api)
+  implementation(projects.tooling.model)
+  implementation(projects.tooling.events)
+  implementation(projects.tooling.impl)
   testImplementation(libs.tests.junit)
   androidTestImplementation(libs.tests.androidx.junit)
   androidTestImplementation(libs.tests.androidx.espresso.core)
