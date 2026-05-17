@@ -121,40 +121,19 @@ class SessionTabManager(private val context: Context) {
 
   /** Closes a session */
   fun closeSession(session: TerminalSession): Boolean {
-    val svc = service ?: return false
-    val termuxSession = svc.getTermuxSessionForTerminalSession(session) ?: return false
-
-    // Remove from service list
-    val index = svc.removeTermuxSession(session)
-
-    if (index >= 0) {
-      notifySessionRemoved(termuxSession)
-
-      // Switch to another session if available, or clear view if none left
-      val remainingSessions = getAllSessions()
-      if (remainingSessions.isNotEmpty()) {
-        val newIndex = if (index < remainingSessions.size) index else remainingSessions.size - 1
-        switchToSession(remainingSessions[newIndex].terminalSession)
-      } else {
-        // No sessions left
-        fragment?.termuxTerminalSessionClient?.setCurrentSession(null)
-        notifyActiveSessionChanged(null)
-        // Do NOT finish activity/fragment as per requirement
-      }
-
-      return true
-    }
-
-    return false
+    val target = service?.getTermuxSessionForTerminalSession(session) ?: return false
+    fragment?.termuxTerminalSessionClient?.removeFinishedSession(session) ?: return false
+    notifySessionRemoved(target)
+    notifyActiveSessionChanged(getCurrentSession())
+    return true
   }
 
   /** Closes all sessions except the specified one */
   fun closeOtherSessions(exceptSession: TerminalSession) {
-    val svc = service ?: return
     val sessionsToClose = getAllSessions().filter { it.terminalSession != exceptSession }
 
     sessionsToClose.forEach { session ->
-      svc.removeTermuxSession(session.terminalSession)
+      fragment?.termuxTerminalSessionClient?.removeFinishedSession(session.terminalSession)
       notifySessionRemoved(session)
     }
 
@@ -163,16 +142,13 @@ class SessionTabManager(private val context: Context) {
 
   /** Closes all sessions */
   fun closeAllSessions() {
-    val svc = service ?: return
     val allSessions = getAllSessions().toList()
 
     allSessions.forEach { session ->
-      svc.removeTermuxSession(session.terminalSession)
+      fragment?.termuxTerminalSessionClient?.removeFinishedSession(session.terminalSession)
       notifySessionRemoved(session)
     }
 
-    // Ensure view is cleared
-    fragment?.termuxTerminalSessionClient?.setCurrentSession(null)
     notifyActiveSessionChanged(null)
   }
 

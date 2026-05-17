@@ -13,7 +13,7 @@ import android.os.IBinder;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
-import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -27,6 +27,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
+import com.google.android.material.button.MaterialButton;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
@@ -45,6 +46,7 @@ import java.util.Optional;
 
 import android.zero.studio.terminal.app.BaseIDEFragment;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.itsaky.androidide.ui.EdgeSnapBubbleView;
 import com.itsaky.androidide.projects.IProjectManager;
 import com.termux.R;
 import com.termux.app.activities.HelpActivity;
@@ -177,6 +179,7 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
 
     protected TerminalSessionTabsView mTabsView;
     protected SessionTabManager mSessionTabManager;
+    private View mTerminalEmptyStateContainer;
 
     // Theme Manager instance
     private TerminalThemeManager mThemeManager;
@@ -184,11 +187,15 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
     // Bottom Sheet specific variables
     private View mBottomSheetContainer;
     private BottomSheetBehavior<View> mBottomSheetBehavior;
-    private View mDragHandleView;
+    private EdgeSnapBubbleView mToolbarGestureBubble;
 
     // Project specific
     private String mInitialWorkingDir;
     private String mInitialSessionName;
+    private boolean mPendingCreateSession;
+    private boolean mPendingCreateFailsafe;
+    private String mPendingCreateSessionName;
+    private String mPendingCreateWorkingDir;
 
     protected static final int CONTEXT_MENU_SELECT_URL_ID = 0;
     protected static final int CONTEXT_MENU_SHARE_TRANSCRIPT_ID = 1;
@@ -339,6 +346,11 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         }
 
         mTabsView = view.findViewById(R.id.terminal_tabs_view);
+        mTerminalEmptyStateContainer = view.findViewById(R.id.terminal_empty_state_container);
+        MaterialButton newSessionButton = view.findViewById(R.id.terminal_empty_state_new_session_button);
+        if (newSessionButton != null) {
+            newSessionButton.setOnClickListener(v -> onCreateNewSession(false, null, null));
+        }
         mSessionTabManager = new SessionTabManager(requireContext());
 
         // Set default working directory to manager
@@ -406,12 +418,11 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
     }
     
     /**
-     * Initializes the BottomSheet logic for the toolbar.
-     * Binds the drag handle and sets up the behavior.
+     * Initializes the BottomSheet logic for the toolbar and binds the top gesture bubble.
      */
     private void setupBottomSheet(View rootView) {
         mBottomSheetContainer = rootView.findViewById(R.id.bottom_sheet_container);
-        mDragHandleView = rootView.findViewById(R.id.drag_handle_view);
+        mToolbarGestureBubble = rootView.findViewById(R.id.terminal_toolbar_gesture_bubble);
 
         if (mBottomSheetContainer != null) {
             mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheetContainer);
@@ -423,10 +434,27 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
                 mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
             }
 
-            // Handle click on the drag handle to toggle state
-            // Ripple effect is handled by XML foreground drawable
-            if (mDragHandleView != null) {
-                mDragHandleView.setOnTouchListener(new DragHandleTouchListener());
+            if (mToolbarGestureBubble != null) {
+                mToolbarGestureBubble.setOrientation(EdgeSnapBubbleView.Orientation.HORIZONTAL);
+                mToolbarGestureBubble.setPosition(EdgeSnapBubbleView.Position.TOP);
+                mToolbarGestureBubble.setOnBubbleClickListener(v -> toggleTerminalToolbar());
+                mToolbarGestureBubble.setOnBubbleGestureListener(new EdgeSnapBubbleView.OnBubbleGestureListener() {
+                    @Override
+                    public void onDrag(float fraction) {}
+
+                    @Override
+                    public void onRelease(float fraction) {
+                        if (fraction < -0.15f) {
+                            if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+                                toggleTerminalToolbar();
+                            }
+                        } else if (fraction > 0.15f) {
+                            if (mBottomSheetBehavior.getState() != BottomSheetBehavior.STATE_COLLAPSED) {
+                                toggleTerminalToolbar();
+                            }
+                        }
+                    }
+                });
             }
 
             // Optional: Listen to callbacks to update preferences or UI state
@@ -436,10 +464,12 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
                     if (newState == BottomSheetBehavior.STATE_EXPANDED) {
                         // Toolbar is fully visible
                         mPreferences.setShowTerminalToolbar(true);
+                        if (mToolbarGestureBubble != null) mToolbarGestureBubble.setArrowExpanded(true);
 
                         if (mTerminalView != null) mTerminalView.requestFocus();
                     } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
                         mPreferences.setShowTerminalToolbar(false);
+                        if (mToolbarGestureBubble != null) mToolbarGestureBubble.setArrowExpanded(false);
                         if (mTerminalView != null) mTerminalView.requestFocus();
                     }
                 }
@@ -447,79 +477,6 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
                 @Override
                 public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
             });
-        }
-    }
-
-    /**
-     * Touch Listener for the Floating Drag Handle (Three Dots)
-     * Handles Click (Toggle) and Horizontal Dragging
-     */
-    private class DragHandleTouchListener implements View.OnTouchListener {
-        private float dX;
-        private boolean isDragging = false;
-        private final GestureDetector gestureDetector;
-
-        public DragHandleTouchListener() {
-            gestureDetector = new GestureDetector(requireContext(), new GestureDetector.SimpleOnGestureListener() {
-                @Override
-                public boolean onSingleTapUp(MotionEvent e) {
-                    // Handle Click: Toggle Drawer
-                    toggleTerminalToolbar();
-                    return true;
-                }
-
-                @Override
-                public void onLongPress(MotionEvent e) {
-                    // Enable dragging mode on Long Press
-                    isDragging = true;
-                    // Haptic feedback
-                    mDragHandleView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
-                    // Optional: visual feedback for drag mode
-                    mDragHandleView.animate().scaleX(1.1f).scaleY(1.1f).setDuration(100).start();
-                }
-            });
-        }
-
-        @Override
-        public boolean onTouch(View view, MotionEvent event) {
-            if (gestureDetector.onTouchEvent(event)) {
-                return true;
-            }
-
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    dX = view.getX() - event.getRawX();
-                    isDragging = false; // Wait for long press to enable drag
-                    return true;
-
-                case MotionEvent.ACTION_MOVE:
-                    if (isDragging) {
-                        // Move Horizontally only
-                        float newX = event.getRawX() + dX;
-                        
-                        // Clamp to screen bounds
-                        float parentWidth = ((View) view.getParent()).getWidth();
-                        if (newX < 0) newX = 0;
-                        if (newX + view.getWidth() > parentWidth) newX = parentWidth - view.getWidth();
-
-                        view.animate()
-                                .x(newX)
-                                .setDuration(0)
-                                .start();
-                        return true;
-                    }
-                    break;
-
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    if (isDragging) {
-                        // Restore scale
-                        mDragHandleView.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
-                    }
-                    isDragging = false;
-                    return true;
-            }
-            return false;
         }
     }
 
@@ -643,7 +600,7 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         mTabsView = null;
         
         mBottomSheetContainer = null;
-        mDragHandleView = null;
+        mToolbarGestureBubble = null;
         mBottomSheetBehavior = null;
     }
 
@@ -686,22 +643,7 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         final String sessionName = intent != null && intent.getExtras() != null ? intent.getExtras().getString(TERMUX_ACTIVITY.EXTRA_SESSION_NAME, null) : null;
         boolean launchFailsafe = intent != null && intent.getBooleanExtra(TERMUX_ACTIVITY.EXTRA_FAILSAFE_SESSION, false);
 
-        if (mTermuxService.isTermuxSessionsEmpty()) {
-            if (mIsVisible) {
-                TermuxInstaller.setupBootstrapIfNeeded(requireActivity(), () -> {
-                    if (mTermuxService == null) return;
-                    try {
-                        if (mTermuxService.isTermuxSessionsEmpty()) {
-                            String cwd = mInitialWorkingDir != null ? mInitialWorkingDir : mSessionTabManager.getDefaultWorkingDirectory();
-                            mSessionTabManager.createNewSession(launchFailsafe, sessionName, cwd);
-                        }
-                    } catch (WindowManager.BadTokenException e) {
-                    }
-                });
-            } else {
-                finishActivityIfNotFinishing();
-            }
-        } else {
+        if (!mTermuxService.isTermuxSessionsEmpty()) {
             if (mThemeManager != null) {
                 for(int i = 0; i < mTermuxService.getTermuxSessionsSize(); i++) {
                     TermuxSession ts = mTermuxService.getTermuxSession(i);
@@ -714,15 +656,24 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
             final Optional<TermuxSession> existingSession = workingDir == null ? Optional.empty() : mTermuxService.getTermuxSessions().stream().filter(session -> Objects.equals(
                             session.getTerminalSession().getCwd(), workingDir)).findFirst();
             setupTermuxSessionOnServiceConnected(intent, workingDir, sessionName, existingSession.orElse(null), launchFailsafe);
+        } else {
+            updateTerminalEmptyState();
         }
         mTermuxService.setTermuxTerminalSessionClient(mTermuxTerminalSessionActivityClient);
+
+        if (mPendingCreateSession) {
+            boolean pendingFailsafe = mPendingCreateFailsafe;
+            String pendingSessionName = mPendingCreateSessionName;
+            String pendingWorkingDir = mPendingCreateWorkingDir;
+            mPendingCreateSession = false;
+            mPendingCreateSessionName = null;
+            mPendingCreateWorkingDir = null;
+            onCreateNewSession(pendingFailsafe, pendingSessionName, pendingWorkingDir);
+        }
     }
 
     protected void setupTermuxSessionOnServiceConnected(Intent intent, String workingDir, String sessionName, TermuxSession existingSession, boolean launchFailsafe) {
-        if (mTermuxService.isTermuxSessionsEmpty()) {
-            onCreateNewSession(launchFailsafe, sessionName, workingDir);
-            return;
-        }
+        if (mTermuxService.isTermuxSessionsEmpty()) return;
         if (existingSession != null) {
             if (existingSession.getExecutionCommand().isFailsafe != launchFailsafe) {
                 onCreateNewSession(launchFailsafe, sessionName, workingDir);
@@ -738,14 +689,14 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         if (mTabsView != null) {
             mTabsView.refreshSessions();
         }
+        updateTerminalEmptyState();
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
         Logger.logDebug(LOG_TAG, "onServiceDisconnected");
-
-        // Respect being stopped from the {@link TermuxService} notification action.
-        finishActivityIfNotFinishing();
+        mTermuxService = null;
+        updateTerminalEmptyState();
     }
 
     private void reloadProperties() {
@@ -854,11 +805,25 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
     }
 
     public void onCreateNewSession(boolean isFailsafe, String sessionName, String workingDirectory) {
-        // Use default working directory if not provided
-        if (workingDirectory == null) {
-            workingDirectory = mInitialWorkingDir;
+        if (mTermuxService == null) {
+            mPendingCreateSession = true;
+            mPendingCreateFailsafe = isFailsafe;
+            mPendingCreateSessionName = sessionName;
+            mPendingCreateWorkingDir = workingDirectory;
+            Intent serviceIntent = new Intent(requireActivity(), TermuxService.class);
+            requireActivity().startService(serviceIntent);
+            requireActivity().bindService(serviceIntent, this, 0);
+            return;
         }
-        mTermuxTerminalSessionActivityClient.addNewSession(isFailsafe, sessionName, workingDirectory);
+
+        final String requestedWorkingDirectory = workingDirectory;
+        TermuxInstaller.setupBootstrapIfNeeded(requireActivity(), () -> {
+            if (mTermuxService == null) return;
+        String targetWorkingDirectory = requestedWorkingDirectory;
+        if (targetWorkingDirectory == null) {
+            targetWorkingDirectory = mInitialWorkingDir;
+        }
+        mTermuxTerminalSessionActivityClient.addNewSession(isFailsafe, sessionName, targetWorkingDirectory);
         
         // Ensure the theme is applied to the newly created session
         if (mThemeManager != null) {
@@ -870,6 +835,8 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
         }
 
         if (mTabsView != null) mTabsView.refreshSessions();
+            updateTerminalEmptyState();
+        });
     }
 
     private void setToggleKeyboardView() {
@@ -890,6 +857,18 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
 
     public boolean onBackPressed() {
         return false;
+    }
+
+    public boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
+        if (mTermuxTerminalViewClient == null) return false;
+        TerminalSession currentSession = getCurrentSession();
+        if (currentSession == null) return false;
+        return mTermuxTerminalViewClient.onKeyDown(keyCode, event, currentSession);
+    }
+
+    public boolean onKeyUp(int keyCode, @NonNull KeyEvent event) {
+        if (mTermuxTerminalViewClient == null) return false;
+        return mTermuxTerminalViewClient.onKeyUp(keyCode, event);
     }
 
     public void finishActivityIfNotFinishing() {
@@ -1083,7 +1062,24 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
            if (mTabsView != null) {
                 mTabsView.refreshSessions();
              }
+           updateTerminalEmptyState();
      }
+
+    private void updateTerminalEmptyState() {
+        if (mTerminalEmptyStateContainer == null || mTerminalView == null) return;
+        boolean hasSessions = mTermuxService != null && !mTermuxService.isTermuxSessionsEmpty();
+        mTerminalEmptyStateContainer.setVisibility(hasSessions ? View.GONE : View.VISIBLE);
+        mTerminalView.setVisibility(hasSessions ? View.VISIBLE : View.INVISIBLE);
+        if (mBottomSheetContainer != null) {
+            mBottomSheetContainer.setVisibility(hasSessions ? View.VISIBLE : View.GONE);
+        }
+
+        if (!hasSessions && mTermuxService != null && !mTermuxService.wantsToStop()) {
+            Intent stopServiceIntent = new Intent(requireActivity(), TermuxService.class);
+            stopServiceIntent.setAction(com.termux.shared.termux.TermuxConstants.TERMUX_SERVICE.ACTION_STOP_SERVICE);
+            requireActivity().startService(stopServiceIntent);
+        }
+    }
 
     public boolean isVisibles() {
         return mIsVisible;
