@@ -1076,7 +1076,7 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
 
         if (!hasSessions && mTermuxService != null && !mTermuxService.wantsToStop()) {
             Intent stopServiceIntent = new Intent(requireActivity(), TermuxService.class);
-            stopServiceIntent.setAction(com.termux.shared.termux.TermuxConstants.TERMUX_SERVICE.ACTION_STOP_SERVICE);
+            stopServiceIntent.setAction(com.termux.shared.termux.TermuxConstants.TERMUX_APP.TERMUX_SERVICE.ACTION_STOP_SERVICE);
             requireActivity().startService(stopServiceIntent);
         }
     }
