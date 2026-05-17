@@ -258,6 +258,7 @@ dependencies {
     implementation(projects.core.chatai.highlight)
     implementation(projects.core.chatai.search)
     implementation(projects.core.chatai.speech)
+    implementation(projects.core.chatai.tts)
     implementation(projects.core.chatai.common)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     implementation(kotlin("reflect"))

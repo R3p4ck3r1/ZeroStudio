@@ -3,9 +3,6 @@ package me.rerere.rikkahub.data.db
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import androidx.room.TypeConverter
-import androidx.room.TypeConverters
-import me.rerere.ai.core.TokenUsage
 import me.rerere.rikkahub.data.db.dao.ConversationDAO
 import me.rerere.rikkahub.data.db.dao.FavoriteDAO
 import me.rerere.rikkahub.data.db.dao.GenMediaDAO
@@ -20,7 +17,6 @@ import me.rerere.rikkahub.data.db.entity.MemoryEntity
 import me.rerere.rikkahub.data.db.entity.MessageNodeEntity
 import me.rerere.rikkahub.data.db.migrations.Migration_16_17
 import me.rerere.rikkahub.data.db.migrations.Migration_8_9
-import me.rerere.rikkahub.utils.JsonInstant
 
 @Database(
     entities = [
@@ -47,7 +43,6 @@ import me.rerere.rikkahub.utils.JsonInstant
         AutoMigration(from = 17, to = 18),
     ]
 )
-@TypeConverters(TokenUsageConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDAO
 
@@ -60,18 +55,4 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun managedFileDao(): ManagedFileDAO
 
     abstract fun favoriteDao(): FavoriteDAO
-}
-
-object TokenUsageConverter {
-    @TypeConverter
-    @JvmStatic
-    fun fromTokenUsage(usage: TokenUsage?): String {
-        return JsonInstant.encodeToString(usage)
-    }
-
-    @TypeConverter
-    @JvmStatic
-    fun toTokenUsage(usage: String): TokenUsage? {
-        return JsonInstant.decodeFromString(usage)
-    }
 }
