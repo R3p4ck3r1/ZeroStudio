@@ -14,6 +14,7 @@ import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
 import android.view.GestureDetector;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -890,6 +891,18 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
 
     public boolean onBackPressed() {
         return false;
+    }
+
+    public boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
+        if (mTermuxTerminalViewClient == null) return false;
+        TerminalSession currentSession = getCurrentSession();
+        if (currentSession == null) return false;
+        return mTermuxTerminalViewClient.onKeyDown(keyCode, event, currentSession);
+    }
+
+    public boolean onKeyUp(int keyCode, @NonNull KeyEvent event) {
+        if (mTermuxTerminalViewClient == null) return false;
+        return mTermuxTerminalViewClient.onKeyUp(keyCode, event);
     }
 
     public void finishActivityIfNotFinishing() {
