@@ -401,11 +401,10 @@ object McpToolManager {
     val lines = file.readLines(StandardCharsets.UTF_8).toMutableList()
     val idx = lines.indexOfFirst { it.trim().startsWith("distributionUrl=") }
     if (idx == -1) return errorJson("EXECUTION_FAILED", "distributionUrl not found")
-    val base = "https\://services.gradle.org/distributions/"
+    val base = "https://services.gradle.org/distributions/"
     val newUrl = "${base}gradle-${version}-${distributionType}.zip"
     lines[idx] = "distributionUrl=$newUrl"
-    file.writeText(lines.joinToString("
-"), StandardCharsets.UTF_8)
+    file.writeText(lines.joinToString("\n"), StandardCharsets.UTF_8)
     return ok("gradle_wrapper_update").apply { addProperty("distributionUrl", newUrl) }.toString()
   }
 
@@ -460,8 +459,7 @@ object McpToolManager {
     if (!file.exists()) return errorJson("FILE_NOT_FOUND", "File not found: $path")
     val lines = file.readLines(StandardCharsets.UTF_8)
     val out = lines.takeLast(maxLines)
-    return ok("logs_file_get").apply { addProperty("path", path); addProperty("totalLines", lines.size); addProperty("returnedLines", out.size); addProperty("content", out.joinToString("
-")) }.toString()
+    return ok("logs_file_get").apply { addProperty("path", path); addProperty("totalLines", lines.size); addProperty("returnedLines", out.size); addProperty("content", out.joinToString("\n")) }.toString()
   }
 
   private fun gitLog(root: File, args: JsonObject): String {
