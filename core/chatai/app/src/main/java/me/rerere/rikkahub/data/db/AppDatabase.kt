@@ -3,7 +3,6 @@ package me.rerere.rikkahub.data.db
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
 import me.rerere.rikkahub.data.db.dao.ConversationDAO
 import me.rerere.rikkahub.data.db.dao.FavoriteDAO
 import me.rerere.rikkahub.data.db.dao.GenMediaDAO
@@ -44,7 +43,6 @@ import me.rerere.rikkahub.data.db.migrations.Migration_8_9
         AutoMigration(from = 17, to = 18),
     ]
 )
-@TypeConverters(TokenUsageConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDAO
 
