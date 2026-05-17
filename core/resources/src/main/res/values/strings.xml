@@ -100,11 +100,11 @@
      <string name="action_format_code">Format Code</string>
      <string name="action_show_snippets">Insert Snippet…</string>
      <string name="action_show_code_outline">Code Outline</string>
-     <!-- <string name="action_intelligent_expand_selection">intelligent Expand Selection</string> -->
-     <!-- <string name="action_shrink_selection">Shrink Selection</string> -->
-     <!-- <string name="action_add_cursor_above">Add Cursor Above</string> -->
-     <!-- <string name="action_add_cursor_below">Add Cursor Below</string> -->
-     <!-- <string name="action_select_all_occurrences">Select All Occurrences</string> -->
+     <string name="action_intelligent_expand_selection">Intelligent Expand Selection</string>
+     <string name="action_shrink_selection">Shrink Selection</string>
+     <string name="action_add_cursor_above">Add Cursor Above</string>
+     <string name="action_add_cursor_below">Add Cursor Below</string>
+     <string name="action_select_all_occurrences">Select All Occurrences</string>
 
 
 
