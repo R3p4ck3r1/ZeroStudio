@@ -64,11 +64,13 @@ abstract class AppDatabase : RoomDatabase() {
 
 object TokenUsageConverter {
     @TypeConverter
+    @JvmStatic
     fun fromTokenUsage(usage: TokenUsage?): String {
         return JsonInstant.encodeToString(usage)
     }
 
     @TypeConverter
+    @JvmStatic
     fun toTokenUsage(usage: String): TokenUsage? {
         return JsonInstant.decodeFromString(usage)
     }

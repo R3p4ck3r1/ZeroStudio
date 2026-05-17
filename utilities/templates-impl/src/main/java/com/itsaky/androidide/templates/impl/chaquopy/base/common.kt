@@ -3,108 +3,194 @@ package com.itsaky.androidide.templates.impl.chaquopy.base
 import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
 import java.io.File
 
-internal fun AndroidModuleTemplateBuilder.writeChaquopyCommonFiles(appDependencies: String, extraKts: String = "", extraGroovy: String = "") {
-  val appDir = File(data.projectDir, "app")
-  val mainDir = File(appDir, "src/main")
-  executor.save(androidManifest(), File(mainDir, "AndroidManifest.xml"))
-  executor.save(pyMain(), File(mainDir, "python/main.py"))
-  executor.save("", File(mainDir, "python/chaquopy/__init__.py"))
-  executor.save("", File(mainDir, "python/chaquopy/utils/__init__.py"))
-  executor.save(pyConsole(), File(mainDir, "python/chaquopy/utils/console.py"))
-  executor.save(rootGradle(data.useKts), File(data.projectDir, if (data.useKts) "build.gradle.kts" else "build.gradle"))
-  executor.save(appGradle(data.useKts, data.packageName, appDependencies, extraKts, extraGroovy), File(appDir, if (data.useKts) "build.gradle.kts" else "build.gradle"))
-  if (data.useToml) executor.save(versionCatalog(), File(data.projectDir, "gradle/libs.versions.toml"))
+private const val AGP_VERSION = "8.13.0"
+private const val KOTLIN_VERSION = "2.2.20"
+private const val CHAQUOPY_VERSION = "17.0.0"
+private const val COMPILE_SDK = 36
+private const val MIN_SDK = 24
+private const val TARGET_SDK = 36
+
+enum class ChaquopyUiKind {
+  Xml,
+  Compose,
+  Litho,
 }
 
-private fun rootGradle(kts: Boolean) = if (kts) """
-plugins {
-  id("com.android.application") version "8.4.2" apply false
-  id("com.chaquo.python") version "17.0.0" apply false
-  id("org.jetbrains.kotlin.android") version "1.9.0" apply false
+data class ChaquopyTemplateSpec(
+    val uiKind: ChaquopyUiKind,
+    val pythonModuleName: String,
+    val pythonMessageArgument: String,
+)
+
+internal fun AndroidModuleTemplateBuilder.writeChaquopyTemplate(spec: ChaquopyTemplateSpec) {
+  writeChaquopyBuildFiles(spec.uiKind)
+  writeChaquopyPythonSource(spec)
 }
-""".trim() else """
+
+private fun AndroidModuleTemplateBuilder.writeChaquopyBuildFiles(uiKind: ChaquopyUiKind) {
+  val appDir = File(data.projectDir, "app")
+  val rootGradleFile = File(data.projectDir, if (data.useKts) "build.gradle.kts" else "build.gradle")
+  val appGradleFile = File(appDir, if (data.useKts) "build.gradle.kts" else "build.gradle")
+
+  executor.save(rootGradle(data.useKts), rootGradleFile)
+  executor.save(appGradle(data.useKts, data.packageName, uiKind), appGradleFile)
+
+  if (data.useToml) {
+    executor.save(versionCatalog(), File(data.projectDir, "gradle/libs.versions.toml"))
+  }
+}
+
+private fun AndroidModuleTemplateBuilder.writeChaquopyPythonSource(spec: ChaquopyTemplateSpec) {
+  val pythonDir = File(data.projectDir, "app/src/main/python")
+  val moduleFile = File(pythonDir, "${spec.pythonModuleName}.py")
+  executor.save(pythonModule(spec.pythonMessageArgument), moduleFile)
+}
+
+private fun rootGradle(kts: Boolean) =
+    if (kts) {
+      """
 plugins {
-  id 'com.android.application' version '8.4.2' apply false
-  id 'com.chaquo.python' version '17.0.0' apply false
-  id 'org.jetbrains.kotlin.android' version '1.9.0' apply false
+  id("com.android.application") version "$AGP_VERSION" apply false
+  id("org.jetbrains.kotlin.android") version "$KOTLIN_VERSION" apply false
+  id("com.chaquo.python") version "$CHAQUOPY_VERSION" apply false
 }
 """.trim()
+    } else {
+      """
+plugins {
+  id 'com.android.application' version '$AGP_VERSION' apply false
+  id 'org.jetbrains.kotlin.android' version '$KOTLIN_VERSION' apply false
+  id 'com.chaquo.python' version '$CHAQUOPY_VERSION' apply false
+}
+""".trim()
+    }
 
-private fun appGradle(kts: Boolean, pkg: String, deps: String, extraKts: String, extraGroovy: String) = if (kts) """
+private fun appGradle(kts: Boolean, pkg: String, uiKind: ChaquopyUiKind): String {
+  val (extraAndroid, dependencies) = uiConfig(uiKind, kts)
+  return if (kts) {
+    """
 plugins {
   id("com.android.application")
   id("org.jetbrains.kotlin.android")
-  id("org.jetbrains.kotlin.kapt")
   id("com.chaquo.python")
 }
+
 android {
   namespace = "$pkg"
-  compileSdk = 36
+  compileSdk = $COMPILE_SDK
+
   defaultConfig {
     applicationId = "$pkg"
-    minSdk = 24
-    targetSdk = 36
+    minSdk = $MIN_SDK
+    targetSdk = $TARGET_SDK
+    versionCode = 1
+    versionName = "1.0"
+  }
+
+$extraAndroid
+}
+
+chaquopy {
+  defaultConfig {
+    pip {
+      install("six")
+    }
   }
 }
-chaquopy { defaultConfig { pip { install("six") } } }
-$extraKts
+
 dependencies {
+  implementation("androidx.core:core-ktx:1.13.0")
   implementation("androidx.appcompat:appcompat:1.7.1")
-$deps
+  implementation("com.google.android.material:material:1.12.0")
+$dependencies
 }
-""".trim() else """
+""".trim()
+  } else {
+    """
 plugins {
   id 'com.android.application'
   id 'org.jetbrains.kotlin.android'
-  id 'org.jetbrains.kotlin.kapt'
   id 'com.chaquo.python'
 }
+
 android {
   namespace '$pkg'
-  compileSdk 36
-  defaultConfig { applicationId "$pkg"; minSdk 24; targetSdk 36 }
+  compileSdk $COMPILE_SDK
+
+  defaultConfig {
+    applicationId "$pkg"
+    minSdk $MIN_SDK
+    targetSdk $TARGET_SDK
+    versionCode 1
+    versionName "1.0"
+  }
+
+$extraAndroid
 }
-chaquopy { defaultConfig { pip { install "six" } } }
-$extraGroovy
+
+chaquopy {
+  defaultConfig {
+    pip {
+      install "six"
+    }
+  }
+}
+
 dependencies {
+  implementation 'androidx.core:core-ktx:1.13.0'
   implementation 'androidx.appcompat:appcompat:1.7.1'
-$deps
+  implementation 'com.google.android.material:material:1.12.0'
+$dependencies
 }
 """.trim()
+  }
+}
 
-private fun versionCatalog() = """
+private fun uiConfig(kind: ChaquopyUiKind, kts: Boolean): Pair<String, String> =
+    when (kind) {
+      ChaquopyUiKind.Xml -> "" to ""
+      ChaquopyUiKind.Compose -> {
+        val androidBlock = if (kts) "  buildFeatures { compose = true }" else "  buildFeatures { compose true }"
+        val deps =
+            if (kts) {
+              "  implementation(\"androidx.activity:activity-compose:1.10.1\")\n" +
+                  "  implementation(\"androidx.compose.material3:material3:1.3.2\")"
+            } else {
+              "  implementation 'androidx.activity:activity-compose:1.10.1'\n" +
+                  "  implementation 'androidx.compose.material3:material3:1.3.2'"
+            }
+        androidBlock to deps
+      }
+      ChaquopyUiKind.Litho -> {
+        val deps =
+            if (kts) {
+              "  implementation(\"com.facebook.litho:litho-core:0.52.0\")\n" +
+                  "  implementation(\"com.facebook.litho:litho-widget:0.52.0\")\n" +
+                  "  kapt(\"com.facebook.litho:litho-processor:0.52.0\")"
+            } else {
+              "  implementation 'com.facebook.litho:litho-core:0.52.0'\n" +
+                  "  implementation 'com.facebook.litho:litho-widget:0.52.0'\n" +
+                  "  kapt 'com.facebook.litho:litho-processor:0.52.0'"
+            }
+        "" to deps
+      }
+    }
+
+private fun versionCatalog() =
+    """
+[versions]
+agp = "$AGP_VERSION"
+kotlin = "$KOTLIN_VERSION"
+chaquopy = "$CHAQUOPY_VERSION"
+
 [plugins]
-androidApplication = { id = "com.android.application", version = "8.4.2" }
-chaquopy = { id = "com.chaquo.python", version = "17.0.0" }
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+chaquopy = { id = "com.chaquo.python", version.ref = "chaquopy" }
 """.trim()
 
-private fun androidManifest() = """<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:name="com.chaquo.python.android.PyApplication" android:allowBackup="true" android:label="@string/app_name" android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
-        <activity android:name=".MainActivity" android:exported="true">
-            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
-        </activity>
-    </application>
-</manifest>""".trim()
-
-private fun pyMain() = """from six.moves import input
-
-def main():
-    print("Enter your name, or an empty line to exit.")
-    while True:
-        try:
-            name = input()
-        except EOFError:
-            break
-        if not name:
-            break
-        print("Hello {}!".format(name))
-""".trim()
-
-private fun pyConsole() = """from io import TextIOBase
-from queue import Queue
-class ConsoleInputStream(TextIOBase):
-    def __init__(self, task):
-        self.task = task
-        self.queue = Queue()
+private fun pythonModule(messageTarget: String) =
+    """def get_message(name=None):
+    target = name or "$messageTarget"
+    return f"Hello from Chaquopy, {target}!"
 """.trim()
