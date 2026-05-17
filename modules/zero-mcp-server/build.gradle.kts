@@ -77,9 +77,7 @@ dependencies {
   implementation(projects.termux.shell)
 
   implementation(projects.tooling.api)
-  implementation(projects.tooling.model)
-  implementation(projects.tooling.events)
-  implementation(projects.tooling.impl)
+  compileOnly(projects.tooling.impl)
   testImplementation(libs.tests.junit)
   androidTestImplementation(libs.tests.androidx.junit)
   androidTestImplementation(libs.tests.androidx.espresso.core)
