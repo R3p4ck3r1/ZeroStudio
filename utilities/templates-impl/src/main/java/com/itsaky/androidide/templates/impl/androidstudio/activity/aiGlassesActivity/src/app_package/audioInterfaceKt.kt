@@ -2,39 +2,46 @@ package com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesAct
 
 import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
 
-internal fun AndroidModuleTemplateBuilder.audioInterfaceKt() =
-    """
+internal fun AndroidModuleTemplateBuilder.audioInterfaceKt() = """
 package ${data.packageName}
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
-import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 
-class AudioInterface(private val context: Context, private val initializationMessage: String) :
-    DefaultLifecycleObserver {
+class AudioInterface(private val context: Context, private val initializationMessage: String) : DefaultLifecycleObserver {
   private lateinit var tts: TextToSpeech
-
   override fun onStart(owner: LifecycleOwner) {
-    super.onStart(owner)
-    tts = TextToSpeech(context) { status ->
-      if (status == TextToSpeech.SUCCESS) speak(initializationMessage)
-      else Log.e(TAG, "Initialization failed with status: $status")
-    }
+    tts = TextToSpeech(context) { if (it == TextToSpeech.SUCCESS) tts.speak(initializationMessage, TextToSpeech.QUEUE_ADD, null, "init") }
   }
+  override fun onStop(owner: LifecycleOwner) { tts.shutdown() }
+}
+""".trim()
 
-  fun speak(textToSpeak: String) {
-    tts.speak(textToSpeak, TextToSpeech.QUEUE_ADD, null, initializationMessage.lowercase().replace(" ", "_"))
-  }
+internal fun AndroidModuleTemplateBuilder.audioInterfaceJava() = """
+package ${data.packageName};
 
-  override fun onStop(owner: LifecycleOwner) {
-    super.onStop(owner)
-    tts.shutdown()
-  }
+import android.content.Context;
+import android.speech.tts.TextToSpeech;
+import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
 
-  companion object {
-    private const val TAG = "AudioInterface"
+public class AudioInterface implements DefaultLifecycleObserver {
+  private final Context context;
+  private final String initializationMessage;
+  private TextToSpeech tts;
+  public AudioInterface(Context context, String initializationMessage) {
+    this.context = context;
+    this.initializationMessage = initializationMessage;
   }
+  @Override public void onStart(LifecycleOwner owner) {
+    tts = new TextToSpeech(context, status -> {
+      if (status == TextToSpeech.SUCCESS) {
+        tts.speak(initializationMessage, TextToSpeech.QUEUE_ADD, null, "init");
+      }
+    });
+  }
+  @Override public void onStop(LifecycleOwner owner) { if (tts != null) tts.shutdown(); }
 }
 """.trim()

@@ -7,42 +7,28 @@ internal fun AndroidModuleTemplateBuilder.mainActivityKt() =
 package ${data.packageName}
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import ${data.packageName}.ui.theme.${data.name}Theme
+import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    enableEdgeToEdge()
-    setContent {
-      ${data.name}Theme {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-          Greeting(name = "Android", modifier = Modifier.padding(innerPadding))
-        }
-      }
-    }
+    setContentView(R.layout.activity_main)
   }
 }
+""".trim()
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-  Text(text = "Hello $name!", modifier = modifier)
-}
+internal fun AndroidModuleTemplateBuilder.mainActivityJava() =
+    """
+package ${data.packageName};
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-  ${data.name}Theme {
-    Greeting("Android")
+import android.os.Bundle;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
   }
 }
 """.trim()
