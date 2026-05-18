@@ -1,23 +1,26 @@
+import com.android.build.api.dsl.Packaging
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
-  alias(libs.plugins.android.library)
-  alias(libs.plugins.kotlin.android)
-  alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
-  alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
-  alias(libs.plugins.com.google.devtools.ksp)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.org.jetbrains.kotlin.compose)
+    alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
+    alias(libs.plugins.com.google.devtools.ksp)
 }
 
 android {
-  namespace = "me.rerere.rikkahub"
-  compileSdk = 36
+    namespace = "me.rerere.rikkahub"
+    compileSdk = 36
 
     defaultConfig {
+        // applicationId = "me.rerere.rikkahub"
         minSdk = 26
         // targetSdk = 37
-        // versionCode = 156
-        // versionName = "2.2.0"
+        // versionCode = 159
+        // versionName = "2.2.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -25,6 +28,18 @@ android {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
     }
+
+    // splits {
+        // abi {
+            // // AppBundle tasks usually contain "bundle" in their name
+            // //noinspection WrongGradleMethod
+            // val isBuildingBundle = gradle.startParameter.taskNames.any { it.lowercase().contains("bundle") }
+            // isEnable = !isBuildingBundle
+            // reset()
+            // include("arm64-v8a", "x86_64")
+            // isUniversalApk = true
+        // }
+    // }
 
     // signingConfigs {
         // create("release") {
@@ -55,19 +70,29 @@ android {
         release {
             // signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
+            // isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // buildConfigField("String", "VERSION_NAME", "\"${android.defaultConfig.versionName}\"")
+            // buildConfigField("String", "VERSION_CODE", "\"${android.defaultConfig.versionCode}\"")
         }
         debug {
+            // applicationIdSuffix = ".debug"
+            // buildConfigField("String", "VERSION_NAME", "\"${android.defaultConfig.versionName}\"")
+            // buildConfigField("String", "VERSION_CODE", "\"${android.defaultConfig.versionCode}\"")
         }
-        create("baseline") {
-            initWith(getByName("release"))
-            matchingFallbacks.add("release")
-            // signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = false
-        }
+        // create("baseline") {
+            // initWith(getByName("release"))
+            // matchingFallbacks.add("release")
+            // // signingConfig = signingConfigs.getByName("debug")
+            // applicationIdSuffix = ".debug"
+            // isDebuggable = false
+            // isMinifyEnabled = false
+            // isShrinkResources = false
+            // isProfileable = true
+        // }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -80,6 +105,9 @@ android {
     sourceSets {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
     }
+    // androidResources {
+        // generateLocaleConfig = true
+    // }
     packaging {
         jniLibs {
             useLegacyPackaging = true
@@ -107,19 +135,17 @@ composeCompiler {
 }
 
 tasks.register("buildAll") {
-    dependsOn("assembleRelease")
-    description = "Build release AAR"
+    dependsOn("assembleRelease", "bundleRelease")
+    description = "Build both APK and AAB"
 }
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
-    }
-}
+// kotlin { jvmToolchain(17) }
+tasks.withType<KotlinCompile>().configureEach { compilerOptions.jvmTarget.set(JvmTarget.JVM_17) }
+
 
 dependencies {
     implementation(libs.androidx.core.ktx)
@@ -174,7 +200,7 @@ dependencies {
     // okhttp
     implementation(libs.okhttp)
     implementation(libs.okhttp.sse)
-    implementation(libs.common.retrofit)
+    implementation(libs.retrofit)
     implementation(libs.retrofit.serialization.json)
 
     // ktor client
@@ -194,6 +220,7 @@ dependencies {
     implementation(libs.io.coil.gif)
     implementation(libs.io.coil.okhttp)
     implementation(libs.io.coil.svg)
+    implementation(libs.io.coil.cache.control)
 
     // serialization
     implementation(libs.kotlinx.serialization.json)
@@ -246,7 +273,7 @@ dependencies {
 
     // SLF4J Android binding — routes Ktor/SLF4J logs to logcat
     implementation(libs.tooling.slf4j)
-    implementation(libs.slf4j.android)
+    implementation(libs.slf4j.android.uuid)
 
     // sqlite-android (requery SQLite for Android)
     implementation(libs.sqlite.android)
@@ -258,7 +285,6 @@ dependencies {
     implementation(projects.core.chatai.highlight)
     implementation(projects.core.chatai.search)
     implementation(projects.core.chatai.speech)
-    implementation(projects.core.chatai.tts)
     implementation(projects.core.chatai.common)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     implementation(kotlin("reflect"))

@@ -20,7 +20,9 @@ import com.itsaky.androidide.plugins.tasks.ZeroAutoTranslateTask
 
 plugins { id("com.android.library") }
 
-android { namespace = "${BuildConfig.packageName}.resources" }
+android { namespace = "${BuildConfig.packageName}.resources"
+
+ }
 
 dependencies {
   implementation(libs.androidx.appcompat)

@@ -29,7 +29,9 @@ android {
     vectorDrawables.useSupportLibrary = true
   }
 
-  androidResources { generateLocaleConfig = true }
+      androidResources {
+        generateLocaleConfig = true
+    }
 
   signingConfigs {
     create("all") {

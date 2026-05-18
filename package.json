@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "regexp-util": "^2.0.3"
+    "@types/ink": "^2.0.3"
   }
 }

@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.content.MediaType
@@ -135,6 +136,7 @@ fun ChatInput(
     modifier: Modifier = Modifier,
     onUpdateChatModel: (Model) -> Unit,
     onUpdateAssistant: (Assistant) -> Unit,
+    onUpdateConversation: (Conversation) -> Unit,
     onUpdateSearchService: (Int) -> Unit,
     onCompressContext: (additionalPrompt: String, targetTokens: Int, keepRecentMessages: Int) -> Job,
     onCancelClick: () -> Unit,
@@ -335,16 +337,55 @@ fun ChatInput(
                         fileName.endsWith(".csv", ignoreCase = true) ||
                         fileName.endsWith(".json", ignoreCase = true) ||
                         fileName.endsWith(".js", ignoreCase = true) ||
+                        fileName.endsWith(".jsx", ignoreCase = true) ||
+                        fileName.endsWith(".mjs", ignoreCase = true) ||
+                        fileName.endsWith(".cjs", ignoreCase = true) ||
                         fileName.endsWith(".html", ignoreCase = true) ||
                         fileName.endsWith(".css", ignoreCase = true) ||
+                        fileName.endsWith(".vue", ignoreCase = true) ||
+                        fileName.endsWith(".svelte", ignoreCase = true) ||
                         fileName.endsWith(".xml", ignoreCase = true) ||
                         fileName.endsWith(".py", ignoreCase = true) ||
+                        fileName.endsWith(".rb", ignoreCase = true) ||
+                        fileName.endsWith(".lua", ignoreCase = true) ||
+                        fileName.endsWith(".sql", ignoreCase = true) ||
                         fileName.endsWith(".java", ignoreCase = true) ||
                         fileName.endsWith(".kt", ignoreCase = true) ||
                         fileName.endsWith(".ts", ignoreCase = true) ||
                         fileName.endsWith(".tsx", ignoreCase = true) ||
+                        fileName.endsWith(".dart", ignoreCase = true) ||
+                        fileName.endsWith(".php", ignoreCase = true) ||
+                        fileName.endsWith(".swift", ignoreCase = true) ||
+                        fileName.endsWith(".go", ignoreCase = true) ||
+                        fileName.endsWith(".bat", ignoreCase = true) ||
+                        fileName.endsWith(".cmd", ignoreCase = true) ||
+                        fileName.endsWith(".ps1", ignoreCase = true) ||
+                        fileName.endsWith(".psm1", ignoreCase = true) ||
+                        fileName.endsWith(".sh", ignoreCase = true) ||
+                        fileName.endsWith(".bash", ignoreCase = true) ||
+                        fileName.endsWith(".zsh", ignoreCase = true) ||
+                        fileName.endsWith(".fish", ignoreCase = true) ||
+                        fileName.endsWith(".c", ignoreCase = true) ||
+                        fileName.endsWith(".h", ignoreCase = true) ||
+                        fileName.endsWith(".cpp", ignoreCase = true) ||
+                        fileName.endsWith(".cc", ignoreCase = true) ||
+                        fileName.endsWith(".cxx", ignoreCase = true) ||
+                        fileName.endsWith(".hpp", ignoreCase = true) ||
+                        fileName.endsWith(".hh", ignoreCase = true) ||
+                        fileName.endsWith(".hxx", ignoreCase = true) ||
+                        fileName.endsWith(".rs", ignoreCase = true) ||
+                        fileName.endsWith(".cs", ignoreCase = true) ||
                         fileName.endsWith(".markdown", ignoreCase = true) ||
                         fileName.endsWith(".mdx", ignoreCase = true) ||
+                        fileName.endsWith(".toml", ignoreCase = true) ||
+                        fileName.endsWith(".ini", ignoreCase = true) ||
+                        fileName.endsWith(".env", ignoreCase = true) ||
+                        fileName.endsWith(".gradle", ignoreCase = true) ||
+                        fileName.endsWith(".kts", ignoreCase = true) ||
+                        fileName.endsWith(".properties", ignoreCase = true) ||
+                        fileName.endsWith(".proto", ignoreCase = true) ||
+                        fileName.endsWith(".graphql", ignoreCase = true) ||
+                        fileName.endsWith(".gql", ignoreCase = true) ||
                         fileName.endsWith(".yml", ignoreCase = true) ||
                         fileName.endsWith(".yaml", ignoreCase = true)
                     if (isAllowed) {
@@ -374,7 +415,7 @@ fun ChatInput(
     }
 
     Surface(
-        color = Color.Transparent,
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(
             modifier = modifier
@@ -396,6 +437,7 @@ fun ChatInput(
                     ),
                 shape = MaterialTheme.shapes.largeIncreased,
                 tonalElevation = 0.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else hazeTintColor,
             ) {
                 Column(
@@ -601,6 +643,7 @@ fun ChatInput(
                             mcpManager = mcpManager,
                             onCompressContext = onCompressContext,
                             onUpdateAssistant = onUpdateAssistant,
+                            onUpdateConversation = onUpdateConversation,
                             showInjectionSheet = showInjectionSheet,
                             onShowInjectionSheetChange = { showInjectionSheet = it },
                             showCompressDialog = showCompressDialog,
@@ -739,8 +782,8 @@ private fun TextInputRow(
             colors = TextFieldDefaults.colors().copy(
                 unfocusedIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
             ),
             trailingIcon = {
                 if (isFocused) {

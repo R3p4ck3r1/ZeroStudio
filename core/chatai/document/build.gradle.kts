@@ -1,8 +1,10 @@
-plugins { alias(libs.plugins.android.library) }
+plugins {
+    alias(libs.plugins.android.library)
+}
 
 android {
-  namespace = "me.rerere.document"
-  compileSdk = 36
+    namespace = "me.rerere.document"
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -27,10 +29,10 @@ android {
 }
 
 dependencies {
-  implementation(libs.androidx.core.ktx)
-  implementation(libs.androidx.appcompat)
-  implementation(libs.google.material)
-  testImplementation(libs.tests.junit)
-  androidTestImplementation(libs.tests.androidx.junit)
-  androidTestImplementation(libs.tests.androidx.espresso.core)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.google.material)
+    testImplementation(libs.tests.junit)
+    androidTestImplementation(libs.tests.androidx.junit)
+    androidTestImplementation(libs.tests.androidx.espresso.core)
 }

@@ -1,20 +1,32 @@
 package me.rerere.ai.core
 
-enum class ReasoningLevel(val budgetTokens: Int, val effort: String) {
-  OFF(0, "none"),
-  AUTO(-1, "auto"),
-  LOW(1024, "low"),
-  MEDIUM(16_000, "medium"),
-  HIGH(32_000, "high");
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-  val isEnabled: Boolean
-    get() = this != OFF
+@Serializable
+enum class ReasoningLevel(
+    val budgetTokens: Int,
+    val effort: String
+) {
+    @SerialName("off")
+    OFF(0, "none"),
+    @SerialName("auto")
+    AUTO(-1, "auto"),
+    @SerialName("low")
+    LOW(1_000, "low"),
+    @SerialName("medium")
+    MEDIUM(2_000, "medium"),
+    @SerialName("high")
+    HIGH(8_000, "high"),
+    @SerialName("xhigh")
+    XHIGH(16_000, "xhigh");
 
-  companion object {
-    fun fromBudgetTokens(budgetTokens: Int?): ReasoningLevel {
-      return entries.minByOrNull {
-        kotlin.math.abs(it.budgetTokens - (budgetTokens ?: AUTO.budgetTokens))
-      } ?: AUTO
+    val isEnabled: Boolean
+        get() = this != OFF
+
+    companion object {
+        fun fromBudgetTokens(budgetTokens: Int?): ReasoningLevel {
+            return entries.minByOrNull { kotlin.math.abs(it.budgetTokens - (budgetTokens ?: AUTO.budgetTokens)) } ?: AUTO
+        }
     }
-  }
 }

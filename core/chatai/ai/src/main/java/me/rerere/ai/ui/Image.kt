@@ -15,7 +15,7 @@ data class ImageGenerationItem(
 
 @Serializable
 enum class ImageAspectRatio {
-  SQUARE,
-  LANDSCAPE,
-  PORTRAIT,
+    SQUARE,
+    LANDSCAPE,
+    PORTRAIT
 }

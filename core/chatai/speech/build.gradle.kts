@@ -3,12 +3,12 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
-    alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
+    alias(libs.plugins.org.jetbrains.kotlin.compose)
 }
 
 android {
     namespace = "me.rerere.speech"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -47,7 +47,7 @@ android {
 }
 
 dependencies {
-    implementation(projects.core.common)
+    implementation(projects.core.chatai.common)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.okhttp)

@@ -1,8 +1,8 @@
 package me.rerere.ai.provider
 
-import kotlin.uuid.Uuid
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.uuid.Uuid
 
 @Serializable
 data class Model(
@@ -21,29 +21,40 @@ data class Model(
 
 @Serializable
 enum class ModelType {
-  CHAT,
-  IMAGE,
-  EMBEDDING,
+    CHAT,
+    IMAGE,
+    EMBEDDING,
 }
 
 @Serializable
 enum class Modality {
-  TEXT,
-  IMAGE,
+    TEXT,
+    IMAGE,
 }
 
 @Serializable
 enum class ModelAbility {
-  TOOL,
-  REASONING,
+    TOOL,
+    REASONING,
 }
 
 // 模型(提供商)提供的内置工具选项
 @Serializable
 sealed class BuiltInTools {
-  // https://ai.google.dev/gemini-api/docs/google-search?hl=zh-cn
-  @Serializable @SerialName("search") data object Search : BuiltInTools()
+    // https://ai.google.dev/gemini-api/docs/google-search?hl=zh-cn
+    @Serializable
+    @SerialName("search")
+    data object Search : BuiltInTools()
 
-  // https://ai.google.dev/gemini-api/docs/url-context?hl=zh-cn
-  @Serializable @SerialName("url_context") data object UrlContext : BuiltInTools()
+    // https://ai.google.dev/gemini-api/docs/url-context?hl=zh-cn
+    @Serializable
+    @SerialName("url_context")
+    data object UrlContext : BuiltInTools()
+
+    @Serializable
+    @SerialName("image_generation")
+    data object ImageGeneration : BuiltInTools()
 }
+
+
+

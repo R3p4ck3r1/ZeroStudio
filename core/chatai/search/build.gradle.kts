@@ -1,14 +1,14 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  alias(libs.plugins.android.library)
-  alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
-  alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
+    alias(libs.plugins.org.jetbrains.kotlin.compose)
 }
 
 android {
-  namespace = "me.rerere.search"
-  compileSdk = 36
+    namespace = "me.rerere.search"
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 23
@@ -47,11 +47,12 @@ android {
 }
 
 dependencies {
-  implementation(projects.core.chatai.ai)
-  implementation(libs.okhttp)
-  implementation(libs.kotlinx.serialization.json)
-  implementation(libs.kotlinx.coroutines.core)
-  implementation(platform(libs.androidx.compose.bom))
-  implementation(libs.androidx.compose.material3)
-  api(libs.common.jsoup)
+    implementation(projects.core.chatai.ai)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+    api(libs.jsoup)
+    implementation(libs.quickjs)
 }

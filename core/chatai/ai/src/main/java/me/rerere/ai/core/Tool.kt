@@ -15,15 +15,15 @@ data class Tool(
     val parameters: () -> InputSchema? = { null },
     val systemPrompt: (model: Model, messages: List<UIMessage>) -> String = { _, _ -> "" },
     val needsApproval: Boolean = false,
-    val execute: suspend (JsonElement) -> List<UIMessagePart>,
+    val execute: suspend (JsonElement) -> List<UIMessagePart>
 )
 
 @Serializable
 sealed class InputSchema {
-  @Serializable
-  @SerialName("object")
-  data class Obj(
-      val properties: JsonObject,
-      val required: List<String>? = null,
-  ) : InputSchema()
+    @Serializable
+    @SerialName("object")
+    data class Obj(
+        val properties: JsonObject,
+        val required: List<String>? = null,
+    ) : InputSchema()
 }

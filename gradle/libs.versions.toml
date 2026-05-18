@@ -16,48 +16,51 @@ protobufVersion = "4.33.0"
 # Kotlin相关
 kotlin = "2.2.20"
 ksp = "2.3.4"
-kotlin-coroutines = "1.10.2"
-kotlinxSerializationJson = "1.9.0"
-kotlinx-datetime = "0.7.1"
+kotlin-coroutines = "1.11.0"
+kotlinxSerializationJson = "1.11.0"
+kotlinx-datetime = "0.8.0"
 kotlinMarkdown = "0.7.3"
-kotlin-coroutines-core = "1.10.2"
+markdown-rikka = "66a56dffca"
+kotlin-coroutines-core = "1.11.0"
 
 # Compose
-composeBom = "2026.05.00"     #对应组件的实际版本号，参见：https://developer.android.com/develop/ui/compose/bom/bom-mapping
-
+composeBom = "2026.05.00"
 activityCompose = "1.13.0"
-navigationCompose = "2.9.0"
+navigationCompose = "2.9.8"
 androidxCompose-livedata = "1.7.0"
 compose-compiler = "1.5.15"
-#androidx相关
+material3 = "1.5.0-alpha19"
+
+# androidx相关
 androidxCore = "1.7.1"
 androidx-vectordrawable = "1.2.0"
 androidx-navigation = "2.7.7"
-androidx-work = "2.9.0"
-androidx-espresso = "3.5.1"
-androidxCoreKtx = "1.13.0"
+androidx-work = "2.11.2"
+androidx-espresso = "3.7.0"
+androidxCoreKtx = "1.18.0"
 androidxCoreSplashscreen = "1.0.1"
 androidxDocumentfile = "1.1.0"
 androidDesugarJdkLibs = "2.1.5"
-androidx-lifecycle = "2.9.4"
+androidx-lifecycle = "2.10.0"
 androidxViewpager = "1.0.0"
-androidx-room = "2.8.3"
+androidx-room = "2.8.4"
 androidx-benchmark = "1.2.4"
 androidx-benchmark-junit4 = "1.2.4"
 androidConstraintlayout = "2.2.1"
 androidRecyclerview = "1.3.2"
 activityKtx = "1.10.1"
 lifecycleViewmodelKtx = "2.9.2"
-androidxUiautomator = "2.2.0"
+androidxUiautomator = "2.3.0"
 browser = "1.10.0"
 media3 = "1.10.0"
 cameraCore = "1.6.1"
-paging = "3.4.2"
+paging = "3.5.0"
 nav2 = "2.9.8"
 nav3Core = "1.1.1"
 profileinstaller = "1.4.1"
 lifecycleRuntimeKtx = "2.10.0"
-material3AdaptiveNav3 = "1.3.0-alpha09"
+material3AdaptiveNav3 = "1.3.0-beta01"
+nav3Material = "1.0.0-SNAPSHOT"
 lifecycleViewmodelNav3 = "2.10.0"
 datastore = "1.2.1"
 benchmarkMacroJunit4 = "1.4.1"
@@ -69,24 +72,25 @@ google-findbugsJsr305 = "3.0.2"
 googleGson = "2.13.1"
 guava-jre = "32.1.3-jre"
 guava-android = "32.1.3-android"
-googleMaterial = "1.12.0"
+googleMaterial = "1.14.0"
 google-accompanist-pager = "0.28.0"
 google-services = "4.4.4"
-firebase-bom = "34.12.0"
+firebase-bom = "34.13.0"
 firebase-crashlytics = "3.0.7"
 zxing = "3.5.4"
 ioGrpcVersion = "1.78.0"
 ioGrpcStubVersion = "1.5.0"
 googleProtobufKotlin = "4.33.2"
+barcodeScanning = "17.3.0"
 
 # common
-soraEditor = "0.23.6" #> 这个library没有采用在线的而是本地
+soraEditor = "0.23.6"
 lottie-animation = "6.6.10"
 io-markwon = "4.6.2"
 koin-bom = "4.2.1"
 retrofit = "3.0.0"
 iorealm = "10.19.0"
-slf4j-api = "2.0.12"
+slf4j-api = "2.0.17"
 jrubyJoni = "2.2.6"
 orgEclipseJdtAnnotation = "2.3.100"
 snakeyamlEngine = "2.10"
@@ -102,11 +106,11 @@ paletteKtx = "1.0.0"
 preferenceKtx = "1.2.1"
 zoomage = "1.3.1"
 colorpickerview = "2.3.0"
-commonsText = "1.13.1"
-logback = "1.3.15" #log工具
-io-ktor = "3.3.2" # Ktor (HTTP Server)
-glide = "4.16.0" #图像sdk
-io-coil = "2.7.0" # Coil (Image Loading)
+commonsText = "1.15.0"
+logback = "1.3.15"
+io-ktor = "3.4.3"
+glide = "4.16.0"
+io-coil = "3.4.0"
 leakcanary = "2.14"
 jsoup = "1.22.2"
 dav4jvm = "main-SNAPSHOT"
@@ -114,6 +118,7 @@ dom4j = "2.2.0"
 jlatexmath = "1.3"
 ucrop = "2.2.11-native"
 sonner = "0.4.0"
+sonner-dokar = "0.3.9"
 okhttp = "5.3.2"
 mcp = "0.8.4"
 pebble = "4.1.1"
@@ -123,7 +128,6 @@ objectbox = "4.3.0"
 lucide-icons = "1.1.0"
 image-viewer = "1.1.0-alpha.7"
 quickie-bundled = "1.11.0"
-barcodeScanning = "17.3.0"
 metadataExtractor = "2.20.0"
 javaxAnnotation = "1.3.2"
 orgNanohttpd = "2.3.1"
@@ -133,10 +137,10 @@ huge-icons = "1.3"
 jmdns = "3.6.3"
 slf4j-android = "1.7.36"
 sqlite-android = "-SNAPSHOT"
+sqlite-vector = "0.9.92"
 floatingx = "2.3.7"
 fernFlowerVersion = "243.22562.218"
 matrix = "2.1.0"
-
 
 #语法解析分析
 tree-sitter = "4.3.2"
@@ -151,29 +155,10 @@ com-github-Juniversalchardet = "2.5.0"
 
 # Testing
 junit = "4.13.2"
-androidxTestExtJunit = "1.2.1"
+androidxTestExtJunit = "1.3.0"
 espressoCore = "3.7.0"
 junit-jupiter = "5.10.2"
 
-
-
-
-# Added from core/chatai version catalog
-coreKtx = "1.18.0"
-junitVersion = "1.3.0"
-material3 = "1.5.0-alpha19"
-nav3Material = "1.0.0-SNAPSHOT"
-markdown = "66a56dffca"
-coil = "3.4.0"
-room = "2.8.4"
-serialization-json = "1.11.0"
-workmanager = "2.11.2"
-appcompat = "1.7.1"
-material = "1.13.0"
-uiautomator = "2.3.0"
-ktor = "3.4.3"
-sqlite-vector = "0.9.92"
-slf4j = "2.0.17"
 
 [libraries]
 # Dependencies in composite build
@@ -192,14 +177,11 @@ composite-layoutlibApi = { module = "com.itsaky.androidide.build:layoutlib-api" 
 composite-composePullrefresh = { module = "com.itsaky.androidide.build:compose-pullrefresh" }
 common-editor = { module = "com.itsaky.androidide.build:editor" }
 common-soraLanguageTextmate = { module = "com.itsaky.androidide.build:soraLanguageTextmate" }
-
-# composite-kotlinc = { module = "com.itsaky.androidide.build:kotlinc" }
 composite-java-stubsb = { module = "com.itsaky.androidide.build:java-stubsb" }
 composite-javacb = { module = "com.itsaky.androidide.build:javacb" }
 composite-javapoetb = { module = "com.itsaky.androidide.build:javapoetb" }
 composite-jaxpb-jaxp-internal = { module = "com.itsaky.androidide.build:jaxpb-jaxp-internal" }
 composite-jaxpb-xml = { module = "com.itsaky.androidide.build:jaxpb-xml" }
-
 
 # AndroidIDE
 androidide-ts = { module = "com.itsaky.androidide.treesitter:android-tree-sitter", version.ref = "tree-sitter" }
@@ -241,11 +223,11 @@ common-hiddenApiBypass = { module = "org.lsposed.hiddenapibypass:hiddenapibypass
 common-termuxAmLib = { module = "com.termux:termux-am-library", version = "v2.0.0" }
 common-charts = { module = "com.github.AppDevNext:AndroidChart", version = "3.1.0.21" }
 common-realm-android-library = { group = "io.realm", name = "realm-android-library", version.ref = "iorealm" }
+
 #编辑器相关
 common-soraeditor-language-textmate = { module = "io.github.Rosemoe.sora-editor:language-textmate", version.ref = "soraEditor" }
-# common-editor = { module = "io.github.Rosemoe.sora-editor:editor", version.ref = "editor" }
-#Lottie Animation SDK
 common-com-airbnb-android-lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie-animation" }
+
 # Markwon
 common-markwon-jeziellago = { group = "com.github.jeziellago", name = "Markwon", version.ref = "github-jeziellago-markwon" }
 common-markwon-ext-tables = { group = "io.noties.markwon", name = "ext-tables", version.ref = "io-markwon" }
@@ -323,7 +305,7 @@ androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runt
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
 androidx-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "material3AdaptiveNav3" }
 androidx-material3-adaptive-layout = { group = "androidx.compose.material3.adaptive", name = "adaptive-layout", version.ref = "material3AdaptiveNav3" }
-androidx-material3-adaptive-navigation3 = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "material3AdaptiveNav3" }
+androidx-material3-adaptive-navigation3 = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "nav3Material" }
 androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
 androidx-room-paging = { group = "androidx.room", name = "room-paging", version.ref = "androidx-room" }
 androidx-paging-runtime = { group = "androidx.paging", name = "paging-runtime", version.ref = "paging" }
@@ -343,8 +325,7 @@ androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" , version = "1.4.0" }
-# androidx-compose-material3 = { group = "me.omico.compose", name = "compose-material3-pullrefresh" , version = "1.4.0" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" , version.ref = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" , version = "1.7.8" }
 androidx-google-fonts = { module = "androidx.compose.ui:ui-text-google-fonts" }
 androidx-compose-runtime-livedata = { module = "androidx.compose.runtime:runtime-livedata" }
@@ -354,7 +335,7 @@ androidx-compose-compiler = { group = "androidx.compose.compiler", name = "compi
 androidx-compose-runtime = { module = "androidx.compose.runtime:runtime" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation" }
 
-######  Google sdk #####
+###### Google sdk #####
 google-material = { module = "com.google.android.material:material", version.ref = "googleMaterial" }
 google-gson = { module = "com.google.code.gson:gson", version.ref = "googleGson" }
 google-guava = { module = "com.google.guava:guava", version.ref = "guava-android" }
@@ -377,7 +358,6 @@ zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" 
 barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcodeScanning" }
 com-google-protobuf-java-util = {group = "com.google.protobuf", name = "protobuf-java-util", version = "3.18.2"}
 
-
 # AAPT2
 aapt2-common = { module = "com.android.tools:common", version.ref = "androidToolsCommon" }
 aapt2-annotations = { module = "com.android.tools:annotations", version.ref = "androidToolsCommonB" }
@@ -393,7 +373,6 @@ tooling-slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j-api" }
 
 # use logback-core from logback-android instead
 logging-logback-core = { module = "ch.qos.logback:logback-core", version.ref = "logback" }
-# logging-logback-core = { module = "com.itsaky.androidide.build:logback-core" }
 logging-logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 
 # XML
@@ -403,9 +382,6 @@ xml-remark = { module = "com.kotcrab.remark:remark", version = "1.2.0" }
 xml-resolver = { module = "xml-resolver:xml-resolver", version = "1.2" }
 xml-jb-annotations = { module = "org.jetbrains:annotations", version = "24.1.0" }
 xml-javax-stream = { module = "zerostudio:javax-stream", version = "1.0" }
-
-# GIT
-# git-jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version = "6.8.0.202311291450-r" }
 
 # Tests
 tests-junit = { module = "junit:junit", version.ref = "junit" }
@@ -420,14 +396,13 @@ tests-androidx-junit = { module = "androidx.test.ext:junit", version.ref = "andr
 tests-androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "androidx-work" }
 tests-androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
 tests-androidx-espresso-contrib = { module = "androidx.test.espresso:espresso-contrib", version.ref = "androidx-espresso" }
-tests-androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version = "androidxUiautomator" }
+tests-androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidxUiautomator" }
 tests-mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version = "5.2.1" }
 tests-mockk = { module = "io.mockk:mockk", version = "1.13.10" }
 tests-barista = { module = "com.adevinta.android:barista", version = "4.3.0" }
 tests-conscrypt-openjdk = { module = "org.conscrypt:conscrypt-openjdk", version = "2.5.2" }
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacroJunit4" }
 androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "androidx-room" }
-
 
 # root/build.gradle.kts > Classpaths
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
@@ -437,11 +412,12 @@ maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version
 androidx-benchmark-junit4 = { group = "androidx.benchmark", name = "benchmark-junit4", version.ref = "androidx-benchmark-junit4" }
 
 # Coil
-io-coil-core = { group = "io.coil-kt", name = "coil", version.ref = "io-coil" }
-io-coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "io-coil" }
-io-coil-gif = { group = "io.coil-kt", name = "coil-gif", version.ref = "io-coil" }
-io-coil-svg = { group = "io.coil-kt", name = "coil-svg", version.ref = "io-coil" }
-io-coil-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version = "3.2.0" }
+io-coil-core = { group = "io.coil-kt.coil3", name = "coil", version.ref = "io-coil" }
+io-coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "io-coil" }
+io-coil-gif = { group = "io.coil-kt.coil3", name = "coil-gif", version.ref = "io-coil" }
+io-coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "io-coil" }
+io-coil-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "io-coil" }
+io-coil-cache-control = { group = "io.coil-kt.coil3", name = "coil-network-cache-control", version.ref = "io-coil" }
 
 # Ktor
 io-ktor-server-core = { group = "io.ktor", name = "ktor-server-core", version.ref = "io-ktor" }
@@ -452,6 +428,7 @@ io-ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "io-k
 io-ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "io-ktor" }
 io-ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "io-ktor" }
 io-ktor-server-default-headers = { group = "io.ktor", name = "ktor-server-default-headers", version.ref = "io-ktor" }
+io-ktor-server-caching-headers = { group = "io.ktor", name = "ktor-server-caching-headers", version.ref = "io-ktor" }
 io-ktor-server-conditional-headers = { group = "io.ktor", name = "ktor-server-conditional-headers", version.ref = "io-ktor" }
 io-ktor-server-compression = { group = "io.ktor", name = "ktor-server-compression", version.ref = "io-ktor" }
 io-ktor-server-cors = { group = "io.ktor", name = "ktor-server-cors", version.ref = "io-ktor" }
@@ -462,7 +439,7 @@ io-ktor-server-status-pages = { group = "io.ktor", name = "ktor-server-status-pa
 io-ktor-server-sse = { group = "io.ktor", name = "ktor-server-sse", version.ref = "io-ktor" }
 io-ktor-server-cio = { group = "io.ktor", name = "ktor-server-cio", version.ref = "io-ktor" }
 
-#kotlin相关
+# kotlin相关
 org-jetbrains-kotlin-scripting-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable", version.ref = "kotlin" }
 org-jetbrains-kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-compiler", version.ref = "kotlin" }
 org-jetbrains-kotlin-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
@@ -480,25 +457,26 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlin-coroutines-core" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 jetbrains-markdown = { group = "org.jetbrains", name = "markdown", version.ref = "kotlinMarkdown" }
+rikkahub-markdown = { module = "com.github.rikkahub:markdown", version.ref = "markdown-rikka" }
 
-#koin
+# koin
 koin-bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koin-bom" }
 koin-android = { group = "io.insert-koin", name = "koin-android" }
 koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose" }
 koin-androidx-workmanager = { group = "io.insert-koin", name = "koin-androidx-workmanager" }
 
-#网络通信相关
+# 网络通信相关
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-sse = { group = "com.squareup.okhttp3", name = "okhttp-sse", version.ref = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 
-#文件反编译器
+# 文件反编译器
 org-jetbrains-fernflower = { module = "zerostudio:fernflower", version = "1.0" }
 org-benf-cfr = { module = "org.benf:cfr", version = "0.152" }
 org-bitbucket-mstrobel-procyon-compilertools = { module = "org.bitbucket.mstrobel:procyon-compilertools", version = "0.6.0" }
 com-jetbrains-intellij-java-decompiler = { module = "com.jetbrains.intellij.java:java-decompiler-engine", version.ref = "fernFlowerVersion" }
 
-#smali反编译器
+# smali反编译器
 google-baksmali = { module = "com.android.tools.smali:smali-baksmali", version = "3.0.9" }
 google-smali = { module = "com.android.tools.smali:smali", version = "3.0.9" }
 google-smali-dexlib2 = { module = "com.android.tools.smali:smali-dexlib2", version = "3.0.9" }
@@ -509,16 +487,14 @@ github-juniversalchardet = { group = "com.github.albfernandez", name = "junivers
 ucrop = { group = "com.github.yalantis", name = "ucrop", version.ref = "ucrop" }
 quickie-bundled = { group = "io.github.g00fy2.quickie", name = "quickie-bundled", version.ref = "quickie-bundled" }
 sonner = { module = "io.github.brdominguez:compose-sonner", version.ref = "sonner" }
+dokar3-sonner = { module = "io.github.dokar3:sonner", version.ref = "sonner-dokar" }
 dav4jvm = { module = "com.github.bitfireAT:dav4jvm", version.ref = "dav4jvm" }
 jlatexmath = { module = "com.github.rikkahub.jlatexmath-android:jlatexmath", version.ref = "jlatexmath" }
 jlatexmath-font-greek = { module = "com.github.rikkahub.jlatexmath-android:jlatexmath-font-greek", version.ref = "jlatexmath" }
 jlatexmath-font-cyrillic = { module = "com.github.rikkahub.jlatexmath-android:jlatexmath-font-cyrillic", version.ref = "jlatexmath" }
 
-#lsp4j 语言服务器
+# lsp4j 语言服务器
 xmlLsp-org-eclipse-lemminx = { module = "org.eclipse.lemminx:org.eclipse.lemminx", version = "0.31.0" }
-
-
-
 
 # grpc二进制协议 + protobuf
 grpc-android = { module = "io.grpc:grpc-android", version.ref = "ioGrpcVersion" }
@@ -547,7 +523,9 @@ haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
 jmdns = { module = "org.jmdns:jmdns", version.ref = "jmdns" }
 slf4j-android = { module = "org.slf4j:slf4j-android", version.ref = "slf4j-android" }
+slf4j-android-uuid = { module = "uk.uuid.slf4j:slf4j-android", version = "2.0.17-0" }
 sqlite-android = { module = "com.github.rikkahub:sqlite-android", version.ref = "sqlite-android" }
+sqlite-vector = { module = "ai.sqlite:vector", version.ref = "sqlite-vector" }
 floatingx = { module = "io.github.petterpx:floatingx", version.ref = "floatingx" }
 floatingx-compose = { module = "io.github.petterpx:floatingx-compose", version.ref = "floatingx" }
 huge-icons = { group = "com.github.rikkahub", name = "hugeicons-compose", version.ref = "huge-icons" }
@@ -558,7 +536,7 @@ com-github-fwcd-ktfmt = { module = "com.github.fwcd.ktfmt:ktfmt", version = "b5d
 androidx-lifecycle = ["androidx-lifecycle-runtime-compose", "androidx-lifecycle-runtime-ktx"]
 androidx-room = ["androidx-room-runtime", "androidx-room-ktx"]
 compose-test = ["androidx-compose-ui-test-junit4"]
-io-coil = ["io-coil-core", "io-coil-okhttp", "io-coil-compose", "io-coil-gif", "io-coil-svg"]
+io-coil = ["io-coil-core", "io-coil-okhttp", "io-coil-compose", "io-coil-gif", "io-coil-svg", "io-coil-cache-control"]
 compose = [
     "androidx-compose-ui",
     "androidx-compose-ui-graphics",
@@ -584,6 +562,7 @@ io-ktor-server = [
     "io-ktor-server-auth",
     "io-ktor-server-auth-jwt",
     "io-ktor-server-default-headers",
+    "io-ktor-server-caching-headers",
     "io-ktor-server-conditional-headers",
     "io-ktor-server-compression",
     "io-ktor-server-cors",
@@ -601,14 +580,8 @@ io-insert-koin = [
     "koin-androidx-workmanager",
 ]
 
-
-
-
-
-
 [plugins]
-
-#android ， androidx , Google 相关
+# android ， androidx , Google 相关
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-test = { id = "com.android.test", version.ref = "agp" }
@@ -616,26 +589,26 @@ android-test = { id = "com.android.test", version.ref = "agp" }
 # AndroidX
 androidx-room = { id = "androidx.room", version.ref = "androidx-room" }
 benchmark = { id = "androidx.benchmark", version.ref = "androidx-benchmark" }
-#google相关
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
+
+# google相关
 com-google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 protobuf = { id = "com.google.protobuf", version = "0.9.6" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics" }
 
-#kotlin相关
+# kotlin相关
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 org-jetbrains-kotlin-plugin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-org-jetbrains-kotlin-compose = { id = "org.jetbrains.compose", version = "1.11.0-alpha02" }
+org-jetbrains-kotlin-compose = { id = "org.jetbrains.compose", version = "1.11.0" }
 org-jetbrains-kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
-#github
+# github
 com-github-jk1-tcdeps = { id = "com.github.jk1.tcdeps", version = "1.2" }
 
-#other
+# other
 maven-publish = { id = "com.vanniktech.maven.publish.base", version.ref = "maven-publish-plugin" }
 com-jaredsburrows-license = { id = "com.jaredsburrows.license", version = "0.8.42" }
 gradle-publish = { id = "com.gradle.plugin-publish", version = "1.2.1" }
 realm-gradle-plugin = { id = "io.realm:realm-gradle-plugin", version.ref = "iorealm" }
-baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
-

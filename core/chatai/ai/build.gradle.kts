@@ -1,14 +1,14 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  alias(libs.plugins.android.library)
-  alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
-  alias(libs.plugins.org.jetbrains.kotlin.plugin.compose)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.org.jetbrains.kotlin.plugin.serialization)
+    alias(libs.plugins.org.jetbrains.kotlin.compose)
 }
 
 android {
-  namespace = "me.rerere.ai"
-  compileSdk = 36
+    namespace = "me.rerere.ai"
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26
@@ -52,21 +52,25 @@ android {
 }
 
 dependencies {
-  implementation(projects.core.common)
+    implementation(projects.core.chatai.common)
 
-  implementation(libs.androidx.core.ktx)
-  implementation(platform(libs.androidx.compose.bom))
-  implementation(libs.androidx.compose.material3)
+    // Compose
+    implementation(libs.androidx.core.ktx)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
 
-  api(libs.okhttp)
-  api(libs.okhttp.sse)
-  api(libs.okhttp.logging)
+    // okhttp
+    api(libs.okhttp)
+    api(libs.okhttp.sse)
+    api(libs.okhttp.logging)
 
-  api(libs.kotlinx.serialization.json)
-  api(libs.kotlinx.coroutines.core)
-  api(libs.kotlinx.datetime)
+    // kotlinx
+    api(libs.kotlinx.serialization.json)
+    api(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.datetime)
 
-  testImplementation(libs.tests.junit)
-  androidTestImplementation(libs.tests.androidx.junit)
-  androidTestImplementation(libs.tests.androidx.espresso.core)
+    // tests
+    testImplementation(libs.tests.junit)
+    androidTestImplementation(libs.tests.androidx.junit)
+    androidTestImplementation(libs.tests.androidx.espresso.core)
 }
