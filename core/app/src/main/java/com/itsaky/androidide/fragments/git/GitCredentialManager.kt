@@ -37,11 +37,11 @@ object GitCredentialManager {
     showMaterialAuthDialog(context, current, onConfigured)
   }
 
-  fun showMaterialTokenEditor(context: Context, onSaved: ((Config) -> Unit)? = null) {
-    val initial = read(context)
-    showMaterialAuthDialog(context, initial) { cfg ->
-      onSaved?.invoke(cfg)
-    }
+  fun saveToken(context: Context, token: String): Config {
+    val current = read(context)
+    val cfg = current.copy(token = token.trim())
+    save(context, cfg)
+    return cfg
   }
 
   private fun showMaterialAuthDialog(context: Context, initial: Config, onConfigured: (Config) -> Unit) {
@@ -84,17 +84,21 @@ object GitCredentialManager {
                   emailEt.text?.toString()?.trim().orEmpty(),
                   tokenEt.text?.toString()?.trim().orEmpty(),
               )
-          val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-          sp.edit {
-            putString(KEY_USERNAME, cfg.username)
-            putString(KEY_EMAIL, cfg.email)
-            putString(KEY_TOKEN, cfg.token)
-          }
-          Libgit2Helper.saveGitUsernameAndEmailForGlobal({}, cfg.username, cfg.email)
+          save(context, cfg)
           onConfigured(cfg)
         }
         .setNegativeButton(android.R.string.cancel, null)
         .show()
+  }
+
+  private fun save(context: Context, cfg: Config) {
+    val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    sp.edit {
+      putString(KEY_USERNAME, cfg.username)
+      putString(KEY_EMAIL, cfg.email)
+      putString(KEY_TOKEN, cfg.token)
+    }
+    Libgit2Helper.saveGitUsernameAndEmailForGlobal({}, cfg.username, cfg.email)
   }
 
   fun toHttpCredential(cfg: Config): CredentialEntity {
