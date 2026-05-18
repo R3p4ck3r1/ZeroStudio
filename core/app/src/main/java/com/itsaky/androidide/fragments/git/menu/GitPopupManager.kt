@@ -246,7 +246,7 @@ class GitPopupManager(private val context: Context) {
                 if (gitDir.exists()) {
                   context.getString(com.itsaky.androidide.resources.R.string.git_repository_already_initialized)
                 } else {
-                  Libgit2Helper.initGitRepo(repoPath)
+                  Libgit2Helper.initGitRepo(repoPath, false)
                   context.getString(com.itsaky.androidide.resources.R.string.git_repository_initialized)
                 }
               }

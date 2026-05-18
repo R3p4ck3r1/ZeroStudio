@@ -279,7 +279,7 @@ class TreeRememberExpandedStatePreference(
     override val key: String = GeneralPreferences.TREE_REMEMBER_EXPANDED_STATE,
     override val title: Int = R.string.idepref_tree_remember_state_title,
     override val summary: Int? = R.string.idepref_tree_remember_state_summary,
-    override val icon: Int? = drawable.ic_history,
+    override val icon: Int? = drawable.ic_chevron_down,
 ) :
     SwitchPreference(
         setValue = { GeneralPreferences.treeRememberExpandedState = it },

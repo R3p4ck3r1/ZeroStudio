@@ -226,8 +226,7 @@ class EditorBottomSheet @JvmOverloads constructor(
             view.updatePadding(bottom = targetBottomPadding)
             
             // 告知 AdvancedSymbolInputView 底部有了 Inset（让其内部处理可能需要的安全区适配）
-            binding.externalSymbolInputView.setImeBottomInset(if (isImeVisibleNow) imeInsets.bottom else 0)
-            
+
             // 因为 BottomSheet 自己被垫高了，PeekHeight 需要加上这部分垫高数值，确保 Header 留在视图上方
             updatePeekHeight()
         }
@@ -356,7 +355,6 @@ class EditorBottomSheet @JvmOverloads constructor(
 
             val hideHeaderArea = slideOffset >= 1f
             binding.floatingHeaderArea.visibility = if (hideHeaderArea) View.GONE else View.VISIBLE
-            binding.externalSymbolInputView.applyBottomSheetGestureProgress(slideOffset)
 
             onSlideAction?.invoke(slideOffset)
           }
