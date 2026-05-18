@@ -1,6 +1,7 @@
 package com.itsaky.androidide.provider
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.drawable.Drawable
 import android.zero.studio.view.filetree.interfaces.FileIconProvider
 import android.zero.studio.view.filetree.interfaces.FileObject
@@ -18,14 +19,19 @@ import java.io.File
  * @author android_zero
  */
 class IDEFileIconProvider(private val context: Context) : FileIconProvider {
-  private val chevronRight = ContextCompat.getDrawable(context, R.drawable.ic_chevron_right)
-  private val expandMore by lazy {
-    val raw = ContextCompat.getDrawable(context, R.drawable.ic_chevron_down)?.mutate()
-    val isNight = (context.resources.configuration.uiMode and 0x30) == 0x20
-    val tint = if (isNight) 0xFFFFFFFF.toInt() else 0xFF1F2937.toInt()
-    raw?.let {
-      DrawableCompat.setTint(it, tint)
-      it
+  private val navigationIconTint: Int
+    get() {
+      val nightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+      return if (nightMode == Configuration.UI_MODE_NIGHT_YES) {
+        0xFFFFFFFF.toInt()
+      } else {
+        0xFF1F2937.toInt()
+      }
+    }
+
+  private fun getTintedNavigationIcon(resId: Int): Drawable? {
+    return ContextCompat.getDrawable(context, resId)?.mutate()?.also { drawable ->
+      DrawableCompat.setTint(drawable, navigationIconTint)
     }
   }
 
@@ -35,13 +41,17 @@ class IDEFileIconProvider(private val context: Context) : FileIconProvider {
             ?: return ContextCompat.getDrawable(context, R.drawable.ic_file_type_unknown)
 
     val iconRes =
-        FileExtension.Factory.forFile(fileObj).icon
+        if (fileObj.isDirectory) {
+          R.drawable.ic_folder
+        } else {
+          FileExtension.Factory.forFile(fileObj).icon
+        }
     return ContextCompat.getDrawable(context, iconRes)
   }
 
-  override fun getChevronRight(): Drawable? = chevronRight
+  override fun getChevronRight(): Drawable? = getTintedNavigationIcon(R.drawable.ic_chevron_right)
 
-  override fun getExpandMore(): Drawable? = expandMore
+  override fun getExpandMore(): Drawable? = getTintedNavigationIcon(R.drawable.ic_chevron_down)
 
   companion object {
     fun extractNativeFile(fileObj: FileObject): File? {
