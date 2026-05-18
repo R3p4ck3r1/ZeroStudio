@@ -1,14 +1,15 @@
 package com.itsaky.androidide.fragments.git
 
-import android.app.AlertDialog
 import android.content.Context
-import android.widget.EditText
 import android.widget.LinearLayout
 import androidx.core.content.edit
 import com.catpuppyapp.puppygit.data.entity.CredentialEntity
 import com.catpuppyapp.puppygit.utils.Libgit2Helper
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 
-object GitAuthConfig {
+object GitCredentialManager {
   private const val PREFS = "git_auth_config"
   private const val KEY_USERNAME = "username"
   private const val KEY_EMAIL = "email"
@@ -33,46 +34,55 @@ object GitAuthConfig {
       onConfigured(current)
       return
     }
-    showConfigDialog(context, current, onConfigured)
+    showMaterialAuthDialog(context, current, onConfigured)
   }
 
-  private fun showConfigDialog(context: Context, initial: Config, onConfigured: (Config) -> Unit) {
+  fun showMaterialTokenEditor(context: Context, onSaved: ((Config) -> Unit)? = null) {
+    val initial = read(context)
+    showMaterialAuthDialog(context, initial) { cfg ->
+      onSaved?.invoke(cfg)
+    }
+  }
+
+  private fun showMaterialAuthDialog(context: Context, initial: Config, onConfigured: (Config) -> Unit) {
+    val density = context.resources.displayMetrics.density
+    val pad = (20 * density).toInt()
+
     val container =
         LinearLayout(context).apply {
           orientation = LinearLayout.VERTICAL
-          val pad = (16 * resources.displayMetrics.density).toInt()
-          setPadding(pad, pad, pad, 0)
-        }
-    val usernameEt =
-        EditText(context).apply {
-          hint = "Git Username"
-          setText(initial.username)
-        }
-    val emailEt =
-        EditText(context).apply {
-          hint = "Git Email"
-          setText(initial.email)
-        }
-    val tokenEt =
-        EditText(context).apply {
-          hint = "Git Token / Password"
-          setText(initial.token)
+          setPadding(pad, (8 * density).toInt(), pad, 0)
         }
 
-    container.addView(usernameEt)
-    container.addView(emailEt)
-    container.addView(tokenEt)
+    fun field(hint: String, text: String, password: Boolean = false): TextInputEditText {
+      val til =
+          TextInputLayout(context).apply {
+            this.hint = hint
+            if (password) {
+              endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
+            }
+          }
+      val et = TextInputEditText(context)
+      et.setText(text)
+      til.addView(et)
+      container.addView(til)
+      return et
+    }
 
-    AlertDialog.Builder(context)
-        .setTitle("Configure Git Identity")
-        .setMessage("Push/Pull 前需要配置 username、email、token。")
+    val usernameEt = field("Git Username", initial.username)
+    val emailEt = field("Git Email", initial.email)
+    val tokenEt = field("Git Token", initial.token, password = true)
+
+    MaterialAlertDialogBuilder(context)
+        .setTitle("Git 凭据设置")
+        .setMessage("请输入用于 Push/Pull 的用户名、邮箱和 Token。")
         .setView(container)
-        .setPositiveButton("Save") { _, _ ->
+        .setPositiveButton("保存") { _, _ ->
           val cfg =
               Config(
-                  usernameEt.text.toString().trim(),
-                  emailEt.text.toString().trim(),
-                  tokenEt.text.toString().trim(),
+                  usernameEt.text?.toString()?.trim().orEmpty(),
+                  emailEt.text?.toString()?.trim().orEmpty(),
+                  tokenEt.text?.toString()?.trim().orEmpty(),
               )
           val sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
           sp.edit {

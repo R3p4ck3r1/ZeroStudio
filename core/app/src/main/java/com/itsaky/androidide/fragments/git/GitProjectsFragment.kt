@@ -166,7 +166,7 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
 
   private fun fetchOrigin() {
     val ctx = context ?: return
-    GitAuthConfig.ensureConfigured(ctx) { cfg ->
+    GitCredentialManager.ensureConfigured(ctx) { cfg ->
       withRepo(
           action = { repo ->
             if (Libgit2Helper.resolveRemote(repo, "origin") == null) {
@@ -187,7 +187,7 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
             Libgit2Helper.fetchRemoteForRepo(
                 repo = repo,
                 remoteName = "origin",
-                credential = GitAuthConfig.toHttpCredential(cfg),
+                credential = GitCredentialManager.toHttpCredential(cfg),
                 repoFromDb = repoEntity,
             )
           },
@@ -198,7 +198,7 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
 
   private fun pushOrigin() {
     val ctx = context ?: return
-    GitAuthConfig.ensureConfigured(ctx) { cfg ->
+    GitCredentialManager.ensureConfigured(ctx) { cfg ->
       withRepo(
           action = { repo ->
             if (Libgit2Helper.resolveRemote(repo, "origin") == null) {
@@ -211,7 +211,7 @@ class GitProjectsFragment : BaseGitPageFragment(), FileClickListener, FileLongCl
                 repo,
                 "origin",
                 listOf(refspec),
-                GitAuthConfig.toHttpCredential(cfg),
+                GitCredentialManager.toHttpCredential(cfg),
                 false,
             )
           },

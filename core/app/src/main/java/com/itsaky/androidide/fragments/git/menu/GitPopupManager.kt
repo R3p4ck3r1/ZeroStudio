@@ -23,7 +23,7 @@ import com.catpuppyapp.puppygit.utils.Libgit2Helper
 import com.catpuppyapp.puppygit.utils.Msg
 import com.catpuppyapp.puppygit.utils.doJobThenOffLoading
 import com.itsaky.androidide.R
-import com.itsaky.androidide.fragments.git.GitAuthConfig
+import com.itsaky.androidide.fragments.git.GitCredentialManager
 import com.itsaky.androidide.projects.IProjectManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -222,7 +222,7 @@ class GitPopupManager(private val context: Context) {
   }
 
   private fun showTokenCredentialDialog() {
-    GitAuthConfig.ensureConfigured(context) {
+    GitCredentialManager.showMaterialTokenEditor(context) {
       Msg.requireShowLongDuration("Token 凭据已更新，可用于 Push/Pull。")
     }
   }
