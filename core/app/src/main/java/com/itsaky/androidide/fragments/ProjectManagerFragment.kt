@@ -38,6 +38,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -76,6 +77,7 @@ import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.w3c.dom.Element
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -156,7 +158,11 @@ class ProjectManagerFragment : BaseFragment() {
       }
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+      Column(
+          modifier = Modifier.fillMaxSize().padding(12.dp),
+          verticalArrangement = Arrangement.spacedBy(12.dp),
+      ) {
       Box(modifier = Modifier.fillMaxWidth()) {
         ScrollableTabRow(selectedTabIndex = safeSelectedTabIndex, modifier = Modifier.fillMaxWidth().padding(end = 24.dp)) {
           tabState.forEachIndexed { index, tab ->
@@ -208,10 +214,19 @@ class ProjectManagerFragment : BaseFragment() {
                           onClick = { viewModel.openProject(requireContext(), File(projectPath)) },
                           onLongClick = { menuProjectPath = projectPath },
                       ),
-                  elevation = CardDefaults.cardElevation(2.dp)) {
+                  colors =
+                      CardDefaults.cardColors(
+                          containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                      ),
+                  elevation = CardDefaults.cardElevation(1.dp)) {
                     Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                       ProjectIconPreview(displayInfo.iconFile)
-                      Text(displayInfo.label, modifier = Modifier.padding(start = 10.dp), style = MaterialTheme.typography.titleMedium)
+                      Text(
+                          displayInfo.label,
+                          modifier = Modifier.padding(start = 10.dp),
+                          style = MaterialTheme.typography.titleMedium,
+                          color = MaterialTheme.colorScheme.onSurface,
+                      )
                     }
                 DropdownMenu(expanded = menuProjectPath == projectPath, onDismissRequest = { menuProjectPath = null }) {
                   DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_rename)) }, onClick = {
@@ -248,6 +263,7 @@ class ProjectManagerFragment : BaseFragment() {
           modifier = Modifier.align(Alignment.End).padding(top = 8.dp, end = 2.dp).size(28.dp),
       ) {
         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_manager_add_folder))
+      }
       }
     }
 
@@ -486,9 +502,31 @@ class ProjectManagerFragment : BaseFragment() {
       if (parts.size != 2) return null
       val type = parts[0]
       val name = parts[1]
-      return resDir.listFiles { f -> f.isDirectory && f.name.startsWith("$type-") }?.flatMap { dir ->
-        dir.listFiles()?.toList().orEmpty()
-      }?.firstOrNull { f -> f.nameWithoutExtension == name }
+      val dirs =
+          resDir.listFiles { f ->
+            f.isDirectory && (f.name == type || f.name.startsWith("$type-"))
+          }?.toList().orEmpty()
+      val exact = dirs.flatMap { it.listFiles()?.toList().orEmpty() }.firstOrNull { f -> f.nameWithoutExtension == name }
+      if (exact == null || exact.extension.lowercase() != "xml") return exact
+      return resolveAdaptiveOrLayeredIcon(resDir, exact) ?: exact
+    }
+
+    private fun resolveAdaptiveOrLayeredIcon(resDir: File, xmlIconFile: File): File? {
+      val doc = runCatching { DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xmlIconFile) }.getOrNull() ?: return null
+      val root = doc.documentElement ?: return null
+      if (root.tagName != "adaptive-icon" && root.tagName != "layer-list") return null
+      val refs = mutableListOf<String>()
+      val nodeList = root.childNodes
+      for (i in 0 until nodeList.length) {
+        val node = nodeList.item(i)
+        if (node is Element) {
+          val drawableRef = node.getAttribute("android:drawable").ifBlank { node.getAttribute("drawable") }
+          val fg = node.getAttribute("android:foreground").ifBlank { node.getAttribute("foreground") }
+          val bg = node.getAttribute("android:background").ifBlank { node.getAttribute("background") }
+          listOf(drawableRef, fg, bg).filter { it.startsWith("@") }.forEach(refs::add)
+        }
+      }
+      return refs.asSequence().mapNotNull { resolveDrawableResourceFile(resDir, it) }.firstOrNull()
     }
 
     private fun resolveIconByMeta(resDir: File, meta: ProjectAppMeta?): File? {

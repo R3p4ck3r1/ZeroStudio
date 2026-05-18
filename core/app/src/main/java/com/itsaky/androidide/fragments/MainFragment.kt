@@ -101,6 +101,7 @@ class MainFragment : BaseFragment() {
   private fun ZeroStudioMainLayout() {
     val scrollState = rememberScrollState()
     var selectedNav by rememberSaveable { mutableIntStateOf(0) }
+    val projectContainerId = rememberSaveable { View.generateViewId() }
 
     Scaffold(
         topBar = {
@@ -164,25 +165,26 @@ class MainFragment : BaseFragment() {
     ) { padding ->
       Box(modifier = Modifier.fillMaxSize().padding(padding)) {
         if (selectedNav == 1) {
-          AndroidView(factory = { ctx ->
-            FrameLayout(ctx).apply { id = View.generateViewId() }
-          }, modifier = Modifier.fillMaxSize(), update = { container ->
-            val existing = childFragmentManager.findFragmentByTag("project_manager_embedded")
-            if (existing == null) {
-              childFragmentManager.commit {
-                replace(container.id, ProjectManagerFragment(), "project_manager_embedded")
-              }
-            }
-          })
-          return@Scaffold
-        }
-
-        Column(
+          AndroidView(
+              factory = { ctx -> FrameLayout(ctx).apply { id = projectContainerId } },
+              modifier = Modifier.fillMaxSize(),
+              update = { container ->
+                val existing = childFragmentManager.findFragmentByTag("project_manager_embedded")
+                if (existing == null) {
+                  childFragmentManager.commit {
+                    setReorderingAllowed(true)
+                    replace(container.id, ProjectManagerFragment(), "project_manager_embedded")
+                  }
+                }
+              },
+          )
+        } else {
+          Column(
             modifier =
                 Modifier.fillMaxSize()
                     .verticalScroll(scrollState)
                     .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 92.dp)
-        ) {
+          ) {
           QuickStartGradientCard()
 
           Spacer(modifier = Modifier.height(20.dp))
@@ -223,23 +225,24 @@ class MainFragment : BaseFragment() {
               }
             }
           }
-        }
+          }
 
-        // 工具与服务区域
-        Box(
+          // 工具与服务区域
+          Box(
             modifier =
                 Modifier.align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 20.dp))
-        ) {
-          Surface(
+          ) {
+            Surface(
               modifier = Modifier.matchParentSize().blur(radius = 18.dp), // 模糊半径
               color = Color.White.copy(alpha = 0.9f),
-          ) {}
+            ) {}
 
-          Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-            SectionTitle(stringResource(R.string.main_tools_services))
-            ToolsServiceGrid()
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+              SectionTitle(stringResource(R.string.main_tools_services))
+              ToolsServiceGrid()
+            }
           }
         }
       }
