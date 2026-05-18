@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import com.itsaky.androidide.build.config.BuildConfig
 
 plugins {
   alias(libs.plugins.android.library)
@@ -8,7 +9,7 @@ plugins {
 
 android {
   namespace = "android.zero.studio.view.filetree"
-  compileSdk = 34
+  compileSdk = BuildConfig.compileSdk
 
   defaultConfig {
     minSdk = 24
