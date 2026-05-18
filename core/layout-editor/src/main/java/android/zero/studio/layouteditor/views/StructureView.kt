@@ -57,7 +57,6 @@ import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager.widget.ViewPager
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.R.attr
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.chip.Chip
@@ -83,7 +82,7 @@ class StructureView @JvmOverloads constructor(context: Context, attrs: Attribute
    * orientation of this view to VERTICAL and sets the default OnItemClickListener.
    */
   init {
-    val primaryColor = MaterialColors.getColor(this, attr.colorPrimary)
+    val primaryColor = MaterialColors.getColor(this, R.attr.colorPrimary, 0)
     paint.color = primaryColor
     paint.isAntiAlias = true
     paint.strokeWidth = getDip(1).toFloat()
