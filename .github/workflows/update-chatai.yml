@@ -1,0 +1,80 @@
+name: Sync core/chatai from RikkaHub
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: 'RikkaHub git ref (branch/tag/sha), e.g. main'
+        required: true
+        default: 'main'
+      dry_run:
+        description: 'Only show diff, do not commit'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  sync-chatai:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rsync jq
+
+      - name: Export upstream source
+        env:
+          REF: ${{ github.event.inputs.source_ref }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/rikkahub-src
+          git clone --depth 1 --branch "$REF" https://github.com/rikkahub/rikkahub.git /tmp/rikkahub-src || {
+            git clone https://github.com/rikkahub/rikkahub.git /tmp/rikkahub-src
+            cd /tmp/rikkahub-src && git checkout "$REF"
+          }
+
+      - name: Sync files into core/chatai
+        run: |
+          set -euo pipefail
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.idea' \
+            --exclude 'local.properties' \
+            /tmp/rikkahub-src/ core/chatai/
+
+      - name: Re-apply ZeroStudio integration patches
+        run: |
+          set -euo pipefail
+          bash scripts/chatai/reapply-integrations.sh
+
+      - name: Show changed files
+        run: |
+          git status --short
+          git diff --stat
+
+      - name: Commit changes
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No changes after sync"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          UPSTREAM_SHA=$(git -C /tmp/rikkahub-src rev-parse --short HEAD)
+          git add core/chatai scripts/chatai/reapply-integrations.sh .github/workflows/update-chatai.yml
+          git commit -m "chore(chatai): sync from rikkahub @ ${UPSTREAM_SHA}"
+
+      - name: Upload patch artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatai-sync-diff
+          path: |
+            core/chatai
