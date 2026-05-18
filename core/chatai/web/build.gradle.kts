@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
-val webUiDir = rootProject.layout.projectDirectory.dir("core/chatai/web/web-ui")
+val webUiDir = rootProject.layout.projectDirectory.dir("core/chatai/web-ui")
 val webStaticResourcesDir = layout.projectDirectory.dir("src/main/resources/static")
 
 val buildWebUi = tasks.register<Exec>("buildWebUi") {
