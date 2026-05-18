@@ -59,19 +59,19 @@ class GitPopupManager(private val context: Context) {
 
     addMenuItem(
         iconRes = R.drawable.ic_key_24,
-        title = "Token 凭据",
-        subtitle = "管理 HTTPS Token/密钥",
+        title = context.getString(com.itsaky.androidide.resources.R.string.git_token_credential_title),
+        subtitle = context.getString(com.itsaky.androidide.resources.R.string.git_token_credential_subtitle),
     ) {
       showTokenCredentialDialog()
       dismiss()
     }
 
     addDivider()
-    addSectionTitle("Git 操作区")
+    addSectionTitle(context.getString(com.itsaky.androidide.resources.R.string.git_operations_section))
     addMenuItem(
         iconRes = R.drawable.ic_initialize_target_24dp,
-        title = "Git 初始化",
-        subtitle = "创建 .git 仓库",
+        title = context.getString(com.itsaky.androidide.resources.R.string.git_init_title),
+        subtitle = context.getString(com.itsaky.androidide.resources.R.string.git_init_subtitle),
     ) {
       initRepositoryIfNeeded()
       dismiss()
@@ -79,7 +79,9 @@ class GitPopupManager(private val context: Context) {
     addDivider()
 
     addMenuItem(iconRes = R.drawable.ic_settings_24, title = context.getString(R.string.settings)) {
-      Msg.requireShowLongDuration("Git settings page is under construction")
+      Msg.requireShowLongDuration(
+          context.getString(com.itsaky.androidide.resources.R.string.git_settings_under_construction)
+      )
       dismiss()
     }
 
@@ -222,7 +224,7 @@ class GitPopupManager(private val context: Context) {
 
   private fun showTokenCredentialDialog() {
     GitTokenInputDialog(context).show {
-      Msg.requireShowLongDuration("Token 凭据已更新，可用于 Push/Pull。")
+      Msg.requireShowLongDuration(context.getString(com.itsaky.androidide.resources.R.string.git_token_updated))
     }
   }
 
@@ -233,7 +235,7 @@ class GitPopupManager(private val context: Context) {
             ?: IProjectManager.getInstance().projectDirPath.takeIf { it.isNotBlank() }
 
     if (repoPath.isNullOrBlank()) {
-      Msg.requireShowLongDuration("No opened project")
+      Msg.requireShowLongDuration(context.getString(com.itsaky.androidide.resources.R.string.git_no_opened_project))
       return
     }
 
@@ -242,13 +244,16 @@ class GitPopupManager(private val context: Context) {
           runCatching {
                 val gitDir = java.io.File(repoPath, ".git")
                 if (gitDir.exists()) {
-                  "Repository already initialized"
+                  context.getString(com.itsaky.androidide.resources.R.string.git_repository_already_initialized)
                 } else {
                   Libgit2Helper.initGitRepo(repoPath)
-                  "Repository initialized"
+                  context.getString(com.itsaky.androidide.resources.R.string.git_repository_initialized)
                 }
               }
-              .getOrElse { it.localizedMessage ?: "Git init failed" }
+              .getOrElse {
+                it.localizedMessage
+                    ?: context.getString(com.itsaky.androidide.resources.R.string.git_init_failed)
+              }
 
       withContext(Dispatchers.Main) { Msg.requireShowLongDuration(msg) }
     }
