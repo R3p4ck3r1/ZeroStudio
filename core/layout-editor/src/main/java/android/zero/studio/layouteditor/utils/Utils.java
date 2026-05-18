@@ -20,9 +20,9 @@ import android.view.View;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.material.R;
+// import com.google.android.material.R;
 import com.google.android.material.color.MaterialColors;
-import android.zero.studio.layouteditor.R;
+import com.itsaky.androidide.resources.R;
 import android.zero.studio.layouteditor.vectormaster.VectorMasterDrawable;
 
 import java.io.File;

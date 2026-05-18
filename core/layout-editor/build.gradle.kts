@@ -41,7 +41,6 @@ dependencies {
   implementation(libs.androidx.palette.ktx)
   api(libs.androidx.nav.ui)
   api(libs.androidx.nav.fragment)
-
   implementation(libs.androidx.google.fonts)
   implementation(libs.google.material)
   implementation(libs.google.gson)
