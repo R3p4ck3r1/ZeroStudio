@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
-val webUiDir = rootProject.layout.projectDirectory.dir("web-ui")
+val webUiDir = rootProject.layout.projectDirectory.dir("core/chatai/web/web-ui")
 val webStaticResourcesDir = layout.projectDirectory.dir("src/main/resources/static")
 
 val buildWebUi = tasks.register<Exec>("buildWebUi") {
@@ -65,18 +65,18 @@ dependencies {
     implementation(libs.google.material)
 
     // ktor server
-    implementation(libs.ktor.server.default.headers)
-    implementation(libs.ktor.server.conditional.headers)
-    implementation(libs.ktor.server.compression)
-    implementation(libs.ktor.server.cors)
-    api(libs.ktor.server.auth)
-    api(libs.ktor.server.auth.jwt)
-    api(libs.ktor.server.core)
-    implementation(libs.ktor.server.host.common)
-    api(libs.ktor.server.content.negotiation)
-    api(libs.ktor.server.status.pages)
-    api(libs.ktor.server.sse)
-    api(libs.ktor.server.cio)
+    implementation(libs.io.ktor.server.default.headers)
+    implementation(libs.io.ktor.server.conditional.headers)
+    implementation(libs.io.ktor.server.compression)
+    implementation(libs.io.ktor.server.cors)
+    api(libs.io.ktor.server.auth)
+    api(libs.io.ktor.server.auth.jwt)
+    api(libs.io.ktor.server.core)
+    implementation(libs.io.ktor.server.host.common)
+    api(libs.io.ktor.server.content.negotiation)
+    api(libs.io.ktor.server.status.pages)
+    api(libs.io.ktor.server.sse)
+    api(libs.io.ktor.server.cio)
 
     testImplementation(libs.tests.junit)
     androidTestImplementation(libs.tests.androidx.junit)
