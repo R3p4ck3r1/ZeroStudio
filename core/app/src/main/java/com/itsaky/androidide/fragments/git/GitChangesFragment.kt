@@ -206,7 +206,7 @@ class GitChangesFragment : BaseGitPageFragment() {
     }
 
     val ctx = context ?: return
-    GitAuthConfig.ensureConfigured(ctx) { cfg ->
+    GitCredentialManager.ensureConfigured(ctx) { cfg ->
       withRepo(
           action = { repo ->
             val settings = SettingsUtil.getSettingsSnapshot()
@@ -235,7 +235,7 @@ class GitChangesFragment : BaseGitPageFragment() {
 
   private fun pushCurrentBranch(force: Boolean) {
     val context = context ?: return
-    GitAuthConfig.ensureConfigured(context) { cfg ->
+    GitCredentialManager.ensureConfigured(context) { cfg ->
       withRepo { repo ->
         if (Libgit2Helper.resolveRemote(repo, "origin") == null) {
           throw IllegalStateException("Remote origin not found")
@@ -252,7 +252,7 @@ class GitChangesFragment : BaseGitPageFragment() {
         }
 
         val refspec = "refs/heads/$branch:refs/heads/$branch"
-        val credential = GitAuthConfig.toHttpCredential(cfg)
+        val credential = GitCredentialManager.toHttpCredential(cfg)
         Libgit2Helper.push(repo, "origin", listOf(refspec), credential, force)
       }
     }
@@ -260,7 +260,7 @@ class GitChangesFragment : BaseGitPageFragment() {
 
   private fun pullFromOrigin() {
     val context = context ?: return
-    GitAuthConfig.ensureConfigured(context) { cfg ->
+    GitCredentialManager.ensureConfigured(context) { cfg ->
       withRepo { repo ->
         if (Libgit2Helper.resolveRemote(repo, "origin") == null) {
           throw IllegalStateException("Remote origin not found")
@@ -275,7 +275,7 @@ class GitChangesFragment : BaseGitPageFragment() {
         Libgit2Helper.fetchRemoteForRepo(
             repo = repo,
             remoteName = "origin",
-            credential = GitAuthConfig.toHttpCredential(cfg),
+            credential = GitCredentialManager.toHttpCredential(cfg),
             repoFromDb = repoEntity,
         )
       }

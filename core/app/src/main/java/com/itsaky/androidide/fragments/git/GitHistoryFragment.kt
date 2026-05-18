@@ -117,7 +117,7 @@ class GitHistoryFragment : BaseGitPageFragment() {
 
   private fun fetchOriginAndRefresh() {
     val ctx = context ?: return
-    GitAuthConfig.ensureConfigured(ctx) { cfg ->
+    GitCredentialManager.ensureConfigured(ctx) { cfg ->
       withRepo { repo ->
         val remote = Libgit2Helper.resolveRemote(repo, "origin")
         if (remote == null) {
@@ -134,7 +134,7 @@ class GitHistoryFragment : BaseGitPageFragment() {
         Libgit2Helper.fetchRemoteForRepo(
             repo = repo,
             remoteName = "origin",
-            credential = GitAuthConfig.toHttpCredential(cfg),
+            credential = GitCredentialManager.toHttpCredential(cfg),
             repoFromDb = repoEntity,
         )
       }

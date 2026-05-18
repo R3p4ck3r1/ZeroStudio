@@ -659,7 +659,15 @@ private fun CloneScreenContent(
               false
             }
 
-        if (isRepoNameExist || isPathExists(null, fullSavePath)) {
+        val isPathExistsAndConflicted =
+            if (isEditMode) {
+              val oldPath = repoFromDb.value.fullSavePath
+              oldPath.isNotBlank() && oldPath != fullSavePath && isPathExists(null, fullSavePath)
+            } else {
+              isPathExists(null, fullSavePath)
+            }
+
+        if (isRepoNameExist || isPathExistsAndConflicted) {
           Msg.requireShowLongDuration(activityContext.getString(R.string.repo_name_exists_err))
           focusRepoName()
           showRepoNameAlreadyExistsErr.value = true

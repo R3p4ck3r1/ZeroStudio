@@ -1075,4 +1075,19 @@ SHA256：%9$s</string>
     <string name="idepref_tree_remember_state_summary">刷新/重载后保留已展开路径；若禁用，树将重置为根节点折叠状态。</string>
     <string name="bottom_sheet_page_build">构建状态</string>
     <string name="bottom_sheet_page_symbols">符号输入</string>
+  <string name="git_token_credential_title">Token Credentials</string>
+  <string name="git_token_credential_subtitle">Manage HTTPS token/secret</string>
+  <string name="git_operations_section">Git Operations</string>
+  <string name="git_init_title">Initialize Git</string>
+  <string name="git_init_subtitle">Create .git repository</string>
+  <string name="git_settings_under_construction">Git settings page is under construction</string>
+  <string name="git_token_updated">Token credentials updated for Push/Pull.</string>
+  <string name="git_no_opened_project">No opened project</string>
+  <string name="git_repository_already_initialized">Repository already initialized</string>
+  <string name="git_repository_initialized">Repository initialized</string>
+  <string name="git_init_failed">Git init failed</string>
+  <string name="git_token_input_hint">Git Token</string>
+  <string name="git_token_dialog_title">Token Credential Settings</string>
+  <string name="git_token_dialog_message">Only edit the token used for HTTPS Push/Pull.</string>
+  <string name="git_save">Save</string>
 </resources>

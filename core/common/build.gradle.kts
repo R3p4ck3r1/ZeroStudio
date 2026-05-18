@@ -39,6 +39,7 @@ dependencies {
   api(libs.androidx.animated.vectors)
   api(libs.androidx.nav.ui)
   api(libs.androidx.nav.fragment)
+  api(libs.androidx.documentfile)
 
   api(libs.androidx.core.ktx)
   api(libs.common.kotlin)
