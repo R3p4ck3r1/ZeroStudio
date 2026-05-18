@@ -185,85 +185,88 @@ class ProjectManagerFragment : BaseFragment() {
 
         if (selectedTab == null) {
           Text(
-            text = stringResource(R.string.project_manager_path_not_exists),
-            style = MaterialTheme.typography.bodyMedium,
+              text = stringResource(R.string.project_manager_path_not_exists),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
           )
-          return
-        }
-        val key = selectedTab.stableKey()
-        val projects = tabProjectsState[key].orEmpty()
-        val isLoading = loadingState[key] == true
+        } else {
+          val key = selectedTab.stableKey()
+          val projects = tabProjectsState[key].orEmpty()
+          val isLoading = loadingState[key] == true
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-          if (clipboardState != null) {
-            TextButton(onClick = { moveClipboardToTab(scope, selectedTab) }) {
-              Icon(Icons.Default.ContentPaste, null)
-              Text(stringResource(R.string.project_manager_paste_current_tab), modifier = Modifier.padding(start = 6.dp))
+          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            if (clipboardState != null) {
+              TextButton(onClick = { moveClipboardToTab(scope, selectedTab) }) {
+                Icon(Icons.Default.ContentPaste, null)
+                Text(
+                    stringResource(R.string.project_manager_paste_current_tab),
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+              }
             }
           }
-        }
 
-      PullToRefreshBox(isRefreshing = isLoading, onRefresh = { reloadProjectList(scope, selectedTab, true) }) {
-        LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-          items(projects, key = { it }) { projectPath ->
-            val displayInfo = remember(projectPath) { parseProjectDisplayInfo(File(projectPath)) }
-            Box {
-              Card(
-                  modifier =
-                      Modifier.fillMaxWidth().combinedClickable(
-                          onClick = { viewModel.openProject(requireContext(), File(projectPath)) },
-                          onLongClick = { menuProjectPath = projectPath },
-                      ),
-                  colors =
-                      CardDefaults.cardColors(
-                          containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                      ),
-                  elevation = CardDefaults.cardElevation(1.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                      ProjectIconPreview(displayInfo.iconFile)
-                      Text(
-                          displayInfo.label,
-                          modifier = Modifier.padding(start = 10.dp),
-                          style = MaterialTheme.typography.titleMedium,
-                          color = MaterialTheme.colorScheme.onSurface,
-                      )
-                    }
-                DropdownMenu(expanded = menuProjectPath == projectPath, onDismissRequest = { menuProjectPath = null }) {
-                  DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_rename)) }, onClick = {
-                    renameTarget = projectPath
-                    renameInput = File(projectPath).name
-                    menuProjectPath = null
-                  })
-                  DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_cut)) }, onClick = {
-                    clipboardState = ClipboardProject(projectPath)
-                    menuProjectPath = null
-                  })
-                  DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_move_to)) }, onClick = {
-                    clipboardState = ClipboardProject(projectPath)
-                    moveClipboardToTab(scope, selectedTab)
-                    menuProjectPath = null
-                  })
-                  DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_delete)) }, onClick = {
-                    deleteProject(scope, selectedTab, projectPath)
-                    menuProjectPath = null
-                  })
-                  DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_properties)) }, onClick = {
-                    showPropertiesFor = projectPath
-                    menuProjectPath = null
-                  })
+          PullToRefreshBox(
+              isRefreshing = isLoading,
+              onRefresh = { reloadProjectList(scope, selectedTab, true) },
+          ) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+              items(projects, key = { it }) { projectPath ->
+                val displayInfo = remember(projectPath) { parseProjectDisplayInfo(File(projectPath)) }
+                Box {
+                  Card(
+                      modifier =
+                          Modifier.fillMaxWidth().combinedClickable(
+                              onClick = { viewModel.openProject(requireContext(), File(projectPath)) },
+                              onLongClick = { menuProjectPath = projectPath },
+                          ),
+                      colors =
+                          CardDefaults.cardColors(
+                              containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                          ),
+                      elevation = CardDefaults.cardElevation(1.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                          ProjectIconPreview(displayInfo.iconFile)
+                          Text(
+                              displayInfo.label,
+                              modifier = Modifier.padding(start = 10.dp),
+                              style = MaterialTheme.typography.titleMedium,
+                              color = MaterialTheme.colorScheme.onSurface,
+                          )
+                        }
+                      }
+                  DropdownMenu(expanded = menuProjectPath == projectPath, onDismissRequest = { menuProjectPath = null }) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_rename)) }, onClick = {
+                      renameTarget = projectPath
+                      renameInput = File(projectPath).name
+                      menuProjectPath = null
+                    })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_cut)) }, onClick = {
+                      clipboardState = ClipboardProject(projectPath)
+                      menuProjectPath = null
+                    })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_move_to)) }, onClick = {
+                      clipboardState = ClipboardProject(projectPath)
+                      moveClipboardToTab(scope, selectedTab)
+                      menuProjectPath = null
+                    })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_delete)) }, onClick = {
+                      deleteProject(scope, selectedTab, projectPath)
+                      menuProjectPath = null
+                    })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.project_manager_properties)) }, onClick = {
+                      showPropertiesFor = projectPath
+                      menuProjectPath = null
+                    })
+                  }
                 }
               }
             }
           }
         }
-      }
-
-      FloatingActionButton(
-          onClick = { folderPicker.launch(null) },
-          modifier = Modifier.align(Alignment.End).padding(top = 8.dp, end = 2.dp).size(28.dp),
-      ) {
-        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.project_manager_add_folder))
-      }
       }
     }
 
@@ -561,29 +564,29 @@ class ProjectManagerFragment : BaseFragment() {
     private fun ProjectIconPreview(iconFile: File?) {
       if (iconFile == null || !iconFile.exists()) {
         Icon(Icons.Default.Folder, null)
-        return
+      } else {
+        AndroidView(
+            factory = { context ->
+              AppCompatImageView(context).apply {
+                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+              }
+            },
+            update = { imageView ->
+              val drawable = when (iconFile.extension.lowercase()) {
+                "png", "jpg", "jpeg", "webp" -> android.graphics.drawable.Drawable.createFromPath(iconFile.absolutePath)
+                "xml" -> runCatching {
+                  val parser = Xml.newPullParser().apply { setInput(iconFile.inputStream(), "utf-8") }
+                  while (parser.eventType != org.xmlpull.v1.XmlPullParser.START_TAG && parser.eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) parser.next()
+                  AppCompatResources.getDrawable(imageView.context, android.R.drawable.picture_frame)
+                  android.graphics.drawable.Drawable.createFromXml(imageView.resources, parser)
+                }.getOrNull()
+                else -> null
+              }
+              imageView.setImageDrawable(drawable ?: AppCompatResources.getDrawable(imageView.context, R.drawable.ic_android))
+            },
+            modifier = Modifier.size(40.dp),
+        )
       }
-      AndroidView(
-          factory = { context ->
-            AppCompatImageView(context).apply {
-              scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-            }
-          },
-          update = { imageView ->
-            val drawable = when (iconFile.extension.lowercase()) {
-              "png", "jpg", "jpeg", "webp" -> android.graphics.drawable.Drawable.createFromPath(iconFile.absolutePath)
-              "xml" -> runCatching {
-                val parser = Xml.newPullParser().apply { setInput(iconFile.inputStream(), "utf-8") }
-                while (parser.eventType != org.xmlpull.v1.XmlPullParser.START_TAG && parser.eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) parser.next()
-                AppCompatResources.getDrawable(imageView.context, android.R.drawable.picture_frame)
-                android.graphics.drawable.Drawable.createFromXml(imageView.resources, parser)
-              }.getOrNull()
-              else -> null
-            }
-            imageView.setImageDrawable(drawable ?: AppCompatResources.getDrawable(imageView.context, R.drawable.ic_android))
-          },
-          modifier = Modifier.size(40.dp),
-      )
     }
 
     private fun uriToPath(uri: Uri): String? {
