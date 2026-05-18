@@ -13,6 +13,13 @@ on:
         type: boolean
         default: true
 
+concurrency:
+  group: sync-chatai-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
 jobs:
   sync-chatai:
     runs-on: ubuntu-24.04
@@ -78,3 +85,4 @@ jobs:
           name: chatai-sync-diff
           path: |
             core/chatai
+          if-no-files-found: warn
