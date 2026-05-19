@@ -24,6 +24,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.itsaky.androidide.R
 import com.itsaky.androidide.adapters.TemplateGridAdapter
@@ -96,7 +98,8 @@ class TemplateListFragment :
 
     val pagerAdapter =
         CategoryPageAdapter(
-            fragment = this,
+            subTabLayout = binding.subTabLayout,
+            viewPager = binding.viewPager,
             categories = categories,
             templateProvider = templateProvider,
             spanCount = spanCount,
@@ -148,7 +151,8 @@ class TemplateListFragment :
  * @author android_zero
  */
 private class CategoryPageAdapter(
-    private val fragment: TemplateListFragment,
+    private val subTabLayout: TabLayout,
+    private val viewPager: ViewPager2,
     private val categories: List<TemplateCategory>,
     private val templateProvider: ITemplateProvider,
     private val spanCount: Int,
@@ -184,16 +188,16 @@ private class CategoryPageAdapter(
   fun onMainCategoryChanged(category: TemplateCategory) {
     val subCategories = TemplateCategory.getSubCategories(category)
     val providerImpl = templateProvider as? TemplateProviderImpl
-    fragment.binding.subTabLayout.removeAllTabs()
+    subTabLayout.removeAllTabs()
 
     subCategories.forEach { subCategory ->
-      val tab = fragment.binding.subTabLayout.newTab().setText(subCategory.title)
+      val tab = subTabLayout.newTab().setText(subCategory.title)
       subCategory.icon?.let(tab::setIcon)
-      fragment.binding.subTabLayout.addTab(tab)
+      subTabLayout.addTab(tab)
     }
 
-    fragment.binding.subTabLayout.clearOnTabSelectedListeners()
-    fragment.binding.subTabLayout.addOnTabSelectedListener(
+    subTabLayout.clearOnTabSelectedListeners()
+    subTabLayout.addOnTabSelectedListener(
         object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
           override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
             val selectedSubCategory = tab?.position?.let(subCategories::getOrNull) ?: return
@@ -214,7 +218,7 @@ private class CategoryPageAdapter(
   ) {
     val pageIndex = categories.indexOf(category)
     if (pageIndex < 0) return
-    val holder = fragment.binding.viewPager.getChildAt(0) as? RecyclerView ?: return
+    val holder = viewPager.getChildAt(0) as? RecyclerView ?: return
     val vh = holder.findViewHolderForAdapterPosition(pageIndex) as? PageViewHolder ?: return
     val templates =
         if (subCategory.key == allKey || providerImpl == null) {
