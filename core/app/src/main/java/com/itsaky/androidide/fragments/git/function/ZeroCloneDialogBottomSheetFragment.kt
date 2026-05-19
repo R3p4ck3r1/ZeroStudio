@@ -110,7 +110,6 @@ import com.catpuppyapp.puppygit.utils.getRepoNameFromGitUrl
 import com.catpuppyapp.puppygit.utils.isPathExists
 import com.catpuppyapp.puppygit.utils.state.mutableCustomStateListOf
 import com.catpuppyapp.puppygit.utils.state.mutableCustomStateOf
-import com.catpuppyapp.puppygit.utils.storagepaths.StoragePathsMan
 import com.github.git24j.core.Clone
 import com.github.git24j.core.Remote
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -433,24 +432,7 @@ private fun CloneScreenContent(
           // 这里需要重新获取完整的列表，确保是新的
           val currentList = storagePathList.value
 
-          val spForSave = StoragePathsMan.get()
-          val (indexOfStoragePath, existedStoragePath) = findStoragePathItemByPath(newPath)
-
-          if (indexOfStoragePath != -1) {
-            storagePathSelectedPath.value = existedStoragePath!!
-            storagePathSelectedIndex.intValue = indexOfStoragePath
-            spForSave.storagePathLastSelected = newPath
-          } else {
-            val newItem =
-                NameAndPath.genByPath(newPath, NameAndPathType.REPOS_STORAGE_PATH, activityContext)
-            currentList.add(newItem)
-            val newItemIndex = currentList.size - 1
-            storagePathSelectedIndex.intValue = newItemIndex
-            storagePathSelectedPath.value = newItem
-            spForSave.storagePaths.add(newPath)
-            spForSave.storagePathLastSelected = newPath
-          }
-          StoragePathsMan.save(spForSave)
+          Msg.requireShowLongDuration("仅支持 PROJECTS_DIR 存储位置")
         } catch (e: Exception) {
           Msg.requireShowLongDuration("err: ${e.localizedMessage}")
           MyLog.e(TAG, "add storage path at `$TAG` err: ${e.stackTraceToString()}")
@@ -478,25 +460,13 @@ private fun CloneScreenContent(
       }
 
       storagePathList.value.removeAt(index)
-      val spForSave = StoragePathsMan.get()
       val removedCurrent = index == storagePathSelectedIndex.intValue
       if (removedCurrent) {
         val newCurrentIndex = 0
         storagePathSelectedIndex.intValue = newCurrentIndex
         val newCurrent = storagePathList.value[newCurrentIndex]
         storagePathSelectedPath.value = newCurrent
-        spForSave.storagePathLastSelected = newCurrent.path
       }
-
-      spForSave.storagePaths.clear()
-      val list =
-          storagePathList.value.filterAndMap({ it.type == NameAndPathType.REPOS_STORAGE_PATH }) {
-            it.path
-          }
-      if (list.isNotEmpty()) {
-        spForSave.storagePaths.addAll(list)
-      }
-      StoragePathsMan.save(spForSave)
     }
 
     ConfirmDialog2(
@@ -1078,12 +1048,11 @@ private fun CloneScreenContent(
               menuItemOnClick = { index, value ->
                 storagePathSelectedIndex.intValue = index
                 storagePathSelectedPath.value = value
-                StoragePathsMan.update { it.storagePathLastSelected = value.path }
               },
               menuItemTrailIcon = Icons.Filled.DeleteOutline,
               menuItemTrailIconDescription =
                   stringResource(R.string.trash_bin_icon_for_delete_item),
-              menuItemTrailIconEnable = { index, value -> index != 0 },
+              menuItemTrailIconEnable = { _, _ -> false },
               menuItemTrailIconOnClick = { index, value ->
                 if (index == 0) {
                   Msg.requireShowLongDuration(
@@ -1097,7 +1066,9 @@ private fun CloneScreenContent(
 
           IconButton(
               modifier = Modifier.align(Alignment.CenterEnd),
-              onClick = { showAddStoragePathDialog.value = true },
+              onClick = {
+                Msg.requireShowLongDuration("仅支持 PROJECTS_DIR 存储位置")
+              },
               enabled = !isCloning.value,
           ) {
             Icon(
@@ -1295,31 +1266,6 @@ private fun CloneScreenContent(
 
   LaunchedEffect(Unit) {
     doJobThenOffLoading job@{
-      try {
-        val paths = StoragePathsMan.get().storagePaths
-        if (paths.isNotEmpty()) {
-          val additionalPaths = paths.map {
-            NameAndPath.genByPath(it, NameAndPathType.REPOS_STORAGE_PATH, activityContext)
-          }
-          val currentPaths = storagePathList.value.map { it.path }.toSet()
-          val newPaths = additionalPaths.filter { it.path !in currentPaths }
-
-          if (newPaths.isNotEmpty()) {
-            storagePathList.value.addAll(newPaths)
-
-            // 尝试恢复上次选择的路径
-            val lastSelected = StoragePathsMan.get().storagePathLastSelected
-            val found = storagePathList.value.find { it.path == lastSelected }
-            if (found != null) {
-              storagePathSelectedPath.value = found
-              storagePathSelectedIndex.intValue = storagePathList.value.indexOf(found)
-            }
-          }
-        }
-      } catch (e: Exception) {
-        MyLog.e(TAG, "Failed to load storage paths in LaunchedEffect: ${e.message}")
-      }
-
       if (isEditMode) {
         val repoDb = AppModel.dbContainer.repoRepository
         val credentialDb = AppModel.dbContainer.credentialRepository
