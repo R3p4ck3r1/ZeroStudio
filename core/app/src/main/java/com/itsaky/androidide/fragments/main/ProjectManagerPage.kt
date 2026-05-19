@@ -1,95 +1,303 @@
 package com.itsaky.androidide.fragments.main
 
-import androidx.compose.foundation.clickable
+import android.content.Context
+import android.net.Uri
+import android.provider.DocumentsContract
+import android.util.Xml
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.AppCompatImageView
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.documentfile.provider.DocumentFile
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.utils.Environment
 import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.w3c.dom.Element
 
+private data class ProjectTab(val title: String, val filePath: String? = null, val treeUri: Uri? = null) {
+  fun stableKey(): String = filePath ?: treeUri.toString()
+  fun rootPathOrNull(): String? = filePath ?: treeUri?.let { uriToPath(it) }
+}
+private data class ClipboardProject(val sourcePath: String)
+private data class ProjectDisplayInfo(val label: String, val iconFile: File?, val subtitle: String)
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProjectManagerPage(onOpenProject: (String) -> Unit) {
-  val projects = remember { mutableStateListOf<String>() }
-  val loading = remember { mutableStateOf(false) }
-  val refreshTick = remember { mutableIntStateOf(0) }
+  val context = androidx.compose.ui.platform.LocalContext.current
+  val tabState = remember { mutableStateListOf<ProjectTab>() }
+  val tabProjectsState = remember { mutableStateMapOf<String, List<String>>() }
+  val loadingState = remember { mutableStateMapOf<String, Boolean>() }
+  var clipboardState by remember { mutableStateOf<ClipboardProject?>(null) }
+  var selectedTabIndexState by rememberSaveable { mutableIntStateOf(0) }
+  var menuProjectPath by remember { mutableStateOf<String?>(null) }
 
-  suspend fun reloadProjects() {
-    loading.value = true
-    val result =
-        withContext(Dispatchers.IO) {
-          val root = Environment.getProjectsDir()
-          if (!root.exists()) return@withContext emptyList<String>()
-          root.listFiles()
-              ?.filter { it.isDirectory && File(it, ".idea").exists() || File(it, "app").exists() }
-              ?.map { it.absolutePath }
-              ?.sortedBy { it.lowercase() }
-              ?: emptyList()
-        }
-    projects.clear()
-    projects.addAll(result)
-    loading.value = false
+  val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+    uri ?: return@rememberLauncherForActivityResult
+    val flags = IntentFlags
+    runCatching { context.contentResolver.takePersistableUriPermission(uri, flags) }
+    val tabName = DocumentFile.fromTreeUri(context, uri)?.name ?: "Folder"
+    val filePath = uriToPath(uri)
+    val tab = ProjectTab(tabName, filePath, uri)
+    if (tabState.none { it.stableKey() == tab.stableKey() }) {
+      tabState.add(tab)
+      selectedTabIndexState = tabState.lastIndex
+      persistTabs(context, tabState, selectedTabIndexState)
+    }
   }
 
-  LaunchedEffect(refreshTick.intValue) { reloadProjects() }
+  LaunchedEffect(Unit) {
+    restoreTabs(context, tabState) { selectedTabIndexState = it }
+    if (tabState.isEmpty()) tabState.add(ProjectTab(Environment.PROJECTS_FOLDER, Environment.getProjectsDir().absolutePath))
+  }
 
-  Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-      Text(
-          text = stringResource(R.string.main_nav_projects),
-          style = MaterialTheme.typography.titleLarge,
-          modifier = Modifier.weight(1f),
-      )
-      IconButton(onClick = { refreshTick.intValue++ }) {
-        Icon(Icons.Default.Refresh, contentDescription = "refresh")
+  val safeSelected = selectedTabIndexState.coerceIn(0, tabState.lastIndex.coerceAtLeast(0))
+  if (safeSelected != selectedTabIndexState) selectedTabIndexState = safeSelected
+  val selectedTab = tabState.getOrNull(safeSelected)
+
+  LaunchedEffect(selectedTab?.stableKey()) {
+    val tab = selectedTab ?: return@LaunchedEffect
+    val key = tab.stableKey()
+    loadingState[key] = true
+    tabProjectsState[key] = withContext(Dispatchers.IO) { scanTopLevelProjects(tab).distinct().sortedBy { File(it).name.lowercase() } }
+    loadingState[key] = false
+  }
+
+  Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+      ScrollableTabRow(selectedTabIndex = safeSelected, modifier = Modifier.fillMaxWidth().padding(end = 30.dp)) {
+        tabState.forEachIndexed { index, tab ->
+          Tab(selected = safeSelected == index, onClick = { selectedTabIndexState = index }, text = { Text(tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis) })
+        }
+      }
+      FloatingActionButton(
+        onClick = { folderPicker.launch(null) },
+        modifier = Modifier.align(Alignment.TopEnd).size(30.dp),
+        shape = RoundedCornerShape(6.dp),
+        elevation = FloatingActionButtonDefaults.elevation(6.dp)
+      ) {
+        Icon(Icons.Default.Add, contentDescription = "add")
       }
     }
 
-    if (loading.value) {
-      Text(text = stringResource(R.string.loading))
+    val tab = selectedTab
+    if (tab == null) {
+      Text("Path not exists")
+      return@Column
     }
 
-    if (!loading.value && projects.isEmpty()) {
-      Text(text = stringResource(R.string.main_empty_history))
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+      if (clipboardState != null) {
+        TextButton(onClick = {
+          val src = File(clipboardState!!.sourcePath)
+          val dst = File(tab.rootPathOrNull(), src.name)
+          if (src.exists() && !dst.exists()) src.renameTo(dst)
+          clipboardState = null
+        }) {
+          Icon(Icons.Default.ContentPaste, null)
+          Text("Paste", modifier = Modifier.padding(start = 6.dp))
+        }
+      }
     }
 
+    val key = tab.stableKey()
+    val projects = tabProjectsState[key].orEmpty()
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      items(projects, key = { it }) { path ->
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable { onOpenProject(path) },
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-          Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-            Text(text = File(path).name, style = MaterialTheme.typography.titleMedium)
-            Text(text = path, style = MaterialTheme.typography.bodySmall)
+      items(projects, key = { it }) { projectPath ->
+        val info = remember(projectPath) { parseProjectDisplayInfo(File(projectPath)) }
+        Box {
+          Card(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { onOpenProject(projectPath) }, onLongClick = { menuProjectPath = projectPath }),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+              ProjectIconPreview(info.iconFile)
+              Column(modifier = Modifier.padding(start = 10.dp)) {
+                Text(info.label, style = MaterialTheme.typography.titleMedium)
+                Text(info.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+              }
+            }
+          }
+          DropdownMenu(expanded = menuProjectPath == projectPath, onDismissRequest = { menuProjectPath = null }) {
+            DropdownMenuItem(text = { Text("Cut") }, onClick = { clipboardState = ClipboardProject(projectPath); menuProjectPath = null })
           }
         }
       }
     }
   }
+}
+
+private val IntentFlags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+
+private fun scanTopLevelProjects(tab: ProjectTab): List<String> =
+  tab.filePath?.let { root -> File(root).listFiles { f -> f.isDirectory }?.map { it.absolutePath }.orEmpty() }
+    ?: tab.treeUri?.let { uri -> DocumentFile.fromTreeUri(com.itsaky.androidide.app.BaseApplication.getBaseInstance(), uri)?.listFiles()?.filter { it.isDirectory }?.mapNotNull { it.uri?.let(::uriToPath) } }
+    ?: emptyList()
+
+private fun persistTabs(context: Context, tabs: List<ProjectTab>, selected: Int) {
+  val arr = JSONArray()
+  tabs.forEach {
+    val item = JSONArray(); item.put(it.title); item.put(it.filePath); item.put(it.treeUri?.toString()); arr.put(item)
+  }
+  context.getSharedPreferences("project_manager_tabs", Context.MODE_PRIVATE).edit().putString("tabs", arr.toString()).putInt("selected", selected).apply()
+}
+
+private fun restoreTabs(context: Context, tabs: MutableList<ProjectTab>, onSelected: (Int) -> Unit) {
+  val raw = context.getSharedPreferences("project_manager_tabs", Context.MODE_PRIVATE).getString("tabs", null) ?: return
+  runCatching {
+    val arr = JSONArray(raw)
+    for (i in 0 until arr.length()) {
+      val item = arr.getJSONArray(i)
+      val title = item.optString(0)
+      val filePath = item.optString(1).ifBlank { null }
+      val treeUri = item.optString(2).ifBlank { null }?.let(Uri::parse)
+      if (title.isNotBlank()) tabs.add(ProjectTab(title, filePath, treeUri))
+    }
+    onSelected(context.getSharedPreferences("project_manager_tabs", Context.MODE_PRIVATE).getInt("selected", 0))
+  }
+}
+
+private fun parseProjectDisplayInfo(projectDir: File): ProjectDisplayInfo {
+  val appModule = findApplicationModule(projectDir)
+  if (appModule == null) return ProjectDisplayInfo(projectDir.name, null, "")
+  val manifest = File(appModule, "src/main/AndroidManifest.xml")
+  val mxml = if (manifest.exists()) manifest.readText() else ""
+  val iconRef = Regex("android:icon=\"([^\"]+)\"").find(mxml)?.groupValues?.getOrNull(1)
+  val labelRef = Regex("android:label=\"([^\"]+)\"").find(mxml)?.groupValues?.getOrNull(1)
+  val resDir = File(appModule, "src/main/res")
+  val iconFile = iconRef?.let { resolveDrawableResourceFile(resDir, it) }
+  val label = resolveLabel(projectDir.name, resDir, labelRef)
+  val gradleText = listOf(File(appModule, "build.gradle.kts"), File(appModule, "build.gradle")).firstOrNull { it.exists() }?.readText().orEmpty()
+  val versionName = Regex("versionName\\s*[= ]\\s*\"([^\"]+)\"").find(gradleText)?.groupValues?.getOrNull(1) ?: "?"
+  val versionCode = Regex("versionCode\\s*[= ]\\s*(\\d+)").find(gradleText)?.groupValues?.getOrNull(1) ?: "?"
+  val targetSdk = Regex("targetSdk\\s*[= ]\\s*(\\d+)").find(gradleText)?.groupValues?.getOrNull(1) ?: "?"
+  val minSdk = Regex("minSdk\\s*[= ]\\s*(\\d+)").find(gradleText)?.groupValues?.getOrNull(1) ?: "?"
+  val namespace = Regex("namespace\\s*[= ]\\s*\"([^\"]+)\"").find(gradleText)?.groupValues?.getOrNull(1)
+  val appId = Regex("applicationId\\s*[= ]\\s*\"([^\"]+)\"").find(gradleText)?.groupValues?.getOrNull(1)
+  val pkg = namespace ?: appId ?: "?"
+  val subtitle = "versionName:${versionName},versionCode:${versionCode},targetSdk:${targetSdk},minSdk:${minSdk},package:${pkg}"
+  return ProjectDisplayInfo("${projectDir.name} : $label", iconFile, subtitle)
+}
+
+private fun findApplicationModule(projectDir: File): File? =
+  projectDir.listFiles { f -> f.isDirectory }?.firstOrNull { module ->
+    val text = listOf(File(module, "build.gradle.kts"), File(module, "build.gradle")).firstOrNull { it.exists() }?.readText().orEmpty()
+    text.contains("com.android.application")
+  }
+
+private fun resolveDrawableResourceFile(resDir: File, value: String): File? {
+  if (!value.startsWith("@")) return null
+  val parts = value.removePrefix("@").split("/")
+  if (parts.size != 2) return null
+  val type = parts[0]
+  val name = parts[1]
+  val dirs = resDir.listFiles { f -> f.isDirectory && (f.name == type || f.name.startsWith("$type-")) }?.toList().orEmpty()
+  val exact = dirs.flatMap { it.listFiles()?.toList().orEmpty() }.firstOrNull { f -> f.nameWithoutExtension == name }
+  if (exact == null || exact.extension.lowercase() != "xml") return exact
+  return resolveAdaptiveOrLayeredIcon(resDir, exact) ?: exact
+}
+
+private fun resolveAdaptiveOrLayeredIcon(resDir: File, xmlIconFile: File): File? {
+  val doc = runCatching { DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xmlIconFile) }.getOrNull() ?: return null
+  val root = doc.documentElement ?: return null
+  if (root.tagName != "adaptive-icon" && root.tagName != "layer-list") return null
+  val refs = mutableListOf<String>()
+  val nodeList = root.childNodes
+  for (i in 0 until nodeList.length) {
+    val node = nodeList.item(i)
+    if (node is Element) {
+      listOf(node.getAttribute("android:drawable"), node.getAttribute("android:foreground"), node.getAttribute("android:background")).filter { it.startsWith("@") }.forEach(refs::add)
+    }
+  }
+  return refs.asSequence().mapNotNull { resolveDrawableResourceFile(resDir, it) }.firstOrNull()
+}
+
+private fun resolveLabel(defaultLabel: String, resDir: File, labelRef: String?): String {
+  if (labelRef.isNullOrBlank()) return defaultLabel
+  if (!labelRef.startsWith("@string/")) return labelRef
+  val key = labelRef.removePrefix("@string/")
+  val valuesXml = resDir.listFiles { f -> f.isDirectory && f.name.startsWith("values") }?.map { File(it, "strings.xml") }?.firstOrNull { it.exists() } ?: return defaultLabel
+  val doc = runCatching { DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(valuesXml) }.getOrNull() ?: return defaultLabel
+  val nodes = doc.getElementsByTagName("string")
+  for (i in 0 until nodes.length) {
+    val node = nodes.item(i)
+    if (node.attributes?.getNamedItem("name")?.nodeValue == key) return node.textContent ?: defaultLabel
+  }
+  return defaultLabel
+}
+
+@Composable
+private fun ProjectIconPreview(iconFile: File?) {
+  if (iconFile == null || !iconFile.exists()) {
+    Icon(Icons.Default.Folder, null)
+  } else if (iconFile.extension.lowercase() in listOf("png", "jpg", "jpeg", "webp")) {
+    val bmp = android.graphics.BitmapFactory.decodeFile(iconFile.absolutePath)
+    if (bmp != null) androidx.compose.foundation.Image(bitmap = bmp.asImageBitmap(), contentDescription = null, modifier = Modifier.size(40.dp))
+    else Icon(Icons.Default.Folder, null)
+  } else {
+    AndroidView(factory = { context -> AppCompatImageView(context) }, update = { imageView ->
+      val drawable = runCatching {
+        val parser = Xml.newPullParser().apply { setInput(iconFile.inputStream(), "utf-8") }
+        while (parser.eventType != org.xmlpull.v1.XmlPullParser.START_TAG && parser.eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) parser.next()
+        android.graphics.drawable.Drawable.createFromXml(imageView.resources, parser)
+      }.getOrNull()
+      imageView.setImageDrawable(drawable ?: AppCompatResources.getDrawable(imageView.context, R.drawable.ic_android))
+    }, modifier = Modifier.size(40.dp))
+  }
+}
+
+private fun uriToPath(uri: Uri): String? {
+  val docId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull() ?: return null
+  val parts = docId.split(':', limit = 2)
+  if (parts.size < 2) return null
+  val volume = parts[0]
+  val relPath = parts[1]
+  return if (volume.equals("primary", ignoreCase = true)) "/storage/emulated/0/$relPath" else "/storage/$volume/$relPath"
 }
