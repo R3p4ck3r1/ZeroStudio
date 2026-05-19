@@ -51,15 +51,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.fragment.app.commit
-import android.widget.FrameLayout
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.fragment.app.viewModels
 import com.itsaky.androidide.activities.MainActivity
 import com.itsaky.androidide.activities.PreferencesActivity
 import com.itsaky.androidide.activities.TerminalActivity
 import com.itsaky.androidide.fragments.git.function.ZeroCloneDialogBottomSheetFragment
+import com.itsaky.androidide.fragments.main.ProjectManagerPage
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.utils.ProjectHistory
 import com.itsaky.androidide.utils.RecentProjectsManager
@@ -101,7 +99,6 @@ class MainFragment : BaseFragment() {
   private fun ZeroStudioMainLayout() {
     val scrollState = rememberScrollState()
     var selectedNav by rememberSaveable { mutableIntStateOf(0) }
-    val projectContainerId = rememberSaveable { View.generateViewId() }
 
     Scaffold(
         topBar = {
@@ -165,18 +162,10 @@ class MainFragment : BaseFragment() {
     ) { padding ->
       Box(modifier = Modifier.fillMaxSize().padding(padding)) {
         if (selectedNav == 1) {
-          AndroidView(
-              factory = { ctx -> FrameLayout(ctx).apply { id = projectContainerId } },
-              modifier = Modifier.fillMaxSize(),
-              update = { container ->
-                val existing = childFragmentManager.findFragmentByTag("project_manager_embedded")
-                if (existing == null) {
-                  childFragmentManager.commit {
-                    setReorderingAllowed(true)
-                    replace(container.id, ProjectManagerFragment(), "project_manager_embedded")
-                  }
-                }
-              },
+          ProjectManagerPage(
+              onOpenProject = { projectPath ->
+                viewModel.openProject(requireContext(), File(projectPath))
+              }
           )
         } else {
           Column(
