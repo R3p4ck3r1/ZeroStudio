@@ -77,9 +77,16 @@ data class TemplateCategory(
         TemplateCategory("HybridFrameworks", "Hybrid Frameworks", R.drawable.ic_template_generic)
 
     private val subCategoriesByParent = linkedMapOf<TemplateCategory, MutableList<SubCategory>>()
-
+    // A container used for comprehensively managing all objectives within a subcategory
     val All = SubCategory(parent = Generic, key = "all", title = "All")
-
+    /*
+    * Registered sub-category
+    *
+    * @parent Used for binding the main category
+    * @key Registered subcategory field
+    * @title Add subcategory title
+    * @icon Subcategory icons are usually bound to the left side of the title
+     */
     fun registerSubCategory(
         parent: TemplateCategory,
         key: String,
@@ -103,11 +110,12 @@ data class TemplateCategory(
 
     /**
      * Returns a list of all default categories.
+     * It may affect the order of precedence
      *
      * @return A list of [TemplateCategory].
      */
     fun defaultCategories(): List<TemplateCategory> {
-      return listOf(Mobile, Wear, Tv, Car, XR, Generic, Native, BasicZeroStudio, HybridFrameworks)
+      return listOf(BasicZeroStudio, Mobile, Wear, Tv, Car, XR, Generic, Native, HybridFrameworks)
     }
   }
 }

@@ -155,6 +155,8 @@ class TemplateProviderImpl : ITemplateProvider {
     lateinit var MobileAI: TemplateCategory.SubCategory
   }
 
+// 注册子类别容器
+  // Activity, Fragment, Application, Folder, Service, UiComponent,  Car, XML, Wear, TV, AIDL, Widget, Google,  Compose, Other,
   private fun initializeSubCategories() {
     AndroidStudioSubCategories.MobileClassic =
         TemplateCategory.registerSubCategory(TemplateCategory.Mobile, "mobile_classic", "Classic")

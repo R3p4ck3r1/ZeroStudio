@@ -13,8 +13,9 @@ import com.termux.shared.termux.shell.am.TermuxAmSocketServer;
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment;
 import com.termux.shared.termux.theme.TermuxThemeUtils;
 import android.zero.studio.layouteditor.LayoutEditorApplication;
+import me.rerere.rikkahub.RikkaHubApp;
 
-public class TermuxApplication extends LayoutEditorApplication {
+public class TermuxApplication extends RikkaHubApp {
 
     private static final String LOG_TAG = "TermuxApplication";
 

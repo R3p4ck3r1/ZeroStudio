@@ -281,6 +281,7 @@ dependencies {
     implementation(libs.sqlite.android)
 
     // modules
+    implementation(projects.core.layoutEditor)
     implementation(projects.core.chatai.ai)
     implementation(projects.core.chatai.web)
     implementation(projects.core.chatai.document)
