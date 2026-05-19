@@ -271,9 +271,11 @@ dependencies {
     // jmDNS (mDNS/Bonjour for .local hostname)
     implementation(libs.jmdns)
 
-    // SLF4J Android binding — routes Ktor/SLF4J logs to logcat
+    // Use only the SLF4J API here. The host app provides the single runtime SLF4J
+    // provider (logback-classic via :logging:logger). Adding another provider such as
+    // uk.uuid.slf4j:slf4j-android makes SLF4J choose that factory at runtime and
+    // breaks IDELogFragment, which attaches a Logback appender to the root logger.
     implementation(libs.tooling.slf4j)
-    implementation(libs.slf4j.android.uuid)
 
     // sqlite-android (requery SQLite for Android)
     implementation(libs.sqlite.android)

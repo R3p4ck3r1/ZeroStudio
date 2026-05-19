@@ -523,7 +523,6 @@ haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
 jmdns = { module = "org.jmdns:jmdns", version.ref = "jmdns" }
 slf4j-android = { module = "org.slf4j:slf4j-android", version.ref = "slf4j-android" }
-slf4j-android-uuid = { module = "uk.uuid.slf4j:slf4j-android", version = "2.0.17-0" }
 sqlite-android = { module = "com.github.rikkahub:sqlite-android", version.ref = "sqlite-android" }
 sqlite-vector = { module = "ai.sqlite:vector", version.ref = "sqlite-vector" }
 floatingx = { module = "io.github.petterpx:floatingx", version.ref = "floatingx" }
