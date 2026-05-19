@@ -1,7 +1,6 @@
 package com.termux.app;
 
 import android.content.Context;
-import com.itsaky.androidide.app.BaseApplication;
 import com.termux.shared.errors.Error;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxConstants;
@@ -12,7 +11,6 @@ import com.termux.shared.termux.shell.TermuxShellManager;
 import com.termux.shared.termux.shell.am.TermuxAmSocketServer;
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment;
 import com.termux.shared.termux.theme.TermuxThemeUtils;
-import android.zero.studio.layouteditor.LayoutEditorApplication;
 import me.rerere.rikkahub.RikkaHubApp;
 
 public class TermuxApplication extends RikkaHubApp {

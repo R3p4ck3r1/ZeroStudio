@@ -73,7 +73,8 @@ dependencies {
   implementation(projects.termux.view)
   implementation(projects.termux.shared)
   implementation(projects.utilities.preferences)
-  implementation(projects.core.chatai.app)
+  implementation(projects.core.layoutEditor)
+  compileOnly(project(":core:chatai:app"))
   // implementation(projects.core.actions)
   implementation(project(":core:actions"))
 
