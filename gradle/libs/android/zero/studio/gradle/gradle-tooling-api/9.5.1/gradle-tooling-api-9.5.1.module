@@ -1,0 +1,80 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.gradle",
+    "module": "gradle-tooling-api",
+    "version": "9.5.1",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.5.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "shadowed",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "gradle-tooling-api-9.5.1-sources.jar",
+          "url": "gradle-tooling-api-9.5.1-sources.jar",
+          "size": 6443653,
+          "sha512": "db668a61f10d84f83be83af4c0beecf95d991c88c931f7fe70ba90607f271a91d7330af698f336d679feb091c5aac45ddd7361fc504ad5ec9d65dc86c82a3de4",
+          "sha256": "8fe356f0c2faf91732693ede3a213453bff1f8d6be8491cfaaca689ad59ea26e",
+          "sha1": "9675b9b73ae9c18b004d84b1c8cc387b93726d20",
+          "md5": "27b4828cb2e5359721f8834a4b9cf337"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "gradle-tooling-api-9.5.1-javadoc.jar",
+          "url": "gradle-tooling-api-9.5.1-javadoc.jar",
+          "size": 1987385,
+          "sha512": "94c1e1168e8d1981de5a5f2da47b5f85bf1c2240e08016f88e371cbbc5f682701dd6b26c01d566e41c297e590e5db6d827668f91a2f917eebf696595a92b1832",
+          "sha256": "e0388c34f25c48ba4d231095058b680c64df9ce44b0a6a5b54a6d39c6d8b144c",
+          "sha1": "a63fd5ce5b535a126f92ed4a15cdd97f5a5c531d",
+          "md5": "5fac7d86d533d0fc6c4729c12e5a1343"
+        }
+      ]
+    },
+    {
+      "name": "shadedRuntimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "shadowed",
+        "org.gradle.jvm.version": 6,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+
+      "files": [
+        {
+          "name": "gradle-tooling-api-9.5.1.jar",
+          "url": "gradle-tooling-api-9.5.1.jar",
+          "size": 3053985,
+          "sha512": "df2f645330cc61096bb4f7cfa3a6efe55faeeef8e664afe4299caa51d10387ee4e5aeb84aee212f62ccad78ac0369a9b848d06e619fbb4919f0ea3b472da9b22",
+          "sha256": "7e552164e4b4871f6bd3446bbdd9d51aced4e2354a7fdb65cafb798f8c8fdd47",
+          "sha1": "2ad53063da9b4615862caf215f76fc1ba3dfbc33",
+          "md5": "155b8a92e2f9015ec731168635c3cf7c"
+        }
+      ]
+    }
+  ]
+}
