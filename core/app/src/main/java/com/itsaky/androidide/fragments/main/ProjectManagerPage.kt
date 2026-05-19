@@ -56,6 +56,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.documentfile.provider.DocumentFile
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.utils.Environment
+import com.itsaky.androidide.utils.GradleFileParser
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlinx.coroutines.Dispatchers
@@ -214,11 +215,12 @@ private fun parseProjectDisplayInfo(projectDir: File): ProjectDisplayInfo {
   val resDir = File(appModule, "src/main/res")
   val iconFile = iconRef?.let { resolveDrawableResourceFile(resDir, it) }
   val label = resolveLabel(projectDir.name, resDir, labelRef)
+  val gradleInfo = GradleFileParser.parseModuleBuildGradle(appModule)
   val gradleText = listOf(File(appModule, "build.gradle.kts"), File(appModule, "build.gradle")).firstOrNull { it.exists() }?.readText().orEmpty()
-  val versionName = Regex("versionName\\s*[= ]\\s*\"([^\"]+)\"").find(gradleText)?.groupValues?.getOrNull(1) ?: "?"
-  val versionCode = Regex("versionCode\\s*[= ]\\s*(\\d+)").find(gradleText)?.groupValues?.getOrNull(1) ?: "?"
-  val targetSdk = Regex("targetSdk\\s*[= ]\\s*(\\d+)").find(gradleText)?.groupValues?.getOrNull(1) ?: "?"
-  val minSdk = Regex("minSdk\\s*[= ]\\s*(\\d+)").find(gradleText)?.groupValues?.getOrNull(1) ?: "?"
+  val versionName = gradleInfo?.versionName ?: "?"
+  val versionCode = gradleInfo?.versionCode?.toString() ?: "?"
+  val targetSdk = gradleInfo?.targetSdk?.toString() ?: "?"
+  val minSdk = gradleInfo?.minSdk?.toString() ?: "?"
   val namespace = Regex("namespace\\s*[= ]\\s*\"([^\"]+)\"").find(gradleText)?.groupValues?.getOrNull(1)
   val appId = Regex("applicationId\\s*[= ]\\s*\"([^\"]+)\"").find(gradleText)?.groupValues?.getOrNull(1)
   val pkg = namespace ?: appId ?: "?"
