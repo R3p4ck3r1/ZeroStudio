@@ -18,34 +18,13 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.common
 import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.ModuleTemplateData
 import com.itsaky.androidide.templates.RecipeExecutor
-import com.itsaky.androidide.templates.TemplateKotlinSupport
 
 fun RecipeExecutor.addAllKotlinDependencies(
     data: ModuleTemplateData,
-    revision: String = data.projectTemplateData.kotlinVersion,
+    revision: String = "2.0.0",
 ) {
-  val projectData = data.projectTemplateData
-  if (!data.isNewModule && projectData.language == Language.Kotlin) {
-    when (data.projectTemplateData.kotlinSupport) {
-      TemplateKotlinSupport.NO_KOTLIN -> {
-        /* Nothing to do */
-      }
-      TemplateKotlinSupport.LEGACY_KOTLIN_GRADLE_PLUGIN_BEFORE_AGP9 ->
-          addPlugin(
-              "org.jetbrains.kotlin.android",
-              "org.jetbrains.kotlin:kotlin-gradle-plugin",
-              revision,
-          )
-      TemplateKotlinSupport.EXPLICIT_BUILT_IN_KOTLIN ->
-          addPlugin(
-              "com.android.built-in-kotlin",
-              "com.android.tools.build:gradle-kotlin",
-              data.projectTemplateData.agpVersion.toString(),
-          )
-      TemplateKotlinSupport.IMPLICIT_BUILT_IN_KOTLIN -> {
-        /* Also nothing to do */
-      }
-    }
+  if (data.language == Language.Kotlin) {
+    addPlugin("org.jetbrains.kotlin.android", "org.jetbrains.kotlin:kotlin-gradle-plugin", revision)
   }
 }
 
@@ -57,7 +36,7 @@ fun RecipeExecutor.addComposeDependencies(
   addPlugin(
       "org.jetbrains.kotlin.plugin.compose",
       "org.jetbrains.kotlin:compose-compiler-gradle-plugin",
-      data.projectTemplateData.kotlinVersion,
+      "2.0.0",
   )
   addPlatformDependency(mavenCoordinate = "androidx.compose:compose-bom:$composeBomVersion")
   addPlatformDependency(

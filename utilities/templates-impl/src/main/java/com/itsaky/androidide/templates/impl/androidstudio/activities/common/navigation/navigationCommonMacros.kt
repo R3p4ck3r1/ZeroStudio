@@ -66,14 +66,14 @@ fun RecipeExecutor.saveFragmentAndViewModel(
               isViewBindingSupported = isViewBindingSupported,
           ),
       srcOut.resolve(
-          "ui/${fragmentPrefix}/${underscoreToCamelCase(fragmentPrefix)}Fragment.${language.extension}"
+          "ui/${fragmentPrefix}/${underscoreToCamelCase(fragmentPrefix)}Fragment.${language.ext}"
       ),
   )
   save(
       if (generateKotlin) viewModelKt(packageName, fragmentPrefix, viewModelClass, useAndroidX)
       else viewModelJava(packageName, fragmentPrefix, viewModelClass, useAndroidX),
       srcOut.resolve(
-          "ui/${fragmentPrefix}/${underscoreToCamelCase(fragmentPrefix)}ViewModel.${language.extension}"
+          "ui/${fragmentPrefix}/${underscoreToCamelCase(fragmentPrefix)}ViewModel.${language.ext}"
       ),
   )
 }
