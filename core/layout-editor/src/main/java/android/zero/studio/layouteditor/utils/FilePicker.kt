@@ -3,7 +3,7 @@ package android.zero.studio.layouteditor.utils
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.zero.studio.layouteditor.LayoutEditorApplication.Companion.instance
+import android.zero.studio.layouteditor.LayoutEditorContext
 import android.zero.studio.layouteditor.R
 import android.zero.studio.layouteditor.utils.SBUtils.Companion.make
 import androidx.activity.result.ActivityResultLauncher
@@ -67,7 +67,7 @@ abstract class FilePicker(private val actvty: AppCompatActivity) {
             mimeType == "image/jpeg"
 
     if (isImageType) {
-      if (instance!!.isAtLeastTiramisu) {
+      if (LayoutEditorContext.isAtLeastTiramisu) {
         if (
             actvty.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) ==
                 PackageManager.PERMISSION_DENIED

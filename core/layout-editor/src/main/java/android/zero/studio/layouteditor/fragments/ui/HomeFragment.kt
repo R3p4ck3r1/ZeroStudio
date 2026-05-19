@@ -12,7 +12,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
-import android.zero.studio.layouteditor.LayoutEditorApplication
 import android.zero.studio.layouteditor.ProjectFile
 import android.zero.studio.layouteditor.R.string
 import android.zero.studio.layouteditor.activities.LayoutsEditorActivity
@@ -46,7 +45,7 @@ class HomeFragment : Fragment() {
   ): View {
     binding = FragmentLayoutHomeBinding.inflate(inflater, container, false)
     projectTimes =
-        PreferenceManager.getDefaultSharedPreferences(LayoutEditorApplication.instance!!.context)
+        PreferenceManager.getDefaultSharedPreferences(requireContext().applicationContext)
     return binding!!.root
   }
 

@@ -10,14 +10,13 @@ import com.google.android.material.elevation.SurfaceColors
 import java.lang.ref.WeakReference
 
 open class BaseActivity : AppCompatActivity() {
-  var app: LayoutEditorApplication? = null
-  private lateinit var ctx: WeakReference<Context?>
+    private lateinit var ctx: WeakReference<Context?>
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     instance = this
     ctx = WeakReference(this)
-    app = LayoutEditorApplication.instance
+    LayoutEditorContext.init(applicationContext)
     window.statusBarColor = SurfaceColors.SURFACE_0.getColor(this)
   }
 
