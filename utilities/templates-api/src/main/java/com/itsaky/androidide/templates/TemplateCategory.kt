@@ -26,6 +26,13 @@ data class TemplateCategory(
     val title: String,
     @DrawableRes val icon: Int? = null,
 ) {
+  data class SubCategory(
+      val parent: TemplateCategory,
+      val key: String,
+      val title: String,
+      @DrawableRes val icon: Int? = null,
+  )
+
   /**
    * @property Mobile "Phone and Tablet" category.
    * @property Wear "Wear OS" category.
@@ -68,6 +75,31 @@ data class TemplateCategory(
 
     val HybridFrameworks =
         TemplateCategory("HybridFrameworks", "Hybrid Frameworks", R.drawable.ic_template_generic)
+
+    private val subCategoriesByParent = linkedMapOf<TemplateCategory, MutableList<SubCategory>>()
+
+    val All = SubCategory(parent = Generic, key = "all", title = "All")
+
+    fun registerSubCategory(
+        parent: TemplateCategory,
+        key: String,
+        title: String,
+        @DrawableRes icon: Int? = null,
+    ): SubCategory {
+      val subCategory = SubCategory(parent = parent, key = key, title = title, icon = icon)
+      val subCategories =
+          subCategoriesByParent.getOrPut(parent) {
+            mutableListOf<SubCategory>().apply { add(SubCategory(parent, All.key, All.title)) }
+          }
+      if (subCategories.none { it.key == key }) {
+        subCategories.add(subCategory)
+      }
+      return subCategory
+    }
+
+    fun getSubCategories(parent: TemplateCategory): List<SubCategory> {
+      return subCategoriesByParent[parent]?.toList() ?: listOf(SubCategory(parent, All.key, All.title))
+    }
 
     /**
      * Returns a list of all default categories.

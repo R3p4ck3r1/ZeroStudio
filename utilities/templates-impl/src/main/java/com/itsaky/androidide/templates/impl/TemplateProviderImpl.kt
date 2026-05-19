@@ -76,6 +76,8 @@ import java.util.concurrent.ConcurrentHashMap
 class TemplateProviderImpl : ITemplateProvider {
 
   private val templatesByCategory = ConcurrentHashMap<TemplateCategory, MutableList<Template<*>>>()
+  private val templatesBySubCategory =
+      ConcurrentHashMap<TemplateCategory.SubCategory, MutableList<Template<*>>>()
 
   init {
     initializeTemplates()
@@ -99,6 +101,8 @@ class TemplateProviderImpl : ITemplateProvider {
    */
   private fun initializeTemplates() {
     templatesByCategory.clear()
+    templatesBySubCategory.clear()
+    initializeSubCategories()
 
     // This is where you can add more templates to this or other categories.
 
@@ -116,9 +120,21 @@ class TemplateProviderImpl : ITemplateProvider {
     registerTemplate(TemplateCategory.BasicZeroStudio, lithoComposeProject())
     
     // Android Studio template：Mobile/tablet 📱
-    registerTemplate(TemplateCategory.Mobile, basicActivityProjectAndroidStudio())
-    registerTemplate(TemplateCategory.Mobile, archStarterActivityProject())
-    registerTemplate(TemplateCategory.Mobile, aiStarterActivityProject())
+    registerSubCategoryTemplate(
+        TemplateCategory.Mobile,
+        AndroidStudioSubCategories.MobileClassic,
+        basicActivityProjectAndroidStudio(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.Mobile,
+        AndroidStudioSubCategories.MobileArchitecture,
+        archStarterActivityProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.Mobile,
+        AndroidStudioSubCategories.MobileAI,
+        aiStarterActivityProject(),
+    )
     // Android Studio template：XR 👓
     registerTemplate(TemplateCategory.XR, aiGlassesActivityProject())
     // Android Studio template：television 📺
@@ -131,6 +147,41 @@ class TemplateProviderImpl : ITemplateProvider {
 
     // Native build（C/C++/Cmake） template category
     registerTemplate(TemplateCategory.Native, imguiActivityProject())
+  }
+
+  private object AndroidStudioSubCategories {
+    lateinit var MobileClassic: TemplateCategory.SubCategory
+    lateinit var MobileArchitecture: TemplateCategory.SubCategory
+    lateinit var MobileAI: TemplateCategory.SubCategory
+  }
+
+  private fun initializeSubCategories() {
+    AndroidStudioSubCategories.MobileClassic =
+        TemplateCategory.registerSubCategory(TemplateCategory.Mobile, "mobile_classic", "Classic")
+    AndroidStudioSubCategories.MobileArchitecture =
+        TemplateCategory.registerSubCategory(
+            TemplateCategory.Mobile,
+            "mobile_architecture",
+            "Architecture",
+        )
+    AndroidStudioSubCategories.MobileAI =
+        TemplateCategory.registerSubCategory(TemplateCategory.Mobile, "mobile_ai", "AI")
+  }
+
+  fun getTemplatesForSubCategory(subCategory: TemplateCategory.SubCategory): List<Template<*>> {
+    return templatesBySubCategory[subCategory]?.let { Collections.unmodifiableList(it.toList()) }
+        ?: emptyList()
+  }
+
+  private fun registerSubCategoryTemplate(
+      category: TemplateCategory,
+      subCategory: TemplateCategory.SubCategory,
+      template: Template<*>,
+  ) {
+    registerTemplate(category, template)
+    val templates =
+        templatesBySubCategory.computeIfAbsent(subCategory) { Collections.synchronizedList(mutableListOf()) }
+    templates.add(template)
   }
 
   /**

@@ -33,6 +33,7 @@ import com.itsaky.androidide.templates.ITemplateProvider
 import com.itsaky.androidide.templates.ProjectTemplate
 import com.itsaky.androidide.templates.Template
 import com.itsaky.androidide.templates.TemplateCategory
+import com.itsaky.androidide.templates.impl.TemplateProviderImpl
 import com.itsaky.androidide.viewmodel.MainViewModel
 import org.slf4j.LoggerFactory
 
@@ -71,6 +72,7 @@ class TemplateListFragment :
 
   companion object {
     private val log = LoggerFactory.getLogger(TemplateListFragment::class.java)
+    private const val SUB_CATEGORY_TAB_MIN_HEIGHT_DP = 34
   }
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -94,6 +96,7 @@ class TemplateListFragment :
 
     val pagerAdapter =
         CategoryPageAdapter(
+            fragment = this,
             categories = categories,
             templateProvider = templateProvider,
             spanCount = spanCount,
@@ -110,6 +113,24 @@ class TemplateListFragment :
           category.icon?.let { tab.setIcon(it) }
         }
         .attach()
+
+    binding.tabLayout.addOnTabSelectedListener(
+        object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+          override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+            val category = tab?.position?.let { categories.getOrNull(it) } ?: return
+            pagerAdapter.onMainCategoryChanged(category)
+          }
+
+          override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) = Unit
+
+          override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) = Unit
+        })
+
+    binding.subTabLayout.layoutParams =
+        binding.subTabLayout.layoutParams.apply {
+          height = (SUB_CATEGORY_TAB_MIN_HEIGHT_DP * resources.displayMetrics.density).toInt()
+        }
+    pagerAdapter.onMainCategoryChanged(categories.first())
   }
 
   override fun onDestroyView() {
@@ -127,11 +148,14 @@ class TemplateListFragment :
  * @author android_zero
  */
 private class CategoryPageAdapter(
+    private val fragment: TemplateListFragment,
     private val categories: List<TemplateCategory>,
     private val templateProvider: ITemplateProvider,
     private val spanCount: Int,
     private val onTemplateClick: (Template<*>) -> Unit,
 ) : RecyclerView.Adapter<CategoryPageAdapter.PageViewHolder>() {
+
+  private val allKey = TemplateCategory.All.key
 
   class PageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
     val recyclerView: RecyclerView = itemView.findViewById(R.id.template_grid_recycler_view)
@@ -155,5 +179,49 @@ private class CategoryPageAdapter(
       adapter = TemplateGridAdapter(templates, onTemplateClick)
       setHasFixedSize(true)
     }
+  }
+
+  fun onMainCategoryChanged(category: TemplateCategory) {
+    val subCategories = TemplateCategory.getSubCategories(category)
+    val providerImpl = templateProvider as? TemplateProviderImpl
+    fragment.binding.subTabLayout.removeAllTabs()
+
+    subCategories.forEach { subCategory ->
+      val tab = fragment.binding.subTabLayout.newTab().setText(subCategory.title)
+      subCategory.icon?.let(tab::setIcon)
+      fragment.binding.subTabLayout.addTab(tab)
+    }
+
+    fragment.binding.subTabLayout.clearOnTabSelectedListeners()
+    fragment.binding.subTabLayout.addOnTabSelectedListener(
+        object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+          override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+            val selectedSubCategory = tab?.position?.let(subCategories::getOrNull) ?: return
+            updatePageTemplates(category, selectedSubCategory, providerImpl)
+          }
+
+          override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) = Unit
+
+          override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) = Unit
+        })
+    updatePageTemplates(category, subCategories.first(), providerImpl)
+  }
+
+  private fun updatePageTemplates(
+      category: TemplateCategory,
+      subCategory: TemplateCategory.SubCategory,
+      providerImpl: TemplateProviderImpl?,
+  ) {
+    val pageIndex = categories.indexOf(category)
+    if (pageIndex < 0) return
+    val holder = fragment.binding.viewPager.getChildAt(0) as? RecyclerView ?: return
+    val vh = holder.findViewHolderForAdapterPosition(pageIndex) as? PageViewHolder ?: return
+    val templates =
+        if (subCategory.key == allKey || providerImpl == null) {
+          templateProvider.getTemplatesFor(category)
+        } else {
+          providerImpl.getTemplatesForSubCategory(subCategory)
+        }.filterIsInstance<ProjectTemplate>()
+    vh.recyclerView.adapter = TemplateGridAdapter(templates, onTemplateClick)
   }
 }
