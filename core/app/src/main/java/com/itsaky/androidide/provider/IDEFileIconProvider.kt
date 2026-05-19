@@ -40,12 +40,7 @@ class IDEFileIconProvider(private val context: Context) : FileIconProvider {
         extractNativeFile(node.value)
             ?: return ContextCompat.getDrawable(context, R.drawable.ic_file_type_unknown)
 
-    val iconRes =
-        if (fileObj.isDirectory) {
-          R.drawable.ic_folder
-        } else {
-          FileExtension.Factory.forFile(fileObj).icon
-        }
+    val iconRes = FileExtension.Factory.forFile(fileObj).icon
     return ContextCompat.getDrawable(context, iconRes)
   }
 
