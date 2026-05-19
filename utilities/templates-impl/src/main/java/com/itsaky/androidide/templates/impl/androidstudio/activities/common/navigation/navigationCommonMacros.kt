@@ -18,6 +18,7 @@ package com.itsaky.androidide.templates.impl.androidstudio.activities.common.nav
 import com.itsaky.androidide.templates.Language
 import com.itsaky.androidide.templates.RecipeExecutor
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addLifecycleDependencies
+import com.itsaky.androidide.templates.impl.androidstudio.activities.common.addDependency
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation.res.layout.fragmentFirstXml
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation.src.ui.firstFragmentJava
 import com.itsaky.androidide.templates.impl.androidstudio.activities.common.navigation.src.ui.firstFragmentKt
