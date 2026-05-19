@@ -63,10 +63,6 @@ public class BaseApplication extends Application {
   @Override
   public void onCreate() {
     instance = this;
-    
-    if (Environment.ROOT == null) {
-        Environment.init(this);
-    }
 
     super.onCreate();
 
@@ -74,7 +70,9 @@ public class BaseApplication extends Application {
     
     new Thread(JavaCharacter::initMap, "JavaChar-Init-Thread").start();
 
-    // ToolsManager now initializes lazily only when tooling is actually needed.
+
+    
+    
   }
 
  

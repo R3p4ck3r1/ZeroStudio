@@ -44,6 +44,7 @@ import com.itsaky.androidide.syntax.colorschemes.SchemeAndroidIDE
 import com.itsaky.androidide.ui.themes.IDETheme
 import com.itsaky.androidide.ui.themes.IThemeManager
 import com.itsaky.androidide.utils.Environment
+
 import com.itsaky.androidide.utils.RecyclableObjectPool
 import com.itsaky.androidide.utils.flashError
 import com.termux.app.TermuxApplication
