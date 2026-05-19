@@ -15,12 +15,12 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activity.common.navigation.src.ui
 
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.getMaterialComponentName
 import com.itsaky.androidide.templates.impl.androidstudio.activity.common.findViewById
 import com.itsaky.androidide.templates.impl.androidstudio.activity.common.importViewBindingClass
 import com.itsaky.androidide.templates.impl.androidstudio.activity.common.layoutToViewBindingClass
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.impl.sharedMacros.renderIf
 
 fun firstFragmentJava(
     packageName: String,

@@ -15,8 +15,8 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activity.common.navigation.src.ui
 
-import com.android.tools.idea.wizard.template.escapeKotlinIdentifier
-import com.android.tools.idea.wizard.template.getMaterialComponentName
+import com.itsaky.androidide.templates.escapeKotlinIdentifier
+import com.itsaky.androidide.templates.getMaterialComponentName
 
 fun viewModelKt(
     packageName: String,

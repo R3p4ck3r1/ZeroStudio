@@ -15,8 +15,8 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activity.common
 
-import com.android.tools.idea.wizard.template.renderIf
-import com.android.tools.idea.wizard.template.withoutSkipLines
+import com.itsaky.androidide.templates.impl.sharedMacros.renderIf
+import com.itsaky.androidide.templates.withoutSkipLines
 
 fun commonActivityBody(isLauncher: Boolean, isLibraryProject: Boolean = false) =
     renderIf(isLauncher && !isLibraryProject) {

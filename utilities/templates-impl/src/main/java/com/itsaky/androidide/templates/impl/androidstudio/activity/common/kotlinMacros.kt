@@ -15,10 +15,10 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activity.common
 
-import com.android.tools.idea.wizard.template.Language
-import com.android.tools.idea.wizard.template.ModuleTemplateData
-import com.android.tools.idea.wizard.template.RecipeExecutor
-import com.android.tools.idea.wizard.template.TemplateKotlinSupport
+import com.itsaky.androidide.templates.Language
+import com.itsaky.androidide.templates.ModuleTemplateData
+import com.itsaky.androidide.templates.RecipeExecutor
+import com.itsaky.androidide.templates.TemplateKotlinSupport
 
 fun RecipeExecutor.addAllKotlinDependencies(
     data: ModuleTemplateData,

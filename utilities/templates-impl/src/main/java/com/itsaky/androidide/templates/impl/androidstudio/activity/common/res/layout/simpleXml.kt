@@ -15,8 +15,8 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activity.common.res.layout
 
-import com.android.tools.idea.wizard.template.getMaterialComponentName
-import com.android.tools.idea.wizard.template.renderIf
+import com.itsaky.androidide.templates.getMaterialComponentName
+import com.itsaky.androidide.templates.impl.sharedMacros.renderIf
 
 fun simpleLayoutXml(
     isNewModule: Boolean,
