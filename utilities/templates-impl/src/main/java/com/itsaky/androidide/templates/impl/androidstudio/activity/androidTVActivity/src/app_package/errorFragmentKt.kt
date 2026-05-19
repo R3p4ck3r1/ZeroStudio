@@ -16,11 +16,12 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
+import com.itsaky.androidide.templates.impl.sharedMacros.escapeKotlinIdentifier
 
 fun errorFragmentKt(minApiLevel: Int, packageName: String): String {
   val getDrawableArgBlock = if (minApiLevel >= 23) "context!!" else "activity!!"
   return """
-package ${packageName}
+package ${escapeKotlinIdentifier(packageName)}
 
 import android.os.Bundle
 import android.view.View

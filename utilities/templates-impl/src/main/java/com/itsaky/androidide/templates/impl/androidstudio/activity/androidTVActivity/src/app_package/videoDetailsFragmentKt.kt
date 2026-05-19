@@ -16,6 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
+import com.itsaky.androidide.templates.impl.sharedMacros.escapeKotlinIdentifier
 
 fun videoDetailsFragmentKt(
     activityClass: String,
@@ -26,7 +27,7 @@ fun videoDetailsFragmentKt(
 ): String {
   val contextArgBlock = if (minApiLevel >= 23) "context!!" else "activity!!"
   return """
-package ${packageName}
+package ${escapeKotlinIdentifier(packageName)}
 
 import android.content.Context
 import android.content.Intent

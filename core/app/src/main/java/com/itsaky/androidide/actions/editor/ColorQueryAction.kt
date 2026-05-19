@@ -54,6 +54,7 @@ class ColorQueryTextAction(context: Context, override val order: Int) : BaseEdit
     icon = ContextCompat.getDrawable(context, R.drawable.ic_color_palette)
     label = context.getString(R.string.action_color_query)
     location = ActionItem.Location.EDITOR_TEXT_ACTIONS
+    requiresUIThread = true
   }
 
   override suspend fun execAction(data: ActionData): Boolean {
@@ -70,6 +71,7 @@ class ColorQueryToolbarAction(private val context: Context, override val order: 
       icon = ContextCompat.getDrawable(context, R.drawable.ic_color_palette)
     label = context.getString(R.string.action_color_query)
     location = ActionItem.Location.EDITOR_TOOLBAR
+    requiresUIThread = true
   }
 
   override suspend fun execAction(data: ActionData): Any {

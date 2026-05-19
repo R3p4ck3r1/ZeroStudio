@@ -16,6 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
+import com.itsaky.androidide.templates.impl.sharedMacros.escapeKotlinIdentifier
 
 fun detailsActivityKt(
     detailsActivity: String,
@@ -24,7 +25,7 @@ fun detailsActivityKt(
     packageName: String,
 ) =
     """
-package ${packageName}
+package ${escapeKotlinIdentifier(packageName)}
 
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity

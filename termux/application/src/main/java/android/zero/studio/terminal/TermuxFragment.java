@@ -304,7 +304,7 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
             // Attempt to bind to the service, this will call the {@link
             // #onServiceConnected(ComponentName, IBinder)}
             // callback if it succeeds.
-            if (!requireActivity().bindService(serviceIntent, this, 0))
+            if (!requireActivity().bindService(serviceIntent, this, Context.BIND_AUTO_CREATE))
                 throw new RuntimeException("bindService() failed");
         } catch (Exception e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "TermuxFragment failed to start TermuxService", e);
@@ -812,30 +812,32 @@ public class TermuxFragment extends BaseIDEFragment implements ServiceConnection
             mPendingCreateWorkingDir = workingDirectory;
             Intent serviceIntent = new Intent(requireActivity(), TermuxService.class);
             requireActivity().startService(serviceIntent);
-            requireActivity().bindService(serviceIntent, this, 0);
+            requireActivity().bindService(serviceIntent, this, Context.BIND_AUTO_CREATE);
             return;
         }
 
         final String requestedWorkingDirectory = workingDirectory;
         TermuxInstaller.setupBootstrapIfNeeded(requireActivity(), () -> {
-            if (mTermuxService == null) return;
-        String targetWorkingDirectory = requestedWorkingDirectory;
-        if (targetWorkingDirectory == null) {
-            targetWorkingDirectory = mInitialWorkingDir;
-        }
-        mTermuxTerminalSessionActivityClient.addNewSession(isFailsafe, sessionName, targetWorkingDirectory);
-        
-        // Ensure the theme is applied to the newly created session
-        if (mThemeManager != null) {
-            // Get the current session (which is the one just added)
-            TerminalSession session = getCurrentSession();
-            if (session != null) {
-                mThemeManager.applyCurrentThemeToSession(session);
-            }
-        }
+            final Activity activity = getActivity();
+            if (activity == null) return;
+            activity.runOnUiThread(() -> {
+                if (!isAdded() || mTermuxService == null || mTermuxTerminalSessionActivityClient == null) return;
+                String targetWorkingDirectory = requestedWorkingDirectory;
+                if (targetWorkingDirectory == null) {
+                    targetWorkingDirectory = mInitialWorkingDir;
+                }
+                mTermuxTerminalSessionActivityClient.addNewSession(isFailsafe, sessionName, targetWorkingDirectory);
 
-        if (mTabsView != null) mTabsView.refreshSessions();
-            updateTerminalEmptyState();
+                if (mThemeManager != null) {
+                    TerminalSession session = getCurrentSession();
+                    if (session != null) {
+                        mThemeManager.applyCurrentThemeToSession(session);
+                    }
+                }
+
+                if (mTabsView != null) mTabsView.refreshSessions();
+                updateTerminalEmptyState();
+            });
         });
     }
 
