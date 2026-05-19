@@ -129,12 +129,11 @@ class IDEApplication : TermuxApplication() {
    */
   private fun applyPersistedLocale() {
     val selectedLocaleKey = GeneralPreferences.selectedLocale
-    if (selectedLocaleKey != null) {
-      val locale = LocaleProvider.getLocale(selectedLocaleKey)
-      if (locale != null) {
-        AppCompatDelegate.setApplicationLocales(LocaleListCompat.create(locale))
-      }
-    }
+    val localeListCompat =
+        selectedLocaleKey?.let { key ->
+          LocaleProvider.getLocale(key)?.let { LocaleListCompat.create(it) }
+        } ?: LocaleListCompat.getEmptyLocaleList()
+    AppCompatDelegate.setApplicationLocales(localeListCompat)
   }
 
   fun showChangelog() {
@@ -171,8 +170,9 @@ class IDEApplication : TermuxApplication() {
     } else if (event.key == GeneralPreferences.SELECTED_LOCALE) {
       val selectedLocale = GeneralPreferences.selectedLocale
       val localeListCompat =
-          selectedLocale?.let { LocaleListCompat.create(LocaleProvider.getLocale(selectedLocale)) }
-              ?: LocaleListCompat.getEmptyLocaleList()
+          selectedLocale?.let { key ->
+            LocaleProvider.getLocale(key)?.let { LocaleListCompat.create(it) }
+          } ?: LocaleListCompat.getEmptyLocaleList()
 
       AppCompatDelegate.setApplicationLocales(localeListCompat)
     }

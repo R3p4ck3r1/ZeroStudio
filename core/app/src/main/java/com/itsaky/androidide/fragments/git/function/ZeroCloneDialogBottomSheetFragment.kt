@@ -429,10 +429,23 @@ private fun CloneScreenContent(
             throw RuntimeException(activityContext.getString(R.string.path_is_not_a_dir))
           }
 
-          // 这里需要重新获取完整的列表，确保是新的
-          val currentList = storagePathList.value
+          val projectsPath = Environment.PROJECTS_DIR.canonicalPath
+          if (newPath != projectsPath) {
+            Msg.requireShowLongDuration("仅支持 PROJECTS_DIR 存储位置")
+            return@doJobThenOffLoading
+          }
 
-          Msg.requireShowLongDuration("仅支持 PROJECTS_DIR 存储位置")
+          val (indexOfStoragePath, existedStoragePath) = findStoragePathItemByPath(newPath)
+          if (indexOfStoragePath != -1 && existedStoragePath != null) {
+            storagePathSelectedPath.value = existedStoragePath
+            storagePathSelectedIndex.intValue = indexOfStoragePath
+          } else {
+            val newItem =
+                NameAndPath.genByPath(newPath, NameAndPathType.REPOS_STORAGE_PATH, activityContext)
+            storagePathList.value.add(newItem)
+            storagePathSelectedIndex.intValue = storagePathList.value.lastIndex
+            storagePathSelectedPath.value = newItem
+          }
         } catch (e: Exception) {
           Msg.requireShowLongDuration("err: ${e.localizedMessage}")
           MyLog.e(TAG, "add storage path at `$TAG` err: ${e.stackTraceToString()}")
@@ -563,6 +576,26 @@ private fun CloneScreenContent(
           // Save to DB (Create Remote, Update Repo)
           val repoDb = AppModel.dbContainer.repoRepository
           repoDb.cloneDoneUpdateRepoAndCreateRemote(repoForSave)
+
+          if (dbIntToBool(repoForSave.isRecursiveCloneOn)) {
+            val submoduleNameList = Libgit2Helper.getSubmoduleNameList(clonedRepo)
+            if (submoduleNameList.isNotEmpty()) {
+              val specifiedCredential =
+                  if (credentialId.isBlank()) null
+                  else credentialDb.getByIdWithDecryptAndMatchByDomain(
+                      credentialId,
+                      repoForSave.cloneUrl,
+                  )
+              Libgit2Helper.cloneSubmodules(
+                  repo = clonedRepo,
+                  recursive = true,
+                  depth = repoForSave.depth,
+                  specifiedCredential = specifiedCredential,
+                  submoduleNameList = submoduleNameList,
+                  credentialDb = credentialDb,
+              )
+            }
+          }
         }
 
         // 4. Success UI
@@ -1128,6 +1161,31 @@ private fun CloneScreenContent(
           DepthTextField(depth)
           Spacer(modifier = Modifier.padding(spacerPadding))
         }
+
+        Row(
+            Modifier.fillMaxWidth()
+                .height(MyStyleKt.CheckoutBox.height)
+                .toggleable(
+                    enabled = !isCloning.value,
+                    value = isRecursiveClone,
+                    onValueChange = { onIsRecursiveCloneStateChange(!isRecursiveClone) },
+                    role = Role.Checkbox,
+                )
+                .padding(horizontal = MyStyleKt.defaultHorizontalPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Checkbox(
+              enabled = !isCloning.value,
+              checked = isRecursiveClone,
+              onCheckedChange = null,
+          )
+          Text(
+              text = stringResource(R.string.recursive_clone),
+              style = MaterialTheme.typography.bodyLarge,
+              modifier = Modifier.padding(start = 16.dp),
+          )
+        }
+        Spacer(modifier = Modifier.padding(spacerPadding))
 
         MyHorizontalDivider(modifier = Modifier.padding(spacerPadding))
         Spacer(Modifier.height(10.dp))

@@ -43,14 +43,27 @@ public class LocaleProvider {
     putLocale(locales, keys, "bn", "IN"); // Bengali (India)
     putLocale(locales, keys, "de", "DE"); // German
     putLocale(locales, keys, "es", "ES"); // Spanish
+    putLocale(locales, keys, "fa", null); // Persian
+    putLocale(locales, keys, "fil", null); // Filipino
     putLocale(locales, keys, "fr", "FR"); // French
     putLocale(locales, keys, "hi", "IN"); // Hindi
     putLocale(locales, keys, "in", "ID"); // Indonesian
+    putLocale(locales, keys, "it", null); // Italian
+    putLocale(locales, keys, "ja", null); // Japanese
+    putLocale(locales, keys, "ko", null); // Korean
+    putLocale(locales, keys, "ml", null); // Malayalam
+    putLocale(locales, keys, "pl", null); // Polish
     putLocale(locales, keys, "pt", "BR"); // Portuguese, Brazilian
     putLocale(locales, keys, "ro", "RO"); // Romanian
     putLocale(locales, keys, "ru", "RU"); // Russian
+    putLocale(locales, keys, "ta", null); // Tamil
+    putLocale(locales, keys, "th", null); // Thai
+    putLocale(locales, keys, "tm", "TM"); // Turkmen
     putLocale(locales, keys, "tr", "TR"); // Turkish
+    putLocale(locales, keys, "uk", null); // Ukrainian
+    putLocale(locales, keys, "vi", null); // Vietnamese
     putLocale(locales, keys, "zh", "CN"); // Chinese (Simplified)
+    putLocale(locales, keys, "zh", "TW"); // Chinese (Traditional)
 
     SUPPORTED_LOCALES = Collections.unmodifiableMap(locales);
     LOCALE_KEYS = Collections.unmodifiableMap(keys);
@@ -61,7 +74,16 @@ public class LocaleProvider {
     if (key == null || StringsKt.isBlank(key)) {
       return null;
     }
-    return SUPPORTED_LOCALES.get(key);
+    final var normalizedKey = normalizeLocaleKey(key);
+    final var exact = SUPPORTED_LOCALES.get(normalizedKey);
+    if (exact != null) {
+      return exact;
+    }
+    if (normalizedKey.contains("-r")) {
+      final var langOnly = normalizedKey.substring(0, normalizedKey.indexOf("-r"));
+      return SUPPORTED_LOCALES.get(langOnly);
+    }
+    return null;
   }
 
   @Nullable
@@ -98,5 +120,13 @@ public class LocaleProvider {
       return new Locale(lang);
     }
     return new Locale(lang, region);
+  }
+
+  public static String normalizeLocaleKey(String key) {
+    final var trimmed = key.trim();
+    if (trimmed.contains("_")) {
+      return trimmed.replace("_", "-r");
+    }
+    return trimmed;
   }
 }
