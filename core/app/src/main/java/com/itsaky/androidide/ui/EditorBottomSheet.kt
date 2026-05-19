@@ -27,6 +27,7 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.MotionEvent
 import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import androidx.annotation.GravityInt
@@ -94,6 +95,7 @@ class EditorBottomSheet @JvmOverloads constructor(
   private var headerExpandEnabled = true
   private var expandBlocked = false
   private var behaviorCallbackAttached = false
+  private var wasDraggableBeforeSymbolTouch = true
 
   var onHeaderPageChanged: ((Int) -> Unit)? = null
   var onActionTextChanged: ((CharSequence) -> Unit)? = null
@@ -198,6 +200,23 @@ class EditorBottomSheet @JvmOverloads constructor(
             }
         }
     )
+
+    // 兼容新版 AdvancedSymbolInputView：不再调用已移除/不稳定的 setImeBottomInset，
+    // 改为在符号栏手势期间临时关闭 BottomSheet 拖拽，避免父级手势抢占导致抽屉无法展开。
+    binding.externalSymbolInputView.setOnTouchListener { _, event ->
+      when (event.actionMasked) {
+        MotionEvent.ACTION_DOWN -> {
+          wasDraggableBeforeSymbolTouch = behavior.isDraggable
+          behavior.isDraggable = false
+          parent?.requestDisallowInterceptTouchEvent(true)
+        }
+        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+          behavior.isDraggable = wasDraggableBeforeSymbolTouch
+          parent?.requestDisallowInterceptTouchEvent(false)
+        }
+      }
+      false
+    }
   }
 
   /**
@@ -224,8 +243,6 @@ class EditorBottomSheet @JvmOverloads constructor(
         if (currentBottomInset != targetBottomPadding) {
             currentBottomInset = targetBottomPadding
             view.updatePadding(bottom = targetBottomPadding)
-            
-            // 告知 AdvancedSymbolInputView 底部有了 Inset（让其内部处理可能需要的安全区适配）
 
             // 因为 BottomSheet 自己被垫高了，PeekHeight 需要加上这部分垫高数值，确保 Header 留在视图上方
             updatePeekHeight()

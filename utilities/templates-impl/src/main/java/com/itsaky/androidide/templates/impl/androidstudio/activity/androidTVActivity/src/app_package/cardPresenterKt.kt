@@ -16,10 +16,11 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
+import com.itsaky.androidide.templates.impl.sharedMacros.escapeKotlinIdentifier
 
 fun cardPresenterKt(packageName: String) =
     """
-package ${packageName}
+package ${escapeKotlinIdentifier(packageName)}
 
 import android.graphics.drawable.Drawable
 import androidx.leanback.widget.ImageCardView
