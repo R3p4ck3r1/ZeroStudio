@@ -11,9 +11,10 @@ import com.termux.shared.termux.shell.TermuxShellManager;
 import com.termux.shared.termux.shell.am.TermuxAmSocketServer;
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment;
 import com.termux.shared.termux.theme.TermuxThemeUtils;
-import me.rerere.rikkahub.RikkaHubApp;
+import com.itsaky.androidide.app.BaseApplication;
 
-public class TermuxApplication extends RikkaHubApp {
+
+public class TermuxApplication extends BaseApplication {
 
     private static final String LOG_TAG = "TermuxApplication";
 

@@ -71,7 +71,9 @@ public class BaseApplication extends Application {
     new Thread(JavaCharacter::initMap, "JavaChar-Init-Thread").start();
     new Thread(Environment::initSecondaryDirs, "BaseApp-Init-Thread").start();
 
-    // ToolsManager now initializes lazily only when tooling is actually needed.
+
+    
+    
   }
 
  

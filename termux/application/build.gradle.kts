@@ -73,7 +73,6 @@ dependencies {
   implementation(projects.termux.view)
   implementation(projects.termux.shared)
   api(projects.utilities.preferences)
-  api(projects.core.chatai.app)
   // implementation(projects.core.actions)
   implementation(project(":core:actions"))
 
