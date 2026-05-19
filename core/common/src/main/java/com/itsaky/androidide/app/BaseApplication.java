@@ -69,6 +69,7 @@ public class BaseApplication extends Application {
     mPrefsManager = new PreferenceManager(this);
     
     new Thread(JavaCharacter::initMap, "JavaChar-Init-Thread").start();
+    new Thread(Environment::initSecondaryDirs, "BaseApp-Init-Thread").start();
 
 
     
@@ -86,7 +87,7 @@ public class BaseApplication extends Application {
   }
 
   public File getProjectsDir() {
-    return Environment.PROJECTS_DIR;
+    return Environment.getProjectsDir();
   }
 
   public void openTelegramGroup() {

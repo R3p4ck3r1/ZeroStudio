@@ -110,7 +110,6 @@ import com.catpuppyapp.puppygit.utils.getRepoNameFromGitUrl
 import com.catpuppyapp.puppygit.utils.isPathExists
 import com.catpuppyapp.puppygit.utils.state.mutableCustomStateListOf
 import com.catpuppyapp.puppygit.utils.state.mutableCustomStateOf
-import com.catpuppyapp.puppygit.utils.storagepaths.StoragePathsMan
 import com.github.git24j.core.Clone
 import com.github.git24j.core.Remote
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -430,27 +429,23 @@ private fun CloneScreenContent(
             throw RuntimeException(activityContext.getString(R.string.path_is_not_a_dir))
           }
 
-          // 这里需要重新获取完整的列表，确保是新的
-          val currentList = storagePathList.value
+          val projectsPath = Environment.PROJECTS_DIR.canonicalPath
+          if (newPath != projectsPath) {
+            Msg.requireShowLongDuration("仅支持 PROJECTS_DIR 存储位置")
+            return@doJobThenOffLoading
+          }
 
-          val spForSave = StoragePathsMan.get()
           val (indexOfStoragePath, existedStoragePath) = findStoragePathItemByPath(newPath)
-
-          if (indexOfStoragePath != -1) {
-            storagePathSelectedPath.value = existedStoragePath!!
+          if (indexOfStoragePath != -1 && existedStoragePath != null) {
+            storagePathSelectedPath.value = existedStoragePath
             storagePathSelectedIndex.intValue = indexOfStoragePath
-            spForSave.storagePathLastSelected = newPath
           } else {
             val newItem =
                 NameAndPath.genByPath(newPath, NameAndPathType.REPOS_STORAGE_PATH, activityContext)
-            currentList.add(newItem)
-            val newItemIndex = currentList.size - 1
-            storagePathSelectedIndex.intValue = newItemIndex
+            storagePathList.value.add(newItem)
+            storagePathSelectedIndex.intValue = storagePathList.value.lastIndex
             storagePathSelectedPath.value = newItem
-            spForSave.storagePaths.add(newPath)
-            spForSave.storagePathLastSelected = newPath
           }
-          StoragePathsMan.save(spForSave)
         } catch (e: Exception) {
           Msg.requireShowLongDuration("err: ${e.localizedMessage}")
           MyLog.e(TAG, "add storage path at `$TAG` err: ${e.stackTraceToString()}")
@@ -478,25 +473,13 @@ private fun CloneScreenContent(
       }
 
       storagePathList.value.removeAt(index)
-      val spForSave = StoragePathsMan.get()
       val removedCurrent = index == storagePathSelectedIndex.intValue
       if (removedCurrent) {
         val newCurrentIndex = 0
         storagePathSelectedIndex.intValue = newCurrentIndex
         val newCurrent = storagePathList.value[newCurrentIndex]
         storagePathSelectedPath.value = newCurrent
-        spForSave.storagePathLastSelected = newCurrent.path
       }
-
-      spForSave.storagePaths.clear()
-      val list =
-          storagePathList.value.filterAndMap({ it.type == NameAndPathType.REPOS_STORAGE_PATH }) {
-            it.path
-          }
-      if (list.isNotEmpty()) {
-        spForSave.storagePaths.addAll(list)
-      }
-      StoragePathsMan.save(spForSave)
     }
 
     ConfirmDialog2(
@@ -593,6 +576,26 @@ private fun CloneScreenContent(
           // Save to DB (Create Remote, Update Repo)
           val repoDb = AppModel.dbContainer.repoRepository
           repoDb.cloneDoneUpdateRepoAndCreateRemote(repoForSave)
+
+          if (dbIntToBool(repoForSave.isRecursiveCloneOn)) {
+            val submoduleNameList = Libgit2Helper.getSubmoduleNameList(clonedRepo)
+            if (submoduleNameList.isNotEmpty()) {
+              val specifiedCredential =
+                  if (credentialId.isBlank()) null
+                  else credentialDb.getByIdWithDecryptAndMatchByDomain(
+                      credentialId,
+                      repoForSave.cloneUrl,
+                  )
+              Libgit2Helper.cloneSubmodules(
+                  repo = clonedRepo,
+                  recursive = true,
+                  depth = repoForSave.depth,
+                  specifiedCredential = specifiedCredential,
+                  submoduleNameList = submoduleNameList,
+                  credentialDb = credentialDb,
+              )
+            }
+          }
         }
 
         // 4. Success UI
@@ -1078,12 +1081,11 @@ private fun CloneScreenContent(
               menuItemOnClick = { index, value ->
                 storagePathSelectedIndex.intValue = index
                 storagePathSelectedPath.value = value
-                StoragePathsMan.update { it.storagePathLastSelected = value.path }
               },
               menuItemTrailIcon = Icons.Filled.DeleteOutline,
               menuItemTrailIconDescription =
                   stringResource(R.string.trash_bin_icon_for_delete_item),
-              menuItemTrailIconEnable = { index, value -> index != 0 },
+              menuItemTrailIconEnable = { _, _ -> false },
               menuItemTrailIconOnClick = { index, value ->
                 if (index == 0) {
                   Msg.requireShowLongDuration(
@@ -1097,7 +1099,9 @@ private fun CloneScreenContent(
 
           IconButton(
               modifier = Modifier.align(Alignment.CenterEnd),
-              onClick = { showAddStoragePathDialog.value = true },
+              onClick = {
+                Msg.requireShowLongDuration("仅支持 PROJECTS_DIR 存储位置")
+              },
               enabled = !isCloning.value,
           ) {
             Icon(
@@ -1157,6 +1161,31 @@ private fun CloneScreenContent(
           DepthTextField(depth)
           Spacer(modifier = Modifier.padding(spacerPadding))
         }
+
+        Row(
+            Modifier.fillMaxWidth()
+                .height(MyStyleKt.CheckoutBox.height)
+                .toggleable(
+                    enabled = !isCloning.value,
+                    value = isRecursiveClone,
+                    onValueChange = { onIsRecursiveCloneStateChange(!isRecursiveClone) },
+                    role = Role.Checkbox,
+                )
+                .padding(horizontal = MyStyleKt.defaultHorizontalPadding),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Checkbox(
+              enabled = !isCloning.value,
+              checked = isRecursiveClone,
+              onCheckedChange = null,
+          )
+          Text(
+              text = stringResource(R.string.recursive_clone),
+              style = MaterialTheme.typography.bodyLarge,
+              modifier = Modifier.padding(start = 16.dp),
+          )
+        }
+        Spacer(modifier = Modifier.padding(spacerPadding))
 
         MyHorizontalDivider(modifier = Modifier.padding(spacerPadding))
         Spacer(Modifier.height(10.dp))
@@ -1295,31 +1324,6 @@ private fun CloneScreenContent(
 
   LaunchedEffect(Unit) {
     doJobThenOffLoading job@{
-      try {
-        val paths = StoragePathsMan.get().storagePaths
-        if (paths.isNotEmpty()) {
-          val additionalPaths = paths.map {
-            NameAndPath.genByPath(it, NameAndPathType.REPOS_STORAGE_PATH, activityContext)
-          }
-          val currentPaths = storagePathList.value.map { it.path }.toSet()
-          val newPaths = additionalPaths.filter { it.path !in currentPaths }
-
-          if (newPaths.isNotEmpty()) {
-            storagePathList.value.addAll(newPaths)
-
-            // 尝试恢复上次选择的路径
-            val lastSelected = StoragePathsMan.get().storagePathLastSelected
-            val found = storagePathList.value.find { it.path == lastSelected }
-            if (found != null) {
-              storagePathSelectedPath.value = found
-              storagePathSelectedIndex.intValue = storagePathList.value.indexOf(found)
-            }
-          }
-        }
-      } catch (e: Exception) {
-        MyLog.e(TAG, "Failed to load storage paths in LaunchedEffect: ${e.message}")
-      }
-
       if (isEditMode) {
         val repoDb = AppModel.dbContainer.repoRepository
         val credentialDb = AppModel.dbContainer.credentialRepository

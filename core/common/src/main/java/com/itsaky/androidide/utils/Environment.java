@@ -33,6 +33,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import com.itsaky.androidide.app.BaseApplication;
 
 /**
  * AndroidIDE Environment configuration.
@@ -206,7 +207,26 @@ public final class Environment {
     INITIALIZED = true;
   }
 
+  private static Context resolveContext() {
+    final var app = BaseApplication.getBaseInstance();
+    if (app == null) {
+      throw new IllegalStateException("BaseApplication is not ready yet");
+    }
+    return app.getApplicationContext();
+  }
+
+  private static void ensureInitialized() {
+    if (!INITIALIZED || ROOT == null) {
+      synchronized (Environment.class) {
+        if (!INITIALIZED || ROOT == null) {
+          init(resolveContext());
+        }
+      }
+    }
+  }
+
   public static void initSecondaryDirs() {
+    ensureInitialized();
     mkdirIfNotExits(ANDROIDIDE_UI);
     mkdirIfNotExits(REALM_DB_DIR);
     mkdirIfNotExits(COMPOSE_HOME);
@@ -287,6 +307,7 @@ public final class Environment {
   }
 
   public static void setProjectDir(@NonNull File file) {
+    ensureInitialized();
     PROJECTS_DIR = new File(file.getAbsolutePath());
     // 如果项目目录变更，可能需要更新环境变量 PROJECT (虽然 Native 层已经设置了，但如果是动态变更需重新 setenv)
     try {
@@ -295,6 +316,7 @@ public final class Environment {
   }
 
   public static void putEnvironment(Map<String, String> env, boolean forFailsafe) {
+    ensureInitialized();
 
     env.put("HOME", HOME.getAbsolutePath());
     env.put("ANDROID_HOME", ANDROID_HOME.getAbsolutePath());
@@ -324,6 +346,12 @@ public final class Environment {
       // No mirror select
       env.put("TERMUX_PKG_NO_MIRROR_SELECT", "true");
     }
+  }
+
+  @NonNull
+  public static File getProjectsDir() {
+    ensureInitialized();
+    return PROJECTS_DIR;
   }
 
   public static File getProjectCacheDir(File projectDir) {

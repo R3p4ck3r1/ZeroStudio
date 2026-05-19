@@ -36,15 +36,12 @@ import com.itsaky.androidide.events.EditorEventsIndex
 import com.itsaky.androidide.events.LspApiEventsIndex
 import com.itsaky.androidide.events.LspJavaEventsIndex
 import com.itsaky.androidide.events.LspKotlinEventsIndex
-import com.itsaky.androidide.managers.ToolsManager
 import com.itsaky.androidide.preferences.internal.DevOpsPreferences
 import com.itsaky.androidide.preferences.internal.GeneralPreferences
 import com.itsaky.androidide.resources.localization.LocaleProvider
 import com.itsaky.androidide.syntax.colorschemes.SchemeAndroidIDE
 import com.itsaky.androidide.ui.themes.IDETheme
 import com.itsaky.androidide.ui.themes.IThemeManager
-import com.itsaky.androidide.utils.Environment
-
 import com.itsaky.androidide.utils.RecyclableObjectPool
 import com.itsaky.androidide.utils.flashError
 import com.termux.app.TermuxApplication
@@ -112,15 +109,7 @@ class IDEApplication : TermuxApplication() {
 
     EditorColorScheme.setDefault(SchemeAndroidIDE.newInstance(null))
 
-    GlobalScope.launch(Dispatchers.IO) {
-      IDEColorSchemeProvider.init()
-      Environment.initSecondaryDirs()
-      ToolsManager.initIfNeeded(this@IDEApplication, null)
-    }
-    
-    if (Environment.ROOT == null) {
-      Environment.init(this)
-    }
+    GlobalScope.launch(Dispatchers.IO) { IDEColorSchemeProvider.init() }
 
   }
 
@@ -130,12 +119,11 @@ class IDEApplication : TermuxApplication() {
    */
   private fun applyPersistedLocale() {
     val selectedLocaleKey = GeneralPreferences.selectedLocale
-    if (selectedLocaleKey != null) {
-      val locale = LocaleProvider.getLocale(selectedLocaleKey)
-      if (locale != null) {
-        AppCompatDelegate.setApplicationLocales(LocaleListCompat.create(locale))
-      }
-    }
+    val localeListCompat =
+        selectedLocaleKey?.let { key ->
+          LocaleProvider.getLocale(key)?.let { LocaleListCompat.create(it) }
+        } ?: LocaleListCompat.getEmptyLocaleList()
+    AppCompatDelegate.setApplicationLocales(localeListCompat)
   }
 
   fun showChangelog() {
@@ -172,8 +160,9 @@ class IDEApplication : TermuxApplication() {
     } else if (event.key == GeneralPreferences.SELECTED_LOCALE) {
       val selectedLocale = GeneralPreferences.selectedLocale
       val localeListCompat =
-          selectedLocale?.let { LocaleListCompat.create(LocaleProvider.getLocale(selectedLocale)) }
-              ?: LocaleListCompat.getEmptyLocaleList()
+          selectedLocale?.let { key ->
+            LocaleProvider.getLocale(key)?.let { LocaleListCompat.create(it) }
+          } ?: LocaleListCompat.getEmptyLocaleList()
 
       AppCompatDelegate.setApplicationLocales(localeListCompat)
     }
