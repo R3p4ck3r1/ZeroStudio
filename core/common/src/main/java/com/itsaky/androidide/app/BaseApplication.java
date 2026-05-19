@@ -25,6 +25,7 @@ import com.blankj.utilcode.util.ThrowableUtils;
 import com.itsaky.androidide.buildinfo.BuildInfo;
 import com.itsaky.androidide.resources.R;
 import com.itsaky.androidide.managers.PreferenceManager;
+import com.itsaky.androidide.managers.ToolsManager;
 import com.itsaky.androidide.utils.Environment;
 import com.itsaky.androidide.utils.FileUtil;
 import com.itsaky.androidide.utils.FlashbarUtilsKt;
@@ -63,16 +64,16 @@ public class BaseApplication extends Application {
   @Override
   public void onCreate() {
     instance = this;
-    
-    if (Environment.ROOT == null) {
-        Environment.init(this);
-    }
 
     super.onCreate();
 
     mPrefsManager = new PreferenceManager(this);
     
     new Thread(JavaCharacter::initMap, "JavaChar-Init-Thread").start();
+    new Thread(() -> {
+      Environment.initSecondaryDirs();
+      ToolsManager.initIfNeeded(this, null);
+    }, "BaseApp-Init-Thread").start();
 
     // ToolsManager now initializes lazily only when tooling is actually needed.
   }
