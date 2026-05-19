@@ -5,9 +5,10 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
@@ -37,6 +38,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.commit
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -157,26 +163,11 @@ class RouteActivity : ComponentActivity() {
             finish()
             return
         }
-        setContent {
-            RikkahubTheme {
-                setSingletonImageLoaderFactory { context ->
-                    ImageLoader.Builder(context)
-                        .crossfade(true)
-                        .components {
-                            add(OkHttpNetworkFetcherFactory(
-                                callFactory = { okHttpClient },
-                                cacheStrategy = { CacheControlCacheStrategy() },
-                            ))
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                add(AnimatedImageDecoder.Factory())
-                            } else {
-                                add(GifDecoder.Factory())
-                            }
-                            add(SvgDecoder.Factory(scaleToDensity = true))
-                        }
-                        .build()
-                }
-                AppRoutes()
+        val container = FrameLayout(this).apply { id = android.R.id.content }
+        setContentView(container)
+        if (savedInstanceState == null) {
+            supportFragmentManager.commit {
+                replace(android.R.id.content, RouteFragment())
             }
         }
     }
@@ -519,6 +510,42 @@ class RouteActivity : ComponentActivity() {
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    class RouteFragment : Fragment() {
+        override fun onCreateView(
+            inflater: android.view.LayoutInflater,
+            container: android.view.ViewGroup?,
+            savedInstanceState: Bundle?,
+        ): android.view.View {
+            val activity = requireActivity() as RouteActivity
+            return ComposeView(requireContext()).apply {
+                setViewTreeLifecycleOwner(viewLifecycleOwner)
+                setViewTreeSavedStateRegistryOwner(viewLifecycleOwner)
+                setContent {
+                    RikkahubTheme {
+                        setSingletonImageLoaderFactory { context ->
+                            ImageLoader.Builder(context)
+                                .crossfade(true)
+                                .components {
+                                    add(OkHttpNetworkFetcherFactory(
+                                        callFactory = { activity.okHttpClient },
+                                        cacheStrategy = { CacheControlCacheStrategy() },
+                                    ))
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                        add(AnimatedImageDecoder.Factory())
+                                    } else {
+                                        add(GifDecoder.Factory())
+                                    }
+                                    add(SvgDecoder.Factory(scaleToDensity = true))
+                                }
+                                .build()
+                        }
+                        activity.AppRoutes()
                     }
                 }
             }
