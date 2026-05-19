@@ -67,14 +67,13 @@ dependencies {
   implementation(libs.common.markwon.linkify)
   implementation(libs.common.markwon.recycler)
 
-  implementation(projects.core.common)
-  implementation(projects.core.resources)
+  api(projects.core.common)
+  api(projects.core.resources)
   implementation(projects.core.projects)
   implementation(projects.termux.view)
   implementation(projects.termux.shared)
-  implementation(projects.utilities.preferences)
-  implementation(projects.core.layoutEditor)
-  compileOnly(project(":core:chatai:app"))
+  api(projects.utilities.preferences)
+  api(projects.core.chatai.app)
   // implementation(projects.core.actions)
   implementation(project(":core:actions"))
 
