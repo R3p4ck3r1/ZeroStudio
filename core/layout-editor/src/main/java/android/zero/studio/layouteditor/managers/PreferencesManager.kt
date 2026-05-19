@@ -1,7 +1,7 @@
 package android.zero.studio.layouteditor.managers
 
 import android.content.SharedPreferences
-import android.zero.studio.layouteditor.LayoutEditorApplication.Companion.instance
+import android.zero.studio.layouteditor.LayoutEditorContext
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
 
@@ -29,5 +29,5 @@ object PreferencesManager {
 
   @JvmStatic
   val prefs: SharedPreferences
-    get() = PreferenceManager.getDefaultSharedPreferences(instance!!.context)
+    get() = PreferenceManager.getDefaultSharedPreferences(LayoutEditorContext.context)
 }

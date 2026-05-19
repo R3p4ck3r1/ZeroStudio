@@ -14,7 +14,7 @@ import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
-import android.zero.studio.layouteditor.LayoutEditorApplication.Companion.instance
+import android.zero.studio.layouteditor.LayoutEditorContext
 import android.zero.studio.layouteditor.ProjectFile
 import android.zero.studio.layouteditor.R
 import android.zero.studio.layouteditor.R.string
@@ -93,7 +93,7 @@ class ProjectListAdapter(private val projects: MutableList<ProjectFile>) :
 
       if (file.name == name) {
         inputLayout.isErrorEnabled = true
-        inputLayout.error = instance!!.context.getString(string.msg_current_name_unavailable)
+        inputLayout.error = LayoutEditorContext.context.getString(string.msg_current_name_unavailable)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
         return
       }
@@ -222,7 +222,7 @@ class ProjectListAdapter(private val projects: MutableList<ProjectFile>) :
     ProjectManager.instance.openProject(projects[position])
 
     val projectDir =
-        "${FileUtil.getPackageDataDir(instance!!.context)}/projects/${projects[position].name}"
+        "${FileUtil.getPackageDataDir(LayoutEditorContext.context)}/projects/${projects[position].name}"
 
     if (
         !prefs.getBoolean("copyAssets", false) && !(File("$projectDir/values/colors.xml").exists())

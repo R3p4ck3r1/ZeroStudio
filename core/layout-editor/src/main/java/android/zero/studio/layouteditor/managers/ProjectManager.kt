@@ -1,6 +1,6 @@
 package android.zero.studio.layouteditor.managers
 
-import android.zero.studio.layouteditor.LayoutEditorApplication
+import android.zero.studio.layouteditor.LayoutEditorContext
 import android.zero.studio.layouteditor.ProjectFile
 import android.zero.studio.layouteditor.utils.Constants
 import android.zero.studio.layouteditor.utils.FileUtil
@@ -73,7 +73,7 @@ class ProjectManager private constructor() {
       filePath: String,
   ): ArrayList<HashMap<String, Any>> {
     return gson.fromJson(
-        FileUtil.readFromAsset(filePath, LayoutEditorApplication.instance!!.context),
+        FileUtil.readFromAsset(filePath, LayoutEditorContext.context),
         type,
     )
   }

@@ -8,7 +8,6 @@ import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.text.TextUtils
-import android.zero.studio.layouteditor.LayoutEditorApplication.Companion.instance
 import com.blankj.utilcode.util.ToastUtils
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -36,7 +35,7 @@ object FileUtil {
     var outputStream: OutputStream? = null
 
     try {
-      inputStream = instance!!.context.contentResolver.openInputStream(uri)
+      inputStream = LayoutEditorContext.context.contentResolver.openInputStream(uri)
       outputStream = FileOutputStream(File(destinationPath))
 
       val buffer = ByteArray(1024)
@@ -106,7 +105,7 @@ object FileUtil {
    */
   fun copyFileFromAsset(filename: String, outPath: String) {
     // Get asset manager instance from application context
-    val assetManager = instance!!.context.assets
+    val assetManager = LayoutEditorContext.context.assets
 
     // Create streams for read and write
     val `in`: InputStream
@@ -410,7 +409,7 @@ object FileUtil {
   fun convertUriToFilePath(uri: Uri): String {
     var path = ""
     // Check if the Uri is provided by documents contract
-    if (DocumentsContract.isDocumentUri(instance!!.context, uri)) {
+    if (DocumentsContract.isDocumentUri(LayoutEditorContext.context, uri)) {
       // Check if Uri is External Storage Document
       if (isExternalStorageDocument(uri)) {
         val docId = DocumentsContract.getDocumentId(uri)
@@ -493,8 +492,7 @@ object FileUtil {
 
     try {
       val cursor =
-          instance!!
-              .context // Get the application context
+          LayoutEditorContext.context // Get the application context
               .contentResolver // Get the content resolver
               .query(
                   uri!!,
@@ -626,7 +624,7 @@ object FileUtil {
   fun saveFile(uri: Uri, data: String): Boolean {
     try {
       // Open the file descriptor in read-write-truncate mode
-      val pfd = instance!!.context.contentResolver.openFileDescriptor(uri, "rwt")
+      val pfd = LayoutEditorContext.context.contentResolver.openFileDescriptor(uri, "rwt")
       // Initialize file output stream with the file descriptor
       val fos = FileOutputStream(pfd!!.fileDescriptor)
       // Write the data in the file
