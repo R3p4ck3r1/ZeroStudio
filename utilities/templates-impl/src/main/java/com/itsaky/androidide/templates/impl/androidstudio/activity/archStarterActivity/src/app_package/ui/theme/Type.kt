@@ -16,7 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.archStarterActivity.src.app_package.ui.theme
 
-import com.itsaky.androidide.templates.impl.activities.archStarterActivity.ArchStarterActivityTemplateVariables
+import com.itsaky.androidide.templates.impl.androidstudio.activity.archStarterActivity.ArchStarterActivityTemplateVariables
 
 fun ArchStarterActivityTemplateVariables.typeKt() =
     """

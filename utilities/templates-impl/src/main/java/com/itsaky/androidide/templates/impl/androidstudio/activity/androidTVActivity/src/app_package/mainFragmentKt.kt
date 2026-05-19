@@ -16,6 +16,7 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
+import com.itsaky.androidide.templates.impl.sharedMacros.escapeKotlinIdentifier
 
 fun mainFragmentKt(
     detailsActivity: String,
@@ -25,7 +26,7 @@ fun mainFragmentKt(
 ): String {
   val contextArgBlock = if (minApiLevel >= 23) "context!!" else "activity!!"
   return """
-package ${packageName}
+package ${escapeKotlinIdentifier(packageName)}
 
 import java.util.Collections
 import java.util.Timer

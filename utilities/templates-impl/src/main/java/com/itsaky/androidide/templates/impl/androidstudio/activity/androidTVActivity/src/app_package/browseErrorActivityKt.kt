@@ -16,10 +16,11 @@
 
 package com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.src.app_package
 
+import com.itsaky.androidide.templates.impl.sharedMacros.escapeKotlinIdentifier
 
 fun browseErrorActivityKt(layoutName: String, packageName: String, mainFragment: String) =
     """
-package ${packageName}
+package ${escapeKotlinIdentifier(packageName)}
 
 import android.os.Bundle
 import android.os.Handler

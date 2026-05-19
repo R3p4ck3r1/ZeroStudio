@@ -15,7 +15,7 @@
  */
 package com.itsaky.androidide.templates.impl.androidstudio.activity.archStarterActivity.src.app_package.data.local.database
 
-import com.itsaky.androidide.templates.impl.activities.archStarterActivity.ArchStarterActivityTemplateVariables
+import com.itsaky.androidide.templates.impl.androidstudio.activity.archStarterActivity.ArchStarterActivityTemplateVariables
 
 fun ArchStarterActivityTemplateVariables.appDatabase() =
     """
