@@ -348,6 +348,12 @@ public final class Environment {
     }
   }
 
+  @NonNull
+  public static File getProjectsDir() {
+    ensureInitialized();
+    return PROJECTS_DIR;
+  }
+
   public static File getProjectCacheDir(File projectDir) {
     return new File(projectDir, ".androidide");
   }

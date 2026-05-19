@@ -25,7 +25,6 @@ import com.blankj.utilcode.util.ThrowableUtils;
 import com.itsaky.androidide.buildinfo.BuildInfo;
 import com.itsaky.androidide.resources.R;
 import com.itsaky.androidide.managers.PreferenceManager;
-import com.itsaky.androidide.managers.ToolsManager;
 import com.itsaky.androidide.utils.Environment;
 import com.itsaky.androidide.utils.FileUtil;
 import com.itsaky.androidide.utils.FlashbarUtilsKt;
@@ -70,10 +69,7 @@ public class BaseApplication extends Application {
     mPrefsManager = new PreferenceManager(this);
     
     new Thread(JavaCharacter::initMap, "JavaChar-Init-Thread").start();
-    new Thread(() -> {
-      Environment.initSecondaryDirs();
-      ToolsManager.initIfNeeded(this, null);
-    }, "BaseApp-Init-Thread").start();
+    new Thread(Environment::initSecondaryDirs, "BaseApp-Init-Thread").start();
 
     // ToolsManager now initializes lazily only when tooling is actually needed.
   }
@@ -89,7 +85,7 @@ public class BaseApplication extends Application {
   }
 
   public File getProjectsDir() {
-    return Environment.PROJECTS_DIR;
+    return Environment.getProjectsDir();
   }
 
   public void openTelegramGroup() {
