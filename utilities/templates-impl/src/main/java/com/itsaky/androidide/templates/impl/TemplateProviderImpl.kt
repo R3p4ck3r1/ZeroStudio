@@ -114,14 +114,20 @@ class TemplateProviderImpl : ITemplateProvider {
     registerTemplate(TemplateCategory.BasicZeroStudio, noAndroidXActivityProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, lithoClassicProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, lithoComposeProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, aiGlassesActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, aiStarterActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, androidTVActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, archStarterActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, basicActivityProjectAndroidStudio())
-    registerTemplate(TemplateCategory.BasicZeroStudio, chaquopyXmlDemoProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, chaquopyComposeDemoProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, chaquopyLithoDemoProject())
+    
+    // Android Studio template：Mobile/tablet 📱
+    registerTemplate(TemplateCategory.Mobile, basicActivityProjectAndroidStudio())
+    registerTemplate(TemplateCategory.Mobile, archStarterActivityProject())
+    registerTemplate(TemplateCategory.Mobile, aiStarterActivityProject())
+    // Android Studio template：XR 👓
+    registerTemplate(TemplateCategory.XR, aiGlassesActivityProject())
+    // Android Studio template：television 📺
+    registerTemplate(TemplateCategory.Tv, androidTVActivityProject())
+    
+    //Hybrid dev language Frameworks
+    registerTemplate(TemplateCategory.HybridFrameworks, chaquopyXmlDemoProject())
+    registerTemplate(TemplateCategory.HybridFrameworks, chaquopyComposeDemoProject())
+    registerTemplate(TemplateCategory.HybridFrameworks, chaquopyLithoDemoProject())
 
     // Native build（C/C++/Cmake） template category
     registerTemplate(TemplateCategory.Native, imguiActivityProject())

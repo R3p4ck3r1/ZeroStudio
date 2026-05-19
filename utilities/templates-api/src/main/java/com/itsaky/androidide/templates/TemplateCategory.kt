@@ -43,24 +43,19 @@ data class TemplateCategory(
 
     /** "Phone and Tablet" category. */
     val Mobile =
-        TemplateCategory("mobile", "Phone and Tablet", R.drawable.ic_template_devive_phones_tablets)
+        TemplateCategory("mobile", "AS Phone and Tablet", R.drawable.ic_template_devive_phones_tablets)
 
     /** "Wear OS" category. */
-    val Wear = TemplateCategory("wear", "Wear OS", R.drawable.ic_template_devive_smartwatch)
+    val Wear = TemplateCategory("wear", "AS Wear OS", R.drawable.ic_template_devive_smartwatch)
 
     /** "Television" category. */
-    val Tv = TemplateCategory("tv", "Television", R.drawable.ic_template_devive_television)
+    val Tv = TemplateCategory("tv", "AS Television", R.drawable.ic_template_devive_television)
 
     /** "Automotive" category. */
-    val Car =
-        TemplateCategory(
-            "car",
-            "Automotive",
-            R.drawable.ic_template_devive_automotive_navigation_screen,
-        )
+    val Car =TemplateCategory("car","AS Automotive",R.drawable.ic_template_devive_automotive_navigation_screen,)
 
     /** "XR" category for AR/VR applications. */
-    val XR = TemplateCategory("xr", "XR", R.drawable.ic_template_devive_xr)
+    val XR = TemplateCategory("xr", "AS XR", R.drawable.ic_template_devive_xr)
 
     /** "Generic" category for non-specific or multi-platform templates. */
     val Generic = TemplateCategory("generic", "Generic", R.drawable.ic_template_generic)
@@ -69,7 +64,10 @@ data class TemplateCategory(
     val Native = TemplateCategory("native", "Native Build", R.drawable.cpp_configure)
 
     val BasicZeroStudio =
-        TemplateCategory("zerostudio", "IDE Basic", R.drawable.ic_template_generic)
+        TemplateCategory("ZeroStudio", "IDE Basic", R.drawable.ic_template_generic)
+
+    val HybridFrameworks =
+        TemplateCategory("HybridFrameworks", "Hybrid Frameworks", R.drawable.ic_template_generic)
 
     /**
      * Returns a list of all default categories.
@@ -77,7 +75,7 @@ data class TemplateCategory(
      * @return A list of [TemplateCategory].
      */
     fun defaultCategories(): List<TemplateCategory> {
-      return listOf(Mobile, Wear, Tv, Car, XR, Generic)
+      return listOf(Mobile, Wear, Tv, Car, XR, Generic, Native, BasicZeroStudio, HybridFrameworks)
     }
   }
 }
