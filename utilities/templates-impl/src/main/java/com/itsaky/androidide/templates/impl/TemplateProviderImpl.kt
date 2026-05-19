@@ -139,6 +139,7 @@ class TemplateProviderImpl : ITemplateProvider {
     registerTemplate(TemplateCategory.XR, aiGlassesActivityProject())
     // Android Studio template：television 📺
     registerTemplate(TemplateCategory.Tv, androidTVActivityProject())
+    registerTemplate(TemplateCategory.Mobile, googleWalletActivityProjectAndroidStudio())
     
     //Hybrid dev language Frameworks
     registerTemplate(TemplateCategory.HybridFrameworks, chaquopyXmlDemoProject())
