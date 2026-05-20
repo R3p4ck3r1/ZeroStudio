@@ -63,6 +63,11 @@ class QuickRunWithCancellationAction(context: Context, override val order: Int) 
   companion object {
 
     private val log = LoggerFactory.getLogger(QuickRunWithCancellationAction::class.java)
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+  }
+
+  private fun useToolingExecute(): Boolean {
+    return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
   }
 
   init {
@@ -173,9 +178,7 @@ class QuickRunWithCancellationAction(context: Context, override val order: Int) 
 
           val result =
               withContext(Dispatchers.IO) {
-                val useToolingExecute =
-                    System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
-                if (useToolingExecute) {
+                if (useToolingExecute()) {
                   val exec = buildService.execute(ExecutionRequest(tasks = listOf(taskName))).get()
                   if (exec.isSuccessful) {
                     TaskExecutionResult.SUCCESS
