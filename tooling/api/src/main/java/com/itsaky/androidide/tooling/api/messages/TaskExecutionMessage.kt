@@ -29,4 +29,9 @@ data class TaskExecutionMessage(
     val arguments: List<String> = emptyList(),
     val jvmArguments: List<String> = emptyList(),
     val operationTypes: Set<OperationType> = emptySet(),
-)
+) {
+
+  fun asExecutionRequest(): ExecutionRequest {
+    return ExecutionRequest(tasks, arguments, jvmArguments, operationTypes)
+  }
+}
