@@ -70,6 +70,16 @@ class QuickRunWithCancellationAction(context: Context, override val order: Int) 
     return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
   }
 
+  private fun toTaskExecutionResult(
+      exec: com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
+  ): TaskExecutionResult {
+    return if (exec.isSuccessful) {
+      TaskExecutionResult.SUCCESS
+    } else {
+      TaskExecutionResult(false, exec.failure, exec.diagnostics)
+    }
+  }
+
   init {
     label = context.getString(R.string.quick_run_debug)
     icon = ContextCompat.getDrawable(context, R.drawable.ic_run_outline)
@@ -180,11 +190,7 @@ class QuickRunWithCancellationAction(context: Context, override val order: Int) 
               withContext(Dispatchers.IO) {
                 if (useToolingExecute()) {
                   val exec = buildService.execute(ExecutionRequest(tasks = listOf(taskName))).get()
-                  if (exec.isSuccessful) {
-                    TaskExecutionResult.SUCCESS
-                  } else {
-                    TaskExecutionResult(false, exec.failure, exec.diagnostics)
-                  }
+                  toTaskExecutionResult(exec)
                 } else {
                   buildService.executeTasks(taskName).get()
                 }
