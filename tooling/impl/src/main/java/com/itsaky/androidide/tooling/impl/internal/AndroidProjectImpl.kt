@@ -466,6 +466,10 @@ internal class AndroidProjectImpl(
                   name = it.name,
                   buildType = it.buildType,
                   productFlavors = it.productFlavors,
+                  deviceTestArtifacts = it.deviceTestArtifacts.keys.toList(),
+                  hostTestArtifacts = it.hostTestArtifacts.keys.toList(),
+                  testSuiteArtifacts = it.testSuiteArtifacts.keys.toList(),
+                  hasTestFixturesArtifact = it.testFixturesArtifact != null,
               )
             },
     )

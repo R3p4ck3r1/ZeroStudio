@@ -30,6 +30,10 @@ data class VariantMatrixModel(
     val name: String,
     val buildType: String?,
     val productFlavors: List<String>,
+    val deviceTestArtifacts: List<String>,
+    val hostTestArtifacts: List<String>,
+    val testSuiteArtifacts: List<String>,
+    val hasTestFixturesArtifact: Boolean,
 ) : Serializable
 
 data class SourceSpaceModel(
