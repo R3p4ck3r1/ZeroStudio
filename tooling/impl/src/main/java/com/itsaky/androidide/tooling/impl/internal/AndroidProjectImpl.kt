@@ -505,6 +505,29 @@ internal class AndroidProjectImpl(
     )
   }
 
+  private fun parseManifestMergerReport(variantName: String): ManifestMergerReport? {
+    val report =
+        File(
+            gradleProject.buildDirectory,
+            "outputs/logs/manifest-merger-$variantName-report.txt",
+        )
+    if (!report.exists()) return null
+    val text = report.readText()
+    val permissionPattern =
+        Pattern.compile("uses-permission#([a-zA-Z0-9_.]+).*?ADDED from (.+?)(?:\\n|$)")
+    val matcher = permissionPattern.matcher(text)
+    val merged = mutableListOf<MergedPermissionSource>()
+    while (matcher.find()) {
+      merged.add(
+          MergedPermissionSource(
+              permission = matcher.group(1),
+              source = matcher.group(2).trim(),
+          )
+      )
+    }
+    return ManifestMergerReport(report, merged)
+  }
+
   override fun getBootClasspaths(): CompletableFuture<Collection<File>> {
     return CompletableFuture.supplyAsync { basicAndroidProject.bootClasspath }
   }
