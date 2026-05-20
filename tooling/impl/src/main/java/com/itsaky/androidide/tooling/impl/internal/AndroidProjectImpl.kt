@@ -443,6 +443,7 @@ internal class AndroidProjectImpl(
           )
         }
         .distinctBy { "${it.buildId}:${it.projectPath}" }
+        .sortedWith(compareBy<ProjectInfoNodeModel>({ it.buildId }, { it.projectPath }))
   }
 
   private fun parseManifestMergerReport(variantName: String): ManifestMergerReport? {
