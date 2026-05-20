@@ -29,6 +29,7 @@ import com.android.builder.model.v2.models.AndroidProject
 import com.android.builder.model.v2.models.BasicAndroidProject
 import com.android.builder.model.v2.models.VariantDependencies
 import com.android.builder.model.v2.models.Versions
+import com.android.builder.model.v2.models.ndk.NativeModule
 import com.itsaky.androidide.builder.model.DefaultJavaCompileOptions
 import com.itsaky.androidide.builder.model.DefaultLibrary
 import com.itsaky.androidide.builder.model.DefaultSourceSetContainer
@@ -50,6 +51,9 @@ import com.itsaky.androidide.tooling.api.models.LibraryGraphEntry
 import com.itsaky.androidide.tooling.api.models.LibraryCoordinate
 import com.itsaky.androidide.tooling.api.models.ManifestMergerReport
 import com.itsaky.androidide.tooling.api.models.MergedPermissionSource
+import com.itsaky.androidide.tooling.api.models.NativeVariantModel
+import com.itsaky.androidide.tooling.api.models.NativeModuleModel
+import com.itsaky.androidide.tooling.api.models.NativeAbiModel
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
 import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
 import com.itsaky.androidide.tooling.api.models.TestArtifactModel
@@ -80,6 +84,7 @@ internal class AndroidProjectImpl(
     private val versions: Versions,
     private val androidDsl: AndroidDsl,
     private val resolvedProjectVariants: Map<String, String>,
+    private val nativeModule: NativeModule?,
 ) : GradleProjectImpl(gradleProject), IAndroidProject, Serializable {
 
   private val serialVersionUID = 1L
@@ -329,6 +334,31 @@ internal class AndroidProjectImpl(
               )
             },
         resolvedProjectVariants = resolvedProjectVariants,
+        nativeModule = nativeModule?.let { module ->
+          NativeModuleModel(
+              name = module.name,
+              nativeBuildSystem = module.nativeBuildSystem.name,
+              ndkVersion = module.ndkVersion,
+              defaultNdkVersion = module.defaultNdkVersion,
+              externalNativeBuildFile = module.externalNativeBuildFile,
+              variants =
+                  module.variants.map { variant ->
+                    NativeVariantModel(
+                        name = variant.name,
+                        abis =
+                            variant.abis.map { abi ->
+                              NativeAbiModel(
+                                  name = abi.name,
+                                  sourceFlagsFile = abi.sourceFlagsFile,
+                                  symbolFolderIndexFile = abi.symbolFolderIndexFile,
+                                  buildFileIndexFile = abi.buildFileIndexFile,
+                                  additionalProjectFilesIndexFile = abi.additionalProjectFilesIndexFile,
+                              )
+                            },
+                    )
+                  },
+          )
+        },
     )
   }
 
@@ -518,6 +548,31 @@ internal class AndroidProjectImpl(
                   )
             },
         resolvedProjectVariants = resolvedProjectVariants,
+        nativeModule = nativeModule?.let { module ->
+          NativeModuleModel(
+              name = module.name,
+              nativeBuildSystem = module.nativeBuildSystem.name,
+              ndkVersion = module.ndkVersion,
+              defaultNdkVersion = module.defaultNdkVersion,
+              externalNativeBuildFile = module.externalNativeBuildFile,
+              variants =
+                  module.variants.map { variant ->
+                    NativeVariantModel(
+                        name = variant.name,
+                        abis =
+                            variant.abis.map { abi ->
+                              NativeAbiModel(
+                                  name = abi.name,
+                                  sourceFlagsFile = abi.sourceFlagsFile,
+                                  symbolFolderIndexFile = abi.symbolFolderIndexFile,
+                                  buildFileIndexFile = abi.buildFileIndexFile,
+                                  additionalProjectFilesIndexFile = abi.additionalProjectFilesIndexFile,
+                              )
+                            },
+                    )
+                  },
+          )
+        },
     )
   }
 

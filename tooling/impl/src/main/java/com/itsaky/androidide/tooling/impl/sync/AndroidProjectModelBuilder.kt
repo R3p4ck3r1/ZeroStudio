@@ -21,6 +21,7 @@ import com.android.builder.model.v2.models.AndroidProject
 import com.android.builder.model.v2.models.BasicAndroidProject
 import com.android.builder.model.v2.models.ModelBuilderParameter
 import com.android.builder.model.v2.models.ProjectSyncIssues
+import com.android.builder.model.v2.models.ndk.NativeModule
 import com.android.builder.model.v2.models.ProjectGraph
 import com.android.builder.model.v2.models.VariantDependencies
 import com.itsaky.androidide.tooling.api.IAndroidProject
@@ -107,6 +108,7 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
     }
 
     val projectGraph = controller.findModel(module, ProjectGraph::class.java)
+    val nativeModule = controller.findModel(module, NativeModule::class.java)
 
     return AndroidProjectImpl(
         module.gradleProject,
@@ -119,6 +121,7 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
         projectGraph?.resolvedVariantsWithProjectInfo
             ?.mapKeys { it.key.projectPath }
             ?: emptyMap(),
+        nativeModule,
     )
   }
 }
