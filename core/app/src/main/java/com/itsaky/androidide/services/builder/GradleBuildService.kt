@@ -580,11 +580,7 @@ class GradleBuildService :
               tasks = tasksList,
               arguments = buildArgs,
               jvmArguments = jvmArgs,
-              operationTypes =
-                  linkedSetOf(
-                      OperationType.TASK,
-                      OperationType.PROJECT_CONFIGURATION,
-                  ),
+              operationTypes = resolvePreferredOperationTypes(),
           )
       return execute(request).thenApply { exec ->
         if (exec.isSuccessful) {
@@ -795,6 +791,26 @@ class GradleBuildService :
             jvmArguments = request.jvmArguments.filter { it.isNotBlank() },
         )
     return performBuildTasks(server!!.execute(sanitized))
+  }
+
+  private fun resolvePreferredOperationTypes(): Set<OperationType> {
+    return try {
+      val negotiated = server?.metadata()?.get(2, TimeUnit.SECONDS)?.negotiatedOperationTypes.orEmpty()
+      if (negotiated.isNotEmpty()) {
+        negotiated
+      } else {
+        linkedSetOf(
+            OperationType.TASK,
+            OperationType.PROJECT_CONFIGURATION,
+        )
+      }
+    } catch (error: Throwable) {
+      log.warn("Unable to load negotiated operation types from tooling metadata", error)
+      linkedSetOf(
+          OperationType.TASK,
+          OperationType.PROJECT_CONFIGURATION,
+      )
+    }
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
