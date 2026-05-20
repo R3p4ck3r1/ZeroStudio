@@ -296,6 +296,10 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
     }
   }
 
+  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
+    return runBuild { executeBuildRequest(request) }
+  }
+
   private fun executeBuildRequest(request: ExecutionRequest): ExecutionResult {
       if (!isServerInitialized().get()) {
         log.error("Cannot execute tasks: {}", PROJECT_NOT_INITIALIZED)
