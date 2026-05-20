@@ -75,6 +75,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import org.gradle.tooling.events.OperationType
 import org.slf4j.LoggerFactory
 
 /**
@@ -569,7 +570,22 @@ class GradleBuildService :
         System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
     if (useToolingExecute) {
       val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
-      val request = ExecutionRequest(tasks = tasksList, arguments = buildArgs)
+      val jvmArgs =
+          System.getProperty("androidide.tooling.execute.jvmArgs", "")
+              .split(' ')
+              .map { it.trim() }
+              .filter { it.isNotBlank() }
+      val request =
+          ExecutionRequest(
+              tasks = tasksList,
+              arguments = buildArgs,
+              jvmArguments = jvmArgs,
+              operationTypes =
+                  linkedSetOf(
+                      OperationType.TASK,
+                      OperationType.PROJECT_CONFIGURATION,
+                  ),
+          )
       return performBuildTasks(
           server!!.execute(request).thenApply { exec ->
             if (exec.isSuccessful) {
