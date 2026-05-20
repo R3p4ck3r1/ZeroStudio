@@ -53,6 +53,7 @@ import com.itsaky.androidide.tooling.api.models.FlavorMatrixModel
 import com.itsaky.androidide.tooling.api.models.GeneratedSourceModel
 import com.itsaky.androidide.tooling.api.models.LibraryGraphEntry
 import com.itsaky.androidide.tooling.api.models.LibraryCoordinate
+import com.itsaky.androidide.tooling.api.models.ManifestBlameEntry
 import com.itsaky.androidide.tooling.api.models.ManifestMergerReport
 import com.itsaky.androidide.tooling.api.models.MergedPermissionSource
 import com.itsaky.androidide.tooling.api.models.NativeVariantModel
@@ -420,20 +421,50 @@ internal class AndroidProjectImpl(
         )
     if (!report.exists()) return null
     val text = report.readText()
+
     val permissionPattern =
-        Pattern.compile("uses-permission#([a-zA-Z0-9_.]+).*?ADDED from (.+?)(?:\\n|$)")
-    val matcher = permissionPattern.matcher(text)
-    val merged = mutableListOf<MergedPermissionSource>()
-    while (matcher.find()) {
-      merged.add(
+        Pattern.compile(
+            "(uses-permission(?:-sdk-[0-9]+)?)#([a-zA-Z0-9_.]+).*?(ADDED|MERGED|REPLACED|REMOVED) from (.+?)(?:\n|$)",
+            Pattern.DOTALL,
+        )
+    val permissionMatcher = permissionPattern.matcher(text)
+    val mergedPermissions = mutableListOf<MergedPermissionSource>()
+    while (permissionMatcher.find()) {
+      mergedPermissions.add(
           MergedPermissionSource(
-              permission = matcher.group(2),
-              source = matcher.group(3).trim(),
-              tagName = matcher.group(1),
+              permission = permissionMatcher.group(2),
+              source = permissionMatcher.group(4).trim(),
+              tagName = permissionMatcher.group(1),
           )
       )
     }
-    return ManifestMergerReport(report, merged)
+
+    val genericPattern =
+        Pattern.compile(
+            "(<[a-zA-Z0-9._:-]+(?:\s+[^>]*)?>|[a-zA-Z0-9._:-]+#[a-zA-Z0-9._:-]+).*?(ADDED|MERGED|REPLACED|REMOVED) from (.+?)(?:\n|$)",
+            Pattern.DOTALL,
+        )
+    val genericMatcher = genericPattern.matcher(text)
+    val blameEntries = mutableListOf<ManifestBlameEntry>()
+    while (genericMatcher.find()) {
+      val qualified = genericMatcher.group(1).trim()
+      val tagName =
+          qualified.substringAfter('<').substringBefore('#').substringBefore(' ').removeSuffix(">")
+      blameEntries.add(
+          ManifestBlameEntry(
+              tagName = if (tagName.isBlank()) "unknown" else tagName,
+              qualifiedName = qualified,
+              action = genericMatcher.group(2),
+              source = genericMatcher.group(3).trim(),
+          )
+      )
+    }
+
+    return ManifestMergerReport(
+        reportFile = report,
+        mergedPermissions = mergedPermissions,
+        blameEntries = blameEntries,
+    )
   }
 
   override fun getBootClasspaths(): CompletableFuture<Collection<File>> {
