@@ -75,31 +75,31 @@ internal class JavaProjectImpl(
       for (dependency in ideaModule.dependencies) {
         when (dependency) {
           is IdeaSingleEntryLibraryDependency -> {
-          val file = dependency.file
-          val source = dependency.source
-          val javadoc = dependency.javadoc
-          val artifact = getGradleArtifact(dependency)
-          list.add(
-              JavaModuleExternalDependency(
-                  file,
-                  source,
-                  javadoc,
-                  artifact,
-                  dependency.getScope().scope,
-                  dependency.getExported(),
-              )
-          )
+            val file = dependency.file
+            val source = dependency.source
+            val javadoc = dependency.javadoc
+            val artifact = getGradleArtifact(dependency)
+            list.add(
+                JavaModuleExternalDependency(
+                    file,
+                    source,
+                    javadoc,
+                    artifact,
+                    dependency.getScope().scope,
+                    dependency.getExported(),
+                )
+            )
           }
           is IdeaModuleDependency -> {
-          val moduleName = dependency.targetModuleName
-          list.add(
-              JavaModuleProjectDependency(
-                  moduleName,
-                  allModulePaths[moduleName] ?: "",
-                  dependency.scope.scope,
-                  dependency.exported,
-              )
-          )
+            val moduleName = dependency.targetModuleName
+            list.add(
+                JavaModuleProjectDependency(
+                    moduleName,
+                    allModulePaths[moduleName] ?: "",
+                    dependency.scope.scope,
+                    dependency.exported,
+                )
+            )
           }
           else -> Unit
         }
