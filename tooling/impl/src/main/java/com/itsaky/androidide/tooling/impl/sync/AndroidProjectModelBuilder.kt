@@ -21,7 +21,10 @@ import com.android.builder.model.v2.models.AndroidProject
 import com.android.builder.model.v2.models.BasicAndroidProject
 import com.android.builder.model.v2.models.ModelBuilderParameter
 import com.android.builder.model.v2.models.ProjectSyncIssues
+import com.android.builder.model.v2.models.ndk.NativeModule
+import com.android.builder.model.v2.models.ProjectGraph
 import com.android.builder.model.v2.models.VariantDependencies
+import com.android.builder.model.v2.models.VariantDependenciesAdjacencyList
 import com.itsaky.androidide.tooling.api.IAndroidProject
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
 import com.itsaky.androidide.tooling.impl.internal.AndroidProjectImpl
@@ -101,9 +104,28 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
           it.dontBuildHostTestRuntimeClasspath = emptyMap()
         }
 
+    val variantDependenciesAdjacency =
+        controller.findModel(
+            module,
+            VariantDependenciesAdjacencyList::class.java,
+            ModelBuilderParameter::class.java,
+        ) {
+          it.variantName = configurationVariant
+          it.additionalArtifactsInModel = true
+          it.dontBuildRuntimeClasspath = false
+          it.dontBuildUnitTestRuntimeClasspath = true
+          it.dontBuildScreenshotTestRuntimeClasspath = true
+          it.dontBuildAndroidTestRuntimeClasspath = true
+          it.dontBuildTestFixtureRuntimeClasspath = true
+          it.dontBuildHostTestRuntimeClasspath = emptyMap()
+        }
+
     controller.findModel(module, ProjectSyncIssues::class.java)?.also { syncIssues ->
       syncIssueReporter.reportAll(syncIssues)
     }
+
+    val projectGraph = controller.findModel(module, ProjectGraph::class.java)
+    val nativeModule = controller.findModel(module, NativeModule::class.java)
 
     return AndroidProjectImpl(
         module.gradleProject,
@@ -111,8 +133,27 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
         basicModel,
         androidModel,
         variantDependencies,
+        variantDependenciesAdjacency,
         versions,
         androidDsl,
+        projectGraph?.resolvedVariantsWithProjectInfo
+            ?.mapKeys { it.key.projectPath }
+            ?: emptyMap(),
+        projectGraph?.resolvedVariantsWithProjectInfo
+            ?.map { (projectInfo, variant) ->
+              com.itsaky.androidide.tooling.api.models.ProjectVariantResolutionModel(
+                  buildId = projectInfo.buildId,
+                  projectPath = projectInfo.projectPath,
+                  variantName = variant,
+                  attributes = projectInfo.attributes,
+                  buildType = projectInfo.buildType,
+                  productFlavors = projectInfo.productFlavors,
+                  capabilities = projectInfo.capabilities,
+                  isTestFixtures = projectInfo.isTestFixtures,
+              )
+            }
+            ?: emptyList(),
+        nativeModule,
     )
   }
 }

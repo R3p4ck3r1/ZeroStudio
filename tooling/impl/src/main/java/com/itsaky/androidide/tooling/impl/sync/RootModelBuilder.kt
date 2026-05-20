@@ -111,6 +111,7 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
     }
 
     finalizeLauncher(executor)
+    applyInjectedProperties(executor)
     applyAndroidModelBuilderProps(executor)
 
     if (cancellationToken != null) {
@@ -135,5 +136,12 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
 
   private fun ConfigurableLauncher<*>.addProperty(property: String, value: Any) {
     addArguments(String.format("-P%s=%s", property, value))
+  }
+
+  private fun applyInjectedProperties(launcher: ConfigurableLauncher<*>) {
+    val args = initializationParams.androidParams.injectedProperties.toGradleArguments()
+    if (args.isNotEmpty()) {
+      launcher.addArguments(*args.toTypedArray())
+    }
   }
 }

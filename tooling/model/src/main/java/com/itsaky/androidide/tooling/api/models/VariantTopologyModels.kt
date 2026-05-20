@@ -66,6 +66,13 @@ data class DependencyGraphModel(
     val artifactDependencies: List<String>,
     val localJarDependencies: List<File>,
     val aarExplodedFolders: List<File>,
+    val aarClassesJars: List<File>,
     val projectDependencies: List<String>,
+    val testSuiteSourceDependencies: Map<String, List<String>>,
+    val variantAdjacency: VariantDependencyAdjacencyModel?,
+    val testSuiteAdjacency: List<TestSuiteAdjacencyModel>,
+    val variantAdjacencyList: VariantDependencyAdjacencyListModel?,
+    val testSuiteAdjacencyLists: List<TestSuiteDependenciesAdjacencyListModel>,
+    val projectInfoNodes: List<ProjectInfoNodeModel>,
     val libraries: List<LibraryGraphEntry>,
 ) : Serializable

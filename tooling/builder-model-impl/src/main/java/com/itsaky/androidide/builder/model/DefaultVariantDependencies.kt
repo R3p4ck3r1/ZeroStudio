@@ -36,9 +36,9 @@ class DefaultVariantDependencies : VariantDependencies, Serializable {
   override var testFixturesArtifact: DefaultArtifactDependencies? = null
   @Deprecated("Contained in hostTestArtifacts")
   override var unitTestArtifact: DefaultArtifactDependencies? = null
-  override val deviceTestArtifacts: Map<String, ArtifactDependencies> = emptyMap()
-  override val hostTestArtifacts: Map<String, ArtifactDependencies> = emptyMap()
+  override var deviceTestArtifacts: Map<String, ArtifactDependencies> = emptyMap()
+  override var hostTestArtifacts: Map<String, ArtifactDependencies> = emptyMap()
 
   /** The test suite artifacts. */
-  override val testSuiteArtifacts: Map<String, TestSuiteDependencies> = emptyMap()
+  override var testSuiteArtifacts: Map<String, TestSuiteDependencies> = emptyMap()
 }

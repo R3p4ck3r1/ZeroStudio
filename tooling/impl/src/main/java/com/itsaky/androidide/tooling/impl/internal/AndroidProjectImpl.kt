@@ -28,12 +28,19 @@ import com.android.builder.model.v2.models.AndroidDsl
 import com.android.builder.model.v2.models.AndroidProject
 import com.android.builder.model.v2.models.BasicAndroidProject
 import com.android.builder.model.v2.models.VariantDependencies
+import com.android.builder.model.v2.models.VariantDependenciesAdjacencyList
 import com.android.builder.model.v2.models.Versions
+import com.android.builder.model.v2.models.ndk.NativeModule
 import com.itsaky.androidide.builder.model.DefaultJavaCompileOptions
 import com.itsaky.androidide.builder.model.DefaultLibrary
 import com.itsaky.androidide.builder.model.DefaultSourceSetContainer
 import com.itsaky.androidide.builder.model.DefaultViewBindingOptions
+import com.itsaky.androidide.tooling.events.configuration.ManifestMergerParsedEvent
+import com.itsaky.androidide.tooling.events.configuration.ManifestMergerParsedPermission
+import com.itsaky.androidide.tooling.events.configuration.VariantContextChangedEvent
+import com.itsaky.androidide.tooling.events.internal.DefaultOperationDescriptor
 import com.itsaky.androidide.tooling.api.IAndroidProject
+import com.itsaky.androidide.tooling.impl.Main
 import com.itsaky.androidide.tooling.api.models.AndroidArtifactMetadata
 import com.itsaky.androidide.tooling.api.models.AndroidLibraryDataModel
 import com.itsaky.androidide.tooling.api.models.AndroidModuleType
@@ -44,17 +51,33 @@ import com.itsaky.androidide.tooling.api.models.AndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BasicAndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BuildTypeMatrixModel
 import com.itsaky.androidide.tooling.api.models.DependencyGraphModel
+import com.itsaky.androidide.tooling.api.models.VariantDependencyAdjacencyModel
+import com.itsaky.androidide.tooling.api.models.GraphNodeModel
+import com.itsaky.androidide.tooling.api.models.ArtifactDependencyAdjacencyModel
 import com.itsaky.androidide.tooling.api.models.FlavorMatrixModel
 import com.itsaky.androidide.tooling.api.models.GeneratedSourceModel
 import com.itsaky.androidide.tooling.api.models.LibraryGraphEntry
 import com.itsaky.androidide.tooling.api.models.LibraryCoordinate
+import com.itsaky.androidide.tooling.api.models.ManifestBlameEntry
 import com.itsaky.androidide.tooling.api.models.ManifestMergerReport
 import com.itsaky.androidide.tooling.api.models.MergedPermissionSource
+import com.itsaky.androidide.tooling.api.models.NativeVariantModel
+import com.itsaky.androidide.tooling.api.models.NativeModuleModel
+import com.itsaky.androidide.tooling.api.models.NativeAbiModel
+import com.itsaky.androidide.tooling.api.models.ProjectInfoNodeModel
+import com.itsaky.androidide.tooling.api.models.VariantDependencyAdjacencyListModel
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
+import com.itsaky.androidide.tooling.api.models.ProjectVariantResolutionModel
 import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
 import com.itsaky.androidide.tooling.api.models.TestArtifactModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteTargetModel
 import com.itsaky.androidide.tooling.api.models.TestedTargetVariantModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteAdjacencyModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteSourceAdjacencyModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteSourceDependenciesAdjacencyListModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteDependenciesAdjacencyListModel
+import com.itsaky.androidide.tooling.api.models.DependencyEdgeModel
+import com.itsaky.androidide.tooling.api.models.ArtifactDependenciesAdjacencyListModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteInfoModel
 import com.itsaky.androidide.tooling.api.models.VariantCapabilitiesModel
 import com.itsaky.androidide.tooling.api.models.VariantMatrixModel
@@ -77,8 +100,12 @@ internal class AndroidProjectImpl(
     private val basicAndroidProject: BasicAndroidProject,
     private val androidProject: AndroidProject,
     private val variantDependencies: VariantDependencies,
+    private val variantDependenciesAdjacency: VariantDependenciesAdjacencyList?,
     private val versions: Versions,
     private val androidDsl: AndroidDsl,
+    private val resolvedProjectVariants: Map<String, String>,
+    private val resolvedProjectVariantDetails: List<ProjectVariantResolutionModel>,
+    private val nativeModule: NativeModule?,
 ) : GradleProjectImpl(gradleProject), IAndroidProject, Serializable {
 
   private val serialVersionUID = 1L
@@ -265,6 +292,270 @@ internal class AndroidProjectImpl(
             },
         localJarDependencies = libraries.mapNotNull { it.localJar },
         aarExplodedFolders = libraries.mapNotNull { lib -> lib.folder.takeIf { lib.type == LibraryType.ANDROID_LIBRARY } },
+        aarClassesJars =
+            libraries.mapNotNull { lib ->
+              lib.folder
+                  ?.takeIf { lib.type == LibraryType.ANDROID_LIBRARY }
+                  ?.resolve("jars/classes.jar")
+                  ?.takeIf { it.exists() }
+            },
+        projectDependencies =
+            libraries.mapNotNull { lib ->
+              lib.projectInfo?.let { "${it.buildId}:${it.projectPath}" }
+            },
+        testSuiteSourceDependencies =
+            variantDependencies.testSuiteArtifacts.flatMap { (suiteName, suiteDeps) ->
+              suiteDeps.sourcesDependencies.map { sourceDeps ->
+                "$suiteName:${sourceDeps.name}(${sourceDeps.type})" to
+                    sourceDeps.artifactDependencies.compileDependencies.map { it.key }
+              }
+            }.toMap(),
+        variantAdjacency =
+            VariantDependencyAdjacencyModel(
+                mainArtifact = variantDependencies.mainArtifact.toAdjacency(),
+                deviceTestArtifacts =
+                    variantDependencies.deviceTestArtifacts.mapValues { (_, deps) -> deps.toAdjacency() },
+                hostTestArtifacts =
+                    variantDependencies.hostTestArtifacts.mapValues { (_, deps) -> deps.toAdjacency() },
+            ),
+        testSuiteAdjacency =
+            variantDependencies.testSuiteArtifacts.map { (suiteName, suiteDeps) ->
+              TestSuiteAdjacencyModel(
+                  suiteName = suiteName,
+                  sources =
+                      suiteDeps.sourcesDependencies.map { sourceDeps ->
+                        TestSuiteSourceAdjacencyModel(
+                            sourceType = sourceDeps.type.name,
+                            sourceName = sourceDeps.name,
+                            dependencies = sourceDeps.artifactDependencies.toAdjacency(),
+                        )
+                      },
+              )
+            },
+        variantAdjacencyList =
+            variantDependenciesAdjacency?.let { adjacency ->
+              VariantDependencyAdjacencyListModel(
+                  mainArtifact = adjacency.mainArtifact.toAdjacencyList(),
+                  deviceTestArtifacts =
+                      adjacency.deviceTestArtifacts.mapValues { (_, deps) -> deps.toAdjacencyList() },
+                  hostTestArtifacts =
+                      adjacency.hostTestArtifacts.mapValues { (_, deps) -> deps.toAdjacencyList() },
+              )
+            },
+        testSuiteAdjacencyLists =
+            variantDependenciesAdjacency?.testSuiteArtifacts?.map { (suiteName, suiteDeps) ->
+              TestSuiteDependenciesAdjacencyListModel(
+                  suiteName = suiteName,
+                  sourcesDependencies =
+                      suiteDeps.sourcesDependencies.map { sourceDeps ->
+                        TestSuiteSourceDependenciesAdjacencyListModel(
+                            sourceType = sourceDeps.type.name,
+                            sourceName = sourceDeps.name,
+                            artifactDependencies = sourceDeps.artifactDependencies.toAdjacencyList(),
+                        )
+                      },
+              )
+            } ?: emptyList(),
+        projectInfoNodes = buildProjectInfoNodes(libraries),
+        libraries =
+            libraries.map { lib ->
+              LibraryGraphEntry(
+                  key = lib.key,
+                  type = lib.type.name,
+                  artifact = lib.artifact,
+                  lintJar = lib.lintJar,
+                  srcJars = lib.srcJars,
+                  docJar = lib.docJar,
+                  projectPath = lib.projectInfo?.projectPath,
+                  buildId = lib.projectInfo?.buildId,
+                  attributes = lib.libraryInfo?.attributes ?: lib.projectInfo?.attributes ?: emptyMap(),
+                  buildType = lib.libraryInfo?.buildType ?: lib.projectInfo?.buildType,
+                  capabilities = lib.libraryInfo?.capabilities ?: lib.projectInfo?.capabilities ?: emptyList(),
+                  isTestFixtures = lib.libraryInfo?.isTestFixtures ?: lib.projectInfo?.isTestFixtures ?: false,
+                  productFlavors = lib.libraryInfo?.productFlavors ?: lib.projectInfo?.productFlavors ?: emptyMap(),
+                  coordinate =
+                      lib.libraryInfo?.let {
+                        LibraryCoordinate(
+                            group = it.group,
+                            artifact = it.name,
+                            version = it.version,
+                        )
+                      },
+                  androidLibraryData =
+                      lib.androidLibraryData?.let {
+                        AndroidLibraryDataModel(
+                            manifest = it.manifest,
+                            compileJarFiles = it.compileJarFiles,
+                            runtimeJarFiles = it.runtimeJarFiles,
+                            resFolder = it.resFolder,
+                            resStaticLibrary = it.resStaticLibrary,
+                            assetsFolder = it.assetsFolder,
+                            jniFolder = it.jniFolder,
+                            aidlFolder = it.aidlFolder,
+                            renderscriptFolder = it.renderscriptFolder,
+                            proguardRules = it.proguardRules,
+                            externalAnnotations = it.externalAnnotations,
+                            publicResources = it.publicResources,
+                            symbolFile = it.symbolFile,
+                        )
+                      },
+              )
+            },
+        resolvedProjectVariants = resolvedProjectVariants,
+        resolvedProjectVariantDetails = resolvedProjectVariantDetails,
+        projectInfoNodes = buildProjectInfoNodes(variantDependencies.libraries.values),
+        nativeModule = nativeModule?.let { module ->
+          NativeModuleModel(
+              name = module.name,
+              nativeBuildSystem = module.nativeBuildSystem.name,
+              ndkVersion = module.ndkVersion,
+              defaultNdkVersion = module.defaultNdkVersion,
+              externalNativeBuildFile = module.externalNativeBuildFile,
+              variants =
+                  module.variants.map { variant ->
+                    NativeVariantModel(
+                        name = variant.name,
+                        abis =
+                            variant.abis.map { abi ->
+                              NativeAbiModel(
+                                  name = abi.name,
+                                  sourceFlagsFile = abi.sourceFlagsFile,
+                                  symbolFolderIndexFile = abi.symbolFolderIndexFile,
+                                  buildFileIndexFile = abi.buildFileIndexFile,
+                                  additionalProjectFilesIndexFile = abi.additionalProjectFilesIndexFile,
+                              )
+                            },
+                    )
+                  },
+          )
+        },
+    )
+  }
+
+  private fun buildProjectInfoNodes(libraries: Collection<Library>): List<ProjectInfoNodeModel> {
+    return libraries
+        .mapNotNull { lib ->
+          val info = lib.projectInfo ?: return@mapNotNull null
+          ProjectInfoNodeModel(
+              buildId = info.buildId,
+              projectPath = info.projectPath,
+              selectedVariant = resolvedProjectVariants["${info.buildId}:${info.projectPath}"],
+              attributes = info.attributes,
+              buildType = info.buildType,
+              productFlavors = info.productFlavors,
+              capabilities = info.capabilities,
+              isTestFixtures = info.isTestFixtures,
+          )
+        }
+        .distinctBy { "${it.buildId}:${it.projectPath}" }
+        .sortedWith(compareBy<ProjectInfoNodeModel>({ it.buildId }, { it.projectPath }))
+  }
+
+  private fun parseManifestMergerReport(variantName: String): ManifestMergerReport? {
+    val report =
+        File(
+            gradleProject.buildDirectory,
+            "outputs/logs/manifest-merger-$variantName-report.txt",
+        )
+    if (!report.exists()) return null
+    val text = report.readText()
+
+    val permissionPattern =
+        Pattern.compile(
+            "(uses-permission(?:-sdk-[0-9]+)?)#([a-zA-Z0-9_.]+).*?(ADDED|MERGED|REPLACED|REMOVED) from (.+?)(?:\n|$)",
+            Pattern.DOTALL,
+        )
+    val permissionMatcher = permissionPattern.matcher(text)
+    val mergedPermissions = mutableListOf<MergedPermissionSource>()
+    while (permissionMatcher.find()) {
+      mergedPermissions.add(
+          MergedPermissionSource(
+              permission = permissionMatcher.group(2),
+              source = permissionMatcher.group(4).trim(),
+              tagName = permissionMatcher.group(1),
+          )
+      )
+    }
+
+    val genericPattern =
+        Pattern.compile(
+            "(<[a-zA-Z0-9._:-]+(?:\s+[^>]*)?>|[a-zA-Z0-9._:-]+#[a-zA-Z0-9._:-]+).*?(ADDED|MERGED|REPLACED|REMOVED) from (.+?)(?:\n|$)",
+            Pattern.DOTALL,
+        )
+    val genericMatcher = genericPattern.matcher(text)
+    val blameEntries = mutableListOf<ManifestBlameEntry>()
+    while (genericMatcher.find()) {
+      val qualified = genericMatcher.group(1).trim()
+      val tagName =
+          qualified.substringAfter('<').substringBefore('#').substringBefore(' ').removeSuffix(">")
+      blameEntries.add(
+          ManifestBlameEntry(
+              tagName = if (tagName.isBlank()) "unknown" else tagName,
+              qualifiedName = qualified,
+              action = genericMatcher.group(2),
+              source = genericMatcher.group(3).trim(),
+          )
+      )
+    }
+
+    return ManifestMergerReport(
+        reportFile = report,
+        mergedPermissions = mergedPermissions,
+        blameEntries = blameEntries,
+    )
+  }
+
+  private fun computeSourceSpace(variantName: String): SourceSpaceModel? {
+    val sourceSet = basicAndroidProject.sourceSets.firstOrNull { it.name == variantName }
+    val generatedBase = File(gradleProject.buildDirectory, "generated")
+    return sourceSet?.let {
+      SourceSpaceModel(
+          javaDirectories = it.javaDirectories,
+          kotlinDirectories = it.kotlinDirectories,
+          manifestFiles = listOfNotNull(it.manifestFile),
+          resourceDirectories = it.resDirectories,
+          assetsDirectories = it.assetsDirectories,
+          aidlDirectories = it.aidlDirectories ?: emptyList(),
+          resourcesDirectories = it.resourcesDirectories.toList(),
+          renderscriptDirectories = it.renderscriptDirectories ?: emptyList(),
+          baselineProfileDirectories = it.baselineProfileDirectories ?: emptyList(),
+          keepRulesDirectories = it.keepRulesDirectories ?: emptyList(),
+          aarKeepRulesDirectories = it.aarKeepRulesDirectories ?: emptyList(),
+          shadersDirectories = it.shadersDirectories ?: emptyList(),
+          mlModelsDirectories = it.mlModelsDirectories ?: emptyList(),
+          jniLibsDirectories = it.jniLibsDirectories,
+          customDirectories = it.customDirectories.map { custom -> custom.directory },
+          generatedSources =
+              GeneratedSourceModel(
+                  annotationProcessorSources =
+                      (listOf(File(generatedBase, "ap_generated_sources")) + generatedSourceFolders)
+                          .distinct()
+                          .filter(File::exists),
+                  buildConfigSources =
+                      listOf(File(generatedBase, "source/buildConfig")).filter(File::exists),
+                  viewBindingSources =
+                      listOf(File(generatedBase, "view_binding_base_class_source_out")).filter(
+                          File::exists
+                      ),
+                  dataBindingSources =
+                      listOf(File(generatedBase, "data_binding_base_class_source_out")).filter(
+                          File::exists
+                      ),
+              ),
+      )
+    }
+  }
+
+  private fun computeDependencyGraph(): DependencyGraphModel {
+    val libraries = variantDependencies.libraries.values
+    return DependencyGraphModel(
+        artifactDependencies =
+            libraries.mapNotNull {
+              val artifactAddress = it.artifactAddress ?: return@mapNotNull null
+              "${artifactAddress.group}:${artifactAddress.name}:${artifactAddress.version}"
+            },
+        localJarDependencies = libraries.mapNotNull { it.localJar },
+        aarExplodedFolders = libraries.mapNotNull { lib -> lib.folder.takeIf { lib.type == LibraryType.ANDROID_LIBRARY } },
         projectDependencies =
             libraries.mapNotNull { lib ->
               lib.projectInfo?.let { "${it.buildId}:${it.projectPath}" }
@@ -385,11 +676,24 @@ internal class AndroidProjectImpl(
   }
 
   private fun getClassesJar(): File {
-    // TODO(itsaky): this should handle product flavors as well
-    return File(
-        gradleProject.buildDirectory,
-        "${IAndroidProject.FD_INTERMEDIATES}/compile_library_classes_jar/$configuredVariant/classes.jar",
-    )
+    val intermediatesDir = File(gradleProject.buildDirectory, IAndroidProject.FD_INTERMEDIATES)
+    val direct =
+        File(
+            intermediatesDir,
+            "compile_library_classes_jar/$configuredVariant/classes.jar",
+        )
+    if (direct.exists()) return direct
+
+    val fallback =
+        intermediatesDir
+            .resolve("compile_library_classes_jar")
+            .walkTopDown()
+            .firstOrNull { candidate ->
+              candidate.isFile &&
+                  candidate.name == "classes.jar" &&
+                  candidate.path.contains(configuredVariant, ignoreCase = true)
+            }
+    return fallback ?: direct
   }
 
   override fun getClasspaths(): CompletableFuture<List<File>> {
@@ -428,7 +732,54 @@ internal class AndroidProjectImpl(
           computeProjectSnapshot(),
           getClassesJar(),
       )
+          .also { metadata -> publishModelDerivedEvents(metadata.modelSnapshot) }
     }
+  }
+
+  private fun publishModelDerivedEvents(snapshot: AndroidProjectModelSnapshot) {
+    val client = Main.client ?: return
+    val now = System.currentTimeMillis()
+    val descriptor =
+        DefaultOperationDescriptor(
+            name = "android-model-derived-event",
+            displayName = "Android model derived event",
+        )
+
+    snapshot.variantContexts[configuredVariant]?.let { context ->
+      client.onProgressEvent(
+          VariantContextChangedEvent(
+              projectPath = gradleProject.path,
+              oldVariant = null,
+              newVariant = context.variantName,
+              clearedGeneratedSources = context.clearOnSwitchGeneratedSources.isNotEmpty(),
+              displayName = "Variant context changed: ${context.variantName}",
+              eventTime = now,
+              descriptor = descriptor,
+          )
+      )
+    }
+
+    androidProject.variants
+        .firstOrNull { it.name == configuredVariant }
+        ?.mainArtifact
+        ?.toMetadata(configuredVariant)
+        ?.manifestMergerReport
+        ?.let { report ->
+          client.onProgressEvent(
+              ManifestMergerParsedEvent(
+                  projectPath = gradleProject.path,
+                  variant = configuredVariant,
+                  reportFile = report.reportFile,
+                  permissions =
+                      report.mergedPermissions.map {
+                        ManifestMergerParsedPermission(permission = it.permission, source = it.source)
+                      },
+                  displayName = "Manifest merger parsed: $configuredVariant",
+                  eventTime = now,
+                  descriptor = descriptor,
+              )
+          )
+        }
   }
 
   private fun computeInterpretedFlags(): AndroidProjectFlagsModel {
@@ -465,6 +816,8 @@ internal class AndroidProjectImpl(
         }
 
     return AndroidProjectModelSnapshot(
+        agpVersion = versions.agp,
+        modelVersion = versions.versions[com.android.builder.model.v2.models.Versions.MODEL_PRODUCER]?.humanReadable ?: "",
         moduleType = moduleType,
         buildTypes = buildTypes,
         productFlavors = flavors,
@@ -496,8 +849,49 @@ internal class AndroidProjectImpl(
                                   viewBindingSources = emptyList(),
                                   dataBindingSources = emptyList(),
                               ),
+                      clearOnSwitchGeneratedSources =
+                          artifactMetadata.generatedSourceFolders.toList(),
+                      clearOnSwitchSourceDirectories =
+                          basicAndroidProject.sourceSets
+                              .filterNot { it.name == variant.name }
+                              .flatMap { candidate ->
+                                candidate.javaDirectories +
+                                    candidate.kotlinDirectories +
+                                    candidate.resourcesDirectories +
+                                    candidate.resDirectories +
+                                    candidate.assetsDirectories
+                              }
+                              .distinct(),
                   )
             },
+        resolvedProjectVariants = resolvedProjectVariants,
+        resolvedProjectVariantDetails = resolvedProjectVariantDetails,
+        projectInfoNodes = buildProjectInfoNodes(variantDependencies.libraries.values),
+        nativeModule = nativeModule?.let { module ->
+          NativeModuleModel(
+              name = module.name,
+              nativeBuildSystem = module.nativeBuildSystem.name,
+              ndkVersion = module.ndkVersion,
+              defaultNdkVersion = module.defaultNdkVersion,
+              externalNativeBuildFile = module.externalNativeBuildFile,
+              variants =
+                  module.variants.map { variant ->
+                    NativeVariantModel(
+                        name = variant.name,
+                        abis =
+                            variant.abis.map { abi ->
+                              NativeAbiModel(
+                                  name = abi.name,
+                                  sourceFlagsFile = abi.sourceFlagsFile,
+                                  symbolFolderIndexFile = abi.symbolFolderIndexFile,
+                                  buildFileIndexFile = abi.buildFileIndexFile,
+                                  additionalProjectFilesIndexFile = abi.additionalProjectFilesIndexFile,
+                              )
+                            },
+                    )
+                  },
+          )
+        },
     )
   }
 

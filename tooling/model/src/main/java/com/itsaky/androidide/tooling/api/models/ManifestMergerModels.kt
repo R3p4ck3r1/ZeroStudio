@@ -6,9 +6,18 @@ import java.io.Serializable
 data class MergedPermissionSource(
     val permission: String,
     val source: String,
+    val tagName: String = "uses-permission",
+) : Serializable
+
+data class ManifestBlameEntry(
+    val tagName: String,
+    val qualifiedName: String,
+    val action: String,
+    val source: String,
 ) : Serializable
 
 data class ManifestMergerReport(
     val reportFile: File,
     val mergedPermissions: List<MergedPermissionSource>,
+    val blameEntries: List<ManifestBlameEntry>,
 ) : Serializable
