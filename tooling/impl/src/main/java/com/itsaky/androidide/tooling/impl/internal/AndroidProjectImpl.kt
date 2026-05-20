@@ -21,6 +21,7 @@ import com.android.builder.model.v2.dsl.BuildType
 import com.android.builder.model.v2.ide.AndroidArtifact
 import com.android.builder.model.v2.ide.GraphItem
 import com.android.builder.model.v2.ide.Library
+import com.android.builder.model.v2.ide.LibraryType
 import com.android.builder.model.v2.ide.ProjectType
 import com.android.builder.model.v2.ide.Variant
 import com.android.builder.model.v2.models.AndroidDsl
@@ -113,14 +114,7 @@ internal class AndroidProjectImpl(
   }
 
   private fun Variant.toMetadata(): AndroidVariantMetadata {
-    val moduleType =
-        when (basicAndroidProject.projectType) {
-          ProjectType.APPLICATION -> AndroidModuleType.APPLICATION
-          ProjectType.LIBRARY -> AndroidModuleType.LIBRARY
-          ProjectType.TEST -> AndroidModuleType.TEST
-          ProjectType.DYNAMIC_FEATURE -> AndroidModuleType.DYNAMIC_FEATURE
-          else -> AndroidModuleType.UNKNOWN
-        }
+    val moduleType = mapModuleType(basicAndroidProject.projectType)
     val buildTypeModel =
         androidDsl.buildTypes.find { it.name == buildType }?.let {
           BuildTypeMatrixModel(
@@ -164,10 +158,13 @@ internal class AndroidProjectImpl(
           assetsDirectories = it.assetsDirectories,
           aidlDirectories = it.aidlDirectories,
           jniLibsDirectories = it.jniLibsDirectories,
+          customDirectories = it.customDirectories.map { custom -> custom.directory },
           generatedSources =
               GeneratedSourceModel(
                   annotationProcessorSources =
-                      listOf(File(generatedBase, "ap_generated_sources")).filter(File::exists),
+                      (listOf(File(generatedBase, "ap_generated_sources")) + generatedSourceFolders)
+                          .distinct()
+                          .filter(File::exists),
                   buildConfigSources =
                       listOf(File(generatedBase, "source/buildConfig")).filter(File::exists),
                   viewBindingSources =
@@ -192,7 +189,11 @@ internal class AndroidProjectImpl(
               "${artifactAddress.group}:${artifactAddress.name}:${artifactAddress.version}"
             },
         localJarDependencies = libraries.mapNotNull { it.localJar },
-        aarExplodedFolders = libraries.mapNotNull { it.folder },
+        aarExplodedFolders = libraries.mapNotNull { lib -> lib.folder.takeIf { lib.type == LibraryType.ANDROID_LIBRARY } },
+        projectDependencies =
+            libraries.mapNotNull { lib ->
+              lib.projectInfo?.let { "${it.buildId}:${it.projectPath}" }
+            },
     )
   }
 
@@ -311,14 +312,7 @@ internal class AndroidProjectImpl(
   }
 
   private fun computeProjectSnapshot(): AndroidProjectModelSnapshot {
-    val moduleType =
-        when (basicAndroidProject.projectType) {
-          ProjectType.APPLICATION -> AndroidModuleType.APPLICATION
-          ProjectType.LIBRARY -> AndroidModuleType.LIBRARY
-          ProjectType.TEST -> AndroidModuleType.TEST
-          ProjectType.DYNAMIC_FEATURE -> AndroidModuleType.DYNAMIC_FEATURE
-          else -> AndroidModuleType.UNKNOWN
-        }
+    val moduleType = mapModuleType(basicAndroidProject.projectType)
 
     val buildTypes =
         androidDsl.buildTypes.map {
@@ -348,6 +342,15 @@ internal class AndroidProjectImpl(
         availableVariants = basicAndroidProject.variants.map { it.name },
     )
   }
+
+  private fun mapModuleType(type: ProjectType): AndroidModuleType =
+      when (type) {
+        ProjectType.APPLICATION -> AndroidModuleType.APPLICATION
+        ProjectType.LIBRARY -> AndroidModuleType.LIBRARY
+        ProjectType.TEST -> AndroidModuleType.TEST
+        ProjectType.DYNAMIC_FEATURE -> AndroidModuleType.DYNAMIC_FEATURE
+        else -> AndroidModuleType.UNKNOWN
+      }
 
   private fun AndroidArtifact.computeApplicationId(variantName: String): String? {
     val minAgpForAppId = AndroidPluginVersion(7, 4, 0)

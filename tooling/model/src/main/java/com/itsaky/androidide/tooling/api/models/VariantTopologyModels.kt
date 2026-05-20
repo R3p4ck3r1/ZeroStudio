@@ -34,6 +34,7 @@ data class SourceSpaceModel(
     val assetsDirectories: List<File>,
     val aidlDirectories: List<File>,
     val jniLibsDirectories: List<File>,
+    val customDirectories: List<File>,
     val generatedSources: GeneratedSourceModel,
 ) : Serializable
 
@@ -48,4 +49,5 @@ data class DependencyGraphModel(
     val artifactDependencies: List<String>,
     val localJarDependencies: List<File>,
     val aarExplodedFolders: List<File>,
+    val projectDependencies: List<String>,
 ) : Serializable
