@@ -80,6 +80,20 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
     private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
   }
 
+  private fun toTaskExecutionResult(
+      exec: com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
+  ): com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult {
+    return if (exec.isSuccessful) {
+      com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.SUCCESS
+    } else {
+      com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult(
+          false,
+          exec.failure,
+          exec.diagnostics,
+      )
+    }
+  }
+
   private fun useToolingExecute(): Boolean {
     return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
   }
@@ -90,15 +104,7 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
   ): java.util.concurrent.CompletableFuture<com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult> {
     return if (useToolingExecute()) {
       builder.execute(ExecutionRequest(tasks = tasks)).thenApply { exec ->
-        if (exec.isSuccessful) {
-          com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.SUCCESS
-        } else {
-          com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult(
-              false,
-              exec.failure,
-              exec.diagnostics,
-          )
-        }
+        toTaskExecutionResult(exec)
       }
     } else {
       builder.executeTasks(*tasks.toTypedArray())
