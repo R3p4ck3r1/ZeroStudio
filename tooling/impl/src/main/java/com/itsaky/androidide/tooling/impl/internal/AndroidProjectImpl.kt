@@ -48,6 +48,8 @@ import com.itsaky.androidide.tooling.api.models.ManifestMergerReport
 import com.itsaky.androidide.tooling.api.models.MergedPermissionSource
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
 import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
+import com.itsaky.androidide.tooling.api.models.TestArtifactModel
+import com.itsaky.androidide.tooling.api.models.VariantCapabilitiesModel
 import com.itsaky.androidide.tooling.api.models.params.StringParameter
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier.copy
@@ -143,6 +145,37 @@ internal class AndroidProjectImpl(
               }
             }.filterNotNull(),
         buildType = buildTypeModel,
+        capabilities =
+            VariantCapabilitiesModel(
+                isInstantAppCompatible = isInstantAppCompatible,
+                runTestInSeparateProcess = runTestInSeparateProcess,
+                desugaredMethods = desugaredMethods,
+                experimentalProperties = experimentalProperties,
+                deviceTestArtifacts =
+                    deviceTestArtifacts.map {
+                      TestArtifactModel(
+                          name = it.key,
+                          assembleTaskName = it.value.assembleTaskName,
+                          compileTaskName = it.value.compileTaskName,
+                      )
+                    },
+                hostTestArtifacts =
+                    hostTestArtifacts.map {
+                      TestArtifactModel(
+                          name = it.key,
+                          assembleTaskName = null,
+                          compileTaskName = it.value.compileTaskName,
+                      )
+                    },
+                testSuiteArtifacts =
+                    testSuiteArtifacts.map {
+                      TestArtifactModel(
+                          name = it.key,
+                          assembleTaskName = it.value.assembleTaskName,
+                          compileTaskName = it.value.compileTaskName,
+                      )
+                    },
+            ),
     )
   }
 
