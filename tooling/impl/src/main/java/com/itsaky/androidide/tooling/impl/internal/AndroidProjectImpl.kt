@@ -45,6 +45,9 @@ import com.itsaky.androidide.tooling.api.models.AndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BasicAndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BuildTypeMatrixModel
 import com.itsaky.androidide.tooling.api.models.DependencyGraphModel
+import com.itsaky.androidide.tooling.api.models.VariantDependencyAdjacencyModel
+import com.itsaky.androidide.tooling.api.models.GraphNodeModel
+import com.itsaky.androidide.tooling.api.models.ArtifactDependencyAdjacencyModel
 import com.itsaky.androidide.tooling.api.models.FlavorMatrixModel
 import com.itsaky.androidide.tooling.api.models.GeneratedSourceModel
 import com.itsaky.androidide.tooling.api.models.LibraryGraphEntry
@@ -289,6 +292,14 @@ internal class AndroidProjectImpl(
                     sourceDeps.artifactDependencies.compileDependencies.map { it.key }
               }
             }.toMap(),
+        variantAdjacency =
+            VariantDependencyAdjacencyModel(
+                mainArtifact = variantDependencies.mainArtifact.toAdjacency(),
+                deviceTestArtifacts =
+                    variantDependencies.deviceTestArtifacts.mapValues { (_, deps) -> deps.toAdjacency() },
+                hostTestArtifacts =
+                    variantDependencies.hostTestArtifacts.mapValues { (_, deps) -> deps.toAdjacency() },
+            ),
         libraries =
             libraries.map { lib ->
               LibraryGraphEntry(

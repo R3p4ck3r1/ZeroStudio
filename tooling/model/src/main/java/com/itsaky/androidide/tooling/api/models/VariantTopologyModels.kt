@@ -69,5 +69,6 @@ data class DependencyGraphModel(
     val aarClassesJars: List<File>,
     val projectDependencies: List<String>,
     val testSuiteSourceDependencies: Map<String, List<String>>,
+    val variantAdjacency: VariantDependencyAdjacencyModel?,
     val libraries: List<LibraryGraphEntry>,
 ) : Serializable
