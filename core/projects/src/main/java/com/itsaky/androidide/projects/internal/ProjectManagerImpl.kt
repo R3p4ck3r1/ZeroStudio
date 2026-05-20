@@ -98,12 +98,16 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
     return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
   }
 
+  private fun createToolingExecutionRequest(tasks: List<String>): ExecutionRequest {
+    return ExecutionRequest(tasks = tasks)
+  }
+
   private fun executeTasksWithPreferredPath(
       builder: BuildService,
       tasks: List<String>,
   ): java.util.concurrent.CompletableFuture<com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult> {
     return if (useToolingExecute()) {
-      builder.execute(ExecutionRequest(tasks = tasks)).thenApply { exec ->
+      builder.execute(createToolingExecutionRequest(tasks)).thenApply { exec ->
         toTaskExecutionResult(exec)
       }
     } else {
