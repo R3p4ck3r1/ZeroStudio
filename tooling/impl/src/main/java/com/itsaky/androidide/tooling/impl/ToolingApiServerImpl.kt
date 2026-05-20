@@ -286,7 +286,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       if (execution.isSuccessful) {
         return@runBuild TaskExecutionResult.SUCCESS
       }
-      return@runBuild TaskExecutionResult(false, execution.failure)
+      return@runBuild TaskExecutionResult(false, execution.failure, execution.diagnostics)
     }
   }
 
