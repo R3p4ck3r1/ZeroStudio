@@ -586,15 +586,13 @@ class GradleBuildService :
                       OperationType.PROJECT_CONFIGURATION,
                   ),
           )
-      return performBuildTasks(
-          server!!.execute(request).thenApply { exec ->
-            if (exec.isSuccessful) {
-              TaskExecutionResult.SUCCESS
-            } else {
-              TaskExecutionResult(false, exec.failure, exec.diagnostics)
-            }
-          }
-      )
+      return execute(request).thenApply { exec ->
+        if (exec.isSuccessful) {
+          TaskExecutionResult.SUCCESS
+        } else {
+          TaskExecutionResult(false, exec.failure, exec.diagnostics)
+        }
+      }
     }
 
     if (isDebugBuild(tasksList)) {
@@ -790,7 +788,13 @@ class GradleBuildService :
 
   override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
     checkServerStarted()
-    return performBuildTasks(server!!.execute(request))
+    val sanitized =
+        request.copy(
+            tasks = request.tasks.filter { it.isNotBlank() },
+            arguments = request.arguments.filter { it.isNotBlank() },
+            jvmArguments = request.jvmArguments.filter { it.isNotBlank() },
+        )
+    return performBuildTasks(server!!.execute(sanitized))
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
