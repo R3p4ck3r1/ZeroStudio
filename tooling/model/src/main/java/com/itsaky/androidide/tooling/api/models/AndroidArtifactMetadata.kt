@@ -31,6 +31,7 @@ data class AndroidArtifactMetadata(
     val resGenTaskName: String?,
     val assembleTaskOutputListingFile: File?,
     val generatedResourceFolders: Collection<File>,
+    val generatedAssetsFolders: Collection<File>,
     val generatedSourceFolders: Collection<File>,
     val maxSdkVersion: Int?,
     val minSdkVersion: Int,
@@ -38,8 +39,14 @@ data class AndroidArtifactMetadata(
     val sourceGenTaskName: String,
     val assembleTaskName: String,
     val classJars: List<File>,
+    val desugaredMethodsFiles: Collection<File>,
     val compileTaskName: String,
+    val mappingR8TextFile: File?,
+    val mappingR8PartitionFile: File?,
     val targetSdkVersionOverride: Int,
+    val sourceSpace: SourceSpaceModel? = null,
+    val dependencyGraph: DependencyGraphModel? = null,
+    val manifestMergerReport: ManifestMergerReport? = null,
 ) : Serializable {
   private val gsonType: String = javaClass.name
   private val serialVersionUID = 1L

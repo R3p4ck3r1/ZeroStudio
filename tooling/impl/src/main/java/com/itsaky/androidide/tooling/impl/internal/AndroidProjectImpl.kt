@@ -21,6 +21,7 @@ import com.android.builder.model.v2.dsl.BuildType
 import com.android.builder.model.v2.ide.AndroidArtifact
 import com.android.builder.model.v2.ide.GraphItem
 import com.android.builder.model.v2.ide.Library
+import com.android.builder.model.v2.ide.LibraryType
 import com.android.builder.model.v2.ide.ProjectType
 import com.android.builder.model.v2.ide.Variant
 import com.android.builder.model.v2.models.AndroidDsl
@@ -34,10 +35,30 @@ import com.itsaky.androidide.builder.model.DefaultSourceSetContainer
 import com.itsaky.androidide.builder.model.DefaultViewBindingOptions
 import com.itsaky.androidide.tooling.api.IAndroidProject
 import com.itsaky.androidide.tooling.api.models.AndroidArtifactMetadata
+import com.itsaky.androidide.tooling.api.models.AndroidLibraryDataModel
+import com.itsaky.androidide.tooling.api.models.AndroidModuleType
 import com.itsaky.androidide.tooling.api.models.AndroidProjectMetadata
+import com.itsaky.androidide.tooling.api.models.AndroidProjectFlagsModel
+import com.itsaky.androidide.tooling.api.models.AndroidProjectModelSnapshot
 import com.itsaky.androidide.tooling.api.models.AndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BasicAndroidVariantMetadata
+import com.itsaky.androidide.tooling.api.models.BuildTypeMatrixModel
+import com.itsaky.androidide.tooling.api.models.DependencyGraphModel
+import com.itsaky.androidide.tooling.api.models.FlavorMatrixModel
+import com.itsaky.androidide.tooling.api.models.GeneratedSourceModel
+import com.itsaky.androidide.tooling.api.models.LibraryGraphEntry
+import com.itsaky.androidide.tooling.api.models.LibraryCoordinate
+import com.itsaky.androidide.tooling.api.models.ManifestMergerReport
+import com.itsaky.androidide.tooling.api.models.MergedPermissionSource
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
+import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
+import com.itsaky.androidide.tooling.api.models.TestArtifactModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteTargetModel
+import com.itsaky.androidide.tooling.api.models.TestedTargetVariantModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteInfoModel
+import com.itsaky.androidide.tooling.api.models.VariantCapabilitiesModel
+import com.itsaky.androidide.tooling.api.models.VariantMatrixModel
+import com.itsaky.androidide.tooling.api.models.VariantContextModel
 import com.itsaky.androidide.tooling.api.models.params.StringParameter
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier.copy
@@ -45,6 +66,7 @@ import com.itsaky.androidide.utils.AndroidPluginVersion
 import com.itsaky.androidide.utils.capitalizeString
 import java.io.File
 import java.io.Serializable
+import java.util.regex.Pattern
 import java.util.concurrent.CompletableFuture
 import org.gradle.tooling.model.GradleProject
 
@@ -74,12 +96,14 @@ internal class AndroidProjectImpl(
   }
 
   private fun AndroidArtifact.toMetadata(variantName: String): AndroidArtifactMetadata {
+    val sourceSpace = computeSourceSpace(variantName)
     return AndroidArtifactMetadata(
         name = variantName,
         applicationId = computeApplicationId(variantName),
         resGenTaskName = resGenTaskName ?: "",
         assembleTaskOutputListingFile = assembleTaskOutputListingFile,
         generatedResourceFolders = generatedResourceFolders,
+        generatedAssetsFolders = generatedAssetsFolders,
         generatedSourceFolders = generatedSourceFolders,
         maxSdkVersion = maxSdkVersion,
         minSdkVersion = minSdkVersion.apiLevel,
@@ -87,8 +111,14 @@ internal class AndroidProjectImpl(
         sourceGenTaskName = sourceGenTaskName ?: "",
         assembleTaskName = assembleTaskName ?: "", // Line 88 - ADD ?: ""
         classJars = classesFolders.filter { it.name.endsWith(".jar") },
+        desugaredMethodsFiles = desugaredMethodsFiles,
         compileTaskName = compileTaskName ?: "", // Line 90 - ADD ?: ""
+        mappingR8TextFile = mappingR8TextFile,
+        mappingR8PartitionFile = mappingR8PartitionFile,
         targetSdkVersionOverride = targetSdkVersionOverride?.apiLevel ?: -1,
+        sourceSpace = sourceSpace,
+        dependencyGraph = computeDependencyGraph(),
+        manifestMergerReport = parseManifestMergerReport(variantName),
     )
   }
 
@@ -99,11 +129,222 @@ internal class AndroidProjectImpl(
   }
 
   private fun Variant.toMetadata(): AndroidVariantMetadata {
+    val moduleType = mapModuleType(basicAndroidProject.projectType)
+    val buildTypeModel =
+        androidDsl.buildTypes.find { it.name == buildType }?.let {
+          BuildTypeMatrixModel(
+              name = it.name,
+              isDebuggable = it.isDebuggable,
+              isMinifyEnabled = it.isMinifyEnabled,
+              signingConfig = it.signingConfig,
+          )
+        }
+
     return AndroidVariantMetadata(
         name = name,
         mainArtifact = mainArtifact.toMetadata(name),
         otherArtifacts = mutableMapOf(),
+        moduleType = moduleType,
+        productFlavors =
+            productFlavors.map { flavorName ->
+              androidDsl.productFlavors.find { it.name == flavorName }?.let {
+                FlavorMatrixModel(
+                    name = it.name,
+                    dimension = it.dimension,
+                    minSdkVersion = it.minSdkVersion?.apiLevel,
+                    targetSdkVersion = it.targetSdkVersion?.apiLevel,
+                    resourceConfigurations = it.resourceConfigurations,
+                )
+              }
+            }.filterNotNull(),
+        buildType = buildTypeModel,
+        capabilities =
+            VariantCapabilitiesModel(
+                isInstantAppCompatible = isInstantAppCompatible,
+                runTestInSeparateProcess = runTestInSeparateProcess,
+                desugaredMethods = desugaredMethods,
+                experimentalProperties = experimentalProperties,
+                deviceTestArtifacts =
+                    deviceTestArtifacts.map {
+                      TestArtifactModel(
+                          name = it.key,
+                          assembleTaskName = it.value.assembleTaskName,
+                          compileTaskName = it.value.compileTaskName,
+                      )
+                    },
+                hostTestArtifacts =
+                    hostTestArtifacts.map {
+                      TestArtifactModel(
+                          name = it.key,
+                          assembleTaskName = null,
+                          compileTaskName = it.value.compileTaskName,
+                      )
+                    },
+                testSuiteArtifacts =
+                    testSuiteArtifacts.map {
+                      TestArtifactModel(
+                          name = it.key,
+                          assembleTaskName = it.value.assembleTaskName,
+                          compileTaskName = it.value.compileTaskName,
+                      )
+                    },
+                testSuiteInfos =
+                    testSuiteArtifacts.mapValues { entry ->
+                      val info = entry.value.testInfo
+                      TestSuiteInfoModel(
+                          includedEngines = info.junitInfo.includedEngines,
+                          targets =
+                              info.targets.values.map { target ->
+                                TestSuiteTargetModel(
+                                    name = target.name,
+                                    testTaskName = target.testTaskName,
+                                    targetedDevices = target.targetedDevices,
+                                )
+                              },
+                      )
+                    },
+                testedTargetVariant =
+                    testedTargetVariant?.let {
+                      TestedTargetVariantModel(
+                          targetProjectPath = it.targetProjectPath,
+                          targetVariant = it.targetVariant,
+                      )
+                    },
+            ),
     )
+  }
+
+  private fun computeSourceSpace(variantName: String): SourceSpaceModel? {
+    val sourceSet = basicAndroidProject.sourceSets.firstOrNull { it.name == variantName }
+    val generatedBase = File(gradleProject.buildDirectory, "generated")
+    return sourceSet?.let {
+      SourceSpaceModel(
+          javaDirectories = it.javaDirectories,
+          kotlinDirectories = it.kotlinDirectories,
+          manifestFiles = listOfNotNull(it.manifestFile),
+          resourceDirectories = it.resDirectories,
+          assetsDirectories = it.assetsDirectories,
+          aidlDirectories = it.aidlDirectories ?: emptyList(),
+          resourcesDirectories = it.resourcesDirectories.toList(),
+          renderscriptDirectories = it.renderscriptDirectories ?: emptyList(),
+          baselineProfileDirectories = it.baselineProfileDirectories ?: emptyList(),
+          keepRulesDirectories = it.keepRulesDirectories ?: emptyList(),
+          aarKeepRulesDirectories = it.aarKeepRulesDirectories ?: emptyList(),
+          shadersDirectories = it.shadersDirectories ?: emptyList(),
+          mlModelsDirectories = it.mlModelsDirectories ?: emptyList(),
+          jniLibsDirectories = it.jniLibsDirectories,
+          customDirectories = it.customDirectories.map { custom -> custom.directory },
+          generatedSources =
+              GeneratedSourceModel(
+                  annotationProcessorSources =
+                      (listOf(File(generatedBase, "ap_generated_sources")) + generatedSourceFolders)
+                          .distinct()
+                          .filter(File::exists),
+                  buildConfigSources =
+                      listOf(File(generatedBase, "source/buildConfig")).filter(File::exists),
+                  viewBindingSources =
+                      listOf(File(generatedBase, "view_binding_base_class_source_out")).filter(
+                          File::exists
+                      ),
+                  dataBindingSources =
+                      listOf(File(generatedBase, "data_binding_base_class_source_out")).filter(
+                          File::exists
+                      ),
+              ),
+      )
+    }
+  }
+
+  private fun computeDependencyGraph(): DependencyGraphModel {
+    val libraries = variantDependencies.libraries.values
+    return DependencyGraphModel(
+        artifactDependencies =
+            libraries.mapNotNull {
+              val artifactAddress = it.artifactAddress ?: return@mapNotNull null
+              "${artifactAddress.group}:${artifactAddress.name}:${artifactAddress.version}"
+            },
+        localJarDependencies = libraries.mapNotNull { it.localJar },
+        aarExplodedFolders = libraries.mapNotNull { lib -> lib.folder.takeIf { lib.type == LibraryType.ANDROID_LIBRARY } },
+        aarClassesJars =
+            libraries.mapNotNull { lib ->
+              lib.folder
+                  ?.takeIf { lib.type == LibraryType.ANDROID_LIBRARY }
+                  ?.resolve("jars/classes.jar")
+                  ?.takeIf { it.exists() }
+            },
+        projectDependencies =
+            libraries.mapNotNull { lib ->
+              lib.projectInfo?.let { "${it.buildId}:${it.projectPath}" }
+            },
+        libraries =
+            libraries.map { lib ->
+              LibraryGraphEntry(
+                  key = lib.key,
+                  type = lib.type.name,
+                  artifact = lib.artifact,
+                  lintJar = lib.lintJar,
+                  srcJars = lib.srcJars,
+                  docJar = lib.docJar,
+                  projectPath = lib.projectInfo?.projectPath,
+                  buildId = lib.projectInfo?.buildId,
+                  attributes = lib.libraryInfo?.attributes ?: lib.projectInfo?.attributes ?: emptyMap(),
+                  buildType = lib.libraryInfo?.buildType ?: lib.projectInfo?.buildType,
+                  capabilities = lib.libraryInfo?.capabilities ?: lib.projectInfo?.capabilities ?: emptyList(),
+                  isTestFixtures = lib.libraryInfo?.isTestFixtures ?: lib.projectInfo?.isTestFixtures ?: false,
+                  productFlavors = lib.libraryInfo?.productFlavors ?: lib.projectInfo?.productFlavors ?: emptyMap(),
+                  coordinate =
+                      lib.libraryInfo?.let {
+                        LibraryCoordinate(
+                            group = it.group,
+                            artifact = it.name,
+                            version = it.version,
+                        )
+                      },
+                  androidLibraryData =
+                      lib.androidLibraryData?.let {
+                        AndroidLibraryDataModel(
+                            manifest = it.manifest,
+                            compileJarFiles = it.compileJarFiles,
+                            runtimeJarFiles = it.runtimeJarFiles,
+                            resFolder = it.resFolder,
+                            resStaticLibrary = it.resStaticLibrary,
+                            assetsFolder = it.assetsFolder,
+                            jniFolder = it.jniFolder,
+                            aidlFolder = it.aidlFolder,
+                            renderscriptFolder = it.renderscriptFolder,
+                            proguardRules = it.proguardRules,
+                            externalAnnotations = it.externalAnnotations,
+                            publicResources = it.publicResources,
+                            symbolFile = it.symbolFile,
+                        )
+                      },
+              )
+            },
+    )
+  }
+
+  private fun parseManifestMergerReport(variantName: String): ManifestMergerReport? {
+    val report =
+        File(
+            gradleProject.buildDirectory,
+            "outputs/logs/manifest-merger-$variantName-report.txt",
+        )
+    if (!report.exists()) return null
+    val text = report.readText()
+    val permissionPattern =
+        Pattern.compile("uses-permission#([a-zA-Z0-9_.]+).*?ADDED from (.+?)(?:\\n|$)")
+    val matcher = permissionPattern.matcher(text)
+    val merged = mutableListOf<MergedPermissionSource>()
+    while (matcher.find()) {
+      merged.add(
+          MergedPermissionSource(
+              permission = matcher.group(2),
+              source = matcher.group(3).trim(),
+              tagName = matcher.group(1),
+          )
+      )
+    }
+    return ManifestMergerReport(report, merged)
   }
 
   override fun getBootClasspaths(): CompletableFuture<Collection<File>> {
@@ -191,10 +432,91 @@ internal class AndroidProjectImpl(
           androidProject.namespace,
           androidProject.androidTestNamespace,
           androidProject.testFixturesNamespace,
+          computeInterpretedFlags(),
+          computeProjectSnapshot(),
           getClassesJar(),
       )
     }
   }
+
+  private fun computeInterpretedFlags(): AndroidProjectFlagsModel {
+    val interpreted =
+        com.android.builder.model.v2.ide.AndroidGradlePluginProjectFlags.BooleanFlag.values()
+            .associate { flag ->
+              flag.name to flag.getValue(androidProject.flags, null)
+            }
+    return AndroidProjectFlagsModel(values = interpreted)
+  }
+
+  private fun computeProjectSnapshot(): AndroidProjectModelSnapshot {
+    val moduleType = mapModuleType(basicAndroidProject.projectType)
+
+    val buildTypes =
+        androidDsl.buildTypes.map {
+          BuildTypeMatrixModel(
+              name = it.name,
+              isDebuggable = it.isDebuggable,
+              isMinifyEnabled = it.isMinifyEnabled,
+              signingConfig = it.signingConfig,
+          )
+        }
+
+    val flavors =
+        androidDsl.productFlavors.map {
+          FlavorMatrixModel(
+              name = it.name,
+              dimension = it.dimension,
+              minSdkVersion = it.minSdkVersion?.apiLevel,
+              targetSdkVersion = it.targetSdkVersion?.apiLevel,
+              resourceConfigurations = it.resourceConfigurations,
+          )
+        }
+
+    return AndroidProjectModelSnapshot(
+        moduleType = moduleType,
+        buildTypes = buildTypes,
+        productFlavors = flavors,
+        availableVariants = basicAndroidProject.variants.map { it.name },
+        variantMatrix =
+            basicAndroidProject.variants.map {
+              VariantMatrixModel(
+                  name = it.name,
+                  buildType = it.buildType,
+                  productFlavors = it.productFlavors,
+                  deviceTestArtifacts = it.deviceTestArtifacts.keys.toList(),
+                  hostTestArtifacts = it.hostTestArtifacts.keys.toList(),
+                  testSuiteArtifacts = it.testSuiteArtifacts.keys.toList(),
+                  hasTestFixturesArtifact = it.testFixturesArtifact != null,
+              )
+            },
+        variantContexts =
+            androidProject.variants.associate { variant ->
+              val artifactMetadata = variant.mainArtifact.toMetadata(variant.name)
+              variant.name to
+                  VariantContextModel(
+                      variantName = variant.name,
+                      classpath = artifactMetadata.classJars,
+                      generatedSources =
+                          artifactMetadata.sourceSpace?.generatedSources
+                              ?: GeneratedSourceModel(
+                                  annotationProcessorSources = emptyList(),
+                                  buildConfigSources = emptyList(),
+                                  viewBindingSources = emptyList(),
+                                  dataBindingSources = emptyList(),
+                              ),
+                  )
+            },
+    )
+  }
+
+  private fun mapModuleType(type: ProjectType): AndroidModuleType =
+      when (type) {
+        ProjectType.APPLICATION -> AndroidModuleType.APPLICATION
+        ProjectType.LIBRARY -> AndroidModuleType.LIBRARY
+        ProjectType.TEST -> AndroidModuleType.TEST
+        ProjectType.DYNAMIC_FEATURE -> AndroidModuleType.DYNAMIC_FEATURE
+        else -> AndroidModuleType.UNKNOWN
+      }
 
   private fun AndroidArtifact.computeApplicationId(variantName: String): String? {
     val minAgpForAppId = AndroidPluginVersion(7, 4, 0)
