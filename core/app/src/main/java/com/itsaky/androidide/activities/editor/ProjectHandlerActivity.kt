@@ -545,6 +545,24 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
         result.negotiatedOperationTypes,
     )
 
+    val buildService = Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE)
+    if (buildService != null) {
+      buildService
+          .metadata()
+          .whenComplete { metadata, err ->
+            if (err != null) {
+              log.debug("Unable to read tooling metadata after initialization", err)
+              return@whenComplete
+            }
+
+            log.info(
+                "Tooling runtime metadata: negotiatedTypes={} maxProgressEventsPerSecond={}",
+                metadata.negotiatedOperationTypes,
+                metadata.maxProgressEventsPerSecond,
+            )
+          }
+    }
+
     val manager = ProjectManagerImpl.getInstance()
     if (isFromSavedInstance && manager.projectInitialized && result == manager.cachedInitResult) {
       log.debug("Not setting up project as this a configuration change")
