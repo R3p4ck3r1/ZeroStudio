@@ -22,11 +22,6 @@ import com.itsaky.androidide.templates.ITemplateProvider
 import com.itsaky.androidide.templates.Template
 import com.itsaky.androidide.templates.TemplateCategory
 import com.itsaky.androidide.templates.impl.basicActivity.basicActivityProject
-import com.itsaky.androidide.templates.impl.androidstudio.activity.aiGlassesActivity.aiGlassesActivityProject
-import com.itsaky.androidide.templates.impl.androidstudio.activity.aiStarter.aiStarterActivityProject
-import com.itsaky.androidide.templates.impl.androidstudio.activity.androidTVActivity.androidTVActivityProject
-import com.itsaky.androidide.templates.impl.androidstudio.activity.archStarterActivity.archStarterActivityProject
-import com.itsaky.androidide.templates.impl.androidstudio.activity.basicActivity.basicActivityProjectAndroidStudio
 import com.itsaky.androidide.templates.impl.basicCpp.basicCppProject
 import com.itsaky.androidide.templates.impl.bottomNavActivity.bottomNavActivityProject
 import com.itsaky.androidide.templates.impl.chaquopy.compose.chaquopyComposeDemoProject
@@ -105,7 +100,6 @@ class TemplateProviderImpl : ITemplateProvider {
     initializeSubCategories()
 
     // This is where you can add more templates to this or other categories.
-
     // This category is the original built-in templates for ZeroStudio
     registerTemplate(TemplateCategory.BasicZeroStudio, emptyActivityProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, noActivityProject())
@@ -118,28 +112,6 @@ class TemplateProviderImpl : ITemplateProvider {
     registerTemplate(TemplateCategory.BasicZeroStudio, noAndroidXActivityProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, lithoClassicProject())
     registerTemplate(TemplateCategory.BasicZeroStudio, lithoComposeProject())
-    
-    // Android Studio template：Mobile/tablet 📱
-    registerSubCategoryTemplate(
-        TemplateCategory.Mobile,
-        AndroidStudioSubCategories.MobileClassic,
-        basicActivityProjectAndroidStudio(),
-    )
-    registerSubCategoryTemplate(
-        TemplateCategory.Mobile,
-        AndroidStudioSubCategories.MobileArchitecture,
-        archStarterActivityProject(),
-    )
-    registerSubCategoryTemplate(
-        TemplateCategory.Mobile,
-        AndroidStudioSubCategories.MobileAI,
-        aiStarterActivityProject(),
-    )
-    // Android Studio template：XR 👓
-    registerTemplate(TemplateCategory.XR, aiGlassesActivityProject())
-    // Android Studio template：television 📺
-    registerTemplate(TemplateCategory.Tv, androidTVActivityProject())
-    registerTemplate(TemplateCategory.Mobile, googleWalletActivityProjectAndroidStudio())
     
     //Hybrid dev language Frameworks
     registerTemplate(TemplateCategory.HybridFrameworks, chaquopyXmlDemoProject())

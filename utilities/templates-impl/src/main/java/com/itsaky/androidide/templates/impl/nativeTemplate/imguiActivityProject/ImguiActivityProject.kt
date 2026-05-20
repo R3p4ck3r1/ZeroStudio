@@ -57,7 +57,7 @@ fun imguiActivityProject(): ProjectTemplate =
 
           // 解压jni源码压缩包
           extractAssetWithDialog(
-              path = "template/imgui/jni/imgui-NdkSource-Jni.tar.xz",
+              path = "templates/imgui/jni/imgui-NdkSource-Jni.tar.xz",
               destDir = mainDir,
               stripPaths = 0,
               dialogTitle = "Extracting NDK Sources",
