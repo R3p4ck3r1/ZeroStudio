@@ -46,12 +46,14 @@ import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.IToolingApiServer
 import com.itsaky.androidide.tooling.api.LogSenderConfig.PROPERTY_LOGSENDER_ENABLED
+import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
 import com.itsaky.androidide.tooling.api.messages.LogMessageParams
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult
 import com.itsaky.androidide.tooling.api.messages.result.BuildInfo
 import com.itsaky.androidide.tooling.api.messages.result.BuildResult
 import com.itsaky.androidide.tooling.api.messages.result.GradleWrapperCheckResult
+import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
@@ -73,6 +75,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import org.gradle.tooling.events.OperationType
 import org.slf4j.LoggerFactory
 
 /**
@@ -82,6 +85,11 @@ import org.slf4j.LoggerFactory
  */
 class GradleBuildService :
     Service(), BuildService, IToolingApiClient, ToolingServerRunner.Observer {
+
+  companion object {
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
+  }
 
   private var mBinder: GradleServiceBinder? = null
   private var isToolingServerStarted = false
@@ -563,6 +571,25 @@ class GradleBuildService :
     val tasksList = tasks.toList()
     isReleaseVariant = false
 
+    if (useToolingExecute()) {
+      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+      val jvmArgs = resolveToolingExecuteJvmArgs()
+      val request =
+          ExecutionRequest(
+              tasks = tasksList,
+              arguments = buildArgs,
+              jvmArguments = jvmArgs,
+              operationTypes = resolvePreferredOperationTypes(),
+          )
+      return execute(request).thenApply { exec ->
+        if (exec.isSuccessful) {
+          TaskExecutionResult.SUCCESS
+        } else {
+          TaskExecutionResult(false, exec.failure, exec.diagnostics)
+        }
+      }
+    }
+
     if (isDebugBuild(tasksList)) {
       log.info("Debug build detected, injecting logger plugin")
       injectLoggerForCurrentBuild()
@@ -752,6 +779,54 @@ class GradleBuildService :
     }
 
     return cancellationFuture
+  }
+
+  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
+    checkServerStarted()
+    val sanitized =
+        request.copy(
+            tasks = request.tasks.filter { it.isNotBlank() },
+            arguments = request.arguments.filter { it.isNotBlank() },
+            jvmArguments = request.jvmArguments.filter { it.isNotBlank() },
+            operationTypes =
+                if (request.operationTypes.isEmpty()) {
+                  resolvePreferredOperationTypes()
+                } else {
+                  request.operationTypes
+                },
+        )
+    return performBuildTasks(server!!.execute(sanitized))
+  }
+
+  private fun resolvePreferredOperationTypes(): Set<OperationType> {
+    return try {
+      val negotiated = server?.metadata()?.get(2, TimeUnit.SECONDS)?.negotiatedOperationTypes.orEmpty()
+      if (negotiated.isNotEmpty()) {
+        negotiated
+      } else {
+        linkedSetOf(
+            OperationType.TASK,
+            OperationType.PROJECT_CONFIGURATION,
+        )
+      }
+    } catch (error: Throwable) {
+      log.warn("Unable to load negotiated operation types from tooling metadata", error)
+      linkedSetOf(
+          OperationType.TASK,
+          OperationType.PROJECT_CONFIGURATION,
+      )
+    }
+  }
+
+  private fun resolveToolingExecuteJvmArgs(): List<String> {
+    return System.getProperty(PROP_TOOLING_EXECUTE_JVM_ARGS, "")
+        .split(' ')
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+  }
+
+  private fun useToolingExecute(): Boolean {
+    return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
