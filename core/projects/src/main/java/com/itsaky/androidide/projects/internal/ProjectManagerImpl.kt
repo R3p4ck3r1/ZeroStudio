@@ -234,7 +234,13 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
 
     builder.executeTasks(*tasks.toTypedArray()).whenComplete { result, taskErr ->
       if (result == null || !result.isSuccessful || taskErr != null) {
-        log.warn("Execution for tasks failed: {} {}", tasks, taskErr ?: "")
+        log.warn(
+            "Execution for tasks failed: tasks={} failure={} diagnostics={} error={}",
+            tasks,
+            result?.failure,
+            result?.diagnostics,
+            taskErr ?: "",
+        )
       } else {
         notifyProjectUpdate()
       }

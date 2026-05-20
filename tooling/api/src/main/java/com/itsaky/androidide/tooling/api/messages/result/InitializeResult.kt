@@ -17,10 +17,16 @@
 
 package com.itsaky.androidide.tooling.api.messages.result
 
+import org.gradle.tooling.events.OperationType
+
 /**
  * Result received after an initialize project request.
  *
  * @param isSuccessful Whether the project initialization was successful.
  * @author Akash Yadav
  */
-class InitializeResult(val isSuccessful: Boolean, val failure: TaskExecutionResult.Failure? = null)
+class InitializeResult(
+    val isSuccessful: Boolean,
+    val failure: TaskExecutionResult.Failure? = null,
+    val negotiatedOperationTypes: Set<OperationType> = emptySet(),
+)
