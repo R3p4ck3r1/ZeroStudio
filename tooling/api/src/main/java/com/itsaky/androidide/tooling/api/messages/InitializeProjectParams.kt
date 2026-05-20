@@ -34,4 +34,5 @@ constructor(
     val directory: String,
     val gradleDistribution: GradleDistributionParams = GradleDistributionParams.WRAPPER,
     val androidParams: AndroidInitializationParams = AndroidInitializationParams.DEFAULT,
+    val clientCapabilities: ToolingClientCapabilities = ToolingClientCapabilities(),
 ) : Serializable

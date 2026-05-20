@@ -81,6 +81,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   private var lastInitParams: InitializeProjectParams? = null
   private var _buildCancellationToken: CancellationTokenSource? = null
   private var httpProxy: SimpleHttpProxy? = null
+  private var negotiatedOperationTypes: Set<OperationType> = emptySet()
 
   private val cancellationTokenAccessLock = ReentrantLock(/* fair= */ true)
   private var buildCancellationToken: CancellationTokenSource?
@@ -213,8 +214,17 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         this.project.setFrom(project)
         this.isInitialized = true
 
+        negotiatedOperationTypes =
+            negotiateOperationTypes(
+                params.clientCapabilities.requestedOperationTypes,
+                Main.progressUpdateTypes(),
+            )
+
         notifyBuildSuccess(emptyList())
-        return@runBuild InitializeResult(true)
+        return@runBuild InitializeResult(
+            isSuccessful = true,
+            negotiatedOperationTypes = negotiatedOperationTypes,
+        )
       } catch (err: Throwable) {
         log.error("Failed to initialize project", err)
         notifyBuildFailure(emptyList())
@@ -319,7 +329,14 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         builder.addArguments(*injectedArgs.toTypedArray())
       }
 
-      Main.finalizeLauncher(builder, message.operationTypes)
+      val effectiveOperationTypes =
+          if (message.operationTypes.isEmpty()) {
+            negotiatedOperationTypes
+          } else {
+            negotiateOperationTypes(message.operationTypes, Main.progressUpdateTypes())
+          }
+
+      Main.finalizeLauncher(builder, effectiveOperationTypes)
 
       this.buildCancellationToken = GradleConnector.newCancellationTokenSource()
       builder.withCancellationToken(this.buildCancellationToken!!.token())
@@ -363,6 +380,14 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         connector.useGradleVersion(params.value)
       }
     }
+  }
+
+  private fun negotiateOperationTypes(
+      requested: Set<OperationType>,
+      supported: Set<OperationType>,
+  ): Set<OperationType> {
+    if (requested.isEmpty()) return supported
+    return requested.filterTo(linkedSetOf()) { supported.contains(it) }
   }
 
   private fun notifyBuildFailure(tasks: List<String>) {
