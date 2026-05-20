@@ -351,21 +351,7 @@ internal class AndroidProjectImpl(
                       },
               )
             } ?: emptyList(),
-        projectInfoNodes =
-            libraries.mapNotNull { lib ->
-              val info = lib.projectInfo ?: return@mapNotNull null
-              ProjectInfoNodeModel(
-                  buildId = info.buildId,
-                  projectPath = info.projectPath,
-                  selectedVariant =
-                      resolvedProjectVariants["${info.buildId}:${info.projectPath}"],
-                  attributes = info.attributes,
-                  buildType = info.buildType,
-                  productFlavors = info.productFlavors,
-                  capabilities = info.capabilities,
-                  isTestFixtures = info.isTestFixtures,
-              )
-            },
+        projectInfoNodes = buildProjectInfoNodes(libraries),
         libraries =
             libraries.map { lib ->
               LibraryGraphEntry(
@@ -412,20 +398,7 @@ internal class AndroidProjectImpl(
             },
         resolvedProjectVariants = resolvedProjectVariants,
         resolvedProjectVariantDetails = resolvedProjectVariantDetails,
-        projectInfoNodes =
-            variantDependencies.libraries.values.mapNotNull { lib ->
-              val info = lib.projectInfo ?: return@mapNotNull null
-              ProjectInfoNodeModel(
-                  buildId = info.buildId,
-                  projectPath = info.projectPath,
-                  selectedVariant = resolvedProjectVariants["${info.buildId}:${info.projectPath}"],
-                  attributes = info.attributes,
-                  buildType = info.buildType,
-                  productFlavors = info.productFlavors,
-                  capabilities = info.capabilities,
-                  isTestFixtures = info.isTestFixtures,
-              )
-            },
+        projectInfoNodes = buildProjectInfoNodes(variantDependencies.libraries.values),
         nativeModule = nativeModule?.let { module ->
           NativeModuleModel(
               name = module.name,
@@ -452,6 +425,24 @@ internal class AndroidProjectImpl(
           )
         },
     )
+  }
+
+  private fun buildProjectInfoNodes(libraries: Collection<Library>): List<ProjectInfoNodeModel> {
+    return libraries
+        .mapNotNull { lib ->
+          val info = lib.projectInfo ?: return@mapNotNull null
+          ProjectInfoNodeModel(
+              buildId = info.buildId,
+              projectPath = info.projectPath,
+              selectedVariant = resolvedProjectVariants["${info.buildId}:${info.projectPath}"],
+              attributes = info.attributes,
+              buildType = info.buildType,
+              productFlavors = info.productFlavors,
+              capabilities = info.capabilities,
+              isTestFixtures = info.isTestFixtures,
+          )
+        }
+        .distinctBy { "${it.buildId}:${it.projectPath}" }
   }
 
   private fun parseManifestMergerReport(variantName: String): ManifestMergerReport? {
@@ -697,20 +688,7 @@ internal class AndroidProjectImpl(
             },
         resolvedProjectVariants = resolvedProjectVariants,
         resolvedProjectVariantDetails = resolvedProjectVariantDetails,
-        projectInfoNodes =
-            variantDependencies.libraries.values.mapNotNull { lib ->
-              val info = lib.projectInfo ?: return@mapNotNull null
-              ProjectInfoNodeModel(
-                  buildId = info.buildId,
-                  projectPath = info.projectPath,
-                  selectedVariant = resolvedProjectVariants["${info.buildId}:${info.projectPath}"],
-                  attributes = info.attributes,
-                  buildType = info.buildType,
-                  productFlavors = info.productFlavors,
-                  capabilities = info.capabilities,
-                  isTestFixtures = info.isTestFixtures,
-              )
-            },
+        projectInfoNodes = buildProjectInfoNodes(variantDependencies.libraries.values),
         nativeModule = nativeModule?.let { module ->
           NativeModuleModel(
               name = module.name,
