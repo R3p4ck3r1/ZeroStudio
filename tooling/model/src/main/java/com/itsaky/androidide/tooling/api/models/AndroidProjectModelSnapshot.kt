@@ -7,4 +7,5 @@ data class AndroidProjectModelSnapshot(
     val buildTypes: List<BuildTypeMatrixModel>,
     val productFlavors: List<FlavorMatrixModel>,
     val availableVariants: List<String>,
+    val variantMatrix: List<VariantMatrixModel>,
 ) : Serializable

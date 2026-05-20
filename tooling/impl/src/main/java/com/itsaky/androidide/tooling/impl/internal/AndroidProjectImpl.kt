@@ -56,6 +56,7 @@ import com.itsaky.androidide.tooling.api.models.TestArtifactModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteTargetModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteInfoModel
 import com.itsaky.androidide.tooling.api.models.VariantCapabilitiesModel
+import com.itsaky.androidide.tooling.api.models.VariantMatrixModel
 import com.itsaky.androidide.tooling.api.models.params.StringParameter
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier.copy
@@ -452,6 +453,14 @@ internal class AndroidProjectImpl(
         buildTypes = buildTypes,
         productFlavors = flavors,
         availableVariants = basicAndroidProject.variants.map { it.name },
+        variantMatrix =
+            basicAndroidProject.variants.map {
+              VariantMatrixModel(
+                  name = it.name,
+                  buildType = it.buildType,
+                  productFlavors = it.productFlavors,
+              )
+            },
     )
   }
 

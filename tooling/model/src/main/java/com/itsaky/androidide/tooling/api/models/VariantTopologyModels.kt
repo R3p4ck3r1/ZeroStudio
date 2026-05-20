@@ -26,6 +26,12 @@ data class BuildTypeMatrixModel(
     val signingConfig: String?,
 ) : Serializable
 
+data class VariantMatrixModel(
+    val name: String,
+    val buildType: String?,
+    val productFlavors: List<String>,
+) : Serializable
+
 data class SourceSpaceModel(
     val javaDirectories: List<File>,
     val kotlinDirectories: List<File>,
