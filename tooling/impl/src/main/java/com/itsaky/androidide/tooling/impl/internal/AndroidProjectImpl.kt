@@ -94,6 +94,7 @@ internal class AndroidProjectImpl(
         resGenTaskName = resGenTaskName ?: "",
         assembleTaskOutputListingFile = assembleTaskOutputListingFile,
         generatedResourceFolders = generatedResourceFolders,
+        generatedAssetsFolders = generatedAssetsFolders,
         generatedSourceFolders = generatedSourceFolders,
         maxSdkVersion = maxSdkVersion,
         minSdkVersion = minSdkVersion.apiLevel,
@@ -101,7 +102,10 @@ internal class AndroidProjectImpl(
         sourceGenTaskName = sourceGenTaskName ?: "",
         assembleTaskName = assembleTaskName ?: "", // Line 88 - ADD ?: ""
         classJars = classesFolders.filter { it.name.endsWith(".jar") },
+        desugaredMethodsFiles = desugaredMethodsFiles,
         compileTaskName = compileTaskName ?: "", // Line 90 - ADD ?: ""
+        mappingR8TextFile = mappingR8TextFile,
+        mappingR8PartitionFile = mappingR8PartitionFile,
         targetSdkVersionOverride = targetSdkVersionOverride?.apiLevel ?: -1,
         sourceSpace = sourceSpace,
         dependencyGraph = computeDependencyGraph(),
