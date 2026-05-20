@@ -9,6 +9,17 @@ data class TestArtifactModel(
     val compileTaskName: String?,
 ) : Serializable
 
+data class TestSuiteTargetModel(
+    val name: String,
+    val testTaskName: String,
+    val targetedDevices: Collection<String>,
+) : Serializable
+
+data class TestSuiteInfoModel(
+    val includedEngines: Set<String>,
+    val targets: List<TestSuiteTargetModel>,
+) : Serializable
+
 data class VariantCapabilitiesModel(
     val isInstantAppCompatible: Boolean,
     val runTestInSeparateProcess: Boolean,
@@ -17,4 +28,5 @@ data class VariantCapabilitiesModel(
     val deviceTestArtifacts: List<TestArtifactModel>,
     val hostTestArtifacts: List<TestArtifactModel>,
     val testSuiteArtifacts: List<TestArtifactModel>,
+    val testSuiteInfos: Map<String, TestSuiteInfoModel>,
 ) : Serializable

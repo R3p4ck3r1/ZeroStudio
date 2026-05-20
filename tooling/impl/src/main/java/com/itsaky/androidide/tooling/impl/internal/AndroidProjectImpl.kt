@@ -53,6 +53,8 @@ import com.itsaky.androidide.tooling.api.models.MergedPermissionSource
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
 import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
 import com.itsaky.androidide.tooling.api.models.TestArtifactModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteTargetModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteInfoModel
 import com.itsaky.androidide.tooling.api.models.VariantCapabilitiesModel
 import com.itsaky.androidide.tooling.api.models.params.StringParameter
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier
@@ -181,6 +183,21 @@ internal class AndroidProjectImpl(
                           name = it.key,
                           assembleTaskName = it.value.assembleTaskName,
                           compileTaskName = it.value.compileTaskName,
+                      )
+                    },
+                testSuiteInfos =
+                    testSuiteArtifacts.mapValues { entry ->
+                      val info = entry.value.testInfo
+                      TestSuiteInfoModel(
+                          includedEngines = info.junitInfo.includedEngines,
+                          targets =
+                              info.targets.values.map { target ->
+                                TestSuiteTargetModel(
+                                    name = target.name,
+                                    testTaskName = target.testTaskName,
+                                    targetedDevices = target.targetedDevices,
+                                )
+                              },
                       )
                     },
             ),
