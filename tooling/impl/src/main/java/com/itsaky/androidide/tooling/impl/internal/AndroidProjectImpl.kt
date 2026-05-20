@@ -58,6 +58,7 @@ import com.itsaky.androidide.tooling.api.models.TestedTargetVariantModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteInfoModel
 import com.itsaky.androidide.tooling.api.models.VariantCapabilitiesModel
 import com.itsaky.androidide.tooling.api.models.VariantMatrixModel
+import com.itsaky.androidide.tooling.api.models.VariantContextModel
 import com.itsaky.androidide.tooling.api.models.params.StringParameter
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier.copy
@@ -479,6 +480,23 @@ internal class AndroidProjectImpl(
                   testSuiteArtifacts = it.testSuiteArtifacts.keys.toList(),
                   hasTestFixturesArtifact = it.testFixturesArtifact != null,
               )
+            },
+        variantContexts =
+            androidProject.variants.associate { variant ->
+              val artifactMetadata = variant.mainArtifact.toMetadata(variant.name)
+              variant.name to
+                  VariantContextModel(
+                      variantName = variant.name,
+                      classpath = artifactMetadata.classJars,
+                      generatedSources =
+                          artifactMetadata.sourceSpace?.generatedSources
+                              ?: GeneratedSourceModel(
+                                  annotationProcessorSources = emptyList(),
+                                  buildConfigSources = emptyList(),
+                                  viewBindingSources = emptyList(),
+                                  dataBindingSources = emptyList(),
+                              ),
+                  )
             },
     )
   }

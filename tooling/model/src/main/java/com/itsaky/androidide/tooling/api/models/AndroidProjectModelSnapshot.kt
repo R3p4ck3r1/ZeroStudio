@@ -8,4 +8,5 @@ data class AndroidProjectModelSnapshot(
     val productFlavors: List<FlavorMatrixModel>,
     val availableVariants: List<String>,
     val variantMatrix: List<VariantMatrixModel>,
+    val variantContexts: Map<String, VariantContextModel>,
 ) : Serializable
