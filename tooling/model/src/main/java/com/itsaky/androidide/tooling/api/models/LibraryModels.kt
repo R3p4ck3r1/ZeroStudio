@@ -18,6 +18,11 @@ data class LibraryGraphEntry(
     val docJar: File?,
     val projectPath: String?,
     val buildId: String?,
+    val attributes: Map<String, String>,
+    val buildType: String?,
+    val capabilities: List<String>,
+    val isTestFixtures: Boolean,
+    val productFlavors: Map<String, String>,
     val coordinate: LibraryCoordinate?,
     val androidLibraryData: AndroidLibraryDataModel?,
 ) : Serializable

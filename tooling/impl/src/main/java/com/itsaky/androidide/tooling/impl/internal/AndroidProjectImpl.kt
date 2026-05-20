@@ -245,6 +245,11 @@ internal class AndroidProjectImpl(
                   docJar = lib.docJar,
                   projectPath = lib.projectInfo?.projectPath,
                   buildId = lib.projectInfo?.buildId,
+                  attributes = lib.libraryInfo?.attributes ?: lib.projectInfo?.attributes ?: emptyMap(),
+                  buildType = lib.libraryInfo?.buildType ?: lib.projectInfo?.buildType,
+                  capabilities = lib.libraryInfo?.capabilities ?: lib.projectInfo?.capabilities ?: emptyList(),
+                  isTestFixtures = lib.libraryInfo?.isTestFixtures ?: lib.projectInfo?.isTestFixtures ?: false,
+                  productFlavors = lib.libraryInfo?.productFlavors ?: lib.projectInfo?.productFlavors ?: emptyMap(),
                   coordinate =
                       lib.libraryInfo?.let {
                         LibraryCoordinate(
