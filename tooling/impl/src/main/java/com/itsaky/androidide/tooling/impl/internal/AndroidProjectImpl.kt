@@ -480,6 +480,8 @@ internal class AndroidProjectImpl(
         }
 
     return AndroidProjectModelSnapshot(
+        agpVersion = versions.agp,
+        modelVersion = versions.versions[com.android.builder.model.v2.models.Versions.MODEL_PRODUCER]?.humanReadable ?: "",
         moduleType = moduleType,
         buildTypes = buildTypes,
         productFlavors = flavors,
