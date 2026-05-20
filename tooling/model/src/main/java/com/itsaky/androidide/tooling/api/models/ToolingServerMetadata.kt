@@ -30,4 +30,6 @@ data class ToolingServerMetadata(
     val toolingApiVersion: String = "9.5.1",
     val supportsPhasedBuildAction: Boolean = true,
     val supportedOperationTypes: Set<OperationType> = emptySet(),
+    val negotiatedOperationTypes: Set<OperationType> = emptySet(),
+    val maxProgressEventsPerSecond: Int? = null,
 )

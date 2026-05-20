@@ -120,6 +120,9 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       ToolingServerMetadata(
           pid = ProcessHandle.current().pid().toInt(),
           supportedOperationTypes = Main.progressUpdateTypes(),
+          negotiatedOperationTypes = negotiatedOperationTypes,
+          maxProgressEventsPerSecond =
+              Main.maxProgressEventsPerSecond.takeIf { it != Int.MAX_VALUE },
       )
     }
   }
