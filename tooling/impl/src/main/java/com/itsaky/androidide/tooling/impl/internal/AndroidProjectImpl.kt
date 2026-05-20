@@ -545,6 +545,8 @@ internal class AndroidProjectImpl(
                                   viewBindingSources = emptyList(),
                                   dataBindingSources = emptyList(),
                               ),
+                      clearOnSwitchGeneratedSources =
+                          artifactMetadata.generatedSourceFolders.toList() ?: emptyList(),
                   )
             },
         resolvedProjectVariants = resolvedProjectVariants,

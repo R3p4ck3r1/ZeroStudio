@@ -7,4 +7,5 @@ data class VariantContextModel(
     val variantName: String,
     val classpath: List<File>,
     val generatedSources: GeneratedSourceModel,
+    val clearOnSwitchGeneratedSources: List<File>,
 ) : Serializable
