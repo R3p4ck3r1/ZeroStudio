@@ -59,6 +59,8 @@ import com.itsaky.androidide.tooling.api.models.MergedPermissionSource
 import com.itsaky.androidide.tooling.api.models.NativeVariantModel
 import com.itsaky.androidide.tooling.api.models.NativeModuleModel
 import com.itsaky.androidide.tooling.api.models.NativeAbiModel
+import com.itsaky.androidide.tooling.api.models.ProjectInfoNodeModel
+import com.itsaky.androidide.tooling.api.models.VariantDependencyAdjacencyListModel
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
 import com.itsaky.androidide.tooling.api.models.ProjectVariantResolutionModel
 import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
@@ -325,6 +327,16 @@ internal class AndroidProjectImpl(
                       },
               )
             },
+        variantAdjacencyList =
+            variantDependenciesAdjacency?.let { adjacency ->
+              VariantDependencyAdjacencyListModel(
+                  mainArtifact = adjacency.mainArtifact.toAdjacencyList(),
+                  deviceTestArtifacts =
+                      adjacency.deviceTestArtifacts.mapValues { (_, deps) -> deps.toAdjacencyList() },
+                  hostTestArtifacts =
+                      adjacency.hostTestArtifacts.mapValues { (_, deps) -> deps.toAdjacencyList() },
+              )
+            },
         testSuiteAdjacencyLists =
             variantDependenciesAdjacency?.testSuiteArtifacts?.map { (suiteName, suiteDeps) ->
               TestSuiteDependenciesAdjacencyListModel(
@@ -339,6 +351,21 @@ internal class AndroidProjectImpl(
                       },
               )
             } ?: emptyList(),
+        projectInfoNodes =
+            libraries.mapNotNull { lib ->
+              val info = lib.projectInfo ?: return@mapNotNull null
+              ProjectInfoNodeModel(
+                  buildId = info.buildId,
+                  projectPath = info.projectPath,
+                  selectedVariant =
+                      resolvedProjectVariants["${info.buildId}:${info.projectPath}"],
+                  attributes = info.attributes,
+                  buildType = info.buildType,
+                  productFlavors = info.productFlavors,
+                  capabilities = info.capabilities,
+                  isTestFixtures = info.isTestFixtures,
+              )
+            },
         libraries =
             libraries.map { lib ->
               LibraryGraphEntry(
@@ -385,6 +412,20 @@ internal class AndroidProjectImpl(
             },
         resolvedProjectVariants = resolvedProjectVariants,
         resolvedProjectVariantDetails = resolvedProjectVariantDetails,
+        projectInfoNodes =
+            variantDependencies.libraries.values.mapNotNull { lib ->
+              val info = lib.projectInfo ?: return@mapNotNull null
+              ProjectInfoNodeModel(
+                  buildId = info.buildId,
+                  projectPath = info.projectPath,
+                  selectedVariant = resolvedProjectVariants["${info.buildId}:${info.projectPath}"],
+                  attributes = info.attributes,
+                  buildType = info.buildType,
+                  productFlavors = info.productFlavors,
+                  capabilities = info.capabilities,
+                  isTestFixtures = info.isTestFixtures,
+              )
+            },
         nativeModule = nativeModule?.let { module ->
           NativeModuleModel(
               name = module.name,
@@ -627,11 +668,36 @@ internal class AndroidProjectImpl(
                                   dataBindingSources = emptyList(),
                               ),
                       clearOnSwitchGeneratedSources =
-                          artifactMetadata.generatedSourceFolders.toList() ?: emptyList(),
+                          artifactMetadata.generatedSourceFolders.toList(),
+                      clearOnSwitchSourceDirectories =
+                          basicAndroidProject.sourceSets
+                              .filterNot { it.name == variant.name }
+                              .flatMap { candidate ->
+                                candidate.javaDirectories +
+                                    candidate.kotlinDirectories +
+                                    candidate.resourcesDirectories +
+                                    candidate.resDirectories +
+                                    candidate.assetsDirectories
+                              }
+                              .distinct(),
                   )
             },
         resolvedProjectVariants = resolvedProjectVariants,
         resolvedProjectVariantDetails = resolvedProjectVariantDetails,
+        projectInfoNodes =
+            variantDependencies.libraries.values.mapNotNull { lib ->
+              val info = lib.projectInfo ?: return@mapNotNull null
+              ProjectInfoNodeModel(
+                  buildId = info.buildId,
+                  projectPath = info.projectPath,
+                  selectedVariant = resolvedProjectVariants["${info.buildId}:${info.projectPath}"],
+                  attributes = info.attributes,
+                  buildType = info.buildType,
+                  productFlavors = info.productFlavors,
+                  capabilities = info.capabilities,
+                  isTestFixtures = info.isTestFixtures,
+              )
+            },
         nativeModule = nativeModule?.let { module ->
           NativeModuleModel(
               name = module.name,

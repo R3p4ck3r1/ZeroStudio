@@ -18,3 +18,15 @@ data class VariantDependencyAdjacencyModel(
     val deviceTestArtifacts: Map<String, ArtifactDependencyAdjacencyModel>,
     val hostTestArtifacts: Map<String, ArtifactDependencyAdjacencyModel>,
 ) : Serializable
+
+
+data class ArtifactDependencyAdjacencyListModel(
+    val compile: ArtifactDependenciesAdjacencyListModel,
+    val runtime: ArtifactDependenciesAdjacencyListModel,
+) : Serializable
+
+data class VariantDependencyAdjacencyListModel(
+    val mainArtifact: ArtifactDependencyAdjacencyListModel,
+    val deviceTestArtifacts: Map<String, ArtifactDependencyAdjacencyListModel>,
+    val hostTestArtifacts: Map<String, ArtifactDependencyAdjacencyListModel>,
+) : Serializable
