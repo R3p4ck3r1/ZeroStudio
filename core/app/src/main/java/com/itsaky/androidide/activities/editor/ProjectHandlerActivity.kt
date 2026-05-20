@@ -50,6 +50,7 @@ import com.itsaky.androidide.tasks.executeAsyncProvideError
 import com.itsaky.androidide.tasks.executeWithProgress
 import com.itsaky.androidide.tooling.api.messages.AndroidInitializationParams
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
+import com.itsaky.androidide.tooling.api.messages.ToolingClientCapabilities
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.Failure.PROJECT_DIRECTORY_INACCESSIBLE
@@ -73,6 +74,7 @@ import java.util.stream.Collectors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.gradle.tooling.events.OperationType
 
 /** @author Akash Yadav */
 @Suppress("MemberVisibilityCanBePrivate")
@@ -106,6 +108,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
     const val STATE_KEY_FROM_SAVED_INSTANACE = "ide.editor.isFromSavedInstance"
     const val STATE_KEY_SHOULD_INITIALIZE = "ide.editor.isInitializing"
     private const val BOTTOM_SHEET_HIDE_REASON_FIND_DIALOG = "find_in_project_dialog"
+    private const val DEFAULT_MAX_TOOLING_EVENTS_PER_SECOND = 120
   }
 
   abstract fun doCloseAll(runAfter: () -> Unit)
@@ -443,10 +446,28 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
       projectDir: File,
       buildVariants: Map<String, String>,
   ): InitializeProjectParams {
+    val capabilities =
+        ToolingClientCapabilities(
+            requestedOperationTypes =
+                linkedSetOf(
+                    OperationType.TASK,
+                    OperationType.PROJECT_CONFIGURATION,
+                    OperationType.FILE_DOWNLOAD,
+                    OperationType.TRANSFORM,
+                    OperationType.WORK_ITEM,
+                    OperationType.GENERIC,
+                ),
+            // keep default aligned with DEFAULT_MAX_TOOLING_EVENTS_PER_SECOND
+            // so client/server event traffic is bounded on constrained devices
+            maxEventsPerSecond = DEFAULT_MAX_TOOLING_EVENTS_PER_SECOND,
+            preferLightweightSync = false,
+        )
+
     return InitializeProjectParams(
         projectDir.absolutePath,
         gradleDistributionParams,
         createAndroidParams(buildVariants),
+        capabilities,
     )
   }
 
@@ -522,6 +543,29 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
   }
 
   protected open fun onProjectInitialized(result: InitializeResult) {
+    log.info(
+        "Tooling init negotiated operation types: {}",
+        result.negotiatedOperationTypes,
+    )
+
+    val buildService = Lookup.getDefault().lookup(BuildService.KEY_BUILD_SERVICE)
+    if (buildService != null) {
+      buildService
+          .metadata()
+          .whenComplete { metadata, err ->
+            if (err != null) {
+              log.debug("Unable to read tooling metadata after initialization", err)
+              return@whenComplete
+            }
+
+            log.info(
+                "Tooling runtime metadata: negotiatedTypes={} maxProgressEventsPerSecond={}",
+                metadata.negotiatedOperationTypes,
+                metadata.maxProgressEventsPerSecond,
+            )
+          }
+    }
+
     val manager = ProjectManagerImpl.getInstance()
     if (isFromSavedInstance && manager.projectInitialized && result == manager.cachedInitResult) {
       log.debug("Not setting up project as this a configuration change")

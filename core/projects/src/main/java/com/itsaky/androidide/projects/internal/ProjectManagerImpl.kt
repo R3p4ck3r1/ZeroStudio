@@ -37,6 +37,7 @@ import com.itsaky.androidide.projects.R
 import com.itsaky.androidide.projects.android.AndroidModule
 import com.itsaky.androidide.projects.builder.BuildService
 import com.itsaky.androidide.tasks.executeAsync
+import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.IAndroidProject
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
@@ -74,6 +75,14 @@ import org.slf4j.LoggerFactory
 @AutoService(IProjectManager::class)
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 class ProjectManagerImpl : IProjectManager, EventReceiver {
+
+  companion object {
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+  }
+
+  private fun useToolingExecute(): Boolean {
+    return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
+  }
 
   private var _workspace: WorkspaceImpl? = null
   private var _projectDir: File? = null
@@ -232,9 +241,32 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
             }
             ?.toList() ?: emptyList()
 
-    builder.executeTasks(*tasks.toTypedArray()).whenComplete { result, taskErr ->
+    val executionFuture =
+        if (useToolingExecute()) {
+          builder.execute(ExecutionRequest(tasks = tasks.toList())).thenApply { exec ->
+            if (exec.isSuccessful) {
+              com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.SUCCESS
+            } else {
+              com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult(
+                  false,
+                  exec.failure,
+                  exec.diagnostics,
+              )
+            }
+          }
+        } else {
+          builder.executeTasks(*tasks.toTypedArray())
+        }
+
+    executionFuture.whenComplete { result, taskErr ->
       if (result == null || !result.isSuccessful || taskErr != null) {
-        log.warn("Execution for tasks failed: {} {}", tasks, taskErr ?: "")
+        log.warn(
+            "Execution for tasks failed: tasks={} failure={} diagnostics={} error={}",
+            tasks,
+            result?.failure,
+            result?.diagnostics,
+            taskErr ?: "",
+        )
       } else {
         notifyProjectUpdate()
       }
