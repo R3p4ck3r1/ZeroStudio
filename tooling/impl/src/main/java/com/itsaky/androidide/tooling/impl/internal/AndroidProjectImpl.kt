@@ -44,6 +44,8 @@ import com.itsaky.androidide.tooling.api.models.BuildTypeMatrixModel
 import com.itsaky.androidide.tooling.api.models.DependencyGraphModel
 import com.itsaky.androidide.tooling.api.models.FlavorMatrixModel
 import com.itsaky.androidide.tooling.api.models.GeneratedSourceModel
+import com.itsaky.androidide.tooling.api.models.LibraryGraphEntry
+import com.itsaky.androidide.tooling.api.models.LibraryCoordinate
 import com.itsaky.androidide.tooling.api.models.ManifestMergerReport
 import com.itsaky.androidide.tooling.api.models.MergedPermissionSource
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
@@ -230,6 +232,27 @@ internal class AndroidProjectImpl(
         projectDependencies =
             libraries.mapNotNull { lib ->
               lib.projectInfo?.let { "${it.buildId}:${it.projectPath}" }
+            },
+        libraries =
+            libraries.map { lib ->
+              LibraryGraphEntry(
+                  key = lib.key,
+                  type = lib.type.name,
+                  artifact = lib.artifact,
+                  lintJar = lib.lintJar,
+                  srcJars = lib.srcJars,
+                  docJar = lib.docJar,
+                  projectPath = lib.projectInfo?.projectPath,
+                  buildId = lib.projectInfo?.buildId,
+                  coordinate =
+                      lib.libraryInfo?.let {
+                        LibraryCoordinate(
+                            group = it.group,
+                            artifact = it.name,
+                            version = it.version,
+                        )
+                      },
+              )
             },
     )
   }

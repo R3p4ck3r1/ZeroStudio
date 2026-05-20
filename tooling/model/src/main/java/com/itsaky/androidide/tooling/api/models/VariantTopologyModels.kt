@@ -50,4 +50,5 @@ data class DependencyGraphModel(
     val localJarDependencies: List<File>,
     val aarExplodedFolders: List<File>,
     val projectDependencies: List<String>,
+    val libraries: List<LibraryGraphEntry>,
 ) : Serializable
