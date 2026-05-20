@@ -216,10 +216,13 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         this.project.setFrom(project)
         this.isInitialized = true
 
+        Main.configureProgressDispatch(params.clientCapabilities.maxEventsPerSecond)
+
         negotiatedOperationTypes =
             negotiateOperationTypes(
                 params.clientCapabilities.requestedOperationTypes,
                 Main.progressUpdateTypes(),
+                params.clientCapabilities.preferLightweightSync,
             )
 
         notifyBuildSuccess(emptyList())
@@ -395,8 +398,17 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   private fun negotiateOperationTypes(
       requested: Set<OperationType>,
       supported: Set<OperationType>,
+      preferLightweightSync: Boolean = false,
   ): Set<OperationType> {
-    if (requested.isEmpty()) return supported
+    if (requested.isEmpty()) {
+      return if (preferLightweightSync) {
+        supported.filterTo(linkedSetOf()) {
+          it == OperationType.TASK || it == OperationType.PROJECT_CONFIGURATION
+        }
+      } else {
+        supported
+      }
+    }
     return requested.filterTo(linkedSetOf()) { supported.contains(it) }
   }
 

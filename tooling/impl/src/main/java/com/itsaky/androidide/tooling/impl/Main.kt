@@ -46,6 +46,18 @@ object Main {
 
   @Volatile var future: Future<Void?>? = null
 
+  @Volatile var maxProgressEventsPerSecond: Int = Int.MAX_VALUE
+
+  @JvmStatic
+  fun configureProgressDispatch(maxEventsPerSecond: Int?) {
+    maxProgressEventsPerSecond =
+        when {
+          maxEventsPerSecond == null -> Int.MAX_VALUE
+          maxEventsPerSecond <= 0 -> Int.MAX_VALUE
+          else -> maxEventsPerSecond
+        }
+  }
+
   @JvmStatic
   fun main(args: Array<String>) {
     // disable the JVM std.err appender
