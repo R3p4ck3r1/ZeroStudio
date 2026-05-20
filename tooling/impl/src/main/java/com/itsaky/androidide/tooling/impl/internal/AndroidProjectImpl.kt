@@ -62,6 +62,8 @@ import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
 import com.itsaky.androidide.tooling.api.models.TestArtifactModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteTargetModel
 import com.itsaky.androidide.tooling.api.models.TestedTargetVariantModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteAdjacencyModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteSourceAdjacencyModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteInfoModel
 import com.itsaky.androidide.tooling.api.models.VariantCapabilitiesModel
 import com.itsaky.androidide.tooling.api.models.VariantMatrixModel
@@ -300,6 +302,20 @@ internal class AndroidProjectImpl(
                 hostTestArtifacts =
                     variantDependencies.hostTestArtifacts.mapValues { (_, deps) -> deps.toAdjacency() },
             ),
+        testSuiteAdjacency =
+            variantDependencies.testSuiteArtifacts.map { (suiteName, suiteDeps) ->
+              TestSuiteAdjacencyModel(
+                  suiteName = suiteName,
+                  sources =
+                      suiteDeps.sourcesDependencies.map { sourceDeps ->
+                        TestSuiteSourceAdjacencyModel(
+                            sourceType = sourceDeps.type.name,
+                            sourceName = sourceDeps.name,
+                            dependencies = sourceDeps.artifactDependencies.toAdjacency(),
+                        )
+                      },
+              )
+            },
         libraries =
             libraries.map { lib ->
               LibraryGraphEntry(
