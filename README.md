@@ -5,7 +5,7 @@
 <h2 align="center"><b>ZeroStudio</b></h2>
 <p align="center">
   An IDE to develop real, Gradle-based Android applications on Android devices.
-<p><br>
+</p><br>
 
 <p align="center">
 <!-- Latest release -->

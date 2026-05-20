@@ -202,6 +202,10 @@ object Main {
     // AndroidIDE currently does not handle any other type of events
     types.add(OperationType.TASK)
     types.add(OperationType.PROJECT_CONFIGURATION)
+    types.add(OperationType.FILE_DOWNLOAD)
+    types.add(OperationType.TRANSFORM)
+    types.add(OperationType.WORK_ITEM)
+    types.add(OperationType.GENERIC)
     return types
   }
 }

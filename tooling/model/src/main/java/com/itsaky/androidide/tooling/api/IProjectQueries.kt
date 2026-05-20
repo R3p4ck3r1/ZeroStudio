@@ -43,7 +43,6 @@ import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
  *
  * @author Akash Yadav
  *
- * TODO(itsaky): Find a better approach to this issue.
  */
 interface IProjectQueries {
 
