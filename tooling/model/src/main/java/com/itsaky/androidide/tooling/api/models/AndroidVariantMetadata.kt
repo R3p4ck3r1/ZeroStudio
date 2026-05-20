@@ -27,4 +27,7 @@ open class AndroidVariantMetadata(
     name: String,
     mainArtifact: AndroidArtifactMetadata,
     val otherArtifacts: Map<String, AndroidArtifactMetadata>,
+    val moduleType: AndroidModuleType = AndroidModuleType.UNKNOWN,
+    val productFlavors: List<FlavorMatrixModel> = emptyList(),
+    val buildType: BuildTypeMatrixModel? = null,
 ) : BasicAndroidVariantMetadata(name, mainArtifact)

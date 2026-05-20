@@ -34,10 +34,16 @@ import com.itsaky.androidide.builder.model.DefaultSourceSetContainer
 import com.itsaky.androidide.builder.model.DefaultViewBindingOptions
 import com.itsaky.androidide.tooling.api.IAndroidProject
 import com.itsaky.androidide.tooling.api.models.AndroidArtifactMetadata
+import com.itsaky.androidide.tooling.api.models.AndroidModuleType
 import com.itsaky.androidide.tooling.api.models.AndroidProjectMetadata
 import com.itsaky.androidide.tooling.api.models.AndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BasicAndroidVariantMetadata
+import com.itsaky.androidide.tooling.api.models.BuildTypeMatrixModel
+import com.itsaky.androidide.tooling.api.models.DependencyGraphModel
+import com.itsaky.androidide.tooling.api.models.FlavorMatrixModel
+import com.itsaky.androidide.tooling.api.models.GeneratedSourceModel
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
+import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
 import com.itsaky.androidide.tooling.api.models.params.StringParameter
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier.copy
@@ -74,6 +80,7 @@ internal class AndroidProjectImpl(
   }
 
   private fun AndroidArtifact.toMetadata(variantName: String): AndroidArtifactMetadata {
+    val sourceSpace = computeSourceSpace(variantName)
     return AndroidArtifactMetadata(
         name = variantName,
         applicationId = computeApplicationId(variantName),
@@ -89,6 +96,8 @@ internal class AndroidProjectImpl(
         classJars = classesFolders.filter { it.name.endsWith(".jar") },
         compileTaskName = compileTaskName ?: "", // Line 90 - ADD ?: ""
         targetSdkVersionOverride = targetSdkVersionOverride?.apiLevel ?: -1,
+        sourceSpace = sourceSpace,
+        dependencyGraph = computeDependencyGraph(),
     )
   }
 
@@ -99,10 +108,86 @@ internal class AndroidProjectImpl(
   }
 
   private fun Variant.toMetadata(): AndroidVariantMetadata {
+    val moduleType =
+        when (basicAndroidProject.projectType) {
+          ProjectType.APPLICATION -> AndroidModuleType.APPLICATION
+          ProjectType.LIBRARY -> AndroidModuleType.LIBRARY
+          ProjectType.TEST -> AndroidModuleType.TEST
+          ProjectType.DYNAMIC_FEATURE -> AndroidModuleType.DYNAMIC_FEATURE
+          else -> AndroidModuleType.UNKNOWN
+        }
+    val buildTypeModel =
+        androidDsl.buildTypes.find { it.name == buildType }?.let {
+          BuildTypeMatrixModel(
+              name = it.name,
+              isDebuggable = it.isDebuggable,
+              isMinifyEnabled = it.isMinifyEnabled,
+              signingConfig = it.signingConfig,
+          )
+        }
+
     return AndroidVariantMetadata(
         name = name,
         mainArtifact = mainArtifact.toMetadata(name),
         otherArtifacts = mutableMapOf(),
+        moduleType = moduleType,
+        productFlavors =
+            productFlavors.map { flavorName ->
+              androidDsl.productFlavors.find { it.name == flavorName }?.let {
+                FlavorMatrixModel(
+                    name = it.name,
+                    dimension = it.dimension,
+                    minSdkVersion = it.minSdkVersion?.apiLevel,
+                    targetSdkVersion = it.targetSdkVersion?.apiLevel,
+                    resourceConfigurations = it.resourceConfigurations,
+                )
+              }
+            }.filterNotNull(),
+        buildType = buildTypeModel,
+    )
+  }
+
+  private fun computeSourceSpace(variantName: String): SourceSpaceModel? {
+    val sourceSet = basicAndroidProject.sourceSets.firstOrNull { it.name == variantName }
+    val generatedBase = File(gradleProject.buildDirectory, "generated")
+    return sourceSet?.let {
+      SourceSpaceModel(
+          javaDirectories = it.javaDirectories,
+          kotlinDirectories = it.kotlinDirectories,
+          manifestFiles = listOfNotNull(it.manifestFile),
+          resourceDirectories = it.resDirectories,
+          assetsDirectories = it.assetsDirectories,
+          aidlDirectories = it.aidlDirectories,
+          jniLibsDirectories = it.jniLibsDirectories,
+          generatedSources =
+              GeneratedSourceModel(
+                  annotationProcessorSources =
+                      listOf(File(generatedBase, "ap_generated_sources")).filter(File::exists),
+                  buildConfigSources =
+                      listOf(File(generatedBase, "source/buildConfig")).filter(File::exists),
+                  viewBindingSources =
+                      listOf(File(generatedBase, "view_binding_base_class_source_out")).filter(
+                          File::exists
+                      ),
+                  dataBindingSources =
+                      listOf(File(generatedBase, "data_binding_base_class_source_out")).filter(
+                          File::exists
+                      ),
+              ),
+      )
+    }
+  }
+
+  private fun computeDependencyGraph(): DependencyGraphModel {
+    val libraries = variantDependencies.libraries.values
+    return DependencyGraphModel(
+        artifactDependencies =
+            libraries.mapNotNull {
+              val artifactAddress = it.artifactAddress ?: return@mapNotNull null
+              "${artifactAddress.group}:${artifactAddress.name}:${artifactAddress.version}"
+            },
+        localJarDependencies = libraries.mapNotNull { it.localJar },
+        aarExplodedFolders = libraries.mapNotNull { it.folder },
     )
   }
 
