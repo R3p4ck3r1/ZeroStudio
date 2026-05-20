@@ -58,6 +58,7 @@ import com.itsaky.androidide.tooling.api.models.NativeVariantModel
 import com.itsaky.androidide.tooling.api.models.NativeModuleModel
 import com.itsaky.androidide.tooling.api.models.NativeAbiModel
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
+import com.itsaky.androidide.tooling.api.models.ProjectVariantResolutionModel
 import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
 import com.itsaky.androidide.tooling.api.models.TestArtifactModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteTargetModel
@@ -89,6 +90,7 @@ internal class AndroidProjectImpl(
     private val versions: Versions,
     private val androidDsl: AndroidDsl,
     private val resolvedProjectVariants: Map<String, String>,
+    private val resolvedProjectVariantDetails: List<ProjectVariantResolutionModel>,
     private val nativeModule: NativeModule?,
 ) : GradleProjectImpl(gradleProject), IAndroidProject, Serializable {
 
@@ -361,6 +363,7 @@ internal class AndroidProjectImpl(
               )
             },
         resolvedProjectVariants = resolvedProjectVariants,
+        resolvedProjectVariantDetails = resolvedProjectVariantDetails,
         nativeModule = nativeModule?.let { module ->
           NativeModuleModel(
               name = module.name,
@@ -577,6 +580,7 @@ internal class AndroidProjectImpl(
                   )
             },
         resolvedProjectVariants = resolvedProjectVariants,
+        resolvedProjectVariantDetails = resolvedProjectVariantDetails,
         nativeModule = nativeModule?.let { module ->
           NativeModuleModel(
               name = module.name,

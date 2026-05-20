@@ -121,6 +121,20 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
         projectGraph?.resolvedVariantsWithProjectInfo
             ?.mapKeys { it.key.projectPath }
             ?: emptyMap(),
+        projectGraph?.resolvedVariantsWithProjectInfo
+            ?.map { (projectInfo, variant) ->
+              com.itsaky.androidide.tooling.api.models.ProjectVariantResolutionModel(
+                  buildId = projectInfo.buildId,
+                  projectPath = projectInfo.projectPath,
+                  variantName = variant,
+                  attributes = projectInfo.attributes,
+                  buildType = projectInfo.buildType,
+                  productFlavors = projectInfo.productFlavors,
+                  capabilities = projectInfo.capabilities,
+                  isTestFixtures = projectInfo.isTestFixtures,
+              )
+            }
+            ?: emptyList(),
         nativeModule,
     )
   }
