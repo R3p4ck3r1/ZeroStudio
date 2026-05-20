@@ -22,12 +22,14 @@ import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.IToolingApiServer
 import com.itsaky.androidide.tooling.api.messages.GradleDistributionParams
 import com.itsaky.androidide.tooling.api.messages.GradleDistributionType
+import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
 import com.itsaky.androidide.tooling.api.messages.TaskExecutionMessage
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult.Reason.CANCELLATION_ERROR
 import com.itsaky.androidide.tooling.api.messages.result.BuildInfo
 import com.itsaky.androidide.tooling.api.messages.result.BuildResult
+import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.Failure
@@ -65,6 +67,7 @@ import org.gradle.tooling.UnsupportedVersionException
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException
 import org.gradle.tooling.exceptions.UnsupportedOperationConfigurationException
 import org.gradle.tooling.internal.consumer.DefaultGradleConnector
+import org.gradle.tooling.events.OperationType
 import org.slf4j.LoggerFactory
 
 /**
@@ -80,6 +83,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   private var lastInitParams: InitializeProjectParams? = null
   private var _buildCancellationToken: CancellationTokenSource? = null
   private var httpProxy: SimpleHttpProxy? = null
+  private var negotiatedOperationTypes: Set<OperationType> = emptySet()
 
   private val cancellationTokenAccessLock = ReentrantLock(/* fair= */ true)
   private var buildCancellationToken: CancellationTokenSource?
@@ -113,7 +117,13 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
 
   override fun metadata(): CompletableFuture<ToolingServerMetadata> {
     return CompletableFuture.supplyAsync {
-      ToolingServerMetadata(ProcessHandle.current().pid().toInt())
+      ToolingServerMetadata(
+          pid = ProcessHandle.current().pid().toInt(),
+          supportedOperationTypes = Main.progressUpdateTypes(),
+          negotiatedOperationTypes = negotiatedOperationTypes,
+          maxProgressEventsPerSecond =
+              Main.maxProgressEventsPerSecond.takeIf { it != Int.MAX_VALUE },
+      )
     }
   }
 
@@ -209,8 +219,20 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         this.project.setFrom(project)
         this.isInitialized = true
 
+        Main.configureProgressDispatch(params.clientCapabilities.maxEventsPerSecond)
+
+        negotiatedOperationTypes =
+            negotiateOperationTypes(
+                params.clientCapabilities.requestedOperationTypes,
+                Main.progressUpdateTypes(),
+                params.clientCapabilities.preferLightweightSync,
+            )
+
         notifyBuildSuccess(emptyList())
-        return@runBuild InitializeResult(true)
+        return@runBuild InitializeResult(
+            isSuccessful = true,
+            negotiatedOperationTypes = negotiatedOperationTypes,
+        )
       } catch (err: Throwable) {
         log.error("Failed to initialize project", err)
         notifyBuildFailure(emptyList())
@@ -266,9 +288,22 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
 
   override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> {
     return runBuild {
+      val execution = executeBuildRequest(message.asExecutionRequest())
+      if (execution.isSuccessful) {
+        return@runBuild TaskExecutionResult.SUCCESS
+      }
+      return@runBuild TaskExecutionResult(false, execution.failure, execution.diagnostics)
+    }
+  }
+
+  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
+    return runBuild { executeBuildRequest(request) }
+  }
+
+  private fun executeBuildRequest(request: ExecutionRequest): ExecutionResult {
       if (!isServerInitialized().get()) {
-        log.error("Cannot execute tasks: {}", PROJECT_NOT_INITIALIZED)
-        return@runBuild TaskExecutionResult(false, PROJECT_NOT_INITIALIZED)
+        log.error("Cannot execute build request: {}", PROJECT_NOT_INITIALIZED)
+        return ExecutionResult(false, PROJECT_NOT_INITIALIZED, "Project is not initialized")
       }
 
       val lastInitParams = this.lastInitParams
@@ -276,12 +311,12 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         val projectDirectory = File(lastInitParams.directory)
         val failureReason = validateProjectDirectory(projectDirectory)
         if (failureReason != null) {
-          log.error("Cannot execute tasks: {}", failureReason)
-          return@runBuild TaskExecutionResult(isSuccessful = false, failureReason)
+          log.error("Cannot execute build request: {}", failureReason)
+          return ExecutionResult(false, failureReason, "Project directory validation failed")
         }
       }
 
-      log.debug("Received request to run tasks: {}", message)
+      log.debug("Received request to run tasks: {}", request)
 
       Main.checkGradleWrapper()
 
@@ -298,7 +333,15 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       builder.setStandardInput("NoOp".byteInputStream())
       builder.setStandardError(out)
       builder.setStandardOutput(out)
-      builder.forTasks(*message.tasks.filter { it.isNotBlank() }.toTypedArray())
+      builder.forTasks(*request.tasks.filter { it.isNotBlank() }.toTypedArray())
+
+      if (request.arguments.isNotEmpty()) {
+        builder.addArguments(*request.arguments.filter { it.isNotBlank() }.toTypedArray())
+      }
+
+      if (request.jvmArguments.isNotEmpty()) {
+        builder.setJvmArguments(*request.jvmArguments.filter { it.isNotBlank() }.toTypedArray())
+      }
 
       val injectedArgs =
           lastInitParams.androidParams.injectedProperties.toGradleArguments().filter { it.isNotBlank() }
@@ -307,23 +350,40 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         builder.addArguments(*injectedArgs.toTypedArray())
       }
 
-      Main.finalizeLauncher(builder)
+      val effectiveOperationTypes =
+          if (request.operationTypes.isEmpty()) {
+            negotiatedOperationTypes
+          } else {
+            negotiateOperationTypes(request.operationTypes, Main.progressUpdateTypes())
+          }
+
+      Main.finalizeLauncher(builder, effectiveOperationTypes)
 
       this.buildCancellationToken = GradleConnector.newCancellationTokenSource()
       builder.withCancellationToken(this.buildCancellationToken!!.token())
 
-      notifyBeforeBuild(BuildInfo(message.tasks))
+      notifyBeforeBuild(BuildInfo(request.tasks))
 
       try {
         builder.run()
         this.buildCancellationToken = null
-        notifyBuildSuccess(message.tasks)
-        return@runBuild TaskExecutionResult.SUCCESS
+        notifyBuildSuccess(request.tasks)
+        return ExecutionResult.SUCCESS
       } catch (error: Throwable) {
-        notifyBuildFailure(message.tasks)
-        return@runBuild TaskExecutionResult(false, getTaskFailureType(error))
+        notifyBuildFailure(request.tasks)
+        return ExecutionResult(false, getTaskFailureType(error), diagnosticMessage(error))
       }
-    }
+  }
+
+  private fun diagnosticMessage(error: Throwable): String {
+    val cause = error.cause
+    val causeSegment =
+        if (cause != null && cause !== error) {
+          " | cause=${cause::class.java.simpleName}: ${cause.message.orEmpty()}"
+        } else {
+          ""
+        }
+    return "${error::class.java.simpleName}: ${error.message.orEmpty()}$causeSegment"
   }
 
   private fun setupConnectorForGradleInstallation(
@@ -351,6 +411,23 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         connector.useGradleVersion(params.value)
       }
     }
+  }
+
+  private fun negotiateOperationTypes(
+      requested: Set<OperationType>,
+      supported: Set<OperationType>,
+      preferLightweightSync: Boolean = false,
+  ): Set<OperationType> {
+    if (requested.isEmpty()) {
+      return if (preferLightweightSync) {
+        supported.filterTo(linkedSetOf()) {
+          it == OperationType.TASK || it == OperationType.PROJECT_CONFIGURATION
+        }
+      } else {
+        supported
+      }
+    }
+    return requested.filterTo(linkedSetOf()) { supported.contains(it) }
   }
 
   private fun notifyBuildFailure(tasks: List<String>) {

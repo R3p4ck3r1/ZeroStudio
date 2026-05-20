@@ -48,6 +48,7 @@ import com.itsaky.androidide.projects.IProjectManager
 import com.itsaky.androidide.projects.builder.BuildService
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.tasks.executeAsync
+import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.models.GradleTask
 import com.itsaky.androidide.utils.SingleTextWatcher
 import com.itsaky.androidide.utils.doOnApplyWindowInsets
@@ -171,7 +172,41 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
         }
 
         val toRun = viewModel.selected.toTypedArray()
-        buildService.executeTasks(*toRun)
+        val useToolingExecute =
+            System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
+        val executionFuture =
+            if (useToolingExecute) {
+              buildService
+                  .execute(ExecutionRequest(tasks = viewModel.selected.toList()))
+                  .thenApply { exec ->
+                    if (exec.isSuccessful) {
+                      com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.SUCCESS
+                    } else {
+                      com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult(
+                          false,
+                          exec.failure,
+                          exec.diagnostics,
+                      )
+                    }
+                  }
+            } else {
+              buildService.executeTasks(*toRun)
+            }
+
+        executionFuture.whenComplete { result, error ->
+          if (error != null) {
+            log.error("Failed to execute selected tasks", error)
+            return@whenComplete
+          }
+
+          if (result == null || !result.isSuccessful) {
+            log.warn(
+                "Selected task execution failed. failure={} diagnostics={}",
+                result?.failure,
+                result?.diagnostics,
+            )
+          }
+        }
         dismiss()
       }
     }
