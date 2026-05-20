@@ -44,6 +44,7 @@ class AndroidProjectMetadata(
     val namespace: String?,
     val androidTestNamespace: String?,
     val testFixtureNamespace: String?,
+    val interpretedFlags: AndroidProjectFlagsModel? = null,
     val modelSnapshot: AndroidProjectModelSnapshot? = null,
     override val classesJar: File?,
 ) :
@@ -60,6 +61,7 @@ class AndroidProjectMetadata(
       namespace: String?,
       androidTestNamespace: String?,
       testFixtureNamespace: String?,
+      interpretedFlags: AndroidProjectFlagsModel?,
       modelSnapshot: AndroidProjectModelSnapshot?,
       classesJar: File?,
   ) : this(
@@ -78,6 +80,7 @@ class AndroidProjectMetadata(
       namespace,
       androidTestNamespace,
       testFixtureNamespace,
+      interpretedFlags,
       modelSnapshot,
       classesJar,
   )

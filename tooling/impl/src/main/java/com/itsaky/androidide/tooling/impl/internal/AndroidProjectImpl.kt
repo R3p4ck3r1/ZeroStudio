@@ -38,6 +38,7 @@ import com.itsaky.androidide.tooling.api.models.AndroidArtifactMetadata
 import com.itsaky.androidide.tooling.api.models.AndroidLibraryDataModel
 import com.itsaky.androidide.tooling.api.models.AndroidModuleType
 import com.itsaky.androidide.tooling.api.models.AndroidProjectMetadata
+import com.itsaky.androidide.tooling.api.models.AndroidProjectFlagsModel
 import com.itsaky.androidide.tooling.api.models.AndroidProjectModelSnapshot
 import com.itsaky.androidide.tooling.api.models.AndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BasicAndroidVariantMetadata
@@ -389,10 +390,20 @@ internal class AndroidProjectImpl(
           androidProject.namespace,
           androidProject.androidTestNamespace,
           androidProject.testFixturesNamespace,
+          computeInterpretedFlags(),
           computeProjectSnapshot(),
           getClassesJar(),
       )
     }
+  }
+
+  private fun computeInterpretedFlags(): AndroidProjectFlagsModel {
+    val interpreted =
+        com.android.builder.model.v2.ide.AndroidGradlePluginProjectFlags.BooleanFlag.values()
+            .associate { flag ->
+              flag.name to flag.getValue(androidProject.flags, null)
+            }
+    return AndroidProjectFlagsModel(values = interpreted)
   }
 
   private fun computeProjectSnapshot(): AndroidProjectModelSnapshot {
