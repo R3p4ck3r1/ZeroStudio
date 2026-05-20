@@ -36,6 +36,7 @@ import com.itsaky.androidide.projects.android.AndroidModule
 import com.itsaky.androidide.projects.builder.BuildService
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
+import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.models.BasicAndroidVariantMetadata
 import com.itsaky.androidide.utils.ApkInstaller
 import com.itsaky.androidide.utils.InstallationResultHandler
@@ -170,7 +171,21 @@ class QuickRunWithCancellationAction(context: Context, override val order: Int) 
           }
           activity.saveAllResult()
 
-          val result = withContext(Dispatchers.IO) { buildService.executeTasks(taskName).get() }
+          val result =
+              withContext(Dispatchers.IO) {
+                val useToolingExecute =
+                    System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
+                if (useToolingExecute) {
+                  val exec = buildService.execute(ExecutionRequest(tasks = listOf(taskName))).get()
+                  if (exec.isSuccessful) {
+                    TaskExecutionResult.SUCCESS
+                  } else {
+                    TaskExecutionResult(false, exec.failure, exec.diagnostics)
+                  }
+                } else {
+                  buildService.executeTasks(taskName).get()
+                }
+              }
 
           log.debug("Task execution result: {}", result)
 
