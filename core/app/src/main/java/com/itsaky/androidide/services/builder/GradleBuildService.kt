@@ -572,15 +572,7 @@ class GradleBuildService :
     isReleaseVariant = false
 
     if (useToolingExecute()) {
-      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
-      val jvmArgs = resolveToolingExecuteJvmArgs()
-      val request =
-          ExecutionRequest(
-              tasks = tasksList,
-              arguments = buildArgs,
-              jvmArguments = jvmArgs,
-              operationTypes = resolvePreferredOperationTypes(),
-          )
+      val request = createToolingExecutionRequest(tasksList)
       return execute(request).thenApply { exec ->
         toTaskExecutionResult(exec)
       }
@@ -831,6 +823,17 @@ class GradleBuildService :
     } else {
       TaskExecutionResult(false, exec.failure, exec.diagnostics)
     }
+  }
+
+  private fun createToolingExecutionRequest(tasks: List<String>): ExecutionRequest {
+    val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+    val jvmArgs = resolveToolingExecuteJvmArgs()
+    return ExecutionRequest(
+        tasks = tasks,
+        arguments = buildArgs,
+        jvmArguments = jvmArgs,
+        operationTypes = resolvePreferredOperationTypes(),
+    )
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
