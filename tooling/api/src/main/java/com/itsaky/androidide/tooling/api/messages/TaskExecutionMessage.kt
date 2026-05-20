@@ -17,6 +17,8 @@
 
 package com.itsaky.androidide.tooling.api.messages
 
+import org.gradle.tooling.events.OperationType
+
 /**
  * Message sent by client to execute given tasks using the Tooling API.
  *
@@ -24,4 +26,7 @@ package com.itsaky.androidide.tooling.api.messages
  */
 data class TaskExecutionMessage(
     val tasks: List<String>,
+    val arguments: List<String> = emptyList(),
+    val jvmArguments: List<String> = emptyList(),
+    val operationTypes: Set<OperationType> = emptySet(),
 )

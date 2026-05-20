@@ -65,6 +65,7 @@ import org.gradle.tooling.UnsupportedVersionException
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException
 import org.gradle.tooling.exceptions.UnsupportedOperationConfigurationException
 import org.gradle.tooling.internal.consumer.DefaultGradleConnector
+import org.gradle.tooling.events.OperationType
 import org.slf4j.LoggerFactory
 
 /**
@@ -113,7 +114,10 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
 
   override fun metadata(): CompletableFuture<ToolingServerMetadata> {
     return CompletableFuture.supplyAsync {
-      ToolingServerMetadata(ProcessHandle.current().pid().toInt())
+      ToolingServerMetadata(
+          pid = ProcessHandle.current().pid().toInt(),
+          supportedOperationTypes = Main.progressUpdateTypes(),
+      )
     }
   }
 
@@ -300,6 +304,14 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       builder.setStandardOutput(out)
       builder.forTasks(*message.tasks.filter { it.isNotBlank() }.toTypedArray())
 
+      if (message.arguments.isNotEmpty()) {
+        builder.addArguments(*message.arguments.filter { it.isNotBlank() }.toTypedArray())
+      }
+
+      if (message.jvmArguments.isNotEmpty()) {
+        builder.setJvmArguments(*message.jvmArguments.filter { it.isNotBlank() }.toTypedArray())
+      }
+
       val injectedArgs =
           lastInitParams.androidParams.injectedProperties.toGradleArguments().filter { it.isNotBlank() }
       if (injectedArgs.isNotEmpty()) {
@@ -307,7 +319,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         builder.addArguments(*injectedArgs.toTypedArray())
       }
 
-      Main.finalizeLauncher(builder)
+      Main.finalizeLauncher(builder, message.operationTypes)
 
       this.buildCancellationToken = GradleConnector.newCancellationTokenSource()
       builder.withCancellationToken(this.buildCancellationToken!!.token())

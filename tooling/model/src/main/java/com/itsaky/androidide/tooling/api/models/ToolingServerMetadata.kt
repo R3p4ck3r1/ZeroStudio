@@ -17,10 +17,17 @@
 
 package com.itsaky.androidide.tooling.api.models
 
+import org.gradle.tooling.events.OperationType
+
 /**
  * Metadata about the tooling server.
  *
  * @param pid The process id of the tooling server.
  * @author Akash Yadav
  */
-data class ToolingServerMetadata(val pid: Int)
+data class ToolingServerMetadata(
+    val pid: Int,
+    val toolingApiVersion: String = "9.5.1",
+    val supportsPhasedBuildAction: Boolean = true,
+    val supportedOperationTypes: Set<OperationType> = emptySet(),
+)

@@ -127,7 +127,10 @@ object Main {
   }
 
   @Suppress("NewApi")
-  fun finalizeLauncher(launcher: ConfigurableLauncher<*>) {
+  fun finalizeLauncher(
+      launcher: ConfigurableLauncher<*>,
+      requestedTypes: Set<OperationType> = emptySet(),
+  ) {
     val out = LoggingOutputStream()
     launcher.setStandardError(out)
     launcher.setStandardOutput(out)
@@ -183,7 +186,13 @@ object Main {
     //    "-Dkotlin.daemon.jvm.options=-Xmx2g"
     // );
 
-    launcher.addProgressListener(ForwardingProgressListener(), progressUpdateTypes())
+    val progressTypes =
+        if (requestedTypes.isEmpty()) {
+          progressUpdateTypes()
+        } else {
+          requestedTypes
+        }
+    launcher.addProgressListener(ForwardingProgressListener(), progressTypes)
 
     client?.let { c ->
       try {
