@@ -2,7 +2,8 @@ package com.itsaky.androidide.templates.impl.lithoClassic
 
 import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
 
-internal fun AndroidModuleTemplateBuilder.appKt() = """
+internal fun AndroidModuleTemplateBuilder.appKt() =
+    """
 package ${data.packageName}
 
 import android.app.Application
@@ -16,7 +17,8 @@ class MyApplication : Application() {
 }
 """
 
-internal fun AndroidModuleTemplateBuilder.mainActivityKt() = """
+internal fun AndroidModuleTemplateBuilder.mainActivityKt() =
+    """
 package ${data.packageName}
 
 import android.os.Bundle
@@ -35,7 +37,8 @@ class MainActivity : AppCompatActivity() {
 }
 """
 
-internal fun AndroidModuleTemplateBuilder.appJava() = """
+internal fun AndroidModuleTemplateBuilder.appJava() =
+    """
 package ${data.packageName};
 
 import android.app.Application;
@@ -50,7 +53,8 @@ public class MyApplication extends Application {
 }
 """
 
-internal fun AndroidModuleTemplateBuilder.mainActivityJava() = """
+internal fun AndroidModuleTemplateBuilder.mainActivityJava() =
+    """
 package ${data.packageName};
 
 import android.os.Bundle;

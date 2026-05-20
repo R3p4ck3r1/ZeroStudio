@@ -184,22 +184,69 @@ data class Dependency(
     }
   }
 
-  
   object Facebook {
     private const val lithoVersion = "0.50.2"
 
-    @JvmStatic val LithoCore = parseDependency("com.facebook.litho:litho-core:${lithoVersion}", tomlAlias = "facebook-litho-core")
-    @JvmStatic val LithoWidget = parseDependency("com.facebook.litho:litho-widget:${lithoVersion}", tomlAlias = "facebook-litho-widget")
-    @JvmStatic val LithoProcessor = parseDependency("com.facebook.litho:litho-processor:${lithoVersion}", tomlAlias = "facebook-litho-processor")
-    @JvmStatic val LithoFresco = parseDependency("com.facebook.litho:litho-fresco:${lithoVersion}", tomlAlias = "facebook-litho-fresco")
-    @JvmStatic val LithoTesting = parseDependency("com.facebook.litho:litho-testing:${lithoVersion}", tomlAlias = "facebook-litho-testing")
-    @JvmStatic val LithoSectionsCore = parseDependency("com.facebook.litho:litho-sections-core:${lithoVersion}", tomlAlias = "facebook-litho-sections-core")
-    @JvmStatic val LithoSectionsWidget = parseDependency("com.facebook.litho:litho-sections-widget:${lithoVersion}", tomlAlias = "facebook-litho-sections-widget")
-    @JvmStatic val LithoSectionsAnnotations = parseDependency("com.facebook.litho:litho-sections-annotations:${lithoVersion}", tomlAlias = "facebook-litho-sections-annotations")
-    @JvmStatic val LithoSectionsProcessor = parseDependency("com.facebook.litho:litho-sections-processor:${lithoVersion}", tomlAlias = "facebook-litho-sections-processor")
-    @JvmStatic val SoLoader = parseDependency("com.facebook.soloader:soloader:0.10.5", tomlAlias = "facebook-soloader")
+    @JvmStatic
+    val LithoCore =
+        parseDependency(
+            "com.facebook.litho:litho-core:${lithoVersion}",
+            tomlAlias = "facebook-litho-core",
+        )
+    @JvmStatic
+    val LithoWidget =
+        parseDependency(
+            "com.facebook.litho:litho-widget:${lithoVersion}",
+            tomlAlias = "facebook-litho-widget",
+        )
+    @JvmStatic
+    val LithoProcessor =
+        parseDependency(
+            "com.facebook.litho:litho-processor:${lithoVersion}",
+            tomlAlias = "facebook-litho-processor",
+        )
+    @JvmStatic
+    val LithoFresco =
+        parseDependency(
+            "com.facebook.litho:litho-fresco:${lithoVersion}",
+            tomlAlias = "facebook-litho-fresco",
+        )
+    @JvmStatic
+    val LithoTesting =
+        parseDependency(
+            "com.facebook.litho:litho-testing:${lithoVersion}",
+            tomlAlias = "facebook-litho-testing",
+        )
+    @JvmStatic
+    val LithoSectionsCore =
+        parseDependency(
+            "com.facebook.litho:litho-sections-core:${lithoVersion}",
+            tomlAlias = "facebook-litho-sections-core",
+        )
+    @JvmStatic
+    val LithoSectionsWidget =
+        parseDependency(
+            "com.facebook.litho:litho-sections-widget:${lithoVersion}",
+            tomlAlias = "facebook-litho-sections-widget",
+        )
+    @JvmStatic
+    val LithoSectionsAnnotations =
+        parseDependency(
+            "com.facebook.litho:litho-sections-annotations:${lithoVersion}",
+            tomlAlias = "facebook-litho-sections-annotations",
+        )
+    @JvmStatic
+    val LithoSectionsProcessor =
+        parseDependency(
+            "com.facebook.litho:litho-sections-processor:${lithoVersion}",
+            tomlAlias = "facebook-litho-sections-processor",
+        )
+    @JvmStatic
+    val SoLoader =
+        parseDependency("com.facebook.soloader:soloader:0.10.5", tomlAlias = "facebook-soloader")
   }
-object Google {
+
+  object Google {
     @JvmStatic
     val Material =
         parseDependency("com.google.android.material:material:1.13.0", tomlAlias = "material")

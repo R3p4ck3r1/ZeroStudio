@@ -20,71 +20,56 @@ import androidx.xr.glimmer.Text
 import androidx.xr.glimmer.googlefonts.createGoogleSansFlexTypography
 
 class GlassesMainActivity : ComponentActivity() {
-    private lateinit var audioInterface: AudioInterface
+  private lateinit var audioInterface: AudioInterface
 
-    @OptIn(ExperimentalComposeUiApi::class)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        ComposeUiFlags.isInitialFocusOnFocusableAvailable = true
-        audioInterface = AudioInterface(
-            this,
-            getString(R.string.hello_ai_glasses)
-        )
-        lifecycle.addObserver(audioInterface)
-        setContent {
-            GlimmerTheme(
-                typography = createGoogleSansFlexTypography()
-            ) {
-                HomeScreen(onClose = {
-                    audioInterface.speak("Goodbye!")
-                    finish()
-                })
+  @OptIn(ExperimentalComposeUiApi::class)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    ComposeUiFlags.isInitialFocusOnFocusableAvailable = true
+    audioInterface = AudioInterface(this, getString(R.string.hello_ai_glasses))
+    lifecycle.addObserver(audioInterface)
+    setContent {
+      GlimmerTheme(typography = createGoogleSansFlexTypography()) {
+        HomeScreen(
+            onClose = {
+              audioInterface.speak("Goodbye!")
+              finish()
             }
-        }
+        )
+      }
     }
+  }
 
-    override fun onStart() {
-        super.onStart()
-        // Do things to make the user aware that this activity is active (for
-        // example, play audio), when the display state is off
-    }
+  override fun onStart() {
+    super.onStart()
+    // Do things to make the user aware that this activity is active (for
+    // example, play audio), when the display state is off
+  }
 
-    override fun onStop() {
-        super.onStop()
-        // Release high-drain resources (camera, mic, sensors)
-        // to prevent battery drain
-    }
+  override fun onStop() {
+    super.onStop()
+    // Release high-drain resources (camera, mic, sensors)
+    // to prevent battery drain
+  }
 }
 
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, onClose: () -> Unit) {
-    Box(
-        modifier = modifier
-            .background(GlimmerTheme.colors.background)
-            .fillMaxSize(),
-        contentAlignment = Alignment.BottomCenter
+  Box(
+      modifier = modifier.background(GlimmerTheme.colors.background).fillMaxSize(),
+      contentAlignment = Alignment.BottomCenter,
+  ) {
+    Card(
+        title = { Text(stringResource(id = R.string.app_name)) },
+        action = { Button(onClick = { onClose() }) { Text(stringResource(id = R.string.close)) } },
     ) {
-        Card(
-            title = {
-                Text(stringResource(id = R.string.app_name))
-            },
-            action = {
-                Button(onClick = {
-                    onClose()
-                }) {
-                    Text(stringResource(id = R.string.close))
-                }
-            }
-        ) {
-            Text(stringResource(id = R.string.hello_ai_glasses))
-        }
+      Text(stringResource(id = R.string.hello_ai_glasses))
     }
+  }
 }
 
 @Preview(device = "id:ai_glasses_device", backgroundColor = 0x00FF00)
 @Composable
 fun DefaultPreview() {
-    GlimmerTheme {
-        HomeScreen(onClose = {})
-    }
+  GlimmerTheme { HomeScreen(onClose = {}) }
 }

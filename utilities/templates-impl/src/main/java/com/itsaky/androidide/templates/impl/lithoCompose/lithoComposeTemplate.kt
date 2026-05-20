@@ -7,7 +7,6 @@ import com.itsaky.androidide.templates.base.AndroidModuleTemplateBuilder
 import com.itsaky.androidide.templates.base.composeDependencies
 import com.itsaky.androidide.templates.base.lithoClassicDependencies
 import com.itsaky.androidide.templates.base.modules.android.defaultAppModule
-import com.itsaky.androidide.templates.base.util.SourceWriter
 import com.itsaky.androidide.templates.impl.R
 import com.itsaky.androidide.templates.impl.base.createRecipe
 import com.itsaky.androidide.templates.impl.base.writeMainActivity
@@ -28,7 +27,8 @@ fun lithoComposeProject(): ProjectTemplate = baseProjectImpl {
   }
 }
 
-private fun AndroidModuleTemplateBuilder.composeMainActivityKt() = """
+private fun AndroidModuleTemplateBuilder.composeMainActivityKt() =
+    """
 package ${data.packageName}
 
 import android.os.Bundle

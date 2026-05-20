@@ -40,7 +40,6 @@ fun AndroidModuleTemplateBuilder.composeDependencies() {
   addDependency(Dependency.AndroidX.Compose.UI_Test_Manifest)
 }
 
-
 fun AndroidModuleTemplateBuilder.lithoClassicDependencies() {
   addDependency(Dependency.AndroidX.AppCompat)
   addDependency(Dependency.Facebook.LithoCore)

@@ -29,7 +29,8 @@ internal fun AndroidModuleTemplateBuilder.writeChaquopyTemplate(spec: ChaquopyTe
 
 private fun AndroidModuleTemplateBuilder.writeChaquopyBuildFiles(uiKind: ChaquopyUiKind) {
   val appDir = File(data.projectDir, "app")
-  val rootGradleFile = File(data.projectDir, if (data.useKts) "build.gradle.kts" else "build.gradle")
+  val rootGradleFile =
+      File(data.projectDir, if (data.useKts) "build.gradle.kts" else "build.gradle")
   val appGradleFile = File(appDir, if (data.useKts) "build.gradle.kts" else "build.gradle")
 
   executor.save(rootGradle(data.useKts), rootGradleFile)
@@ -54,7 +55,8 @@ plugins {
   id("org.jetbrains.kotlin.android") version "$KOTLIN_VERSION" apply false
   id("com.chaquo.python") version "$CHAQUOPY_VERSION" apply false
 }
-""".trim()
+"""
+          .trim()
     } else {
       """
 plugins {
@@ -62,7 +64,8 @@ plugins {
   id 'org.jetbrains.kotlin.android' version '$KOTLIN_VERSION' apply false
   id 'com.chaquo.python' version '$CHAQUOPY_VERSION' apply false
 }
-""".trim()
+"""
+          .trim()
     }
 
 private fun appGradle(kts: Boolean, pkg: String, uiKind: ChaquopyUiKind): String {
@@ -104,7 +107,8 @@ dependencies {
   implementation("com.google.android.material:material:1.12.0")
 $dependencies
 }
-""".trim()
+"""
+        .trim()
   } else {
     """
 plugins {
@@ -142,7 +146,8 @@ dependencies {
   implementation 'com.google.android.material:material:1.12.0'
 $dependencies
 }
-""".trim()
+"""
+        .trim()
   }
 }
 
@@ -150,7 +155,8 @@ private fun uiConfig(kind: ChaquopyUiKind, kts: Boolean): Pair<String, String> =
     when (kind) {
       ChaquopyUiKind.Xml -> "" to ""
       ChaquopyUiKind.Compose -> {
-        val androidBlock = if (kts) "  buildFeatures { compose = true }" else "  buildFeatures { compose true }"
+        val androidBlock =
+            if (kts) "  buildFeatures { compose = true }" else "  buildFeatures { compose true }"
         val deps =
             if (kts) {
               "  implementation(\"androidx.activity:activity-compose:1.10.1\")\n" +
@@ -187,10 +193,12 @@ chaquopy = "$CHAQUOPY_VERSION"
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 chaquopy = { id = "com.chaquo.python", version.ref = "chaquopy" }
-""".trim()
+"""
+        .trim()
 
 private fun pythonModule(messageTarget: String) =
     """def get_message(name=None):
     target = name or "$messageTarget"
     return f"Hello from Chaquopy, {target}!"
-""".trim()
+"""
+        .trim()

@@ -25,7 +25,9 @@ fun lithoClassicProject(): ProjectTemplate = baseProjectImpl {
       sources { writeLithoClassicSources(this) }
 
       res {
-        writeXmlResource("activity_main", LAYOUT) { "<FrameLayout xmlns:android=\"http://schemas.android.com/apk/res/android\" android:layout_width=\"match_parent\" android:layout_height=\"match_parent\" />" }
+        writeXmlResource("activity_main", LAYOUT) {
+          "<FrameLayout xmlns:android=\"http://schemas.android.com/apk/res/android\" android:layout_width=\"match_parent\" android:layout_height=\"match_parent\" />"
+        }
         emptyThemesAndColors()
       }
     }

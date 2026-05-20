@@ -13,32 +13,30 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class BakingViewModel : ViewModel() {
-    private val _uiState: MutableStateFlow<UiState> =
-        MutableStateFlow(UiState.Initial)
-    val uiState: StateFlow<UiState> =
-        _uiState.asStateFlow()
+  private val _uiState: MutableStateFlow<UiState> = MutableStateFlow(UiState.Initial)
+  val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
-    private val generativeModel = Firebase.ai.generativeModel(
-        modelName = "gemini-flash-latest",
-    )
+  private val generativeModel =
+      Firebase.ai.generativeModel(
+          modelName = "gemini-flash-latest",
+      )
 
-    fun sendPrompt(bitmap: Bitmap, prompt: String) {
-        _uiState.value = UiState.Loading
+  fun sendPrompt(bitmap: Bitmap, prompt: String) {
+    _uiState.value = UiState.Loading
 
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val response = generativeModel.generateContent(
-                    content {
-                        image(bitmap)
-                        text(prompt)
-                    }
-                )
-                response.text?.let { outputContent ->
-                    _uiState.value = UiState.Success(outputContent)
+    viewModelScope.launch(Dispatchers.IO) {
+      try {
+        val response =
+            generativeModel.generateContent(
+                content {
+                  image(bitmap)
+                  text(prompt)
                 }
-            } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.localizedMessage ?: "")
-            }
-        }
+            )
+        response.text?.let { outputContent -> _uiState.value = UiState.Success(outputContent) }
+      } catch (e: Exception) {
+        _uiState.value = UiState.Error(e.localizedMessage ?: "")
+      }
     }
+  }
 }

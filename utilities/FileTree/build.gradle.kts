@@ -1,6 +1,6 @@
+import com.itsaky.androidide.build.config.BuildConfig
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import com.itsaky.androidide.build.config.BuildConfig
 
 plugins {
   alias(libs.plugins.android.library)

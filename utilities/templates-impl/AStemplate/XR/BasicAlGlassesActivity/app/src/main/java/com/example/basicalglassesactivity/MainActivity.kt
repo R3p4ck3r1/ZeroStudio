@@ -34,74 +34,71 @@ import androidx.xr.projected.experimental.ExperimentalProjectedApi
 import com.example.basicalglassesactivity.ui.theme.BasicAlGlassesActivityTheme
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            BasicAlGlassesActivityTheme {
-                ConnectionScreen()
-            }
-        }
-    }
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    enableEdgeToEdge()
+    setContent { BasicAlGlassesActivityTheme { ConnectionScreen() } }
+  }
 }
 
 @Composable
 fun ConnectionScreen() {
-    val context = LocalContext.current
-    Scaffold { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+  val context = LocalContext.current
+  Scaffold { paddingValues ->
+    Column(
+        modifier = Modifier.fillMaxSize().padding(paddingValues),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+      Text(
+          text = stringResource(id = R.string.hello_ai_glasses),
+          style = MaterialTheme.typography.titleLarge,
+      )
+      Spacer(modifier = Modifier.height(32.dp))
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+        val scope = rememberCoroutineScope()
+        val isGlassesConnected by
+            ProjectedContext.isProjectedDeviceConnected(context, scope.coroutineContext)
+                .collectAsStateWithLifecycle(initialValue = false)
+        Button(
+            onClick = {
+              val options = ProjectedContext.createProjectedActivityOptions(context)
+              val intent = Intent(context, GlassesMainActivity::class.java)
+              context.startActivity(intent, options.toBundle())
+            },
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor =
+                        if (isGlassesConnected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.error
+                ),
+            enabled = isGlassesConnected,
         ) {
-            Text(
-                text = stringResource(id = R.string.hello_ai_glasses),
-                style = MaterialTheme.typography.titleLarge
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                val scope = rememberCoroutineScope()
-                val isGlassesConnected by ProjectedContext.isProjectedDeviceConnected(
-                    context,
-                    scope.coroutineContext
-                ).collectAsStateWithLifecycle(initialValue = false)
-                Button(
-                    onClick = {
-                        val options = ProjectedContext.createProjectedActivityOptions(context)
-                        val intent = Intent(context, GlassesMainActivity::class.java)
-                        context.startActivity(intent, options.toBundle())
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isGlassesConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                    ),
-                    enabled = isGlassesConnected
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.launch),
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                }
-                Spacer(modifier = Modifier.height(32.dp))
-                Text(
-                    text = stringResource(id = R.string.status_prefix) + if (isGlassesConnected) stringResource(
-                        id = R.string.status_connected
-                    ) else stringResource(id = R.string.status_disconnected),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            } else {
-                Text(
-                    text = stringResource(id = R.string.unsupported_android_version),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
+          Text(
+              text = stringResource(id = R.string.launch),
+              style = MaterialTheme.typography.headlineMedium,
+          )
         }
+        Spacer(modifier = Modifier.height(32.dp))
+        Text(
+            text =
+                stringResource(id = R.string.status_prefix) +
+                    if (isGlassesConnected) stringResource(id = R.string.status_connected)
+                    else stringResource(id = R.string.status_disconnected),
+            style = MaterialTheme.typography.titleMedium,
+        )
+      } else {
+        Text(
+            text = stringResource(id = R.string.unsupported_android_version),
+            style = MaterialTheme.typography.titleMedium,
+        )
+      }
     }
+  }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun ConnectionScreenPreview() {
-    ConnectionScreen()
+  ConnectionScreen()
 }

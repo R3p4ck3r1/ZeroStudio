@@ -181,7 +181,9 @@ class FileTree : RecyclerView {
 
   fun expandByPath(path: String): Boolean {
     expandPathOnce(path)
-    val node = fileTreeAdapter.currentList.firstOrNull { it.value.getAbsolutePath() == path } ?: return false
+    val node =
+        fileTreeAdapter.currentList.firstOrNull { it.value.getAbsolutePath() == path }
+            ?: return false
     if (!node.isExpand && node.value.isDirectory()) {
       fileTreeAdapter.expandNode(node)
     }
@@ -189,7 +191,9 @@ class FileTree : RecyclerView {
   }
 
   fun collapseByPath(path: String): Boolean {
-    val node = fileTreeAdapter.currentList.firstOrNull { it.value.getAbsolutePath() == path } ?: return false
+    val node =
+        fileTreeAdapter.currentList.firstOrNull { it.value.getAbsolutePath() == path }
+            ?: return false
     if (node.isExpand && node.value.isDirectory()) {
       collapseNode(node)
     }
@@ -197,7 +201,8 @@ class FileTree : RecyclerView {
   }
 
   fun collapseAll() {
-    val expanded = fileTreeAdapter.currentList.filter { it.isExpand }.sortedByDescending { it.level }
+    val expanded =
+        fileTreeAdapter.currentList.filter { it.isExpand }.sortedByDescending { it.level }
     expanded.forEach { collapseNode(it) }
   }
 
@@ -239,7 +244,9 @@ class FileTree : RecyclerView {
     post {
       expandPathOnce(targetAbsolutePath)
       val targetIndex =
-          fileTreeAdapter.currentList.indexOfFirst { it.value.getAbsolutePath() == targetAbsolutePath }
+          fileTreeAdapter.currentList.indexOfFirst {
+            it.value.getAbsolutePath() == targetAbsolutePath
+          }
 
       if (targetIndex != -1) {
         val lm = layoutManager as LinearLayoutManager
@@ -269,7 +276,9 @@ class FileTree : RecyclerView {
     val pathParts = targetAbsolutePath.split("/").filter { it.isNotEmpty() }
     if (pathParts.isEmpty()) return
     var currentNode: Node<FileObject>? =
-        fileTreeAdapter.currentList.firstOrNull { it.value.getAbsolutePath() == rootFileObject.getAbsolutePath() }
+        fileTreeAdapter.currentList.firstOrNull {
+          it.value.getAbsolutePath() == rootFileObject.getAbsolutePath()
+        }
 
     if (currentNode == null && !isRootNodeVisible) {
       currentNode =
@@ -305,8 +314,9 @@ class FileTree : RecyclerView {
       }
       val currentChildren = current.child ?: emptyList()
       if (currentChildren.any { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }) {
-        val next =
-            currentChildren.first { it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath() }
+        val next = currentChildren.first {
+          it.value.getAbsolutePath() == onlyChild.value.getAbsolutePath()
+        }
         if (!next.isExpand) {
           fileTreeAdapter.expandNode(next)
         }

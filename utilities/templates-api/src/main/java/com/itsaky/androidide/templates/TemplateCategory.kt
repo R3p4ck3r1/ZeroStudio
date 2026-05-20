@@ -50,7 +50,11 @@ data class TemplateCategory(
 
     /** "Phone and Tablet" category. */
     val Mobile =
-        TemplateCategory("mobile", "AS Phone and Tablet", R.drawable.ic_template_devive_phones_tablets)
+        TemplateCategory(
+            "mobile",
+            "AS Phone and Tablet",
+            R.drawable.ic_template_devive_phones_tablets,
+        )
 
     /** "Wear OS" category. */
     val Wear = TemplateCategory("wear", "AS Wear OS", R.drawable.ic_template_devive_smartwatch)
@@ -59,7 +63,12 @@ data class TemplateCategory(
     val Tv = TemplateCategory("tv", "AS Television", R.drawable.ic_template_devive_television)
 
     /** "Automotive" category. */
-    val Car =TemplateCategory("car","AS Automotive",R.drawable.ic_template_devive_automotive_navigation_screen,)
+    val Car =
+        TemplateCategory(
+            "car",
+            "AS Automotive",
+            R.drawable.ic_template_devive_automotive_navigation_screen,
+        )
 
     /** "XR" category for AR/VR applications. */
     val XR = TemplateCategory("xr", "AS XR", R.drawable.ic_template_devive_xr)
@@ -79,13 +88,14 @@ data class TemplateCategory(
     private val subCategoriesByParent = linkedMapOf<TemplateCategory, MutableList<SubCategory>>()
     // A container used for comprehensively managing all objectives within a subcategory
     val All = SubCategory(parent = Generic, key = "all", title = "All")
+
     /*
-    * Registered sub-category
-    *
-    * @parent Used for binding the main category
-    * @key Registered subcategory field
-    * @title Add subcategory title
-    * @icon Subcategory icons are usually bound to the left side of the title
+     * Registered sub-category
+     *
+     * @parent Used for binding the main category
+     * @key Registered subcategory field
+     * @title Add subcategory title
+     * @icon Subcategory icons are usually bound to the left side of the title
      */
     fun registerSubCategory(
         parent: TemplateCategory,
@@ -105,12 +115,12 @@ data class TemplateCategory(
     }
 
     fun getSubCategories(parent: TemplateCategory): List<SubCategory> {
-      return subCategoriesByParent[parent]?.toList() ?: listOf(SubCategory(parent, All.key, All.title))
+      return subCategoriesByParent[parent]?.toList()
+          ?: listOf(SubCategory(parent, All.key, All.title))
     }
 
     /**
-     * Returns a list of all default categories.
-     * It may affect the order of precedence
+     * Returns a list of all default categories. It may affect the order of precedence
      *
      * @return A list of [TemplateCategory].
      */

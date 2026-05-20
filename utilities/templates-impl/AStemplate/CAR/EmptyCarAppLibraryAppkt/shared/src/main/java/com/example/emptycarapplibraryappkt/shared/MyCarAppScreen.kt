@@ -7,10 +7,10 @@ import androidx.car.app.model.MessageTemplate
 import androidx.car.app.model.Template
 
 class MyCarAppScreen(carContext: CarContext) : Screen(carContext) {
-    override fun onGetTemplate(): Template {
-        return MessageTemplate.Builder("Hello world!")
-            .setHeaderAction(Action.APP_ICON)
-            .setTitle("MyCarAppScreen")
-            .build()
-    }
+  override fun onGetTemplate(): Template {
+    return MessageTemplate.Builder("Hello world!")
+        .setHeaderAction(Action.APP_ICON)
+        .setTitle("MyCarAppScreen")
+        .build()
+  }
 }

@@ -2,9 +2,7 @@ package com.example.androidtvblankviewsactivitykt
 
 import java.io.Serializable
 
-/**
- * Movie class represents video entity with title, description, image thumbs and video url.
- */
+/** Movie class represents video entity with title, description, image thumbs and video url. */
 data class Movie(
     var id: Long = 0,
     var title: String? = null,
@@ -12,20 +10,29 @@ data class Movie(
     var backgroundImageUrl: String? = null,
     var cardImageUrl: String? = null,
     var videoUrl: String? = null,
-    var studio: String? = null
+    var studio: String? = null,
 ) : Serializable {
 
-    override fun toString(): String {
-        return "Movie{" +
-                "id=" + id +
-                ", title='" + title + '\'' +
-                ", videoUrl='" + videoUrl + '\'' +
-                ", backgroundImageUrl='" + backgroundImageUrl + '\'' +
-                ", cardImageUrl='" + cardImageUrl + '\'' +
-                '}'
-    }
+  override fun toString(): String {
+    return "Movie{" +
+        "id=" +
+        id +
+        ", title='" +
+        title +
+        '\'' +
+        ", videoUrl='" +
+        videoUrl +
+        '\'' +
+        ", backgroundImageUrl='" +
+        backgroundImageUrl +
+        '\'' +
+        ", cardImageUrl='" +
+        cardImageUrl +
+        '\'' +
+        '}'
+  }
 
-    companion object {
-        internal const val serialVersionUID = 727566175075960653L
-    }
+  companion object {
+    internal const val serialVersionUID = 727566175075960653L
+  }
 }

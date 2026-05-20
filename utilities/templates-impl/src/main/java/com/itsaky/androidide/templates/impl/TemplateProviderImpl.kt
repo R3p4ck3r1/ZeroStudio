@@ -101,46 +101,132 @@ class TemplateProviderImpl : ITemplateProvider {
 
     // This is where you can add more templates to this or other categories.
     // This category is the original built-in templates for ZeroStudio
-    registerTemplate(TemplateCategory.BasicZeroStudio, emptyActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, noActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, composeActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, basicActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, bottomNavActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, navDrawerActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, tabbedActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, basicCppProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, noAndroidXActivityProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, lithoClassicProject())
-    registerTemplate(TemplateCategory.BasicZeroStudio, lithoComposeProject())
-    
-    //Hybrid dev language Frameworks
-    registerTemplate(TemplateCategory.HybridFrameworks, chaquopyXmlDemoProject())
-    registerTemplate(TemplateCategory.HybridFrameworks, chaquopyComposeDemoProject())
-    registerTemplate(TemplateCategory.HybridFrameworks, chaquopyLithoDemoProject())
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        emptyActivityProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        noActivityProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        composeActivityProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        basicActivityProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        bottomNavActivityProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        navDrawerActivityProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        tabbedActivityProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        basicCppProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        noAndroidXActivityProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        lithoClassicProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.BasicZeroStudio,
+        AndroidStudioSubCategories.PhoneAndTablet,
+        lithoComposeProject(),
+    )
+
+    // Hybrid dev language Frameworks
+    registerSubCategoryTemplate(
+        TemplateCategory.HybridFrameworks,
+        AndroidStudioSubCategories.HybridFrameworksPython,
+        chaquopyXmlDemoProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.HybridFrameworks,
+        AndroidStudioSubCategories.HybridFrameworksPython,
+        chaquopyComposeDemoProject(),
+    )
+    registerSubCategoryTemplate(
+        TemplateCategory.HybridFrameworks,
+        AndroidStudioSubCategories.HybridFrameworksPython,
+        chaquopyLithoDemoProject(),
+    )
 
     // Native build（C/C++/Cmake） template category
     registerTemplate(TemplateCategory.Native, imguiActivityProject())
   }
 
+  // Registered subcategory field
   private object AndroidStudioSubCategories {
-    lateinit var MobileClassic: TemplateCategory.SubCategory
-    lateinit var MobileArchitecture: TemplateCategory.SubCategory
-    lateinit var MobileAI: TemplateCategory.SubCategory
+    // Device
+    lateinit var PhoneAndTablet: TemplateCategory.SubCategory
+    lateinit var WearOS: TemplateCategory.SubCategory
+    lateinit var TeleVision: TemplateCategory.SubCategory
+    lateinit var CAR: TemplateCategory.SubCategory
+    lateinit var XR: TemplateCategory.SubCategory
+    // Hybrid Frameworks
+    lateinit var HybridFrameworksPython: TemplateCategory.SubCategory
   }
 
-// 注册子类别容器
-  // Activity, Fragment, Application, Folder, Service, UiComponent,  Car, XML, Wear, TV, AIDL, Widget, Google,  Compose, Other,
+  // 注册子类别容器
+  // Activity, Fragment, Application, Folder, Service, UiComponent,  Car, XML, Wear, TV, AIDL,
+  // Widget, Google,  Compose, Other,
   private fun initializeSubCategories() {
-    AndroidStudioSubCategories.MobileClassic =
-        TemplateCategory.registerSubCategory(TemplateCategory.Mobile, "mobile_classic", "Classic")
-    AndroidStudioSubCategories.MobileArchitecture =
+
+    // Device
+    AndroidStudioSubCategories.PhoneAndTablet =
         TemplateCategory.registerSubCategory(
-            TemplateCategory.Mobile,
-            "mobile_architecture",
-            "Architecture",
+            TemplateCategory.BasicZeroStudio,
+            "phone_and_tablet",
+            "Phone and Tablet",
         )
-    AndroidStudioSubCategories.MobileAI =
-        TemplateCategory.registerSubCategory(TemplateCategory.Mobile, "mobile_ai", "AI")
+
+    AndroidStudioSubCategories.WearOS =
+        TemplateCategory.registerSubCategory(
+            TemplateCategory.BasicZeroStudio,
+            "wear_os",
+            "Wear OS",
+        )
+    AndroidStudioSubCategories.TeleVision =
+        TemplateCategory.registerSubCategory(
+            TemplateCategory.BasicZeroStudio,
+            "teleVision",
+            "TeleVision",
+        )
+    AndroidStudioSubCategories.CAR =
+        TemplateCategory.registerSubCategory(TemplateCategory.BasicZeroStudio, "car", "Car")
+    AndroidStudioSubCategories.XR =
+        TemplateCategory.registerSubCategory(TemplateCategory.BasicZeroStudio, "xr", "XR")
+
+    // Hybrid Frameworks
+    AndroidStudioSubCategories.HybridFrameworksPython =
+        TemplateCategory.registerSubCategory(
+            TemplateCategory.HybridFrameworks,
+            "hybrid_frameworks_python",
+            "Python",
+        )
   }
 
   fun getTemplatesForSubCategory(subCategory: TemplateCategory.SubCategory): List<Template<*>> {
@@ -155,7 +241,9 @@ class TemplateProviderImpl : ITemplateProvider {
   ) {
     registerTemplate(category, template)
     val templates =
-        templatesBySubCategory.computeIfAbsent(subCategory) { Collections.synchronizedList(mutableListOf()) }
+        templatesBySubCategory.computeIfAbsent(subCategory) {
+          Collections.synchronizedList(mutableListOf())
+        }
     templates.add(template)
   }
 
