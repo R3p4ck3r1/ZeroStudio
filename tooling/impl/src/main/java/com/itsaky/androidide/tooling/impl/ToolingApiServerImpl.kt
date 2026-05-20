@@ -303,12 +303,13 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   private fun executeBuildRequest(request: ExecutionRequest): ExecutionResult {
       if (!isServerInitialized().get()) {
         log.error("Cannot execute build request: {}", PROJECT_NOT_INITIALIZED)
-        return ExecutionResult(false, PROJECT_NOT_INITIALIZED, "Project is not initialized")
+        return ExecutionResult(request.requestId, false, PROJECT_NOT_INITIALIZED, "Project is not initialized")
       }
 
       val effectiveTasks = request.tasks.filter { it.isNotBlank() }
       if (effectiveTasks.isEmpty()) {
         return ExecutionResult(
+            request.requestId,
             false,
             UNSUPPORTED_CONFIGURATION,
             "ExecutionRequest must contain at least one non-blank task",
@@ -321,11 +322,11 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         val failureReason = validateProjectDirectory(projectDirectory)
         if (failureReason != null) {
           log.error("Cannot execute build request: {}", failureReason)
-          return ExecutionResult(false, failureReason, "Project directory validation failed")
+          return ExecutionResult(request.requestId, false, failureReason, "Project directory validation failed")
         }
       }
 
-      log.debug("Received request to run tasks: {}", request)
+      log.info("[requestId={}] Received request to run tasks: {}", request.requestId, request.tasks)
 
       Main.checkGradleWrapper()
 
@@ -377,10 +378,10 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         builder.run()
         this.buildCancellationToken = null
         notifyBuildSuccess(effectiveTasks)
-        return ExecutionResult.SUCCESS
+        return ExecutionResult(requestId = request.requestId, isSuccessful = true)
       } catch (error: Throwable) {
         notifyBuildFailure(effectiveTasks)
-        return ExecutionResult(false, getTaskFailureType(error), diagnosticMessage(error))
+        return ExecutionResult(request.requestId, false, getTaskFailureType(error), diagnosticMessage(error))
       }
   }
 
