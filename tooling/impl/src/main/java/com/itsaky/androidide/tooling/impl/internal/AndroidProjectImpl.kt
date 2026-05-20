@@ -35,6 +35,7 @@ import com.itsaky.androidide.builder.model.DefaultSourceSetContainer
 import com.itsaky.androidide.builder.model.DefaultViewBindingOptions
 import com.itsaky.androidide.tooling.api.IAndroidProject
 import com.itsaky.androidide.tooling.api.models.AndroidArtifactMetadata
+import com.itsaky.androidide.tooling.api.models.AndroidLibraryDataModel
 import com.itsaky.androidide.tooling.api.models.AndroidModuleType
 import com.itsaky.androidide.tooling.api.models.AndroidProjectMetadata
 import com.itsaky.androidide.tooling.api.models.AndroidProjectModelSnapshot
@@ -250,6 +251,24 @@ internal class AndroidProjectImpl(
                             group = it.group,
                             artifact = it.name,
                             version = it.version,
+                        )
+                      },
+                  androidLibraryData =
+                      lib.androidLibraryData?.let {
+                        AndroidLibraryDataModel(
+                            manifest = it.manifest,
+                            compileJarFiles = it.compileJarFiles,
+                            runtimeJarFiles = it.runtimeJarFiles,
+                            resFolder = it.resFolder,
+                            resStaticLibrary = it.resStaticLibrary,
+                            assetsFolder = it.assetsFolder,
+                            jniFolder = it.jniFolder,
+                            aidlFolder = it.aidlFolder,
+                            renderscriptFolder = it.renderscriptFolder,
+                            proguardRules = it.proguardRules,
+                            externalAnnotations = it.externalAnnotations,
+                            publicResources = it.publicResources,
+                            symbolFile = it.symbolFile,
                         )
                       },
               )

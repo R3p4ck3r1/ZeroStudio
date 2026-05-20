@@ -19,4 +19,21 @@ data class LibraryGraphEntry(
     val projectPath: String?,
     val buildId: String?,
     val coordinate: LibraryCoordinate?,
+    val androidLibraryData: AndroidLibraryDataModel?,
+) : Serializable
+
+data class AndroidLibraryDataModel(
+    val manifest: File,
+    val compileJarFiles: List<File>,
+    val runtimeJarFiles: List<File>,
+    val resFolder: File,
+    val resStaticLibrary: File,
+    val assetsFolder: File,
+    val jniFolder: File,
+    val aidlFolder: File,
+    val renderscriptFolder: File,
+    val proguardRules: File,
+    val externalAnnotations: File,
+    val publicResources: File,
+    val symbolFile: File,
 ) : Serializable
