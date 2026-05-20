@@ -21,6 +21,7 @@ import com.android.builder.model.v2.models.AndroidProject
 import com.android.builder.model.v2.models.BasicAndroidProject
 import com.android.builder.model.v2.models.ModelBuilderParameter
 import com.android.builder.model.v2.models.ProjectSyncIssues
+import com.android.builder.model.v2.models.ProjectGraph
 import com.android.builder.model.v2.models.VariantDependencies
 import com.itsaky.androidide.tooling.api.IAndroidProject
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
@@ -105,6 +106,8 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
       syncIssueReporter.reportAll(syncIssues)
     }
 
+    val projectGraph = controller.findModel(module, ProjectGraph::class.java)
+
     return AndroidProjectImpl(
         module.gradleProject,
         configurationVariant,
@@ -113,6 +116,9 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
         variantDependencies,
         versions,
         androidDsl,
+        projectGraph?.resolvedVariantsWithProjectInfo
+            ?.mapKeys { it.key.projectPath }
+            ?: emptyMap(),
     )
   }
 }

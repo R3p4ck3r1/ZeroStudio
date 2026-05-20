@@ -79,6 +79,7 @@ internal class AndroidProjectImpl(
     private val variantDependencies: VariantDependencies,
     private val versions: Versions,
     private val androidDsl: AndroidDsl,
+    private val resolvedProjectVariants: Map<String, String>,
 ) : GradleProjectImpl(gradleProject), IAndroidProject, Serializable {
 
   private val serialVersionUID = 1L
@@ -327,6 +328,7 @@ internal class AndroidProjectImpl(
                       },
               )
             },
+        resolvedProjectVariants = resolvedProjectVariants,
     )
   }
 
@@ -515,6 +517,7 @@ internal class AndroidProjectImpl(
                               ),
                   )
             },
+        resolvedProjectVariants = resolvedProjectVariants,
     )
   }
 

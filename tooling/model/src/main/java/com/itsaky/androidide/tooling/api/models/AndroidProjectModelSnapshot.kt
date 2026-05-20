@@ -11,4 +11,5 @@ data class AndroidProjectModelSnapshot(
     val availableVariants: List<String>,
     val variantMatrix: List<VariantMatrixModel>,
     val variantContexts: Map<String, VariantContextModel>,
+    val resolvedProjectVariants: Map<String, String>,
 ) : Serializable
