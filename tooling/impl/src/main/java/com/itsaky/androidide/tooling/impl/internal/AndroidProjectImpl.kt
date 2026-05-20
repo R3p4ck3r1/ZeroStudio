@@ -554,11 +554,24 @@ internal class AndroidProjectImpl(
   }
 
   private fun getClassesJar(): File {
-    // TODO(itsaky): this should handle product flavors as well
-    return File(
-        gradleProject.buildDirectory,
-        "${IAndroidProject.FD_INTERMEDIATES}/compile_library_classes_jar/$configuredVariant/classes.jar",
-    )
+    val intermediatesDir = File(gradleProject.buildDirectory, IAndroidProject.FD_INTERMEDIATES)
+    val direct =
+        File(
+            intermediatesDir,
+            "compile_library_classes_jar/$configuredVariant/classes.jar",
+        )
+    if (direct.exists()) return direct
+
+    val fallback =
+        intermediatesDir
+            .resolve("compile_library_classes_jar")
+            .walkTopDown()
+            .firstOrNull { candidate ->
+              candidate.isFile &&
+                  candidate.name == "classes.jar" &&
+                  candidate.path.contains(configuredVariant, ignoreCase = true)
+            }
+    return fallback ?: direct
   }
 
   override fun getClasspaths(): CompletableFuture<List<File>> {

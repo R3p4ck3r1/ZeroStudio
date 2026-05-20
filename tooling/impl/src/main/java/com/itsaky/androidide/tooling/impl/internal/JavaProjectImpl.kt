@@ -52,11 +52,15 @@ internal class JavaProjectImpl(
           (thisRoot.sourceDirectories as MutableList).add(
               JavaSourceDirectory(sourceDir!!.directory, sourceDir.isGenerated)
           )
+          }
+          else -> Unit
         }
         for (testDir in contentRoot.testDirectories) {
           (thisRoot.testDirectories as MutableList).add(
               JavaSourceDirectory(testDir!!.directory, testDir.isGenerated)
           )
+          }
+          else -> Unit
         }
         list.add(thisRoot)
       }
@@ -69,8 +73,8 @@ internal class JavaProjectImpl(
     return CompletableFuture.supplyAsync {
       val list = ArrayList<JavaModuleDependency>()
       for (dependency in ideaModule.dependencies) {
-        // TODO There might be unresolved dependencies here. We need to handle them too.
-        if (dependency is IdeaSingleEntryLibraryDependency) {
+        when (dependency) {
+          is IdeaSingleEntryLibraryDependency -> {
           val file = dependency.file
           val source = dependency.source
           val javadoc = dependency.javadoc
@@ -85,7 +89,8 @@ internal class JavaProjectImpl(
                   dependency.getExported(),
               )
           )
-        } else if (dependency is IdeaModuleDependency) {
+          }
+          is IdeaModuleDependency -> {
           val moduleName = dependency.targetModuleName
           list.add(
               JavaModuleProjectDependency(
@@ -95,6 +100,8 @@ internal class JavaProjectImpl(
                   dependency.exported,
               )
           )
+          }
+          else -> Unit
         }
       }
 
