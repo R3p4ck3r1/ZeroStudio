@@ -788,6 +788,12 @@ class GradleBuildService :
             tasks = request.tasks.filter { it.isNotBlank() },
             arguments = request.arguments.filter { it.isNotBlank() },
             jvmArguments = request.jvmArguments.filter { it.isNotBlank() },
+            operationTypes =
+                if (request.operationTypes.isEmpty()) {
+                  resolvePreferredOperationTypes()
+                } else {
+                  request.operationTypes
+                },
         )
     return performBuildTasks(server!!.execute(sanitized))
   }
