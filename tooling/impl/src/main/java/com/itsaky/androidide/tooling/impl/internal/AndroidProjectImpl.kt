@@ -54,6 +54,7 @@ import com.itsaky.androidide.tooling.api.models.ProjectMetadata
 import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
 import com.itsaky.androidide.tooling.api.models.TestArtifactModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteTargetModel
+import com.itsaky.androidide.tooling.api.models.TestedTargetVariantModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteInfoModel
 import com.itsaky.androidide.tooling.api.models.VariantCapabilitiesModel
 import com.itsaky.androidide.tooling.api.models.VariantMatrixModel
@@ -199,6 +200,13 @@ internal class AndroidProjectImpl(
                                     targetedDevices = target.targetedDevices,
                                 )
                               },
+                      )
+                    },
+                testedTargetVariant =
+                    testedTargetVariant?.let {
+                      TestedTargetVariantModel(
+                          targetProjectPath = it.targetProjectPath,
+                          targetVariant = it.targetVariant,
                       )
                     },
             ),

@@ -20,6 +20,11 @@ data class TestSuiteInfoModel(
     val targets: List<TestSuiteTargetModel>,
 ) : Serializable
 
+data class TestedTargetVariantModel(
+    val targetProjectPath: String,
+    val targetVariant: String,
+) : Serializable
+
 data class VariantCapabilitiesModel(
     val isInstantAppCompatible: Boolean,
     val runTestInSeparateProcess: Boolean,
@@ -29,4 +34,5 @@ data class VariantCapabilitiesModel(
     val hostTestArtifacts: List<TestArtifactModel>,
     val testSuiteArtifacts: List<TestArtifactModel>,
     val testSuiteInfos: Map<String, TestSuiteInfoModel>,
+    val testedTargetVariant: TestedTargetVariantModel?,
 ) : Serializable
