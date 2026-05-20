@@ -23,6 +23,7 @@ plugins {
 
 dependencies {
   api(libs.tooling.builderModel)
+  api(libs.tooling.builderTestApi)
 
   implementation(libs.common.jkotlin)
 

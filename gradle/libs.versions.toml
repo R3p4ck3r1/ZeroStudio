@@ -2,8 +2,8 @@
 agp = "8.13.2"
 
 #构建系统  >  可以从此获得com.android.tools.build版本信息和source.jar 和javadoc.jar :https://maven.google.com/web/m_index.html?q=aapt#com.android.tools.build
-agp-tooling = "8.13.2"
-gradle-tooling = "8.9"  #从这里获得最新版本资讯：https://repo.gradle.org/ui/native/libs-releases/org/gradle/gradle-tooling-api/
+agp-tooling = "9.3.0-alpha06"
+gradle-tooling = "9.5.1"  #从这里获得最新版本资讯：https://repo.gradle.org/ui/native/libs-releases/org/gradle/gradle-tooling-api/
 # aapt2
 aapt2-proto = "8.3.0-10880808"
 aaptCompiler = "8.13.0"
@@ -368,6 +368,7 @@ aapt2-aaptcompiler = { module = "com.android.tools.build:aaptcompiler", version.
 # Tooling
 tooling-builder = { module = "com.android.tools.build:builder", version.ref = "agp-tooling" }
 tooling-builderModel = { module = "com.android.tools.build:builder-model", version.ref = "agp-tooling" }
+tooling-builderTestApi = { module = "com.android.tools.build:builder-test-api", version.ref = "agp-tooling" }
 tooling-gradleApi = { module = "android.zero.studio.gradle:gradle-tooling-api", version.ref = "gradle-tooling" }
 tooling-slf4j = { module = "org.slf4j:slf4j-api", version.ref = "slf4j-api" }
 
