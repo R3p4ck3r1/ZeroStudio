@@ -582,11 +582,7 @@ class GradleBuildService :
               operationTypes = resolvePreferredOperationTypes(),
           )
       return execute(request).thenApply { exec ->
-        if (exec.isSuccessful) {
-          TaskExecutionResult.SUCCESS
-        } else {
-          TaskExecutionResult(false, exec.failure, exec.diagnostics)
-        }
+        toTaskExecutionResult(exec)
       }
     }
 
@@ -827,6 +823,14 @@ class GradleBuildService :
 
   private fun useToolingExecute(): Boolean {
     return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
+  }
+
+  private fun toTaskExecutionResult(exec: ExecutionResult): TaskExecutionResult {
+    return if (exec.isSuccessful) {
+      TaskExecutionResult.SUCCESS
+    } else {
+      TaskExecutionResult(false, exec.failure, exec.diagnostics)
+    }
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
