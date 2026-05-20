@@ -1,9 +1,0 @@
-<service
-    android:name=".services.gradle.GradleBuildService"
-    android:enabled="true"
-    android:exported="false"
-    android:foregroundServiceType="dataSync" />
-    
-    
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
