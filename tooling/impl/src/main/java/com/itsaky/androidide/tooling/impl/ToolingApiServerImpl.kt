@@ -299,6 +299,14 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       builder.setStandardError(out)
       builder.setStandardOutput(out)
       builder.forTasks(*message.tasks.filter { it.isNotBlank() }.toTypedArray())
+
+      val injectedArgs =
+          lastInitParams.androidParams.injectedProperties.toGradleArguments().filter { it.isNotBlank() }
+      if (injectedArgs.isNotEmpty()) {
+        log.debug("Applying Android injected properties: {}", injectedArgs)
+        builder.addArguments(*injectedArgs.toTypedArray())
+      }
+
       Main.finalizeLauncher(builder)
 
       this.buildCancellationToken = GradleConnector.newCancellationTokenSource()
