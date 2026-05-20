@@ -42,6 +42,8 @@ import com.itsaky.androidide.tooling.api.models.BuildTypeMatrixModel
 import com.itsaky.androidide.tooling.api.models.DependencyGraphModel
 import com.itsaky.androidide.tooling.api.models.FlavorMatrixModel
 import com.itsaky.androidide.tooling.api.models.GeneratedSourceModel
+import com.itsaky.androidide.tooling.api.models.ManifestMergerReport
+import com.itsaky.androidide.tooling.api.models.MergedPermissionSource
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
 import com.itsaky.androidide.tooling.api.models.SourceSpaceModel
 import com.itsaky.androidide.tooling.api.models.params.StringParameter
@@ -51,6 +53,7 @@ import com.itsaky.androidide.utils.AndroidPluginVersion
 import com.itsaky.androidide.utils.capitalizeString
 import java.io.File
 import java.io.Serializable
+import java.util.regex.Pattern
 import java.util.concurrent.CompletableFuture
 import org.gradle.tooling.model.GradleProject
 
@@ -98,6 +101,7 @@ internal class AndroidProjectImpl(
         targetSdkVersionOverride = targetSdkVersionOverride?.apiLevel ?: -1,
         sourceSpace = sourceSpace,
         dependencyGraph = computeDependencyGraph(),
+        manifestMergerReport = parseManifestMergerReport(variantName),
     )
   }
 
@@ -189,6 +193,29 @@ internal class AndroidProjectImpl(
         localJarDependencies = libraries.mapNotNull { it.localJar },
         aarExplodedFolders = libraries.mapNotNull { it.folder },
     )
+  }
+
+  private fun parseManifestMergerReport(variantName: String): ManifestMergerReport? {
+    val report =
+        File(
+            gradleProject.buildDirectory,
+            "outputs/logs/manifest-merger-$variantName-report.txt",
+        )
+    if (!report.exists()) return null
+    val text = report.readText()
+    val permissionPattern =
+        Pattern.compile("uses-permission#([a-zA-Z0-9_.]+).*?ADDED from (.+?)(?:\\n|$)")
+    val matcher = permissionPattern.matcher(text)
+    val merged = mutableListOf<MergedPermissionSource>()
+    while (matcher.find()) {
+      merged.add(
+          MergedPermissionSource(
+              permission = matcher.group(1),
+              source = matcher.group(2).trim(),
+          )
+      )
+    }
+    return ManifestMergerReport(report, merged)
   }
 
   override fun getBootClasspaths(): CompletableFuture<Collection<File>> {

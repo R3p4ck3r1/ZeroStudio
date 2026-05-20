@@ -42,6 +42,7 @@ data class AndroidArtifactMetadata(
     val targetSdkVersionOverride: Int,
     val sourceSpace: SourceSpaceModel? = null,
     val dependencyGraph: DependencyGraphModel? = null,
+    val manifestMergerReport: ManifestMergerReport? = null,
 ) : Serializable {
   private val gsonType: String = javaClass.name
   private val serialVersionUID = 1L
