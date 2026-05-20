@@ -71,5 +71,6 @@ data class DependencyGraphModel(
     val testSuiteSourceDependencies: Map<String, List<String>>,
     val variantAdjacency: VariantDependencyAdjacencyModel?,
     val testSuiteAdjacency: List<TestSuiteAdjacencyModel>,
+    val testSuiteAdjacencyLists: List<TestSuiteDependenciesAdjacencyListModel>,
     val libraries: List<LibraryGraphEntry>,
 ) : Serializable

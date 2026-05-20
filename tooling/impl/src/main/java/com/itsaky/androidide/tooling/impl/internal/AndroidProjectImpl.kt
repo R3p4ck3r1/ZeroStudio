@@ -28,6 +28,7 @@ import com.android.builder.model.v2.models.AndroidDsl
 import com.android.builder.model.v2.models.AndroidProject
 import com.android.builder.model.v2.models.BasicAndroidProject
 import com.android.builder.model.v2.models.VariantDependencies
+import com.android.builder.model.v2.models.VariantDependenciesAdjacencyList
 import com.android.builder.model.v2.models.Versions
 import com.android.builder.model.v2.models.ndk.NativeModule
 import com.itsaky.androidide.builder.model.DefaultJavaCompileOptions
@@ -65,6 +66,10 @@ import com.itsaky.androidide.tooling.api.models.TestSuiteTargetModel
 import com.itsaky.androidide.tooling.api.models.TestedTargetVariantModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteAdjacencyModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteSourceAdjacencyModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteSourceDependenciesAdjacencyListModel
+import com.itsaky.androidide.tooling.api.models.TestSuiteDependenciesAdjacencyListModel
+import com.itsaky.androidide.tooling.api.models.DependencyEdgeModel
+import com.itsaky.androidide.tooling.api.models.ArtifactDependenciesAdjacencyListModel
 import com.itsaky.androidide.tooling.api.models.TestSuiteInfoModel
 import com.itsaky.androidide.tooling.api.models.VariantCapabilitiesModel
 import com.itsaky.androidide.tooling.api.models.VariantMatrixModel
@@ -87,6 +92,7 @@ internal class AndroidProjectImpl(
     private val basicAndroidProject: BasicAndroidProject,
     private val androidProject: AndroidProject,
     private val variantDependencies: VariantDependencies,
+    private val variantDependenciesAdjacency: VariantDependenciesAdjacencyList?,
     private val versions: Versions,
     private val androidDsl: AndroidDsl,
     private val resolvedProjectVariants: Map<String, String>,
@@ -318,6 +324,20 @@ internal class AndroidProjectImpl(
                       },
               )
             },
+        testSuiteAdjacencyLists =
+            variantDependenciesAdjacency?.testSuiteArtifacts?.map { (suiteName, suiteDeps) ->
+              TestSuiteDependenciesAdjacencyListModel(
+                  suiteName = suiteName,
+                  sourcesDependencies =
+                      suiteDeps.sourcesDependencies.map { sourceDeps ->
+                        TestSuiteSourceDependenciesAdjacencyListModel(
+                            sourceType = sourceDeps.type.name,
+                            sourceName = sourceDeps.name,
+                            artifactDependencies = sourceDeps.artifactDependencies.toAdjacencyList(),
+                        )
+                      },
+              )
+            } ?: emptyList(),
         libraries =
             libraries.map { lib ->
               LibraryGraphEntry(
