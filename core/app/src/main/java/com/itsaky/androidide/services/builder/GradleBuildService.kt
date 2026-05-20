@@ -46,12 +46,14 @@ import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.IToolingApiServer
 import com.itsaky.androidide.tooling.api.LogSenderConfig.PROPERTY_LOGSENDER_ENABLED
+import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
 import com.itsaky.androidide.tooling.api.messages.LogMessageParams
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult
 import com.itsaky.androidide.tooling.api.messages.result.BuildInfo
 import com.itsaky.androidide.tooling.api.messages.result.BuildResult
 import com.itsaky.androidide.tooling.api.messages.result.GradleWrapperCheckResult
+import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
@@ -563,6 +565,22 @@ class GradleBuildService :
     val tasksList = tasks.toList()
     isReleaseVariant = false
 
+    val useToolingExecute =
+        System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
+    if (useToolingExecute) {
+      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+      val request = ExecutionRequest(tasks = tasksList, arguments = buildArgs)
+      return performBuildTasks(
+          server!!.execute(request).thenApply { exec ->
+            if (exec.isSuccessful) {
+              TaskExecutionResult.SUCCESS
+            } else {
+              TaskExecutionResult(false, exec.failure, exec.diagnostics)
+            }
+          }
+      )
+    }
+
     if (isDebugBuild(tasksList)) {
       log.info("Debug build detected, injecting logger plugin")
       injectLoggerForCurrentBuild()
@@ -752,6 +770,11 @@ class GradleBuildService :
     }
 
     return cancellationFuture
+  }
+
+  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
+    checkServerStarted()
+    return performBuildTasks(server!!.execute(request))
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {

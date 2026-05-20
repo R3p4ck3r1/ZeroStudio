@@ -302,7 +302,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
 
   private fun executeBuildRequest(request: ExecutionRequest): ExecutionResult {
       if (!isServerInitialized().get()) {
-        log.error("Cannot execute tasks: {}", PROJECT_NOT_INITIALIZED)
+        log.error("Cannot execute build request: {}", PROJECT_NOT_INITIALIZED)
         return ExecutionResult(false, PROJECT_NOT_INITIALIZED, "Project is not initialized")
       }
 
@@ -311,7 +311,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         val projectDirectory = File(lastInitParams.directory)
         val failureReason = validateProjectDirectory(projectDirectory)
         if (failureReason != null) {
-          log.error("Cannot execute tasks: {}", failureReason)
+          log.error("Cannot execute build request: {}", failureReason)
           return ExecutionResult(false, failureReason, "Project directory validation failed")
         }
       }
@@ -371,8 +371,19 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         return ExecutionResult.SUCCESS
       } catch (error: Throwable) {
         notifyBuildFailure(request.tasks)
-        return ExecutionResult(false, getTaskFailureType(error), error.message)
+        return ExecutionResult(false, getTaskFailureType(error), diagnosticMessage(error))
       }
+  }
+
+  private fun diagnosticMessage(error: Throwable): String {
+    val cause = error.cause
+    val causeSegment =
+        if (cause != null && cause !== error) {
+          " | cause=${cause::class.java.simpleName}: ${cause.message.orEmpty()}"
+        } else {
+          ""
+        }
+    return "${error::class.java.simpleName}: ${error.message.orEmpty()}$causeSegment"
   }
 
   private fun setupConnectorForGradleInstallation(
