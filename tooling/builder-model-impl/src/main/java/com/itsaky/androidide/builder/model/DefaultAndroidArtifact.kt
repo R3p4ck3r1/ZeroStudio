@@ -24,7 +24,7 @@ import java.io.File
 import java.io.Serializable
 
 /** @author Akash Yadav */
-class DefaultAndroidArtifact : AndroidArtifact, Serializable {
+open class DefaultAndroidArtifact : AndroidArtifact, Serializable {
 
   private val serialVersionUID = 1L
   override var applicationId: String? = ""
