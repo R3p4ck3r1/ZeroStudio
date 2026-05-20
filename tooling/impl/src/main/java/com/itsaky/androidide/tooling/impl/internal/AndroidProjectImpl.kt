@@ -36,6 +36,7 @@ import com.itsaky.androidide.tooling.api.IAndroidProject
 import com.itsaky.androidide.tooling.api.models.AndroidArtifactMetadata
 import com.itsaky.androidide.tooling.api.models.AndroidModuleType
 import com.itsaky.androidide.tooling.api.models.AndroidProjectMetadata
+import com.itsaky.androidide.tooling.api.models.AndroidProjectModelSnapshot
 import com.itsaky.androidide.tooling.api.models.AndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BasicAndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BuildTypeMatrixModel
@@ -303,9 +304,49 @@ internal class AndroidProjectImpl(
           androidProject.namespace,
           androidProject.androidTestNamespace,
           androidProject.testFixturesNamespace,
+          computeProjectSnapshot(),
           getClassesJar(),
       )
     }
+  }
+
+  private fun computeProjectSnapshot(): AndroidProjectModelSnapshot {
+    val moduleType =
+        when (basicAndroidProject.projectType) {
+          ProjectType.APPLICATION -> AndroidModuleType.APPLICATION
+          ProjectType.LIBRARY -> AndroidModuleType.LIBRARY
+          ProjectType.TEST -> AndroidModuleType.TEST
+          ProjectType.DYNAMIC_FEATURE -> AndroidModuleType.DYNAMIC_FEATURE
+          else -> AndroidModuleType.UNKNOWN
+        }
+
+    val buildTypes =
+        androidDsl.buildTypes.map {
+          BuildTypeMatrixModel(
+              name = it.name,
+              isDebuggable = it.isDebuggable,
+              isMinifyEnabled = it.isMinifyEnabled,
+              signingConfig = it.signingConfig,
+          )
+        }
+
+    val flavors =
+        androidDsl.productFlavors.map {
+          FlavorMatrixModel(
+              name = it.name,
+              dimension = it.dimension,
+              minSdkVersion = it.minSdkVersion?.apiLevel,
+              targetSdkVersion = it.targetSdkVersion?.apiLevel,
+              resourceConfigurations = it.resourceConfigurations,
+          )
+        }
+
+    return AndroidProjectModelSnapshot(
+        moduleType = moduleType,
+        buildTypes = buildTypes,
+        productFlavors = flavors,
+        availableVariants = basicAndroidProject.variants.map { it.name },
+    )
   }
 
   private fun AndroidArtifact.computeApplicationId(variantName: String): String? {

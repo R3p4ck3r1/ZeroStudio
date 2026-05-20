@@ -44,6 +44,7 @@ class AndroidProjectMetadata(
     val namespace: String?,
     val androidTestNamespace: String?,
     val testFixtureNamespace: String?,
+    val modelSnapshot: AndroidProjectModelSnapshot? = null,
     override val classesJar: File?,
 ) :
     ProjectMetadata(name, path, projectDir, buildDir, description, buildScript, type),
@@ -59,6 +60,7 @@ class AndroidProjectMetadata(
       namespace: String?,
       androidTestNamespace: String?,
       testFixtureNamespace: String?,
+      modelSnapshot: AndroidProjectModelSnapshot?,
       classesJar: File?,
   ) : this(
       base.name,
@@ -76,6 +78,7 @@ class AndroidProjectMetadata(
       namespace,
       androidTestNamespace,
       testFixtureNamespace,
+      modelSnapshot,
       classesJar,
   )
 }
