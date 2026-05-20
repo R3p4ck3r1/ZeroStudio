@@ -570,11 +570,7 @@ class GradleBuildService :
         System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
     if (useToolingExecute) {
       val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
-      val jvmArgs =
-          System.getProperty("androidide.tooling.execute.jvmArgs", "")
-              .split(' ')
-              .map { it.trim() }
-              .filter { it.isNotBlank() }
+      val jvmArgs = resolveToolingExecuteJvmArgs()
       val request =
           ExecutionRequest(
               tasks = tasksList,
@@ -811,6 +807,13 @@ class GradleBuildService :
           OperationType.PROJECT_CONFIGURATION,
       )
     }
+  }
+
+  private fun resolveToolingExecuteJvmArgs(): List<String> {
+    return System.getProperty("androidide.tooling.execute.jvmArgs", "")
+        .split(' ')
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
