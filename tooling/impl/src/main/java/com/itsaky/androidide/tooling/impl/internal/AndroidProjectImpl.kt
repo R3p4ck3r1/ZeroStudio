@@ -276,6 +276,13 @@ internal class AndroidProjectImpl(
             libraries.mapNotNull { lib ->
               lib.projectInfo?.let { "${it.buildId}:${it.projectPath}" }
             },
+        testSuiteSourceDependencies =
+            variantDependencies.testSuiteArtifacts.flatMap { (suiteName, suiteDeps) ->
+              suiteDeps.sourcesDependencies.map { sourceDeps ->
+                "$suiteName:${sourceDeps.name}(${sourceDeps.type})" to
+                    sourceDeps.artifactDependencies.compileDependencies.map { it.key }
+              }
+            }.toMap(),
         libraries =
             libraries.map { lib ->
               LibraryGraphEntry(
