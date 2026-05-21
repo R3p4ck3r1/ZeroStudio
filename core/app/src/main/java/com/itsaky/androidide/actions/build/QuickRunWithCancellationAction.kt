@@ -35,8 +35,8 @@ import com.itsaky.androidide.preferences.internal.BuildPreferences
 import com.itsaky.androidide.projects.android.AndroidModule
 import com.itsaky.androidide.projects.builder.BuildService
 import com.itsaky.androidide.resources.R
-import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
+import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.BasicAndroidVariantMetadata
 import com.itsaky.androidide.utils.ApkInstaller
 import com.itsaky.androidide.utils.InstallationResultHandler
@@ -189,7 +189,15 @@ class QuickRunWithCancellationAction(context: Context, override val order: Int) 
           val result =
               withContext(Dispatchers.IO) {
                 if (useToolingExecute()) {
-                  val exec = buildService.execute(ExecutionRequest(tasks = listOf(taskName))).get()
+                  val request = ExecutionRequest(tasks = listOf(taskName))
+                  log.info("Executing quick-run task via tooling execute: requestId={} task={}", request.requestId, taskName)
+                  val exec = buildService.execute(request).get()
+                  log.info(
+                      "Quick-run tooling execution finished: requestId={} success={} failure={}",
+                      exec.requestId,
+                      exec.isSuccessful,
+                      exec.failure,
+                  )
                   toTaskExecutionResult(exec)
                 } else {
                   buildService.executeTasks(taskName).get()

@@ -189,8 +189,14 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
         val toRun = viewModel.selected.toTypedArray()
         val executionFuture =
             if (useToolingExecute()) {
+              val request = ExecutionRequest(tasks = viewModel.selected.toList())
+              log.info(
+                  "Executing selected tasks via tooling execute: requestId={} tasks={}",
+                  request.requestId,
+                  request.tasks,
+              )
               buildService
-                  .execute(ExecutionRequest(tasks = viewModel.selected.toList()))
+                  .execute(request)
                   .thenApply { exec -> toTaskExecutionResult(exec) }
             } else {
               buildService.executeTasks(*toRun)
