@@ -1,6 +1,6 @@
 # REAPI vendoring workspace
 
-This directory is the local source mirror location for bazelbuild/remote-apis files used by
+This directory (under tooling/.tooling) is the local source mirror location for bazelbuild/remote-apis files used by
 Iteration2 integrated transport stack (AIDL + gRPC + REAPI).
 
 ## Current status
@@ -11,7 +11,7 @@ Iteration2 integrated transport stack (AIDL + gRPC + REAPI).
 
 ```bash
 git clone https://github.com/bazelbuild/remote-apis /tmp/remote-apis
-rsync -a /tmp/remote-apis/ .tooling/reapi/remote-apis/
+rsync -a /tmp/remote-apis/ tooling/.tooling/reapi/remote-apis/
 ```
 
 ## Required upstream paths
@@ -24,3 +24,9 @@ rsync -a /tmp/remote-apis/ .tooling/reapi/remote-apis/
 
 These placeholders are intentionally non-production and exist only to unblock repo structure
 and follow-up code integration.
+
+
+## Java + Proto requirement
+
+Iteration2 requires both upstream proto definitions and Java-oriented source/config conversion inputs from remote-apis.
+Use `tooling/.tooling/reapi/sync-remote-apis.sh` to mirror the full repository locally, then consume the slices listed in `required-slices/paths.txt`.
