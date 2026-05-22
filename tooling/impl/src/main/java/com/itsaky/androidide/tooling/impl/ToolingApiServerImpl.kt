@@ -470,7 +470,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       supported: Set<OperationType>,
       preferLightweightSync: Boolean = false,
   ): Set<OperationType> {
-    val negotiated =
+    var negotiated =
         if (requested.isEmpty()) {
           if (preferLightweightSync) {
             supported.filterTo(linkedSetOf()) {
@@ -482,6 +482,18 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         } else {
           requested.filterTo(linkedSetOf()) { supported.contains(it) }
         }
+
+    if (negotiated.isEmpty() && supported.isNotEmpty()) {
+      val fallback = supported.filterTo(linkedSetOf()) {
+        it == OperationType.TASK || it == OperationType.PROJECT_CONFIGURATION
+      }
+      negotiated = if (fallback.isNotEmpty()) fallback else linkedSetOf(supported.first())
+      log.warn(
+          "Operation negotiation fallback applied. requested={} fallbackNegotiated={}",
+          requested,
+          negotiated,
+      )
+    }
 
     if (requested.isNotEmpty() && negotiated.isEmpty()) {
       log.warn(
