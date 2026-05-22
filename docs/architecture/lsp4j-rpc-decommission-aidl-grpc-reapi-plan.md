@@ -23,9 +23,11 @@
 - 负责 Android 客户端进程 ↔ 本机构建服务进程的 **低延迟 IPC**。
 - 承担：会话管理、生命周期、前后台状态、权限边界。
 
-### 2.2 gRPC + Proto（远程调用与流式传输）
+### 2.2 gRPC + Proto（远程调用与流式传输，UDS优先）
 - 负责构建服务 ↔ 远程执行/缓存服务端的 RPC。
+- **部署约束**：服务端运行在 Termux 内，客户端优先使用 **Unix Domain Socket (UDS)** 连接（非 TCP 端口暴露）。
 - 承担：双向流、超时、重试、压缩、跨语言协议统一。
+- 安全基线：Socket 文件权限最小化（`0600`），并在会话结束时清理 socket 文件。
 
 ### 2.3 REAPI（远程执行标准能力）
 - 用于大项目构建加速核心能力：
@@ -76,11 +78,12 @@
 - 在本地设备仅通过 AIDL 跑通一次完整构建。
 - 大量事件下 UI thread 无显著卡顿（以 trace 指标为准）。
 
-## Sprint C：gRPC + Proto 远程通道
+## Sprint C：gRPC + Proto 远程通道（UDS 模式）
 
 1. 建立 proto 契约：`execution.proto`、`events.proto`、`models.proto`。
-2. 完成 gRPC client/server 最小可用链路。
+2. 完成 gRPC client/server 最小可用链路（**Unix Domain Socket**）。
 3. 支持断线重连、deadline、gzip/zstd（可配置）。
+4. Termux 侧增加 socket 生命周期管理（创建、探活、重建、清理）。
 
 **验收**
 - 远程执行链路完成 execute + event streaming。
@@ -161,3 +164,30 @@
 - **M3**：gRPC 远程链路可用于执行与事件。  
 - **M4**：REAPI 缓存与执行可选启用。  
 - **M5**：仓库内彻底移除构建服务 lsp4j-rpc 依赖。
+
+
+---
+
+## 9. 非 Android 项目智能同步（必须支持）
+
+> 问题：当前根目录不含 AGP 插件时初始化同步失败，这与 Gradle Tooling API 官方“按能力探测选择模型”的推荐实践不一致。
+
+### 9.1 目标行为
+- Android 项目：走 Android 模型（现有 `com.android.tools.build` 9.3.x 映射链）。
+- 非 Android Gradle 项目：自动降级为通用 Gradle 模型，不得因 AGP 缺失而失败。
+- 混合仓（部分 Android 子模块）：按模块能力分别建模。
+
+### 9.2 官方推荐式实现策略（能力探测 + 模型回退）
+1. 先请求轻量模型：`BuildEnvironment` + `GradleProject`（或 `IdeaProject`）建立基础拓扑。
+2. 检测项目是否存在 Android 插件（`com.android.application` / `com.android.library` 等）。
+3. 仅对命中 Android 能力的模块请求 Android 模型；其余模块保留 JVM/Gradle 通用模型。
+4. 若 Android 模型请求失败，不中断整体 sync：记录 diagnostics 并回退通用模型。
+
+### 9.3 与当前范围的关系
+- `tooling/builder-model-impl`：**本阶段不强制继续升级 AGP 模型实现**，先以稳定性验证“已升级到 9.3.x 的映射是否完整”。
+- 当前优先级：先解决“非 Android 项目可同步”与“混合项目可工作”，再评估 AGP 模型补丁。
+
+### 9.4 验收
+- 纯 Java/Kotlin Gradle 项目可完成 initialize + sync。
+- 不含 AGP 的 `settings.gradle(.kts)` 工作区不再报初始化失败。
+- 混合多模块项目中，Android 与非 Android 模块都可展示并可执行任务。

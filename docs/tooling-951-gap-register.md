@@ -99,3 +99,27 @@
 - **验收标准**：
   - 每个依赖点均有 owner 与迁移阶段；
   - 进入 Sprint E 时可一键核验剩余项。
+
+### GAP-P0-06：非 Android 项目初始化同步失败（AGP 强耦合）
+- **能力名**：Gradle Tooling 通用建模能力（Android/JVM/KTS 智能分流）。
+- **当前状态**：根目录无 AGP 插件时 initialize/sync 失败。
+- **影响范围**：`tooling/impl`、`tooling/model`、`core/projects`、`core/app`。
+- **风险**：IDE 被限制为“只能构建 Android 项目”，违背 Tooling API 通用能力定位。
+- **最小实现方案**：
+  1. 先拉取 `BuildEnvironment` + `GradleProject/IdeaProject` 轻量模型；
+  2. 按模块探测 Android 插件后再请求 Android 模型；
+  3. Android 模型失败时仅降级对应模块，不中断全局同步。
+- **验收标准**：
+  - 纯 JVM/Gradle 项目可完整 initialize + sync；
+  - 混合模块项目可同时展示 Android 与非 Android 模块。
+
+### GAP-P1-03：gRPC UDS（Termux）部署约束未固化
+- **能力名**：gRPC Unix Domain Socket 传输配置基线。
+- **当前状态**：已有 gRPC 迁移方案，但未将 UDS/Termux 约束写入验收清单。
+- **影响范围**：`core/app`、`tooling/impl`、后续 `tooling/transport-grpc`。
+- **最小实现方案**：
+  1. 明确 UDS 路径、权限（0600）、清理策略；
+  2. 增加 socket 探活/重连/重建用例。
+- **验收标准**：
+  - 默认通道为 UDS；
+  - 进程异常退出后可自动恢复 socket 通道。

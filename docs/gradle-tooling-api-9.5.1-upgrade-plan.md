@@ -295,3 +295,10 @@
 4. **REAPI 作为加速能力而非强依赖**：默认本地执行，按 capability 开启远程执行/缓存。
 
 详细方案见：`docs/architecture/lsp4j-rpc-decommission-aidl-grpc-reapi-plan.md`。
+
+## 12. 关键约束修订（2026-05-22）
+
+1. **gRPC 通道固定为 UDS 优先**：构建服务端在 Termux 运行，默认使用 Unix Domain Socket，避免 TCP 暴露与额外网络栈开销。
+2. **AGP 模型不做本阶段阻塞升级**：`tooling/builder-model-impl` 先做“已升级到 9.3.x 的完整性审计”，缺口按风险补丁方式推进。
+3. **必须支持非 Android Gradle 项目**：当工作区未应用 AGP 时，sync 不得失败；应自动回退到 `BuildEnvironment + GradleProject/IdeaProject` 通用模型。
+4. **智能化模型策略**：按模块能力探测请求模型（Android 模块拉 Android 模型，其他模块保持 JVM/Gradle 模型），并允许局部失败降级。
