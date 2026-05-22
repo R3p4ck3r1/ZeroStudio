@@ -52,9 +52,10 @@ internal object WorkspaceModelBuilder {
           when (project.getType().get()) {
             ProjectType.Gradle -> transform(project.asGradleProject())
             ProjectType.Android -> transform(project.asAndroidProject())
+            ProjectType.Java -> transform(project.asJavaProject())
             else ->
                 throw IllegalStateException(
-                    "Root project must be either an Android project or a Gradle project"
+                    "Root project must be Android/Java/Gradle project"
                 )
           }
 
