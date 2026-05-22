@@ -102,6 +102,7 @@ class GradleBuildService :
   private var serverEndpoint: ToolingTransportServerEndpoint? = null
   @Volatile private var lastInitializeResult: InitializeResult? = null
   private val integratedCapabilityPolicy = IntegratedCapabilityPolicy()
+  private val integratedRoutingPolicy = IntegratedExecutionRoutingPolicy()
   private var eventListener: EventListener? = null
   private var isReleaseVariant = false
 
@@ -671,22 +672,36 @@ class GradleBuildService :
   }
 
   private fun shouldRouteThroughToolingExecute(tasks: List<String>): Boolean {
-    val executeEnabled = useToolingExecute()
-    if (!executeEnabled) {
-      return false
-    }
-
     val transportValue = resolveConfiguredTransportValue()
-    val transportMode = ToolingTransportMode.fromWireValue(transportValue)
-    val integratedMode = transportMode == ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI
+    val transportMode = ToolingTransportMode.fromWireValue(transportValue) ?: ToolingTransportMode.LEGACY_JSONRPC
+    val decision =
+        integratedRoutingPolicy.decide(
+            IntegratedExecutionRoutingPolicy.RoutingContext(
+                executeEnabled = useToolingExecute(),
+                transportMode = transportMode,
+                initializeResult = lastInitializeResult,
+                capabilitySnapshot = integratedCapabilityPolicy.current(),
+                tasks = tasks,
+            ),
+        )
 
     log.info(
-        "Tooling execute routing: enabled={}, integratedTransport={}, tasks={}",
-        executeEnabled,
-        integratedMode,
+        "Tooling execute routing decision: useToolingExecute={}, reason={}, integratedMode={}, capabilityReady={}, transport='{}', tasks={}",
+        decision.useToolingExecute,
+        decision.reason,
+        decision.integratedMode,
+        decision.capabilityReady,
+        transportMode.wireValue,
         tasks,
     )
-    return true
+
+    if (!decision.useToolingExecute) {
+      eventListener?.onOutput(
+          "Build routing fallback to shell path: reason=${decision.reason}, transport=${transportMode.wireValue}",
+      )
+    }
+
+    return decision.useToolingExecute
   }
 
   private fun augmentProcessEnvironment(finalEnv: MutableMap<String, String>) {
