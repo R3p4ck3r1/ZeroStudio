@@ -23,9 +23,9 @@
 - 负责 Android 客户端进程 ↔ 本机构建服务进程的 **低延迟 IPC**。
 - 承担：会话管理、生命周期、前后台状态、权限边界。
 
-### 2.2 gRPC + Proto（远程调用与流式传输，UDS优先）
-- 负责构建服务 ↔ 远程执行/缓存服务端的 RPC。
-- **部署约束**：服务端运行在 Termux 内，客户端优先使用 **Unix Domain Socket (UDS)** 连接（非 TCP 端口暴露）。
+### 2.2 gRPC + Proto（本地化调用与流式传输，UDS优先）
+- 负责构建服务 ↔ 本机 Termux 构建服务进程（本地 IPC/本地 socket）的 RPC。
+- **部署约束**：服务端运行在 Termux 内，客户端优先使用 **Unix Domain Socket (UDS)** 连接（仅本地 UDS，不经过互联网/HTTP）。
 - 承担：双向流、超时、重试、压缩、跨语言协议统一。
 - 安全基线：Socket 文件权限最小化（`0600`），并在会话结束时清理 socket 文件。
 
@@ -161,7 +161,7 @@
 
 - **M1**：Transport SPI 落地，legacy-lsp4j 变成适配器。  
 - **M2**：AIDL 本地执行链路成为默认。  
-- **M3**：gRPC 远程链路可用于执行与事件。  
+- **M3**：gRPC(UDS, 本地)链路可用于执行与事件。  
 - **M4**：REAPI 缓存与执行可选启用。  
 - **M5**：仓库内彻底移除构建服务 lsp4j-rpc 依赖。
 
@@ -191,3 +191,15 @@
 - 纯 Java/Kotlin Gradle 项目可完成 initialize + sync。
 - 不含 AGP 的 `settings.gradle(.kts)` 工作区不再报初始化失败。
 - 混合多模块项目中，Android 与非 Android 模块都可展示并可执行任务。
+
+
+## Tooling API 9.5.1 源码使用约束
+
+- 服务端与客户端升级开发必须优先查阅并对齐以下源码路径：
+  - `gradle/libs/android/zero/studio/gradle/gradle-tooling-api/9.5.1/gradle-tooling-api-9.5.1-sources/org/gradle`
+- 所有新能力/新接口接入前，先进行 API 对照：
+  1. 查 `org/gradle/tooling/**` 与 `org/gradle/tooling/events/**` 对应入口；
+  2. 明确可用版本与兼容边界；
+  3. 再落到 `tooling/api` 与 `tooling/impl` 的实现。
+- 禁止脱离 9.5.1 源码接口“猜测式实现”，避免后续协议/模型漂移。
+- 本项目构建服务运行在 Termux 本地 JVM 环境，默认不依赖互联网/在线 HTTP 服务。

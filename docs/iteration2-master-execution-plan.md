@@ -143,3 +143,15 @@
 2. 纯 JVM 与混合项目同步成功率达到可用阈值。
 3. UDS PoC 在 Termux 场景稳定跑通最小调用。
 4. 协商降级逻辑在客户端稳定生效。
+
+
+## Tooling API 9.5.1 源码使用约束
+
+- 服务端与客户端升级开发必须优先查阅并对齐以下源码路径：
+  - `gradle/libs/android/zero/studio/gradle/gradle-tooling-api/9.5.1/gradle-tooling-api-9.5.1-sources/org/gradle`
+- 所有新能力/新接口接入前，先进行 API 对照：
+  1. 查 `org/gradle/tooling/**` 与 `org/gradle/tooling/events/**` 对应入口；
+  2. 明确可用版本与兼容边界；
+  3. 再落到 `tooling/api` 与 `tooling/impl` 的实现。
+- 禁止脱离 9.5.1 源码接口“猜测式实现”，避免后续协议/模型漂移。
+- 本项目构建服务运行在 Termux 本地 JVM 环境，默认不依赖互联网/在线 HTTP 服务。

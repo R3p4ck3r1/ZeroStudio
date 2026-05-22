@@ -37,3 +37,15 @@
 
 ## 交付标准
 - 每个 P0 至少落地 1 组可运行代码与调用链，不再仅提供规划文档。
+
+
+## Tooling API 9.5.1 源码使用约束
+
+- 服务端与客户端升级开发必须优先查阅并对齐以下源码路径：
+  - `gradle/libs/android/zero/studio/gradle/gradle-tooling-api/9.5.1/gradle-tooling-api-9.5.1-sources/org/gradle`
+- 所有新能力/新接口接入前，先进行 API 对照：
+  1. 查 `org/gradle/tooling/**` 与 `org/gradle/tooling/events/**` 对应入口；
+  2. 明确可用版本与兼容边界；
+  3. 再落到 `tooling/api` 与 `tooling/impl` 的实现。
+- 禁止脱离 9.5.1 源码接口“猜测式实现”，避免后续协议/模型漂移。
+- 本项目构建服务运行在 Termux 本地 JVM 环境，默认不依赖互联网/在线 HTTP 服务。

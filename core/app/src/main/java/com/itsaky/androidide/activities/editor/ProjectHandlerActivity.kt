@@ -493,6 +493,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
             requestedOperationTypes =
                 linkedSetOf(
                     OperationType.TASK,
+                    OperationType.TEST,
                     OperationType.PROJECT_CONFIGURATION,
                     OperationType.FILE_DOWNLOAD,
                     OperationType.TRANSFORM,
