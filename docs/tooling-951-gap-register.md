@@ -72,3 +72,54 @@
 2. 并行推进 **GAP-P0-02** capability 扩展字段设计。  
 3. 下周初收敛 **GAP-P1-01** requestId 全链路。  
 
+
+## 协议迁移专项 GAP（LSP4J-RPC 移除）
+
+### GAP-P0-04：缺少 Transport SPI 抽象层
+- **能力名**：协议中立传输层（AIDL/gRPC/legacy 统一上层 contract）。
+- **当前状态**：`tooling/api` 仍与 lsp4j 注解耦合。
+- **影响范围**：`tooling/api`、`tooling/impl`、`core/app`。
+- **风险**：无法并行迁移协议，切换成本与回归风险过高。
+- **最小实现方案**：
+  1. 新增 `transport-spi` 接口层；
+  2. 现有 lsp4j 通道下沉为 `legacy adapter`；
+  3. 上层执行链路改依赖 SPI。
+- **验收标准**：
+  - 不改业务功能即可替换底层传输实现；
+  - legacy 与新通道可通过开关切换。
+
+### GAP-P0-05：lsp4j 依赖移除清单未系统化
+- **能力名**：构建服务协议依赖治理（代码/依赖/混淆规则）。
+- **当前状态**：已识别多处 lsp4j 引用，但未形成删改执行清单。
+- **影响范围**：`tooling/api`、`tooling/model`、`core/app`、构建脚本。
+- **风险**：后续移除阶段遗漏依赖，导致运行时崩溃或构建失败。
+- **最小实现方案**：
+  1. 建立依赖点台账（import、gradle 依赖、proguard keep）；
+  2. 标记“立即可迁移/需过渡/最后删除”。
+- **验收标准**：
+  - 每个依赖点均有 owner 与迁移阶段；
+  - 进入 Sprint E 时可一键核验剩余项。
+
+### GAP-P0-06：非 Android 项目初始化同步失败（AGP 强耦合）
+- **能力名**：Gradle Tooling 通用建模能力（Android/JVM/KTS 智能分流）。
+- **当前状态**：根目录无 AGP 插件时 initialize/sync 失败。
+- **影响范围**：`tooling/impl`、`tooling/model`、`core/projects`、`core/app`。
+- **风险**：IDE 被限制为“只能构建 Android 项目”，违背 Tooling API 通用能力定位。
+- **最小实现方案**：
+  1. 先拉取 `BuildEnvironment` + `GradleProject/IdeaProject` 轻量模型；
+  2. 按模块探测 Android 插件后再请求 Android 模型；
+  3. Android 模型失败时仅降级对应模块，不中断全局同步。
+- **验收标准**：
+  - 纯 JVM/Gradle 项目可完整 initialize + sync；
+  - 混合模块项目可同时展示 Android 与非 Android 模块。
+
+### GAP-P1-03：gRPC UDS（Termux）部署约束未固化
+- **能力名**：gRPC Unix Domain Socket 传输配置基线。
+- **当前状态**：已有 gRPC 迁移方案，但未将 UDS/Termux 约束写入验收清单。
+- **影响范围**：`core/app`、`tooling/impl`、后续 `tooling/transport-grpc`。
+- **最小实现方案**：
+  1. 明确 UDS 路径、权限（0600）、清理策略；
+  2. 增加 socket 探活/重连/重建用例。
+- **验收标准**：
+  - 默认通道为 UDS；
+  - 进程异常退出后可自动恢复 socket 通道。

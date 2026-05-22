@@ -278,3 +278,27 @@
 ## 10. 结论
 
 你当前仓库已经具备升级到 9.5.1 的基础条件（依赖与模块结构都在），但离“全方面功能支持”还差一层**体系化补齐**。建议按“协议 -> 执行 -> 事件 -> 模型 -> 消费 -> 验证”顺序推进，避免先堆模型导致维护成本失控。
+
+---
+
+## 11. 并行主线：构建服务协议栈升级（AIDL + gRPC + REAPI + Proto）
+
+在 9.5.1 能力升级过程中，协议层采用并行主线推进（不阻塞当前迭代）：
+
+1. **先解耦再替换**：先抽象 transport-spi，再逐步替换 lsp4j。
+2. **双栈过渡**：保留 legacy-lsp4j 作为 fallback，直到 AIDL/gRPC 稳定。
+3. **以性能指标驱动切换**：
+   - 构建耗时（P50/P95）
+   - 峰值内存（RSS）
+   - 事件吞吐（events/s）
+   - UI 卡顿与 ANR 指标
+4. **REAPI 作为加速能力而非强依赖**：默认本地执行，按 capability 开启远程执行/缓存。
+
+详细方案见：`docs/architecture/lsp4j-rpc-decommission-aidl-grpc-reapi-plan.md`。
+
+## 12. 关键约束修订（2026-05-22）
+
+1. **gRPC 通道固定为 UDS 优先**：构建服务端在 Termux 运行，默认使用 Unix Domain Socket，避免 TCP 暴露与额外网络栈开销。
+2. **AGP 模型不做本阶段阻塞升级**：`tooling/builder-model-impl` 先做“已升级到 9.3.x 的完整性审计”，缺口按风险补丁方式推进。
+3. **必须支持非 Android Gradle 项目**：当工作区未应用 AGP 时，sync 不得失败；应自动回退到 `BuildEnvironment + GradleProject/IdeaProject` 通用模型。
+4. **智能化模型策略**：按模块能力探测请求模型（Android 模块拉 Android 模型，其他模块保持 JVM/Gradle 模型），并允许局部失败降级。
