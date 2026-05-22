@@ -249,6 +249,13 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
                 params.clientCapabilities.preferLightweightSync,
             )
         val negotiatedFeatures = negotiateFeatureSupport(params)
+        log.info(
+            "W1_INIT_FEATURE_SUMMARY requestId={} modelSnapshot={} queryService={} phasedAction={}",
+            params.requestId,
+            negotiatedFeatures.modelSnapshot,
+            negotiatedFeatures.queryService,
+            negotiatedFeatures.phasedAction,
+        )
 
         log.info(
             "Project initialization succeeded: requestId={} negotiatedOperationTypes={}",
@@ -528,12 +535,26 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   }
 
   private fun logProgressClosureWarningsIfAny(outcome: String) {
-    val dangling = ForwardingProgressListener.onBuildEnd()
-    if (dangling.isNotEmpty()) {
+    val summary = ForwardingProgressListener.onBuildEnd()
+    log.info(
+        "W1_PROGRESS_SUMMARY outcome={} started={} finished={} dangling={}",
+        outcome,
+        summary.startedEvents,
+        summary.finishedEvents,
+        summary.danglingByOperation.size,
+    )
+    log.info(
+        "Progress closure summary on build {}: startedEvents={} finishedEvents={} danglingOperationCount={}",
+        outcome,
+        summary.startedEvents,
+        summary.finishedEvents,
+        summary.danglingByOperation.size,
+    )
+    if (summary.danglingByOperation.isNotEmpty()) {
       log.warn(
           "Progress event closure check detected dangling start events on build {}: {}",
           outcome,
-          dangling,
+          summary.danglingByOperation,
       )
     }
   }

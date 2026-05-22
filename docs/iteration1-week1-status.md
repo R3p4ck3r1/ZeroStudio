@@ -127,3 +127,22 @@
 - AGP 模型策略调整：`tooling/builder-model-impl` 本阶段以“完整性审计 + 缺口补丁”为主，不作为 Week1 阻塞项继续大规模重构。
 - 新增 P0 问题：修复“非 Android 项目初始化同步失败（根目录无 AGP 插件即失败）”。
 - 技术路线：采用官方推荐的“能力探测 + 模型回退”方式（先通用 Gradle 模型，再按模块拉 Android 模型），保证 IDE 对 Gradle 项目通用可用。
+
+
+## 10) 最新收口进展（2026-05-22 持续更新）
+
+### 已新增完成（代码）
+1. initialize 链路 requestId 闭环：client 生成 -> server 回传 -> client 比对 mismatch 警告。  
+2. capability 扩展字段协商已在 server initialize 中生效并回传结果。  
+3. progress 事件闭合校验已接入构建生命周期（build start/end），可输出 dangling start 诊断。  
+4. operation type 协商增加兜底策略（避免 negotiated set 为空）与 dropped-type 诊断日志。  
+5. 非 Android 根项目路径增强：Java/Unknown 根类型不再直接导致 workspace transform 失败。
+
+### Week1 未收口项（仍在进行）
+1. **协议兼容自动化矩阵（new/old client-server 交叉）** 仍未脚本化落地。  
+2. **事件正确性自动验收** 当前为运行时告警闭环，尚缺独立自动化断言/报表任务。  
+3. **非 Android 项目初始化回归样例** 仍需最小样本仓自动化验证。  
+
+### 结论
+- **当前周目状态：未结束（In Progress）**。  
+- 预计需要再完成兼容矩阵与自动验收脚本后，才可判定 Iteration1-Week1 完结。
