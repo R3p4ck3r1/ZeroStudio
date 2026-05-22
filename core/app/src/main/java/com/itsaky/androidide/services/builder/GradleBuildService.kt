@@ -53,7 +53,9 @@ import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
+import com.itsaky.androidide.tooling.api.transport.ToolingTransportMode
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
+import com.itsaky.androidide.tooling.impl.transport.ToolingServerEndpointFactories
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
@@ -969,6 +971,12 @@ class GradleBuildService :
     }
 
     if (toolingServerRunner?.isRunningOrStarting != true) {
+      val transportValue = resolveConfiguredTransportValue()
+      System.setProperty(ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY, transportValue)
+      log.info(
+          "Starting tooling server with transport switch='{}'",
+          transportValue,
+      )
       val envs = TermuxShellEnvironment().getEnvironment(this, false)
       toolingServerRunner = ToolingServerRunner(listener, this).also { it.startAsync(envs) }
       return
@@ -988,6 +996,25 @@ class GradleBuildService :
     }
     this.eventListener = wrap(eventListener)
     return this
+  }
+
+  private fun resolveConfiguredTransportValue(): String {
+    val raw =
+        System.getProperty(
+            ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
+            ToolingServerEndpointFactories.LEGACY,
+        )
+    val mode = ToolingTransportMode.fromWireValue(raw)
+    if (mode == null) {
+      log.warn(
+          "Unknown transport switch '{}' for -D{}. Fallback to '{}'.",
+          raw,
+          ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
+          ToolingServerEndpointFactories.LEGACY,
+      )
+      return ToolingServerEndpointFactories.LEGACY
+    }
+    return mode.wireValue
   }
 
   private fun wrap(listener: EventListener?): EventListener? {
