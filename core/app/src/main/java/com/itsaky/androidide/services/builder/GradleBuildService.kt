@@ -57,6 +57,8 @@ import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
+import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
+import com.itsaky.androidide.tooling.impl.transport.LegacyToolingServerEndpoint
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
@@ -117,6 +119,7 @@ class GradleBuildService :
   private var outputReaderJob: Job? = null
   private var notificationManager: NotificationManager? = null
   private var server: IToolingApiServer? = null
+  private var serverEndpoint: ToolingTransportServerEndpoint? = null
   private var eventListener: EventListener? = null
   private var isReleaseVariant = false
 
@@ -357,6 +360,7 @@ class GradleBuildService :
   ) {
     startServerOutputReader(errorStream)
     this.server = server
+    this.serverEndpoint = LegacyToolingServerEndpoint(server)
     Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
     isToolingServerStarted = true
   }
@@ -515,7 +519,7 @@ class GradleBuildService :
 
   override fun metadata(): CompletableFuture<ToolingServerMetadata> {
     checkServerStarted()
-    return server!!.metadata()
+    return serverEndpoint!!.metadata()
   }
 
   override fun initializeProject(
@@ -523,7 +527,7 @@ class GradleBuildService :
   ): CompletableFuture<InitializeResult> {
     checkServerStarted()
     Objects.requireNonNull(params)
-    return performBuildTasks(server!!.initialize(params)).thenApply { result ->
+    return performBuildTasks(serverEndpoint!!.initialize(params)).thenApply { result ->
       if (result != null) {
         buildServiceScope.launch {
           try {
@@ -861,7 +865,8 @@ class GradleBuildService :
 
   private fun resolvePreferredOperationTypes(): Set<OperationType> {
     return try {
-      val negotiated = server?.metadata()?.get(2, TimeUnit.SECONDS)?.negotiatedOperationTypes.orEmpty()
+      val negotiated =
+          serverEndpoint?.metadata()?.get(2, TimeUnit.SECONDS)?.negotiatedOperationTypes.orEmpty()
       if (negotiated.isNotEmpty()) {
         negotiated
       } else {
@@ -926,7 +931,7 @@ class GradleBuildService :
         currentBuildProcess = null
 
         try {
-          server?.shutdown()?.get(2, TimeUnit.SECONDS)
+          serverEndpoint?.shutdown()?.get(2, TimeUnit.SECONDS)
         } catch (e: Throwable) {
           log.warn("Tooling server shutdown during cleanup failed", e)
         }
@@ -934,6 +939,7 @@ class GradleBuildService :
         toolingServerRunner?.release()
         toolingServerRunner = null
         server = null
+        serverEndpoint = null
         isToolingServerStarted = false
 
         Runtime.getRuntime().gc()

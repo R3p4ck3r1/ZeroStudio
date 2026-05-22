@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture
 /**
  * Legacy adapter that exposes [IToolingApiServer] through transport-neutral SPI.
  */
-internal class LegacyToolingServerEndpoint(private val delegate: IToolingApiServer) :
+class LegacyToolingServerEndpoint(private val delegate: IToolingApiServer) :
     ToolingTransportServerEndpoint {
 
   override fun metadata(): CompletableFuture<ToolingServerMetadata> = delegate.metadata()
