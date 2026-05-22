@@ -132,15 +132,25 @@ internal class ToolingServerRunner(
 
               val launcher =
                   ToolingApiLauncher.newClientLauncher(
-                      LegacyToolingClientAdapter(observer!!),
+                      LegacyToolingClientAdapter(
+                          checkNotNull(observer) {
+                            "ToolingServerRunner observer was released before launcher init"
+                          },
+                      ),
                       inputStream,
                       outputStream,
                   )
 
               val future = launcher.startListening()
+              val configuredTransport =
+                  System.getProperty(
+                      ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
+                      ToolingServerEndpointFactories.LEGACY,
+                  )
+              log.info("Tooling transport switch configured as '{}'", configuredTransport)
               observer?.onServerStarted(
                   serverEndpoint =
-                      ToolingServerEndpointFactories.fromSystemProperty().create(
+                      ToolingServerEndpointFactories.fromTransportValue(configuredTransport).create(
                           launcher.remoteProxy as IToolingApiServer,
                       ),
                   projectProxy = launcher.remoteProxy as IProject,

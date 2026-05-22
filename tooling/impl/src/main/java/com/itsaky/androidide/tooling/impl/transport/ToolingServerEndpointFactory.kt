@@ -24,7 +24,13 @@ object ToolingServerEndpointFactories {
 
   @JvmStatic
   fun fromSystemProperty(): ToolingServerEndpointFactory {
-    val configured = System.getProperty(TRANSPORT_SWITCH_PROPERTY, LEGACY).trim().lowercase()
+    val configured = System.getProperty(TRANSPORT_SWITCH_PROPERTY, LEGACY)
+    return fromTransportValue(configured)
+  }
+
+  @JvmStatic
+  fun fromTransportValue(value: String?): ToolingServerEndpointFactory {
+    val configured = value.orEmpty().ifBlank { LEGACY }.trim().lowercase()
     return when (configured) {
       LEGACY -> ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
       AIDL,
