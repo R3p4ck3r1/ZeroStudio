@@ -138,7 +138,7 @@ internal class ToolingServerRunner(
                   )
 
               val future = launcher.startListening()
-              observer?.onListenerStarted(
+              observer?.onServerStarted(
                   serverEndpoint =
                       ToolingServerEndpointFactories.fromSystemProperty().create(
                           launcher.remoteProxy as IToolingApiServer,
@@ -202,16 +202,7 @@ internal class ToolingServerRunner(
         .getOrNull()
   }
 
-  interface Observer : ToolingTransportClientObserver {
-
-    fun onListenerStarted(
-        serverEndpoint: com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint,
-        projectProxy: IProject,
-        errorStream: InputStream,
-    )
-
-    override fun onServerExited(exitCode: Int)
-  }
+  interface Observer : ToolingTransportClientObserver
 
   /** Callback to listen for Tooling API server start event. */
   fun interface OnServerStartListener {

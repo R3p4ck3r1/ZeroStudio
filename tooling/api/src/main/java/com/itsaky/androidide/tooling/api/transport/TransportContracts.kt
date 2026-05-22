@@ -41,7 +41,11 @@ interface ToolingTransportClientObserver {
 
   fun buildArguments(): CompletableFuture<List<String>>
 
-  fun onServerStarted(projectProxy: com.itsaky.androidide.tooling.api.IProject, errorStream: InputStream)
+  fun onServerStarted(
+      serverEndpoint: ToolingTransportServerEndpoint,
+      projectProxy: com.itsaky.androidide.tooling.api.IProject,
+      errorStream: InputStream,
+  )
 
   fun onServerExited(exitCode: Int)
 }

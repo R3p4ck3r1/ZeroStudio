@@ -53,7 +53,6 @@ import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
-import com.itsaky.androidide.tooling.api.transport.ToolingTransportClientObserver
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
@@ -329,7 +328,7 @@ class GradleBuildService :
     System.setProperty("ide.logger.init.script", initScript.absolutePath)
   }
 
-  override fun onListenerStarted(
+  override fun onServerStarted(
       serverEndpoint: ToolingTransportServerEndpoint,
       projectProxy: IProject,
       errorStream: InputStream,
@@ -340,12 +339,6 @@ class GradleBuildService :
     isToolingServerStarted = true
   }
 
-
-  override fun onServerStarted(projectProxy: IProject, errorStream: InputStream) {
-    startServerOutputReader(errorStream)
-    Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
-    isToolingServerStarted = true
-  }
 
   override fun onServerExited(exitCode: Int) {
     log.warn("Tooling API process terminated with exit code: {}", exitCode)
