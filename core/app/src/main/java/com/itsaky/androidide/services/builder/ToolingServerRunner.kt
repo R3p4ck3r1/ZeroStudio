@@ -23,6 +23,7 @@ import com.itsaky.androidide.tasks.cancelIfActive
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.IToolingApiServer
+import com.itsaky.androidide.tooling.impl.transport.ToolingServerEndpointFactories
 import com.itsaky.androidide.tooling.api.util.ToolingApiLauncher
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.reflection.ReflectionUtils
@@ -137,7 +138,10 @@ internal class ToolingServerRunner(
 
               val future = launcher.startListening()
               observer?.onListenerStarted(
-                  server = launcher.remoteProxy as IToolingApiServer,
+                  serverEndpoint =
+                      ToolingServerEndpointFactories.fromSystemProperty().create(
+                          launcher.remoteProxy as IToolingApiServer,
+                      ),
                   projectProxy = launcher.remoteProxy as IProject,
                   errorStream = errorStream,
               )
@@ -200,7 +204,7 @@ internal class ToolingServerRunner(
   interface Observer {
 
     fun onListenerStarted(
-        server: IToolingApiServer,
+        serverEndpoint: com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint,
         projectProxy: IProject,
         errorStream: InputStream,
     )

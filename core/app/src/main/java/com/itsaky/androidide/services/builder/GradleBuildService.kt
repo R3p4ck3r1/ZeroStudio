@@ -44,7 +44,6 @@ import com.itsaky.androidide.tasks.runOnUiThread
 import com.itsaky.androidide.tooling.api.ForwardingToolingApiClient
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiClient
-import com.itsaky.androidide.tooling.api.IToolingApiServer
 import com.itsaky.androidide.tooling.api.LogSenderConfig.PROPERTY_LOGSENDER_ENABLED
 import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
@@ -58,7 +57,6 @@ import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
-import com.itsaky.androidide.tooling.impl.transport.LegacyToolingServerEndpoint
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
@@ -353,12 +351,12 @@ class GradleBuildService :
   }
 
   override fun onListenerStarted(
-      server: IToolingApiServer,
+      serverEndpoint: ToolingTransportServerEndpoint,
       projectProxy: IProject,
       errorStream: InputStream,
   ) {
     startServerOutputReader(errorStream)
-    this.serverEndpoint = LegacyToolingServerEndpoint(server)
+    this.serverEndpoint = serverEndpoint
     Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
     isToolingServerStarted = true
   }
