@@ -829,7 +829,7 @@ class GradleBuildService :
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> {
     checkServerStarted()
 
-    val cancellationFuture = server!!.cancelCurrentBuild()
+    val cancellationFuture = serverEndpoint!!.cancelCurrentBuild()
 
     buildServiceScope.launch {
       try {
@@ -860,7 +860,7 @@ class GradleBuildService :
                   request.operationTypes
                 },
         )
-    return performBuildTasks(server!!.execute(sanitized))
+    return performBuildTasks(serverEndpoint!!.execute(sanitized))
   }
 
   private fun resolvePreferredOperationTypes(): Set<OperationType> {
