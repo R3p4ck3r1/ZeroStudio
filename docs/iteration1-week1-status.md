@@ -108,3 +108,22 @@
     - `supportsModelSnapshot`
     - `supportsQueryService`
 - 当前阶段定位：**完成了“能力扩展字段设计/API 草案”这一步，但尚未完成服务端协商逻辑与兼容测试实跑。**  
+
+
+## 8) 协议替换专项（LSP4J-RPC -> AIDL + gRPC + REAPI）
+
+- 已新增专项方案文档：`docs/architecture/lsp4j-rpc-decommission-aidl-grpc-reapi-plan.md`。
+- 结论：本周不进行“一步到位硬切换”，采用 **Transport SPI 抽象先行 + legacy 适配过渡** 的双栈策略。
+- Week1 收口新增 4 项任务：
+  1. 输出 `transport-spi` 契约草案；
+  2. 建立 lsp4j 依赖点清单与删改优先级；
+  3. 兼容矩阵补充 legacy-adapter 回归样例；
+  4. 增补性能基线采样（构建耗时/RSS/GC/事件吞吐）。
+- 风险门槛：在 AIDL 通道未稳定前，禁止删除 legacy 回退能力。
+
+## 9) 用户新增约束对齐（2026-05-22）
+
+- gRPC 通道新增强约束：**默认 Unix Domain Socket（UDS）模式**，服务端部署在 Termux 内，不走公网 TCP 暴露。
+- AGP 模型策略调整：`tooling/builder-model-impl` 本阶段以“完整性审计 + 缺口补丁”为主，不作为 Week1 阻塞项继续大规模重构。
+- 新增 P0 问题：修复“非 Android 项目初始化同步失败（根目录无 AGP 插件即失败）”。
+- 技术路线：采用官方推荐的“能力探测 + 模型回退”方式（先通用 Gradle 模型，再按模块拉 Android 模型），保证 IDE 对 Gradle 项目通用可用。

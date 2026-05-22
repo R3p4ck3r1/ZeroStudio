@@ -19,6 +19,8 @@ package com.itsaky.androidide.tooling.impl.progress
 
 import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.impl.Main
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import org.gradle.tooling.events.FinishEvent
 import org.gradle.tooling.events.ProgressEvent
 import org.gradle.tooling.events.ProgressListener
@@ -44,6 +46,34 @@ import org.gradle.tooling.events.work.WorkItemStartEvent
  * @author Akash Yadav
  */
 class ForwardingProgressListener : ProgressListener {
+  companion object {
+    private val inFlightByOperation = ConcurrentHashMap<String, AtomicInteger>()
+
+    fun onBuildStart() {
+      inFlightByOperation.clear()
+    }
+
+    fun onBuildEnd(): Map<String, Int> {
+      return inFlightByOperation
+          .mapValues { (_, counter) -> counter.get() }
+          .filterValues { it > 0 }
+          .toSortedMap()
+    }
+
+    private fun operationKey(event: ProgressEvent): String {
+      val descriptor = event.descriptor
+      val parent = descriptor.parent
+      return buildString {
+        append(event.javaClass.simpleName)
+        append('|')
+        append(descriptor.name)
+        append('|')
+        append(descriptor.displayName)
+        append('|')
+        append(parent?.name ?: "<no-parent>")
+      }
+    }
+  }
 
   @Volatile private var lastDispatchedAtNanos: Long = 0L
 
@@ -69,7 +99,18 @@ class ForwardingProgressListener : ProgressListener {
       return
     }
 
-    if (!shouldDispatchNow()) {
+    when (event) {
+      is StartEvent -> inFlightByOperation.computeIfAbsent(operationKey(event)) { AtomicInteger(0) }.incrementAndGet()
+      is FinishEvent -> {
+        val counter = inFlightByOperation.computeIfAbsent(operationKey(event)) { AtomicInteger(0) }
+        if (counter.get() > 0) {
+          counter.decrementAndGet()
+        }
+      }
+    }
+
+    val isLifecycleEvent = event is StartEvent || event is FinishEvent
+    if (!isLifecycleEvent && !shouldDispatchNow()) {
       return
     }
 

@@ -28,6 +28,7 @@ import org.gradle.tooling.events.OperationType
 class InitializeResult(
     val isSuccessful: Boolean,
     val failure: TaskExecutionResult.Failure? = null,
+    val requestId: String? = null,
     val negotiatedOperationTypes: Set<OperationType> = emptySet(),
     val supportsModelSnapshot: Boolean = false,
     val supportsQueryService: Boolean = false,

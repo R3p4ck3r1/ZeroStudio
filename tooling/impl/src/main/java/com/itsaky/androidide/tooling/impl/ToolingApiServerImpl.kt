@@ -48,6 +48,7 @@ import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.Fai
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.impl.internal.ProjectImpl
 import com.itsaky.androidide.tooling.impl.net.SimpleHttpProxy
+import com.itsaky.androidide.tooling.impl.progress.ForwardingProgressListener
 import com.itsaky.androidide.tooling.impl.sync.ModelBuilderException
 import com.itsaky.androidide.tooling.impl.sync.RootModelBuilder
 import com.itsaky.androidide.tooling.impl.sync.RootProjectModelBuilderParams
@@ -76,6 +77,11 @@ import org.slf4j.LoggerFactory
  * @author Akash Yadav
  */
 internal class ToolingApiServerImpl(private val project: ProjectImpl) : IToolingApiServer {
+  private data class NegotiatedFeatureSupport(
+      val modelSnapshot: Boolean,
+      val queryService: Boolean,
+      val phasedAction: Boolean,
+  )
 
   private var client: IToolingApiClient? = null
   private var connector: GradleConnector? = null
@@ -113,12 +119,18 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
      * that the server's process is not kept alive for longer duration.
      */
     const val DELAY_BEFORE_EXIT_MS = 1000L
+    private const val SERVER_SUPPORTS_MODEL_SNAPSHOT = false
+    private const val SERVER_SUPPORTS_QUERY_SERVICE = false
+    private const val SERVER_SUPPORTS_PHASED_ACTION = true
   }
 
   override fun metadata(): CompletableFuture<ToolingServerMetadata> {
     return CompletableFuture.supplyAsync {
       ToolingServerMetadata(
           pid = ProcessHandle.current().pid().toInt(),
+          supportsPhasedBuildAction = SERVER_SUPPORTS_PHASED_ACTION,
+          supportsModelSnapshot = SERVER_SUPPORTS_MODEL_SNAPSHOT,
+          supportsQueryService = SERVER_SUPPORTS_QUERY_SERVICE,
           supportedOperationTypes = Main.progressUpdateTypes(),
           negotiatedOperationTypes = negotiatedOperationTypes,
           maxProgressEventsPerSecond =
@@ -130,7 +142,12 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> {
     return runBuild {
       try {
-        log.debug("Received project initialization request with params: {}", params)
+        log.debug(
+            "Received project initialization request: requestId={} directory={} distribution={}",
+            params.requestId,
+            params.directory,
+            params.gradleDistribution,
+        )
 
         Main.checkGradleWrapper()
 
@@ -142,8 +159,12 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         val failureReason = validateProjectDirectory(projectDirectory)
 
         if (failureReason != null) {
-          log.error("Cannot initialize project: {}", failureReason)
-          return@runBuild InitializeResult(false, failureReason)
+          log.error(
+              "Cannot initialize project: requestId={} failure={}",
+              params.requestId,
+              failureReason,
+          )
+          return@runBuild InitializeResult(false, failureReason, params.requestId)
         }
 
         // Ensure Gradle sees UTF-8/locale early via project gradle.properties
@@ -227,18 +248,39 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
                 Main.progressUpdateTypes(),
                 params.clientCapabilities.preferLightweightSync,
             )
+        val negotiatedFeatures = negotiateFeatureSupport(params)
 
+        log.info(
+            "Project initialization succeeded: requestId={} negotiatedOperationTypes={}",
+            params.requestId,
+            negotiatedOperationTypes,
+        )
         notifyBuildSuccess(emptyList())
         return@runBuild InitializeResult(
             isSuccessful = true,
+            requestId = params.requestId,
             negotiatedOperationTypes = negotiatedOperationTypes,
+            supportsModelSnapshot = negotiatedFeatures.modelSnapshot,
+            supportsQueryService = negotiatedFeatures.queryService,
+            supportsPhasedAction = negotiatedFeatures.phasedAction,
         )
       } catch (err: Throwable) {
-        log.error("Failed to initialize project", err)
+        log.error("Failed to initialize project: requestId={}", params.requestId, err)
         notifyBuildFailure(emptyList())
-        return@runBuild InitializeResult(false, getTaskFailureType(err))
+        return@runBuild InitializeResult(false, getTaskFailureType(err), params.requestId)
       }
     }
+  }
+
+  private fun negotiateFeatureSupport(
+      params: InitializeProjectParams
+  ): NegotiatedFeatureSupport {
+    val capabilities = params.clientCapabilities
+    return NegotiatedFeatureSupport(
+        modelSnapshot = capabilities.requestModelSnapshotSupport && SERVER_SUPPORTS_MODEL_SNAPSHOT,
+        queryService = capabilities.requestQueryServiceSupport && SERVER_SUPPORTS_QUERY_SERVICE,
+        phasedAction = capabilities.requestPhasedActionSupport && SERVER_SUPPORTS_PHASED_ACTION,
+    )
   }
 
   private fun ensureProjectGradleProperties(projectDir: File) {
@@ -428,28 +470,72 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       supported: Set<OperationType>,
       preferLightweightSync: Boolean = false,
   ): Set<OperationType> {
-    if (requested.isEmpty()) {
-      return if (preferLightweightSync) {
-        supported.filterTo(linkedSetOf()) {
-          it == OperationType.TASK || it == OperationType.PROJECT_CONFIGURATION
+    var negotiated =
+        if (requested.isEmpty()) {
+          if (preferLightweightSync) {
+            supported.filterTo(linkedSetOf()) {
+              it == OperationType.TASK || it == OperationType.PROJECT_CONFIGURATION
+            }
+          } else {
+            supported
+          }
+        } else {
+          requested.filterTo(linkedSetOf()) { supported.contains(it) }
         }
-      } else {
-        supported
+
+    if (negotiated.isEmpty() && supported.isNotEmpty()) {
+      val fallback = supported.filterTo(linkedSetOf()) {
+        it == OperationType.TASK || it == OperationType.PROJECT_CONFIGURATION
       }
+      negotiated = if (fallback.isNotEmpty()) fallback else linkedSetOf(supported.first())
+      log.warn(
+          "Operation negotiation fallback applied. requested={} fallbackNegotiated={}",
+          requested,
+          negotiated,
+      )
     }
-    return requested.filterTo(linkedSetOf()) { supported.contains(it) }
+
+    if (requested.isNotEmpty() && negotiated.isEmpty()) {
+      log.warn(
+          "Operation negotiation yielded empty set. requested={} supported={} preferLightweightSync={}",
+          requested,
+          supported,
+          preferLightweightSync,
+      )
+    }
+
+    if (requested.isNotEmpty() && negotiated.size < requested.size) {
+      val dropped = requested.filterNot { negotiated.contains(it) }.toSet()
+      log.info("Operation negotiation dropped unsupported types: {}", dropped)
+    }
+
+    return negotiated
   }
 
   private fun notifyBuildFailure(tasks: List<String>) {
+    logProgressClosureWarningsIfAny("failure")
     client?.onBuildFailed(BuildResult((tasks)))
   }
 
   private fun notifyBuildSuccess(tasks: List<String>) {
+    logProgressClosureWarningsIfAny("success")
     client?.onBuildSuccessful(BuildResult(tasks))
   }
 
   private fun notifyBeforeBuild(buildInfo: BuildInfo) {
+    ForwardingProgressListener.onBuildStart()
     client?.prepareBuild(buildInfo)
+  }
+
+  private fun logProgressClosureWarningsIfAny(outcome: String) {
+    val dangling = ForwardingProgressListener.onBuildEnd()
+    if (dangling.isNotEmpty()) {
+      log.warn(
+          "Progress event closure check detected dangling start events on build {}: {}",
+          outcome,
+          dangling,
+      )
+    }
   }
 
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> {
