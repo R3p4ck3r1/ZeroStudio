@@ -24,33 +24,64 @@ object ToolingServerEndpointFactories {
   @JvmStatic
   fun fromSystemProperty(): ToolingServerEndpointFactory {
     val configured = System.getProperty(TRANSPORT_SWITCH_PROPERTY, LEGACY)
-    return fromTransportValue(configured)
+    return fromSelection(resolveSelection(configured))
   }
 
   @JvmStatic
   fun fromTransportValue(value: String?): ToolingServerEndpointFactory {
+    return fromSelection(resolveSelection(value))
+  }
+
+  @JvmStatic
+  fun resolveSelection(value: String?): TransportSelectionResult {
     val configured = value.orEmpty().ifBlank { LEGACY }.trim().lowercase()
     val mode = ToolingTransportMode.fromWireValue(configured)
     return when (mode) {
-      ToolingTransportMode.LEGACY -> ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
+      ToolingTransportMode.LEGACY ->
+          TransportSelectionResult(
+              requestedValue = configured,
+              parsedMode = mode,
+              effectiveMode = ToolingTransportMode.LEGACY,
+          )
+      ToolingTransportMode.AIDL,
+      ToolingTransportMode.GRPC_UDS ->
+          TransportSelectionResult(
+              requestedValue = configured,
+              parsedMode = mode,
+              effectiveMode = ToolingTransportMode.LEGACY,
+              fallbackReason = "Transport '$configured' is not implemented yet",
+          )
+      null ->
+          TransportSelectionResult(
+              requestedValue = configured,
+              parsedMode = null,
+              effectiveMode = ToolingTransportMode.LEGACY,
+              fallbackReason = "Unknown transport value '$configured'",
+          )
+    }
+  }
+
+  @JvmStatic
+  fun fromSelection(selection: TransportSelectionResult): ToolingServerEndpointFactory {
+    when (selection.parsedMode) {
+      ToolingTransportMode.LEGACY -> Unit
       ToolingTransportMode.AIDL,
       ToolingTransportMode.GRPC_UDS -> {
         log.info(
             "Transport '{}' is not implemented yet. Falling back to '{}' endpoint.",
-            configured,
+            selection.requestedValue,
             LEGACY,
         )
-        ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
       }
       null -> {
         log.warn(
             "Unknown transport switch '{}' from -D{}. Falling back to '{}'.",
-            configured,
+            selection.requestedValue,
             TRANSPORT_SWITCH_PROPERTY,
             LEGACY,
         )
-        ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
       }
     }
+    return ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
   }
 }

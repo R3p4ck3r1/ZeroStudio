@@ -23,7 +23,6 @@ import com.itsaky.androidide.tasks.cancelIfActive
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiServer
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportClientObserver
-import com.itsaky.androidide.tooling.api.transport.ToolingTransportMode
 import com.itsaky.androidide.tooling.impl.transport.ToolingServerEndpointFactories
 import com.itsaky.androidide.tooling.impl.transport.LegacyToolingClientAdapter
 import com.itsaky.androidide.tooling.api.util.ToolingApiLauncher
@@ -148,17 +147,18 @@ internal class ToolingServerRunner(
                       ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
                       ToolingServerEndpointFactories.LEGACY,
                   )
-              val parsedMode = ToolingTransportMode.fromWireValue(configuredTransport)
+              val selection = ToolingServerEndpointFactories.resolveSelection(configuredTransport)
               log.info(
-                  "Tooling transport switch configured as '{}', parsed mode={}",
-                  configuredTransport,
-                  parsedMode?.name ?: "UNKNOWN",
+                  "Tooling transport configured='{}', parsed={}, effective={}, fallbackReason={}",
+                  selection.requestedValue,
+                  selection.parsedMode?.name ?: "UNKNOWN",
+                  selection.effectiveMode.name,
+                  selection.fallbackReason ?: "NONE",
               )
               observer?.onServerStarted(
                   serverEndpoint =
-                      ToolingServerEndpointFactories.fromTransportValue(configuredTransport).create(
-                          launcher.remoteProxy as IToolingApiServer,
-                      ),
+                      ToolingServerEndpointFactories.fromSelection(selection)
+                          .create(launcher.remoteProxy as IToolingApiServer),
                   projectProxy = launcher.remoteProxy as IProject,
                   errorStream = errorStream,
               )
