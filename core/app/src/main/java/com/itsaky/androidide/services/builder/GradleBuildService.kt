@@ -568,74 +568,9 @@ class GradleBuildService :
     val tasksList = tasks.toList()
     isReleaseVariant = false
 
-    if (useToolingExecute()) {
+    if (shouldRouteThroughToolingExecute(tasksList)) {
       val request = createToolingExecutionRequest(tasksList)
-      return execute(request).thenApply { exec ->
-        toTaskExecutionResult(exec)
-      }
-    }
-
-    if (useToolingExecute()) {
-      val buildArgs = buildArguments().get().filter { it.isNotBlank() }
-      val jvmArgs = resolveToolingExecuteJvmArgs()
-      val request =
-          ExecutionRequest(
-              tasks = tasksList,
-              arguments = buildArgs,
-              jvmArguments = jvmArgs,
-              operationTypes = resolvePreferredOperationTypes(),
-          )
-      return execute(request).thenApply { exec ->
-        if (exec.isSuccessful) {
-          TaskExecutionResult.SUCCESS
-        } else {
-          TaskExecutionResult(false, exec.failure, exec.diagnostics)
-        }
-      }
-    }
-
-    val useToolingExecute =
-        System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
-    if (useToolingExecute) {
-      val buildArgs = buildArguments().get().filter { it.isNotBlank() }
-      val jvmArgs =
-          System.getProperty("androidide.tooling.execute.jvmArgs", "")
-              .split(' ')
-              .map { it.trim() }
-              .filter { it.isNotBlank() }
-      val request =
-          ExecutionRequest(
-              tasks = tasksList,
-              arguments = buildArgs,
-              jvmArguments = jvmArgs,
-              operationTypes = resolvePreferredOperationTypes(),
-          )
-      return execute(request).thenApply { exec ->
-        if (exec.isSuccessful) {
-          TaskExecutionResult.SUCCESS
-        } else {
-          TaskExecutionResult(false, exec.failure, exec.diagnostics)
-        }
-      }
-    }
-
-    if (useToolingExecute()) {
-      val buildArgs = buildArguments().get().filter { it.isNotBlank() }
-      val jvmArgs = resolveToolingExecuteJvmArgs()
-      val request =
-          ExecutionRequest(
-              tasks = tasksList,
-              arguments = buildArgs,
-              jvmArguments = jvmArgs,
-              operationTypes = resolvePreferredOperationTypes(),
-          )
-      return execute(request).thenApply { exec ->
-        if (exec.isSuccessful) {
-          TaskExecutionResult.SUCCESS
-        } else {
-          TaskExecutionResult(false, exec.failure, exec.diagnostics)
-        }
-      }
+      return execute(request).thenApply(::toTaskExecutionResult)
     }
 
     if (isDebugBuild(tasksList)) {
@@ -645,16 +580,6 @@ class GradleBuildService :
       log.info("Release build detected, skipping logger injection")
       isReleaseVariant = true
     }
-
-    /*
-    * @idea Mohammed-Baqer-Null @ https://github.com/Mohammed-baqer-null
-    * ! THIS IS A TEMPORARY FIX ! gradually transforming acs lite compiler in here properly in v..04 or 05
-
-    * - Using the local Gradle wrapper (gradlew) is significantly faster than using the Tooling API.
-    * - Employing the Tooling API for compilation on Android is a poor choice this is a resource-limited Android environment, not a desktop one.
-    * - The Tooling API consumes excessive JVM memory without delivering meaningful benefits.
-    * - The implementation below resolves OutOfMemory exceptions seamlessly.
-    */
 
     return performBuildTasks(
         CompletableFuture.supplyAsync {
@@ -667,59 +592,21 @@ class GradleBuildService :
 
             val command = mutableListOf("sh", gradlewPath)
             command.addAll(tasks)
-
-            val buildArgs = buildArguments().get()
-            command.addAll(buildArgs)
+            command.addAll(buildArguments().get())
 
             log.info("Executing command: ${command.joinToString(" ")}")
 
             val processBuilder = ProcessBuilder(command)
             processBuilder.directory(projectDir)
 
-            // Get Termux environment
             val termuxEnv = TermuxShellEnvironment().getEnvironment(this@GradleBuildService, false)
-
-            // Add custom environment variables from Environment class
             val customEnv = HashMap<String, String>()
             Environment.putEnvironment(customEnv, false)
 
-            // Merge environments
             val finalEnv = processBuilder.environment()
             finalEnv.putAll(termuxEnv)
             finalEnv.putAll(customEnv)
-
-            // Ensure PATH includes BIN_DIR for clang, python, etc.
-            val currentPath = finalEnv["PATH"] ?: ""
-            val binDirPath = Environment.BIN_DIR.absolutePath
-            val prefixBinPath = File(Environment.PREFIX, "bin").absolutePath
-
-            // Add BIN_DIR and PREFIX/bin to PATH if not already present
-            val pathEntries = mutableListOf<String>()
-            if (!currentPath.contains(binDirPath)) {
-              pathEntries.add(binDirPath)
-            }
-            if (!currentPath.contains(prefixBinPath)) {
-              pathEntries.add(prefixBinPath)
-            }
-            pathEntries.add(currentPath)
-
-            finalEnv["PATH"] = pathEntries.filter { it.isNotEmpty() }.joinToString(":")
-
-            // Add LD_LIBRARY_PATH for native libraries
-            val ldLibraryPath = finalEnv["LD_LIBRARY_PATH"] ?: ""
-            val libDirPath = Environment.LIB_DIR.absolutePath
-            finalEnv["LD_LIBRARY_PATH"] =
-                if (ldLibraryPath.isEmpty()) {
-                  libDirPath
-                } else {
-                  "$libDirPath:$ldLibraryPath"
-                }
-
-            // Set TMPDIR
-            finalEnv["TMPDIR"] = Environment.TMP_DIR.absolutePath
-
-            log.info("PATH set to: ${finalEnv["PATH"]}")
-            log.info("LD_LIBRARY_PATH set to: ${finalEnv["LD_LIBRARY_PATH"]}")
+            augmentProcessEnvironment(finalEnv)
 
             val process = processBuilder.start()
             currentBuildProcess = process
@@ -768,11 +655,8 @@ class GradleBuildService :
                   TaskExecutionResult(false, TaskExecutionResult.Failure.BUILD_FAILED)
                 }
 
-            if (result.isSuccessful) {
-              onBuildSuccessful(BuildResult(tasksList))
-            } else {
-              onBuildFailed(BuildResult(tasksList))
-            }
+            if (result.isSuccessful) onBuildSuccessful(BuildResult(tasksList))
+            else onBuildFailed(BuildResult(tasksList))
 
             result
           } catch (e: Exception) {
@@ -784,6 +668,51 @@ class GradleBuildService :
           }
         }
     )
+  }
+
+  private fun shouldRouteThroughToolingExecute(tasks: List<String>): Boolean {
+    val executeEnabled = useToolingExecute()
+    if (!executeEnabled) {
+      return false
+    }
+
+    val transportValue = resolveConfiguredTransportValue()
+    val transportMode = ToolingTransportMode.fromWireValue(transportValue)
+    val integratedMode = transportMode == ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI
+
+    log.info(
+        "Tooling execute routing: enabled={}, integratedTransport={}, tasks={}",
+        executeEnabled,
+        integratedMode,
+        tasks,
+    )
+    return true
+  }
+
+  private fun augmentProcessEnvironment(finalEnv: MutableMap<String, String>) {
+    val currentPath = finalEnv["PATH"] ?: ""
+    val binDirPath = Environment.BIN_DIR.absolutePath
+    val prefixBinPath = File(Environment.PREFIX, "bin").absolutePath
+
+    val pathEntries = mutableListOf<String>()
+    if (!currentPath.contains(binDirPath)) {
+      pathEntries.add(binDirPath)
+    }
+    if (!currentPath.contains(prefixBinPath)) {
+      pathEntries.add(prefixBinPath)
+    }
+    pathEntries.add(currentPath)
+    finalEnv["PATH"] = pathEntries.filter { it.isNotEmpty() }.joinToString(":")
+
+    val ldLibraryPath = finalEnv["LD_LIBRARY_PATH"] ?: ""
+    val libDirPath = Environment.LIB_DIR.absolutePath
+    finalEnv["LD_LIBRARY_PATH"] =
+        if (ldLibraryPath.isEmpty()) libDirPath else "$libDirPath:$ldLibraryPath"
+
+    finalEnv["TMPDIR"] = Environment.TMP_DIR.absolutePath
+
+    log.info("PATH set to: ${finalEnv["PATH"]}")
+    log.info("LD_LIBRARY_PATH set to: ${finalEnv["LD_LIBRARY_PATH"]}")
   }
 
   /** Kills any running gradlew processes forcefully */
