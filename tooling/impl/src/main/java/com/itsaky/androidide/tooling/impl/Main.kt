@@ -220,8 +220,10 @@ object Main {
 
   fun progressUpdateTypes(): Set<OperationType> {
     val types = HashSet<OperationType>()
-    // AndroidIDE currently does not handle any other type of events
+    // Keep this aligned with Gradle Tooling API 9.5.1 operation coverage.
+    // Unknown progress subtypes are still forwarded through generic Start/Finish/Status mapping.
     types.add(OperationType.TASK)
+    types.add(OperationType.TEST)
     types.add(OperationType.PROJECT_CONFIGURATION)
     types.add(OperationType.FILE_DOWNLOAD)
     types.add(OperationType.TRANSFORM)

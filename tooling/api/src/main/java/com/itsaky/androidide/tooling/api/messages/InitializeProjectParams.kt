@@ -18,6 +18,7 @@
 package com.itsaky.androidide.tooling.api.messages
 
 import java.io.Serializable
+import java.util.UUID
 
 /**
  * Message sent from client to server to initialize the tooling API client in the given directory.
@@ -35,4 +36,5 @@ constructor(
     val gradleDistribution: GradleDistributionParams = GradleDistributionParams.WRAPPER,
     val androidParams: AndroidInitializationParams = AndroidInitializationParams.DEFAULT,
     val clientCapabilities: ToolingClientCapabilities = ToolingClientCapabilities(),
+    val requestId: String = UUID.randomUUID().toString(),
 ) : Serializable
