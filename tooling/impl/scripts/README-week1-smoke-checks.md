@@ -33,3 +33,17 @@ tooling/impl/scripts/run_week1_tooling_smoke_checks.sh tooling-server.log
 ```
 
 若脚本退出码非 0，应判定 Week1 验收未通过。
+
+
+## 4) `check_non_android_init_summary.sh`
+校验 non-Android 初始化回归场景是否出现硬失败标记，并确认至少一次初始化成功。
+
+- 输入：tooling server 日志文件
+- 失败条件：
+  - 没有初始化成功标记
+  - 存在 `Failed to initialize project`
+  - 存在 `Unable to transform project`
+
+```bash
+tooling/impl/scripts/check_non_android_init_summary.sh <tooling-server-log-file>
+```
