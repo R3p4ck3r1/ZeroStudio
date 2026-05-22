@@ -22,6 +22,16 @@ plugins {
   // id("com.google.protobuf")
 }
 
+java {
+  toolchain {
+    languageVersion.set(JavaLanguageVersion.of(17))
+  }
+}
+
+kotlin {
+  jvmToolchain(17)
+}
+
 dependencies {
 
   // implementation("com.google.protobuf:protobuf-kotlin:4.33.2")

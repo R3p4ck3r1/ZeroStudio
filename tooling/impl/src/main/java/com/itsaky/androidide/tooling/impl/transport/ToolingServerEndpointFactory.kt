@@ -38,54 +38,48 @@ object ToolingServerEndpointFactories {
   @JvmStatic
   fun resolveSelection(value: String?): TransportSelectionResult {
     val configured = value.orEmpty().ifBlank { LEGACY }.trim().lowercase()
-    val mode = ToolingTransportMode.fromWireValue(configured)
+    val requestedMode = ToolingTransportMode.fromWireValue(configured)
     val workspaceReady = isReapiWorkspaceReady()
-    return when (mode) {
+    return when (requestedMode) {
       ToolingTransportMode.LEGACY_JSONRPC ->
-          TransportSelectionResult(
+          TransportSelectionResult.legacy(
               requestedValue = configured,
-              parsedMode = mode,
-              effectiveMode = ToolingTransportMode.LEGACY_JSONRPC,
+              requestedMode = requestedMode,
               reapiWorkspacePath = REAPI_WORKSPACE_PATH,
               reapiWorkspaceReady = workspaceReady,
           )
       ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI ->
           if (!workspaceReady) {
-            TransportSelectionResult(
+            TransportSelectionResult.legacy(
                 requestedValue = configured,
-                parsedMode = mode,
-                effectiveMode = ToolingTransportMode.LEGACY_JSONRPC,
-                fallbackReason =
-                    "Missing REAPI workspace at '$REAPI_WORKSPACE_PATH'. Run: git clone https://github.com/bazelbuild/remote-apis.git tooling/reapi",
+                requestedMode = requestedMode,
                 reapiWorkspacePath = REAPI_WORKSPACE_PATH,
                 reapiWorkspaceReady = false,
+                reason =
+                    "Missing REAPI workspace at '$REAPI_WORKSPACE_PATH'. Run: git clone https://github.com/bazelbuild/remote-apis.git tooling/reapi",
             )
           } else {
-            TransportSelectionResult(
+            TransportSelectionResult.integrated(
                 requestedValue = configured,
-                parsedMode = mode,
-                effectiveMode = ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI,
-                fallbackReason =
-                    "Integrated transport stack '$configured' is in transitional gateway mode",
                 reapiWorkspacePath = REAPI_WORKSPACE_PATH,
                 reapiWorkspaceReady = true,
+                reason = "Integrated transport stack '$configured' is in transitional gateway mode",
             )
           }
       null ->
-          TransportSelectionResult(
+          TransportSelectionResult.legacy(
               requestedValue = configured,
-              parsedMode = null,
-              effectiveMode = ToolingTransportMode.LEGACY_JSONRPC,
-              fallbackReason = "Unknown transport value '$configured'",
+              requestedMode = null,
               reapiWorkspacePath = REAPI_WORKSPACE_PATH,
               reapiWorkspaceReady = workspaceReady,
+              reason = "Unknown transport value '$configured'",
           )
     }
   }
 
   @JvmStatic
   fun fromSelection(selection: TransportSelectionResult): ToolingServerEndpointFactory {
-    when (selection.parsedMode) {
+    when (selection.requestedMode) {
       ToolingTransportMode.LEGACY_JSONRPC -> Unit
       ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI -> {
         if (!selection.reapiWorkspaceReady) {

@@ -151,9 +151,9 @@ internal class ToolingServerRunner(
               log.info(
                   "Tooling transport configured='{}', parsed={}, effective={}, fallbackReason={}, reapiWorkspace='{}', reapiWorkspaceReady={}",
                   selection.requestedValue,
-                  selection.parsedMode?.name ?: "UNKNOWN",
-                  selection.effectiveMode.name,
-                  selection.fallbackReason ?: "NONE",
+                  selection.requestedMode?.name ?: "UNKNOWN",
+                  selection.resolvedMode.name,
+                  selection.reason ?: "NONE",
                   selection.reapiWorkspacePath,
                   selection.reapiWorkspaceReady,
               )

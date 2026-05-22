@@ -56,6 +56,7 @@ import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportMode
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
 import com.itsaky.androidide.tooling.impl.transport.ToolingServerEndpointFactories
+import com.itsaky.androidide.tooling.impl.transport.IntegratedCapabilityPolicy
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
@@ -100,6 +101,7 @@ class GradleBuildService :
   private var notificationManager: NotificationManager? = null
   private var serverEndpoint: ToolingTransportServerEndpoint? = null
   @Volatile private var lastInitializeResult: InitializeResult? = null
+  private val integratedCapabilityPolicy = IntegratedCapabilityPolicy()
   private var eventListener: EventListener? = null
   private var isReleaseVariant = false
 
@@ -241,6 +243,7 @@ class GradleBuildService :
 
     isToolingServerStarted = false
     lastInitializeResult = null
+    integratedCapabilityPolicy.reset()
     super.onDestroy()
   }
 
@@ -340,6 +343,7 @@ class GradleBuildService :
     startServerOutputReader(errorStream)
     this.serverEndpoint = serverEndpoint
     this.lastInitializeResult = null
+    this.integratedCapabilityPolicy.reset()
     Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
     isToolingServerStarted = true
   }
@@ -501,6 +505,11 @@ class GradleBuildService :
     Objects.requireNonNull(params)
     return performBuildTasks(requireServerEndpoint().initialize(params)).thenApply { result ->
       lastInitializeResult = result
+      if (result != null) {
+        integratedCapabilityPolicy.updateFromInitialize(result)
+      } else {
+        integratedCapabilityPolicy.reset()
+      }
       logInitializeNegotiation(result)
       if (result != null) {
         buildServiceScope.launch {
@@ -823,16 +832,9 @@ class GradleBuildService :
   override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
     checkServerStarted()
     val sanitized =
-        request.copy(
-            tasks = request.tasks.filter { it.isNotBlank() },
-            arguments = request.arguments.filter { it.isNotBlank() },
-            jvmArguments = request.jvmArguments.filter { it.isNotBlank() },
-            operationTypes =
-                if (request.operationTypes.isEmpty()) {
-                  resolvePreferredOperationTypes()
-                } else {
-                  request.operationTypes
-                },
+        integratedCapabilityPolicy.applyToExecutionRequest(
+            request = request,
+            defaultOps = resolvePreferredOperationTypes(),
         )
     return performBuildTasks(requireServerEndpoint().execute(sanitized))
   }
@@ -896,12 +898,13 @@ class GradleBuildService :
     if (result == null) {
       return
     }
+    val cap = integratedCapabilityPolicy.current()
     log.info(
         "Initialize negotiated capabilities: phasedAction={}, modelSnapshot={}, queryService={}, operationTypes={}",
-        result.supportsPhasedAction,
-        result.supportsModelSnapshot,
-        result.supportsQueryService,
-        result.negotiatedOperationTypes,
+        cap.supportsPhasedAction,
+        cap.supportsModelSnapshot,
+        cap.supportsQueryService,
+        cap.negotiatedOperationTypes,
     )
 
     if (!result.supportsPhasedAction || !result.supportsModelSnapshot || !result.supportsQueryService) {
@@ -938,6 +941,7 @@ class GradleBuildService :
         toolingServerRunner = null
         serverEndpoint = null
         lastInitializeResult = null
+        integratedCapabilityPolicy.reset()
         isToolingServerStarted = false
 
         Runtime.getRuntime().gc()
