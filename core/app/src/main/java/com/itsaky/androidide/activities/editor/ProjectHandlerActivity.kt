@@ -108,6 +108,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
     const val STATE_KEY_FROM_SAVED_INSTANACE = "ide.editor.isFromSavedInstance"
     const val STATE_KEY_SHOULD_INITIALIZE = "ide.editor.isInitializing"
     private const val BOTTOM_SHEET_HIDE_REASON_FIND_DIALOG = "find_in_project_dialog"
+    private const val DEFAULT_MAX_TOOLING_EVENTS_PER_SECOND = 120
   }
 
   abstract fun doCloseAll(runAfter: () -> Unit)

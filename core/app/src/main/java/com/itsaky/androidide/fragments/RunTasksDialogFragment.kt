@@ -81,6 +81,11 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
     // changed before starting any further filter request.
     // A too less value here will result in UI lags
     private const val SEARCH_DELAY = 500L
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+  }
+
+  private fun useToolingExecute(): Boolean {
+    return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
   }
 
   override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {

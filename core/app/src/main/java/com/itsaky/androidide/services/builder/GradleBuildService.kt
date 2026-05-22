@@ -86,6 +86,11 @@ import org.slf4j.LoggerFactory
 class GradleBuildService :
     Service(), BuildService, IToolingApiClient, ToolingServerRunner.Observer {
 
+  companion object {
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
+  }
+
   private var mBinder: GradleServiceBinder? = null
   private var isToolingServerStarted = false
   override var isBuildInProgress = false
@@ -575,6 +580,25 @@ class GradleBuildService :
               .split(' ')
               .map { it.trim() }
               .filter { it.isNotBlank() }
+      val request =
+          ExecutionRequest(
+              tasks = tasksList,
+              arguments = buildArgs,
+              jvmArguments = jvmArgs,
+              operationTypes = resolvePreferredOperationTypes(),
+          )
+      return execute(request).thenApply { exec ->
+        if (exec.isSuccessful) {
+          TaskExecutionResult.SUCCESS
+        } else {
+          TaskExecutionResult(false, exec.failure, exec.diagnostics)
+        }
+      }
+    }
+
+    if (useToolingExecute()) {
+      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+      val jvmArgs = resolveToolingExecuteJvmArgs()
       val request =
           ExecutionRequest(
               tasks = tasksList,
