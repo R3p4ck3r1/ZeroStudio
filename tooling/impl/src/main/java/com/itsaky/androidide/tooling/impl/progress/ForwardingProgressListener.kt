@@ -88,10 +88,6 @@ class ForwardingProgressListener : ProgressListener {
       return
     }
 
-    if (!shouldDispatchNow()) {
-      return
-    }
-
     when (event) {
       is StartEvent -> inFlightByOperation.computeIfAbsent(operationKey(event)) { AtomicInteger(0) }.incrementAndGet()
       is FinishEvent -> {
@@ -100,6 +96,11 @@ class ForwardingProgressListener : ProgressListener {
           counter.decrementAndGet()
         }
       }
+    }
+
+    val isLifecycleEvent = event is StartEvent || event is FinishEvent
+    if (!isLifecycleEvent && !shouldDispatchNow()) {
+      return
     }
 
     val clientRef = Main.client
