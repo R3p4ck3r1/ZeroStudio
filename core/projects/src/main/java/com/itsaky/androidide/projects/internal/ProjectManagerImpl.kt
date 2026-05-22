@@ -80,8 +80,39 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
     private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
   }
 
+  private fun toTaskExecutionResult(
+      exec: com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
+  ): com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult {
+    return if (exec.isSuccessful) {
+      com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.SUCCESS
+    } else {
+      com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult(
+          false,
+          exec.failure,
+          exec.diagnostics,
+      )
+    }
+  }
+
   private fun useToolingExecute(): Boolean {
     return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
+  }
+
+  private fun createToolingExecutionRequest(tasks: List<String>): ExecutionRequest {
+    return ExecutionRequest(tasks = tasks)
+  }
+
+  private fun executeTasksWithPreferredPath(
+      builder: BuildService,
+      tasks: List<String>,
+  ): java.util.concurrent.CompletableFuture<com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult> {
+    return if (useToolingExecute()) {
+      builder.execute(createToolingExecutionRequest(tasks)).thenApply { exec ->
+        toTaskExecutionResult(exec)
+      }
+    } else {
+      builder.executeTasks(*tasks.toTypedArray())
+    }
   }
 
   private var _workspace: WorkspaceImpl? = null
@@ -241,22 +272,7 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
             }
             ?.toList() ?: emptyList()
 
-    val executionFuture =
-        if (useToolingExecute()) {
-          builder.execute(ExecutionRequest(tasks = tasks.toList())).thenApply { exec ->
-            if (exec.isSuccessful) {
-              com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.SUCCESS
-            } else {
-              com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult(
-                  false,
-                  exec.failure,
-                  exec.diagnostics,
-              )
-            }
-          }
-        } else {
-          builder.executeTasks(*tasks.toTypedArray())
-        }
+    val executionFuture = executeTasksWithPreferredPath(builder, tasks.toList())
 
     executionFuture.whenComplete { result, taskErr ->
       if (result == null || !result.isSuccessful || taskErr != null) {

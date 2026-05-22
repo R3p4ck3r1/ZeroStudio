@@ -29,6 +29,8 @@ data class ToolingServerMetadata(
     val pid: Int,
     val toolingApiVersion: String = "9.5.1",
     val supportsPhasedBuildAction: Boolean = true,
+    val supportsModelSnapshot: Boolean = false,
+    val supportsQueryService: Boolean = false,
     val supportedOperationTypes: Set<OperationType> = emptySet(),
     val negotiatedOperationTypes: Set<OperationType> = emptySet(),
     val maxProgressEventsPerSecond: Int? = null,

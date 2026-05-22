@@ -96,6 +96,11 @@ class GradleBuildService :
     private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
   }
 
+  companion object {
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
+  }
+
   private var mBinder: GradleServiceBinder? = null
   private var isToolingServerStarted = false
   override var isBuildInProgress = false
@@ -577,6 +582,13 @@ class GradleBuildService :
     isReleaseVariant = false
 
     if (useToolingExecute()) {
+      val request = createToolingExecutionRequest(tasksList)
+      return execute(request).thenApply { exec ->
+        toTaskExecutionResult(exec)
+      }
+    }
+
+    if (useToolingExecute()) {
       val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
       val jvmArgs = resolveToolingExecuteJvmArgs()
       val request =
@@ -876,6 +888,25 @@ class GradleBuildService :
 
   private fun useToolingExecute(): Boolean {
     return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
+  }
+
+  private fun toTaskExecutionResult(exec: ExecutionResult): TaskExecutionResult {
+    return if (exec.isSuccessful) {
+      TaskExecutionResult.SUCCESS
+    } else {
+      TaskExecutionResult(false, exec.failure, exec.diagnostics)
+    }
+  }
+
+  private fun createToolingExecutionRequest(tasks: List<String>): ExecutionRequest {
+    val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+    val jvmArgs = resolveToolingExecuteJvmArgs()
+    return ExecutionRequest(
+        tasks = tasks,
+        arguments = buildArgs,
+        jvmArguments = jvmArgs,
+        operationTypes = resolvePreferredOperationTypes(),
+    )
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
