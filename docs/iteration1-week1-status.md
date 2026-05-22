@@ -76,3 +76,17 @@
 2. 增加最小兼容测试矩阵（新server+旧client、旧server+新client）脚本化检查。  
 3. 在 execute 之外继续铺设 requestId（尤其同步入口），统一日志字段格式。  
 4. 设计 capability 扩展字段（phased action / model snapshot / query support）并完成 API 草案。  
+
+---
+
+## 6) 周结束判断（是否完结）
+
+- **结论：第1周“主线开发基本完成，但周目标未完全完结”。**  
+- 已完成：
+  - 协议与执行主链路；
+  - requestId 基础观测；
+  - capability matrix 与 gap register 文档。  
+- 未完成（阻断“完结”）：
+  - 兼容测试自动化矩阵（C1/C2）尚未实跑闭环；
+  - 事件正确性自动验收尚未建立。  
+- 建议：将第1周收口延长 1~2 个工作日，优先完成兼容测试最小闭环（T1/T2）。  
