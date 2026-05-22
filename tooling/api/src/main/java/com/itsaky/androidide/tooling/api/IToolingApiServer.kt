@@ -19,7 +19,9 @@ package com.itsaky.androidide.tooling.api
 
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
 import com.itsaky.androidide.tooling.api.messages.TaskExecutionMessage
+import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult
+import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
@@ -50,6 +52,9 @@ interface IToolingApiServer {
   /** Execute the tasks specified in the message. */
   @JsonRequest
   fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult>
+
+  /** Execute a generic build request. */
+  @JsonRequest fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult>
 
   /**
    * Cancel the current build.

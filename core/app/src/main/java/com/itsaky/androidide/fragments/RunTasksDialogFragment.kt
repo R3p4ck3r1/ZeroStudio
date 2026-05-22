@@ -171,7 +171,20 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
         }
 
         val toRun = viewModel.selected.toTypedArray()
-        buildService.executeTasks(*toRun)
+        buildService.executeTasks(*toRun).whenComplete { result, error ->
+          if (error != null) {
+            log.error("Failed to execute selected tasks", error)
+            return@whenComplete
+          }
+
+          if (result == null || !result.isSuccessful) {
+            log.warn(
+                "Selected task execution failed. failure={} diagnostics={}",
+                result?.failure,
+                result?.diagnostics,
+            )
+          }
+        }
         dismiss()
       }
     }

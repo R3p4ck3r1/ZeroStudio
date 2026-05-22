@@ -45,8 +45,31 @@ import org.gradle.tooling.events.work.WorkItemStartEvent
  */
 class ForwardingProgressListener : ProgressListener {
 
+  @Volatile private var lastDispatchedAtNanos: Long = 0L
+
+  private fun shouldDispatchNow(): Boolean {
+    val maxEvents = Main.maxProgressEventsPerSecond
+    if (maxEvents == Int.MAX_VALUE) {
+      return true
+    }
+
+    val intervalNanos = 1_000_000_000L / maxEvents.coerceAtLeast(1)
+    val now = System.nanoTime()
+    val last = lastDispatchedAtNanos
+    if (now - last < intervalNanos) {
+      return false
+    }
+
+    lastDispatchedAtNanos = now
+    return true
+  }
+
   override fun statusChanged(event: ProgressEvent?) {
     if (event == null) {
+      return
+    }
+
+    if (!shouldDispatchNow()) {
       return
     }
 

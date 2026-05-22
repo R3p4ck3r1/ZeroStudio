@@ -229,7 +229,11 @@ class QuickRunWithCancellationAction(context: Context, override val order: Int) 
       variant: BasicAndroidVariantMetadata,
   ) {
     if (result == null || !result.isSuccessful) {
-      log.debug("Cannot install APK. Task execution failed.")
+      log.debug(
+          "Cannot install APK. Task execution failed. failure={} diagnostics={}",
+          result?.failure,
+          result?.diagnostics,
+      )
       return
     }
 
