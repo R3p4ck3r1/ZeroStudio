@@ -25,6 +25,16 @@ plugins {
   id("org.jetbrains.kotlin.jvm")
 }
 
+java {
+  toolchain {
+    languageVersion.set(JavaLanguageVersion.of(17))
+  }
+}
+
+kotlin {
+  jvmToolchain(17)
+}
+
 tasks.withType<Jar> {
   manifest { attributes("Main-Class" to "${BuildConfig.packageName}.tooling.impl.Main") }
 }

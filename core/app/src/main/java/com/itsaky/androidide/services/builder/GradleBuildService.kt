@@ -41,14 +41,10 @@ import com.itsaky.androidide.services.ToolingServerNotStartedException
 import com.itsaky.androidide.services.builder.ToolingServerRunner.OnServerStartListener
 import com.itsaky.androidide.tasks.ifCancelledOrInterrupted
 import com.itsaky.androidide.tasks.runOnUiThread
-import com.itsaky.androidide.tooling.api.ForwardingToolingApiClient
 import com.itsaky.androidide.tooling.api.IProject
-import com.itsaky.androidide.tooling.api.IToolingApiClient
-import com.itsaky.androidide.tooling.api.IToolingApiServer
 import com.itsaky.androidide.tooling.api.LogSenderConfig.PROPERTY_LOGSENDER_ENABLED
 import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
-import com.itsaky.androidide.tooling.api.messages.LogMessageParams
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult
 import com.itsaky.androidide.tooling.api.messages.result.BuildInfo
 import com.itsaky.androidide.tooling.api.messages.result.BuildResult
@@ -57,8 +53,9 @@ import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
+import com.itsaky.androidide.tooling.api.transport.ToolingTransportMode
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
-import com.itsaky.androidide.tooling.impl.transport.LegacyToolingServerEndpoint
+import com.itsaky.androidide.tooling.impl.transport.ToolingServerEndpointFactories
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
@@ -86,17 +83,7 @@ import org.slf4j.LoggerFactory
  * @author Akash Yadav
  */
 class GradleBuildService :
-    Service(), BuildService, IToolingApiClient, ToolingServerRunner.Observer {
-
-  companion object {
-    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
-    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
-  }
-
-  companion object {
-    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
-    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
-  }
+    Service(), BuildService, ToolingServerRunner.Observer {
 
   companion object {
     private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
@@ -108,17 +95,11 @@ class GradleBuildService :
   override var isBuildInProgress = false
     private set
 
-  /**
-   * We do not provide direct access to GradleBuildService instance to the Tooling API launcher as
-   * it may cause memory leaks. Instead, we create another client object which forwards all calls to
-   * us. So, when the service is destroyed, we release the reference to the service from this
-   * client.
-   */
-  private var _toolingApiClient: ForwardingToolingApiClient? = null
   private var toolingServerRunner: ToolingServerRunner? = null
   private var outputReaderJob: Job? = null
   private var notificationManager: NotificationManager? = null
   private var serverEndpoint: ToolingTransportServerEndpoint? = null
+  @Volatile private var lastInitializeResult: InitializeResult? = null
   private var eventListener: EventListener? = null
   private var isReleaseVariant = false
 
@@ -243,8 +224,6 @@ class GradleBuildService :
     toolingServerRunner?.release()
     toolingServerRunner = null
 
-    _toolingApiClient?.client = null
-    _toolingApiClient = null
 
     log.debug("Cancelling tooling server output reader job...")
     outputReaderJob?.cancel()
@@ -261,6 +240,7 @@ class GradleBuildService :
     serviceJob.cancel()
 
     isToolingServerStarted = false
+    lastInitializeResult = null
     super.onDestroy()
   }
 
@@ -352,38 +332,32 @@ class GradleBuildService :
     System.setProperty("ide.logger.init.script", initScript.absolutePath)
   }
 
-  override fun onListenerStarted(
-      server: IToolingApiServer,
+  override fun onServerStarted(
+      serverEndpoint: ToolingTransportServerEndpoint,
       projectProxy: IProject,
       errorStream: InputStream,
   ) {
     startServerOutputReader(errorStream)
-    this.serverEndpoint = LegacyToolingServerEndpoint(server)
+    this.serverEndpoint = serverEndpoint
+    this.lastInitializeResult = null
     Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
     isToolingServerStarted = true
   }
+
 
   override fun onServerExited(exitCode: Int) {
     log.warn("Tooling API process terminated with exit code: {}", exitCode)
     stopForeground(STOP_FOREGROUND_REMOVE)
   }
 
-  override fun getClient(): IToolingApiClient {
-    if (_toolingApiClient == null) {
-      _toolingApiClient = ForwardingToolingApiClient(this)
-    }
-    return _toolingApiClient!!
-  }
-
-  override fun logMessage(params: LogMessageParams) {
-    val logger = LoggerFactory.getLogger(params.tag)
-    when (params.level) {
-      'D' -> logger.debug(params.message)
-      'W' -> logger.warn(params.message)
-      'E' -> logger.error(params.message)
-      'I' -> logger.info(params.message)
-
-      else -> logger.trace(params.message)
+  override fun onLogMessage(tag: String, level: Char, message: String) {
+    val logger = LoggerFactory.getLogger(tag)
+    when (level) {
+      'D' -> logger.debug(message)
+      'W' -> logger.warn(message)
+      'E' -> logger.error(message)
+      'I' -> logger.info(message)
+      else -> logger.trace(message)
     }
   }
 
@@ -391,7 +365,7 @@ class GradleBuildService :
     eventListener?.onOutput(line)
   }
 
-  override fun prepareBuild(buildInfo: BuildInfo) {
+  override fun onBuildPrepared(buildInfo: BuildInfo) {
     updateNotification(getString(R.string.build_status_in_progress), true)
     eventListener?.prepareBuild(buildInfo)
   }
@@ -416,7 +390,7 @@ class GradleBuildService :
     eventListener?.onProgressEvent(event)
   }
 
-  override fun getBuildArguments(): CompletableFuture<List<String>> {
+  override fun buildArguments(): CompletableFuture<List<String>> {
     val extraArgs = ArrayList<String>()
 
     if (DevOpsPreferences.logsenderEnabled) {
@@ -526,6 +500,8 @@ class GradleBuildService :
     checkServerStarted()
     Objects.requireNonNull(params)
     return performBuildTasks(requireServerEndpoint().initialize(params)).thenApply { result ->
+      lastInitializeResult = result
+      logInitializeNegotiation(result)
       if (result != null) {
         buildServiceScope.launch {
           try {
@@ -591,7 +567,7 @@ class GradleBuildService :
     }
 
     if (useToolingExecute()) {
-      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+      val buildArgs = buildArguments().get().filter { it.isNotBlank() }
       val jvmArgs = resolveToolingExecuteJvmArgs()
       val request =
           ExecutionRequest(
@@ -612,7 +588,7 @@ class GradleBuildService :
     val useToolingExecute =
         System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
     if (useToolingExecute) {
-      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+      val buildArgs = buildArguments().get().filter { it.isNotBlank() }
       val jvmArgs =
           System.getProperty("androidide.tooling.execute.jvmArgs", "")
               .split(' ')
@@ -635,7 +611,7 @@ class GradleBuildService :
     }
 
     if (useToolingExecute()) {
-      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+      val buildArgs = buildArguments().get().filter { it.isNotBlank() }
       val jvmArgs = resolveToolingExecuteJvmArgs()
       val request =
           ExecutionRequest(
@@ -683,7 +659,7 @@ class GradleBuildService :
             val command = mutableListOf("sh", gradlewPath)
             command.addAll(tasks)
 
-            val buildArgs = getBuildArguments().get()
+            val buildArgs = buildArguments().get()
             command.addAll(buildArgs)
 
             log.info("Executing command: ${command.joinToString(" ")}")
@@ -862,6 +838,10 @@ class GradleBuildService :
   }
 
   private fun resolvePreferredOperationTypes(): Set<OperationType> {
+    val fromInitialize = lastInitializeResult?.negotiatedOperationTypes.orEmpty()
+    if (fromInitialize.isNotEmpty()) {
+      return fromInitialize
+    }
     return try {
       val negotiated =
           serverEndpoint?.metadata()?.get(2, TimeUnit.SECONDS)?.negotiatedOperationTypes.orEmpty()
@@ -902,7 +882,7 @@ class GradleBuildService :
   }
 
   private fun createToolingExecutionRequest(tasks: List<String>): ExecutionRequest {
-    val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+    val buildArgs = buildArguments().get().filter { it.isNotBlank() }
     val jvmArgs = resolveToolingExecuteJvmArgs()
     return ExecutionRequest(
         tasks = tasks,
@@ -910,6 +890,26 @@ class GradleBuildService :
         jvmArguments = jvmArgs,
         operationTypes = resolvePreferredOperationTypes(),
     )
+  }
+
+  private fun logInitializeNegotiation(result: InitializeResult?) {
+    if (result == null) {
+      return
+    }
+    log.info(
+        "Initialize negotiated capabilities: phasedAction={}, modelSnapshot={}, queryService={}, operationTypes={}",
+        result.supportsPhasedAction,
+        result.supportsModelSnapshot,
+        result.supportsQueryService,
+        result.negotiatedOperationTypes,
+    )
+
+    if (!result.supportsPhasedAction || !result.supportsModelSnapshot || !result.supportsQueryService) {
+      eventListener?.onOutput(
+          "Tooling capabilities downgraded: phasedAction=${result.supportsPhasedAction}, " +
+              "modelSnapshot=${result.supportsModelSnapshot}, queryService=${result.supportsQueryService}",
+      )
+    }
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
@@ -937,6 +937,7 @@ class GradleBuildService :
         toolingServerRunner?.release()
         toolingServerRunner = null
         serverEndpoint = null
+        lastInitializeResult = null
         isToolingServerStarted = false
 
         Runtime.getRuntime().gc()
@@ -1000,6 +1001,12 @@ class GradleBuildService :
     }
 
     if (toolingServerRunner?.isRunningOrStarting != true) {
+      val transportValue = resolveConfiguredTransportValue()
+      System.setProperty(ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY, transportValue)
+      log.info(
+          "Starting tooling server with transport switch='{}'",
+          transportValue,
+      )
       val envs = TermuxShellEnvironment().getEnvironment(this, false)
       toolingServerRunner = ToolingServerRunner(listener, this).also { it.startAsync(envs) }
       return
@@ -1021,12 +1028,31 @@ class GradleBuildService :
     return this
   }
 
+  private fun resolveConfiguredTransportValue(): String {
+    val raw =
+        System.getProperty(
+            ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
+            ToolingServerEndpointFactories.LEGACY,
+        )
+    val mode = ToolingTransportMode.fromWireValue(raw)
+    if (mode == null) {
+      log.warn(
+          "Unknown transport switch '{}' for -D{}. Fallback to '{}'.",
+          raw,
+          ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
+          ToolingServerEndpointFactories.LEGACY,
+      )
+      return ToolingServerEndpointFactories.LEGACY
+    }
+    return mode.wireValue
+  }
+
   private fun wrap(listener: EventListener?): EventListener? {
     return if (listener == null) {
       null
     } else
         object : EventListener {
-          override fun prepareBuild(buildInfo: BuildInfo) {
+          override fun onBuildPrepared(buildInfo: BuildInfo) {
             runOnUiThread { listener.prepareBuild(buildInfo) }
           }
 
