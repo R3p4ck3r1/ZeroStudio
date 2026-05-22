@@ -1,17 +1,21 @@
 package com.itsaky.androidide.tooling.api.transport
 
-/** Transport switch values for tooling server endpoint selection. */
+/**
+ * Transport stack selection for tooling server endpoint wiring.
+ *
+ * Note: AIDL + gRPC(UDS) + REAPI are treated as one integrated stack, not three independent
+ * modes.
+ */
 enum class ToolingTransportMode(val wireValue: String) {
-  LEGACY("legacy"),
-  AIDL("aidl"),
-  GRPC_UDS("grpc-uds");
+  LEGACY_JSONRPC("legacy"),
+  INTEGRATED_AIDL_GRPC_REAPI("integrated");
 
   companion object {
     @JvmStatic
     fun fromWireValue(value: String?): ToolingTransportMode? {
       val normalized = value.orEmpty().trim().lowercase()
       if (normalized.isBlank()) {
-        return LEGACY
+        return LEGACY_JSONRPC
       }
       return entries.firstOrNull { it.wireValue == normalized }
     }

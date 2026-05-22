@@ -8,8 +8,9 @@ import org.slf4j.LoggerFactory
 /**
  * Factory contract for creating a concrete tooling transport endpoint.
  *
- * Transport selection is controlled by `androidide.tooling.transport`:
+ * Transport stack selection is controlled by `androidide.tooling.transport`:
  * - `legacy` (default): JSON-RPC/LSP4J based server proxy.
+ * - `integrated`: AIDL + gRPC(UDS) + REAPI integrated stack (reserved, not implemented yet).
  */
 fun interface ToolingServerEndpointFactory {
   fun create(server: IToolingApiServer): ToolingTransportServerEndpoint
@@ -37,25 +38,24 @@ object ToolingServerEndpointFactories {
     val configured = value.orEmpty().ifBlank { LEGACY }.trim().lowercase()
     val mode = ToolingTransportMode.fromWireValue(configured)
     return when (mode) {
-      ToolingTransportMode.LEGACY ->
+      ToolingTransportMode.LEGACY_JSONRPC ->
           TransportSelectionResult(
               requestedValue = configured,
               parsedMode = mode,
-              effectiveMode = ToolingTransportMode.LEGACY,
+              effectiveMode = ToolingTransportMode.LEGACY_JSONRPC,
           )
-      ToolingTransportMode.AIDL,
-      ToolingTransportMode.GRPC_UDS ->
+      ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI ->
           TransportSelectionResult(
               requestedValue = configured,
               parsedMode = mode,
-              effectiveMode = ToolingTransportMode.LEGACY,
-              fallbackReason = "Transport '$configured' is not implemented yet",
+              effectiveMode = ToolingTransportMode.LEGACY_JSONRPC,
+              fallbackReason = "Integrated transport stack '$configured' is not implemented yet",
           )
       null ->
           TransportSelectionResult(
               requestedValue = configured,
               parsedMode = null,
-              effectiveMode = ToolingTransportMode.LEGACY,
+              effectiveMode = ToolingTransportMode.LEGACY_JSONRPC,
               fallbackReason = "Unknown transport value '$configured'",
           )
     }
@@ -64,11 +64,10 @@ object ToolingServerEndpointFactories {
   @JvmStatic
   fun fromSelection(selection: TransportSelectionResult): ToolingServerEndpointFactory {
     when (selection.parsedMode) {
-      ToolingTransportMode.LEGACY -> Unit
-      ToolingTransportMode.AIDL,
-      ToolingTransportMode.GRPC_UDS -> {
+      ToolingTransportMode.LEGACY_JSONRPC -> Unit
+      ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI -> {
         log.info(
-            "Transport '{}' is not implemented yet. Falling back to '{}' endpoint.",
+            "Integrated transport stack '{}' is not implemented yet. Falling back to '{}' endpoint.",
             selection.requestedValue,
             LEGACY,
         )
