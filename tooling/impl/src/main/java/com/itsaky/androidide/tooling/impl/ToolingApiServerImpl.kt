@@ -528,12 +528,19 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   }
 
   private fun logProgressClosureWarningsIfAny(outcome: String) {
-    val dangling = ForwardingProgressListener.onBuildEnd()
-    if (dangling.isNotEmpty()) {
+    val summary = ForwardingProgressListener.onBuildEnd()
+    log.info(
+        "Progress closure summary on build {}: startedEvents={} finishedEvents={} danglingOperationCount={}",
+        outcome,
+        summary.startedEvents,
+        summary.finishedEvents,
+        summary.danglingByOperation.size,
+    )
+    if (summary.danglingByOperation.isNotEmpty()) {
       log.warn(
           "Progress event closure check detected dangling start events on build {}: {}",
           outcome,
-          dangling,
+          summary.danglingByOperation,
       )
     }
   }

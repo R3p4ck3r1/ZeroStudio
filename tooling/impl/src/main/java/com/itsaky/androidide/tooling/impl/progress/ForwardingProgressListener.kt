@@ -48,16 +48,28 @@ import org.gradle.tooling.events.work.WorkItemStartEvent
 class ForwardingProgressListener : ProgressListener {
   companion object {
     private val inFlightByOperation = ConcurrentHashMap<String, AtomicInteger>()
+    @Volatile private var startedEvents: Long = 0
+    @Volatile private var finishedEvents: Long = 0
 
     fun onBuildStart() {
       inFlightByOperation.clear()
+      startedEvents = 0
+      finishedEvents = 0
     }
 
-    fun onBuildEnd(): Map<String, Int> {
-      return inFlightByOperation
-          .mapValues { (_, counter) -> counter.get() }
-          .filterValues { it > 0 }
-          .toSortedMap()
+    data class ClosureSummary(
+        val startedEvents: Long,
+        val finishedEvents: Long,
+        val danglingByOperation: Map<String, Int>,
+    )
+
+    fun onBuildEnd(): ClosureSummary {
+      val dangling =
+          inFlightByOperation
+              .mapValues { (_, counter) -> counter.get() }
+              .filterValues { it > 0 }
+              .toSortedMap()
+      return ClosureSummary(startedEvents, finishedEvents, dangling)
     }
 
     private fun operationKey(event: ProgressEvent): String {
@@ -100,8 +112,12 @@ class ForwardingProgressListener : ProgressListener {
     }
 
     when (event) {
-      is StartEvent -> inFlightByOperation.computeIfAbsent(operationKey(event)) { AtomicInteger(0) }.incrementAndGet()
+      is StartEvent -> {
+        startedEvents++
+        inFlightByOperation.computeIfAbsent(operationKey(event)) { AtomicInteger(0) }.incrementAndGet()
+      }
       is FinishEvent -> {
+        finishedEvents++
         val counter = inFlightByOperation.computeIfAbsent(operationKey(event)) { AtomicInteger(0) }
         if (counter.get() > 0) {
           counter.decrementAndGet()
