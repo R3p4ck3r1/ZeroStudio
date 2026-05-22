@@ -249,6 +249,13 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
                 params.clientCapabilities.preferLightweightSync,
             )
         val negotiatedFeatures = negotiateFeatureSupport(params)
+        log.info(
+            "W1_INIT_FEATURE_SUMMARY requestId={} modelSnapshot={} queryService={} phasedAction={}",
+            params.requestId,
+            negotiatedFeatures.modelSnapshot,
+            negotiatedFeatures.queryService,
+            negotiatedFeatures.phasedAction,
+        )
 
         log.info(
             "Project initialization succeeded: requestId={} negotiatedOperationTypes={}",

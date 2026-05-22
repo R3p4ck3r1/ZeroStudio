@@ -466,6 +466,18 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
             initParams.requestId,
             initParams.clientCapabilities.requestedOperationTypes,
         )
+      } else {
+        val missingRequestedTypes =
+            initParams.clientCapabilities.requestedOperationTypes
+                .filterNot(result.negotiatedOperationTypes::contains)
+                .toSet()
+        if (missingRequestedTypes.isNotEmpty()) {
+          log.info(
+              "Tooling server dropped requested operation types: requestId={} dropped={}",
+              initParams.requestId,
+              missingRequestedTypes,
+          )
+        }
       }
       onProjectInitialized(result)
     }
