@@ -198,6 +198,7 @@ include(
     ":tooling:model",
     ":tooling:plugin",
     ":tooling:plugin-config",
+    ":tooling:reapi-proto",
     ":utilities:build-info",
     ":utilities:flashbar",
     ":utilities:framework-stubs",
