@@ -457,7 +457,9 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
                     OperationType.WORK_ITEM,
                     OperationType.GENERIC,
                 ),
-            maxEventsPerSecond = 120,
+            // keep default aligned with DEFAULT_MAX_TOOLING_EVENTS_PER_SECOND
+            // so client/server event traffic is bounded on constrained devices
+            maxEventsPerSecond = DEFAULT_MAX_TOOLING_EVENTS_PER_SECOND,
             preferLightweightSync = false,
         )
 

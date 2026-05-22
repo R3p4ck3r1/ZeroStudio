@@ -177,10 +177,8 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
         }
 
         val toRun = viewModel.selected.toTypedArray()
-        val useToolingExecute =
-            System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
         val executionFuture =
-            if (useToolingExecute) {
+            if (useToolingExecute()) {
               buildService
                   .execute(ExecutionRequest(tasks = viewModel.selected.toList()))
                   .thenApply { exec ->
