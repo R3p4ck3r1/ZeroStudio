@@ -76,6 +76,11 @@ import org.slf4j.LoggerFactory
  * @author Akash Yadav
  */
 internal class ToolingApiServerImpl(private val project: ProjectImpl) : IToolingApiServer {
+  private data class NegotiatedFeatureSupport(
+      val modelSnapshot: Boolean,
+      val queryService: Boolean,
+      val phasedAction: Boolean,
+  )
 
   private var client: IToolingApiClient? = null
   private var connector: GradleConnector? = null
@@ -113,12 +118,18 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
      * that the server's process is not kept alive for longer duration.
      */
     const val DELAY_BEFORE_EXIT_MS = 1000L
+    private const val SERVER_SUPPORTS_MODEL_SNAPSHOT = false
+    private const val SERVER_SUPPORTS_QUERY_SERVICE = false
+    private const val SERVER_SUPPORTS_PHASED_ACTION = true
   }
 
   override fun metadata(): CompletableFuture<ToolingServerMetadata> {
     return CompletableFuture.supplyAsync {
       ToolingServerMetadata(
           pid = ProcessHandle.current().pid().toInt(),
+          supportsPhasedBuildAction = SERVER_SUPPORTS_PHASED_ACTION,
+          supportsModelSnapshot = SERVER_SUPPORTS_MODEL_SNAPSHOT,
+          supportsQueryService = SERVER_SUPPORTS_QUERY_SERVICE,
           supportedOperationTypes = Main.progressUpdateTypes(),
           negotiatedOperationTypes = negotiatedOperationTypes,
           maxProgressEventsPerSecond =
@@ -236,6 +247,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
                 Main.progressUpdateTypes(),
                 params.clientCapabilities.preferLightweightSync,
             )
+        val negotiatedFeatures = negotiateFeatureSupport(params)
 
         log.info(
             "Project initialization succeeded: requestId={} negotiatedOperationTypes={}",
@@ -246,6 +258,9 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         return@runBuild InitializeResult(
             isSuccessful = true,
             negotiatedOperationTypes = negotiatedOperationTypes,
+            supportsModelSnapshot = negotiatedFeatures.modelSnapshot,
+            supportsQueryService = negotiatedFeatures.queryService,
+            supportsPhasedAction = negotiatedFeatures.phasedAction,
         )
       } catch (err: Throwable) {
         log.error("Failed to initialize project: requestId={}", params.requestId, err)
@@ -253,6 +268,17 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         return@runBuild InitializeResult(false, getTaskFailureType(err))
       }
     }
+  }
+
+  private fun negotiateFeatureSupport(
+      params: InitializeProjectParams
+  ): NegotiatedFeatureSupport {
+    val capabilities = params.clientCapabilities
+    return NegotiatedFeatureSupport(
+        modelSnapshot = capabilities.requestModelSnapshotSupport && SERVER_SUPPORTS_MODEL_SNAPSHOT,
+        queryService = capabilities.requestQueryServiceSupport && SERVER_SUPPORTS_QUERY_SERVICE,
+        phasedAction = capabilities.requestPhasedActionSupport && SERVER_SUPPORTS_PHASED_ACTION,
+    )
   }
 
   private fun ensureProjectGradleProperties(projectDir: File) {

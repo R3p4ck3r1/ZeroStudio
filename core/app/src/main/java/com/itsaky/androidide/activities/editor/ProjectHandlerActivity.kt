@@ -477,6 +477,9 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
             // so client/server event traffic is bounded on constrained devices
             maxEventsPerSecond = DEFAULT_MAX_TOOLING_EVENTS_PER_SECOND,
             preferLightweightSync = false,
+            requestModelSnapshotSupport = true,
+            requestQueryServiceSupport = true,
+            requestPhasedActionSupport = true,
         )
 
     return InitializeProjectParams(
