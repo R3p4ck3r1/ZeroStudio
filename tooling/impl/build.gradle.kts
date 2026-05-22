@@ -68,6 +68,7 @@ dependencies {
   implementation(libs.xml.xercesImpl)
   implementation(libs.xml.apis)
   implementation(libs.tooling.gradleApi)
+  implementation(libs.reapi.remote.apis)
 
   runtimeOnly(libs.tooling.slf4j)
 }
