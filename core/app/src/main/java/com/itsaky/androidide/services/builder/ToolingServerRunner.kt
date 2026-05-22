@@ -149,11 +149,13 @@ internal class ToolingServerRunner(
                   )
               val selection = ToolingServerEndpointFactories.resolveSelection(configuredTransport)
               log.info(
-                  "Tooling transport configured='{}', parsed={}, effective={}, fallbackReason={}",
+                  "Tooling transport configured='{}', parsed={}, effective={}, fallbackReason={}, reapiWorkspace='{}', reapiWorkspaceReady={}",
                   selection.requestedValue,
                   selection.parsedMode?.name ?: "UNKNOWN",
                   selection.effectiveMode.name,
                   selection.fallbackReason ?: "NONE",
+                  selection.reapiWorkspacePath,
+                  selection.reapiWorkspaceReady,
               )
               observer?.onServerStarted(
                   serverEndpoint =
