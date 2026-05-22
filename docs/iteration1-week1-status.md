@@ -1,4 +1,4 @@
-# 迭代1-第1周执行状态（截至 2026-05-21）
+# 迭代1-第1周执行状态（截至 2026-05-22）
 
 > 基线计划来源：`docs/gradle-tooling-api-9.5.1-upgrade-plan.md` 中“迭代 1：基建与协议（1~2 周）”及其“你可以立刻执行的下一步”条目。
 
@@ -49,8 +49,8 @@
 下列项目仍未在代码库中形成完整交付（按优先级）：
 
 ### P0（建议本周继续）
-1. **Capability Matrix v1 文档**（计划中明确“2天内完成”）：尚未产出独立矩阵文档。  
-2. **Gap Register 文档**（P0 缺口登记）：尚未产出按模块的差距清单。  
+1. **Capability Matrix v1 文档**（计划中明确“2天内完成”）：已产出 `docs/tooling-951-capability-matrix.md`，待评审确认细节粒度。  
+2. **Gap Register 文档**（P0 缺口登记）：已产出 `docs/tooling-951-gap-register.md`，待转 issue 并绑定负责人与里程碑。  
 3. **协议兼容测试（新旧 client/server 交叉）**：未见自动化或脚本化回归覆盖。  
 
 ### P1
@@ -64,7 +64,7 @@
 
 ## 4) 当前执行进度评估（迭代1-第1周）
 
-- **总体完成度（估算）**：约 **65% ~ 75%**。  
+- **总体完成度（估算）**：约 **75% ~ 82%**。  
 - **“协议与执行链路”维度**：完成度高（已具备可运行主干）。  
 - **“治理与工程化文档/验证”维度**：完成度中低（矩阵、gap、兼容测试闭环仍不足）。  
 
@@ -72,8 +72,7 @@
 
 ## 5) 下一步建议（第1周后半段）
 
-1. 新建 `docs/tooling-951-capability-matrix.md`，以模块维度列出 `full/partial/none`。  
-2. 新建 `docs/tooling-951-gap-register.md`，把 P0 缺口转 issue（含验收标准）。  
-3. 增加最小兼容测试矩阵（新server+旧client、旧server+新client）脚本化检查。  
-4. 在 execute 之外继续铺设 requestId（尤其同步入口），统一日志字段格式。  
-
+1. 将 `docs/tooling-951-gap-register.md` 中 P0 条目转为 issue，并补充 owner / due date。  
+2. 增加最小兼容测试矩阵（新server+旧client、旧server+新client）脚本化检查。  
+3. 在 execute 之外继续铺设 requestId（尤其同步入口），统一日志字段格式。  
+4. 设计 capability 扩展字段（phased action / model snapshot / query support）并完成 API 草案。  
