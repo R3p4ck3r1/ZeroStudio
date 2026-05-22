@@ -41,13 +41,10 @@ import com.itsaky.androidide.services.ToolingServerNotStartedException
 import com.itsaky.androidide.services.builder.ToolingServerRunner.OnServerStartListener
 import com.itsaky.androidide.tasks.ifCancelledOrInterrupted
 import com.itsaky.androidide.tasks.runOnUiThread
-import com.itsaky.androidide.tooling.api.ForwardingToolingApiClient
 import com.itsaky.androidide.tooling.api.IProject
-import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.LogSenderConfig.PROPERTY_LOGSENDER_ENABLED
 import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
-import com.itsaky.androidide.tooling.api.messages.LogMessageParams
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult
 import com.itsaky.androidide.tooling.api.messages.result.BuildInfo
 import com.itsaky.androidide.tooling.api.messages.result.BuildResult
@@ -56,6 +53,7 @@ import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
+import com.itsaky.androidide.tooling.api.transport.ToolingTransportClientObserver
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
@@ -84,17 +82,7 @@ import org.slf4j.LoggerFactory
  * @author Akash Yadav
  */
 class GradleBuildService :
-    Service(), BuildService, IToolingApiClient, ToolingServerRunner.Observer {
-
-  companion object {
-    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
-    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
-  }
-
-  companion object {
-    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
-    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
-  }
+    Service(), BuildService, ToolingServerRunner.Observer {
 
   companion object {
     private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
@@ -106,13 +94,6 @@ class GradleBuildService :
   override var isBuildInProgress = false
     private set
 
-  /**
-   * We do not provide direct access to GradleBuildService instance to the Tooling API launcher as
-   * it may cause memory leaks. Instead, we create another client object which forwards all calls to
-   * us. So, when the service is destroyed, we release the reference to the service from this
-   * client.
-   */
-  private var _toolingApiClient: ForwardingToolingApiClient? = null
   private var toolingServerRunner: ToolingServerRunner? = null
   private var outputReaderJob: Job? = null
   private var notificationManager: NotificationManager? = null
@@ -241,8 +222,6 @@ class GradleBuildService :
     toolingServerRunner?.release()
     toolingServerRunner = null
 
-    _toolingApiClient?.client = null
-    _toolingApiClient = null
 
     log.debug("Cancelling tooling server output reader job...")
     outputReaderJob?.cancel()
@@ -361,27 +340,26 @@ class GradleBuildService :
     isToolingServerStarted = true
   }
 
+
+  override fun onServerStarted(projectProxy: IProject, errorStream: InputStream) {
+    startServerOutputReader(errorStream)
+    Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
+    isToolingServerStarted = true
+  }
+
   override fun onServerExited(exitCode: Int) {
     log.warn("Tooling API process terminated with exit code: {}", exitCode)
     stopForeground(STOP_FOREGROUND_REMOVE)
   }
 
-  override fun getClient(): IToolingApiClient {
-    if (_toolingApiClient == null) {
-      _toolingApiClient = ForwardingToolingApiClient(this)
-    }
-    return _toolingApiClient!!
-  }
-
-  override fun logMessage(params: LogMessageParams) {
-    val logger = LoggerFactory.getLogger(params.tag)
-    when (params.level) {
-      'D' -> logger.debug(params.message)
-      'W' -> logger.warn(params.message)
-      'E' -> logger.error(params.message)
-      'I' -> logger.info(params.message)
-
-      else -> logger.trace(params.message)
+  override fun onLogMessage(tag: String, level: Char, message: String) {
+    val logger = LoggerFactory.getLogger(tag)
+    when (level) {
+      'D' -> logger.debug(message)
+      'W' -> logger.warn(message)
+      'E' -> logger.error(message)
+      'I' -> logger.info(message)
+      else -> logger.trace(message)
     }
   }
 
@@ -389,7 +367,7 @@ class GradleBuildService :
     eventListener?.onOutput(line)
   }
 
-  override fun prepareBuild(buildInfo: BuildInfo) {
+  override fun onBuildPrepared(buildInfo: BuildInfo) {
     updateNotification(getString(R.string.build_status_in_progress), true)
     eventListener?.prepareBuild(buildInfo)
   }
@@ -414,7 +392,7 @@ class GradleBuildService :
     eventListener?.onProgressEvent(event)
   }
 
-  override fun getBuildArguments(): CompletableFuture<List<String>> {
+  override fun buildArguments(): CompletableFuture<List<String>> {
     val extraArgs = ArrayList<String>()
 
     if (DevOpsPreferences.logsenderEnabled) {
@@ -589,7 +567,7 @@ class GradleBuildService :
     }
 
     if (useToolingExecute()) {
-      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+      val buildArgs = buildArguments().get().filter { it.isNotBlank() }
       val jvmArgs = resolveToolingExecuteJvmArgs()
       val request =
           ExecutionRequest(
@@ -610,7 +588,7 @@ class GradleBuildService :
     val useToolingExecute =
         System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
     if (useToolingExecute) {
-      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+      val buildArgs = buildArguments().get().filter { it.isNotBlank() }
       val jvmArgs =
           System.getProperty("androidide.tooling.execute.jvmArgs", "")
               .split(' ')
@@ -633,7 +611,7 @@ class GradleBuildService :
     }
 
     if (useToolingExecute()) {
-      val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+      val buildArgs = buildArguments().get().filter { it.isNotBlank() }
       val jvmArgs = resolveToolingExecuteJvmArgs()
       val request =
           ExecutionRequest(
@@ -681,7 +659,7 @@ class GradleBuildService :
             val command = mutableListOf("sh", gradlewPath)
             command.addAll(tasks)
 
-            val buildArgs = getBuildArguments().get()
+            val buildArgs = buildArguments().get()
             command.addAll(buildArgs)
 
             log.info("Executing command: ${command.joinToString(" ")}")
@@ -900,7 +878,7 @@ class GradleBuildService :
   }
 
   private fun createToolingExecutionRequest(tasks: List<String>): ExecutionRequest {
-    val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
+    val buildArgs = buildArguments().get().filter { it.isNotBlank() }
     val jvmArgs = resolveToolingExecuteJvmArgs()
     return ExecutionRequest(
         tasks = tasks,
@@ -1024,7 +1002,7 @@ class GradleBuildService :
       null
     } else
         object : EventListener {
-          override fun prepareBuild(buildInfo: BuildInfo) {
+          override fun onBuildPrepared(buildInfo: BuildInfo) {
             runOnUiThread { listener.prepareBuild(buildInfo) }
           }
 
