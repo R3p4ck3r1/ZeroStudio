@@ -453,6 +453,13 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
           initParams.requestId,
           result.negotiatedOperationTypes,
       )
+      if (!result.requestId.isNullOrBlank() && result.requestId != initParams.requestId) {
+        log.warn(
+            "Initialize requestId mismatch: clientRequestId={} serverRequestId={}",
+            initParams.requestId,
+            result.requestId,
+        )
+      }
       if (result.negotiatedOperationTypes.isEmpty()) {
         log.warn(
             "Tooling server negotiated empty operation types: requestId={} requestedOperationTypes={}",

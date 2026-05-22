@@ -164,7 +164,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
               params.requestId,
               failureReason,
           )
-          return@runBuild InitializeResult(false, failureReason)
+          return@runBuild InitializeResult(false, failureReason, params.requestId)
         }
 
         // Ensure Gradle sees UTF-8/locale early via project gradle.properties
@@ -258,6 +258,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         notifyBuildSuccess(emptyList())
         return@runBuild InitializeResult(
             isSuccessful = true,
+            requestId = params.requestId,
             negotiatedOperationTypes = negotiatedOperationTypes,
             supportsModelSnapshot = negotiatedFeatures.modelSnapshot,
             supportsQueryService = negotiatedFeatures.queryService,
@@ -266,7 +267,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       } catch (err: Throwable) {
         log.error("Failed to initialize project: requestId={}", params.requestId, err)
         notifyBuildFailure(emptyList())
-        return@runBuild InitializeResult(false, getTaskFailureType(err))
+        return@runBuild InitializeResult(false, getTaskFailureType(err), params.requestId)
       }
     }
   }
