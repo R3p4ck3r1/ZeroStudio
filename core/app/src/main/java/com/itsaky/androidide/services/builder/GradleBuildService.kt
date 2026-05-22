@@ -118,7 +118,6 @@ class GradleBuildService :
   private var toolingServerRunner: ToolingServerRunner? = null
   private var outputReaderJob: Job? = null
   private var notificationManager: NotificationManager? = null
-  private var server: IToolingApiServer? = null
   private var serverEndpoint: ToolingTransportServerEndpoint? = null
   private var eventListener: EventListener? = null
   private var isReleaseVariant = false
@@ -163,7 +162,7 @@ class GradleBuildService :
   }
 
   override fun isToolingServerStarted(): Boolean {
-    return isToolingServerStarted && server != null
+    return isToolingServerStarted && serverEndpoint != null
   }
 
   private fun showNotification(
@@ -359,7 +358,6 @@ class GradleBuildService :
       errorStream: InputStream,
   ) {
     startServerOutputReader(errorStream)
-    this.server = server
     this.serverEndpoint = LegacyToolingServerEndpoint(server)
     Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
     isToolingServerStarted = true
@@ -938,7 +936,6 @@ class GradleBuildService :
 
         toolingServerRunner?.release()
         toolingServerRunner = null
-        server = null
         serverEndpoint = null
         isToolingServerStarted = false
 
