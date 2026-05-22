@@ -29,4 +29,7 @@ class InitializeResult(
     val isSuccessful: Boolean,
     val failure: TaskExecutionResult.Failure? = null,
     val negotiatedOperationTypes: Set<OperationType> = emptySet(),
+    val supportsModelSnapshot: Boolean = false,
+    val supportsQueryService: Boolean = false,
+    val supportsPhasedAction: Boolean = false,
 )

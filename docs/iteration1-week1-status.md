@@ -90,3 +90,21 @@
   - 兼容测试自动化矩阵（C1/C2）尚未实跑闭环；
   - 事件正确性自动验收尚未建立。  
 - 建议：将第1周收口延长 1~2 个工作日，优先完成兼容测试最小闭环（T1/T2）。  
+
+---
+
+## 7) 本次追加推进（2026-05-22）
+
+- 已将 capability 扩展字段 API 草案落地到协议模型（以默认值保持兼容）：
+  - `ToolingClientCapabilities` 新增：
+    - `requestModelSnapshotSupport`
+    - `requestQueryServiceSupport`
+    - `requestPhasedActionSupport`
+  - `InitializeResult` 新增：
+    - `supportsModelSnapshot`
+    - `supportsQueryService`
+    - `supportsPhasedAction`
+  - `ToolingServerMetadata` 新增：
+    - `supportsModelSnapshot`
+    - `supportsQueryService`
+- 当前阶段定位：**完成了“能力扩展字段设计/API 草案”这一步，但尚未完成服务端协商逻辑与兼容测试实跑。**  

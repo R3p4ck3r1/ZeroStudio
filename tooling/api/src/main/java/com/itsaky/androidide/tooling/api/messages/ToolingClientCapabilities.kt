@@ -19,5 +19,7 @@ data class ToolingClientCapabilities(
     val requestedOperationTypes: Set<OperationType> = emptySet(),
     val maxEventsPerSecond: Int? = null,
     val preferLightweightSync: Boolean = false,
+    val requestModelSnapshotSupport: Boolean = false,
+    val requestQueryServiceSupport: Boolean = false,
+    val requestPhasedActionSupport: Boolean = false,
 ) : Serializable
-
