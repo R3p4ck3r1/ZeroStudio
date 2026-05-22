@@ -530,6 +530,13 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   private fun logProgressClosureWarningsIfAny(outcome: String) {
     val summary = ForwardingProgressListener.onBuildEnd()
     log.info(
+        "W1_PROGRESS_SUMMARY outcome={} started={} finished={} dangling={}",
+        outcome,
+        summary.startedEvents,
+        summary.finishedEvents,
+        summary.danglingByOperation.size,
+    )
+    log.info(
         "Progress closure summary on build {}: startedEvents={} finishedEvents={} danglingOperationCount={}",
         outcome,
         summary.startedEvents,
