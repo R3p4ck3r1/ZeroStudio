@@ -81,7 +81,6 @@ zxing = "3.5.4"
 ioGrpcVersion = "1.78.0"
 ioGrpcStubVersion = "1.5.0"
 googleProtobufKotlin = "4.33.2"
-reapiRemoteApisVersion = "2.12.0"
 barcodeScanning = "17.3.0"
 
 # common
@@ -506,8 +505,6 @@ grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "ioGrpcVersion" }
 grpc-netty-shaded = { module = "io.grpc:grpc-netty-shaded", version.ref = "ioGrpcVersion" }
 grpc-kotlin-stub = { module = "io.grpc:grpc-kotlin-stub", version.ref = "ioGrpcStubVersion" }
 
-# REAPI（Remote Execution API）集成栈依赖（AIDL + gRPC + REAPI）
-reapi-remote-apis = { module = "build.bazel.remote.execution.v2:remote-apis", version.ref = "reapiRemoteApisVersion" }
 
 # 其它sdk
 com-h2database-h2 = { module = "com.h2database:h2", version = "1.4.200" }

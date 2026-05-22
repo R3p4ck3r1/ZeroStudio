@@ -1,0 +1,6 @@
+syntax = "proto3";
+package build.bazel.remote.execution.v2;
+
+// Placeholder file bootstrapped by Iteration2 migration.
+// Replace with upstream bazelbuild/remote-apis canonical source.
+message __RemoteExecutionProtoPlaceholder {}
