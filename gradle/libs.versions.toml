@@ -505,6 +505,7 @@ grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "ioGrpcVersion" }
 grpc-netty-shaded = { module = "io.grpc:grpc-netty-shaded", version.ref = "ioGrpcVersion" }
 grpc-kotlin-stub = { module = "io.grpc:grpc-kotlin-stub", version.ref = "ioGrpcStubVersion" }
 
+
 # 其它sdk
 com-h2database-h2 = { module = "com.h2database:h2", version = "1.4.200" }
 com-beust-jcommander = { module = "com.beust:jcommander", version = "1.78" }

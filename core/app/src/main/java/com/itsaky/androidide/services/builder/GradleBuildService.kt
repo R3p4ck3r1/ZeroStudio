@@ -99,6 +99,7 @@ class GradleBuildService :
   private var outputReaderJob: Job? = null
   private var notificationManager: NotificationManager? = null
   private var serverEndpoint: ToolingTransportServerEndpoint? = null
+  @Volatile private var lastInitializeResult: InitializeResult? = null
   private var eventListener: EventListener? = null
   private var isReleaseVariant = false
 
@@ -239,6 +240,7 @@ class GradleBuildService :
     serviceJob.cancel()
 
     isToolingServerStarted = false
+    lastInitializeResult = null
     super.onDestroy()
   }
 
@@ -337,6 +339,7 @@ class GradleBuildService :
   ) {
     startServerOutputReader(errorStream)
     this.serverEndpoint = serverEndpoint
+    this.lastInitializeResult = null
     Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
     isToolingServerStarted = true
   }
@@ -497,6 +500,8 @@ class GradleBuildService :
     checkServerStarted()
     Objects.requireNonNull(params)
     return performBuildTasks(requireServerEndpoint().initialize(params)).thenApply { result ->
+      lastInitializeResult = result
+      logInitializeNegotiation(result)
       if (result != null) {
         buildServiceScope.launch {
           try {
@@ -833,6 +838,10 @@ class GradleBuildService :
   }
 
   private fun resolvePreferredOperationTypes(): Set<OperationType> {
+    val fromInitialize = lastInitializeResult?.negotiatedOperationTypes.orEmpty()
+    if (fromInitialize.isNotEmpty()) {
+      return fromInitialize
+    }
     return try {
       val negotiated =
           serverEndpoint?.metadata()?.get(2, TimeUnit.SECONDS)?.negotiatedOperationTypes.orEmpty()
@@ -883,6 +892,26 @@ class GradleBuildService :
     )
   }
 
+  private fun logInitializeNegotiation(result: InitializeResult?) {
+    if (result == null) {
+      return
+    }
+    log.info(
+        "Initialize negotiated capabilities: phasedAction={}, modelSnapshot={}, queryService={}, operationTypes={}",
+        result.supportsPhasedAction,
+        result.supportsModelSnapshot,
+        result.supportsQueryService,
+        result.negotiatedOperationTypes,
+    )
+
+    if (!result.supportsPhasedAction || !result.supportsModelSnapshot || !result.supportsQueryService) {
+      eventListener?.onOutput(
+          "Tooling capabilities downgraded: phasedAction=${result.supportsPhasedAction}, " +
+              "modelSnapshot=${result.supportsModelSnapshot}, queryService=${result.supportsQueryService}",
+      )
+    }
+  }
+
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
     return CompletableFuture.supplyAsync {
       if (isBuildInProgress) {
@@ -908,6 +937,7 @@ class GradleBuildService :
         toolingServerRunner?.release()
         toolingServerRunner = null
         serverEndpoint = null
+        lastInitializeResult = null
         isToolingServerStarted = false
 
         Runtime.getRuntime().gc()

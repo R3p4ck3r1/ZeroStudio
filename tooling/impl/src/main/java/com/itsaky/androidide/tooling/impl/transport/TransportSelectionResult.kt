@@ -7,4 +7,6 @@ data class TransportSelectionResult(
     val parsedMode: ToolingTransportMode?,
     val effectiveMode: ToolingTransportMode,
     val fallbackReason: String? = null,
+    val reapiWorkspacePath: String = "tooling/reapi",
+    val reapiWorkspaceReady: Boolean = false,
 )
