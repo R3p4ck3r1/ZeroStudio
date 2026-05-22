@@ -48,6 +48,7 @@ import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.Fai
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.impl.internal.ProjectImpl
 import com.itsaky.androidide.tooling.impl.net.SimpleHttpProxy
+import com.itsaky.androidide.tooling.impl.progress.ForwardingProgressListener
 import com.itsaky.androidide.tooling.impl.sync.ModelBuilderException
 import com.itsaky.androidide.tooling.impl.sync.RootModelBuilder
 import com.itsaky.androidide.tooling.impl.sync.RootProjectModelBuilderParams
@@ -481,15 +482,29 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   }
 
   private fun notifyBuildFailure(tasks: List<String>) {
+    logProgressClosureWarningsIfAny("failure")
     client?.onBuildFailed(BuildResult((tasks)))
   }
 
   private fun notifyBuildSuccess(tasks: List<String>) {
+    logProgressClosureWarningsIfAny("success")
     client?.onBuildSuccessful(BuildResult(tasks))
   }
 
   private fun notifyBeforeBuild(buildInfo: BuildInfo) {
+    ForwardingProgressListener.onBuildStart()
     client?.prepareBuild(buildInfo)
+  }
+
+  private fun logProgressClosureWarningsIfAny(outcome: String) {
+    val dangling = ForwardingProgressListener.onBuildEnd()
+    if (dangling.isNotEmpty()) {
+      log.warn(
+          "Progress event closure check detected dangling start events on build {}: {}",
+          outcome,
+          dangling,
+      )
+    }
   }
 
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> {
