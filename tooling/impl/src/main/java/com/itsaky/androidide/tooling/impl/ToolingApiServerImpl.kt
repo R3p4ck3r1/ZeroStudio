@@ -469,16 +469,34 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       supported: Set<OperationType>,
       preferLightweightSync: Boolean = false,
   ): Set<OperationType> {
-    if (requested.isEmpty()) {
-      return if (preferLightweightSync) {
-        supported.filterTo(linkedSetOf()) {
-          it == OperationType.TASK || it == OperationType.PROJECT_CONFIGURATION
+    val negotiated =
+        if (requested.isEmpty()) {
+          if (preferLightweightSync) {
+            supported.filterTo(linkedSetOf()) {
+              it == OperationType.TASK || it == OperationType.PROJECT_CONFIGURATION
+            }
+          } else {
+            supported
+          }
+        } else {
+          requested.filterTo(linkedSetOf()) { supported.contains(it) }
         }
-      } else {
-        supported
-      }
+
+    if (requested.isNotEmpty() && negotiated.isEmpty()) {
+      log.warn(
+          "Operation negotiation yielded empty set. requested={} supported={} preferLightweightSync={}",
+          requested,
+          supported,
+          preferLightweightSync,
+      )
     }
-    return requested.filterTo(linkedSetOf()) { supported.contains(it) }
+
+    if (requested.isNotEmpty() && negotiated.size < requested.size) {
+      val dropped = requested.filterNot { negotiated.contains(it) }.toSet()
+      log.info("Operation negotiation dropped unsupported types: {}", dropped)
+    }
+
+    return negotiated
   }
 
   private fun notifyBuildFailure(tasks: List<String>) {
