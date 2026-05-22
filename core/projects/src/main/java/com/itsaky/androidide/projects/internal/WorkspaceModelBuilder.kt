@@ -53,10 +53,12 @@ internal object WorkspaceModelBuilder {
             ProjectType.Gradle -> transform(project.asGradleProject())
             ProjectType.Android -> transform(project.asAndroidProject())
             ProjectType.Java -> transform(project.asJavaProject())
-            else ->
-                throw IllegalStateException(
-                    "Root project must be Android/Java/Gradle project"
-                )
+            ProjectType.Unknown -> {
+              log.warn(
+                  "Root project type is UNKNOWN, falling back to Gradle root model transformation"
+              )
+              transform(project.asGradleProject())
+            }
           }
 
       return WorkspaceImpl(
