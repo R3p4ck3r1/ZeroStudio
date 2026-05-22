@@ -1,5 +1,0 @@
-syntax = "proto3";
-package google.longrunning;
-
-// Placeholder file bootstrapped by Iteration2 migration.
-message __OperationsProtoPlaceholder {}
