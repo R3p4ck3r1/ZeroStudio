@@ -228,13 +228,13 @@ class GradleBuildService :
     lookup.unregister(BuildService.KEY_BUILD_SERVICE)
     lookup.unregister(BuildService.KEY_PROJECT_PROXY)
 
-    server?.also { server ->
+    serverEndpoint?.also { endpoint ->
       try {
         log.info("Shutting down Tooling API server...")
         // send the shutdown request but do not wait for the server to respond
         // the service should not block the onDestroy call in order to avoid timeouts
         // the tooling server must release resources and exit automatically
-        server.shutdown().get(1, TimeUnit.SECONDS)
+        endpoint.shutdown().get(1, TimeUnit.SECONDS)
       } catch (e: Throwable) {
         log.error("Failed to shutdown Tooling API server", e)
       }
@@ -519,7 +519,7 @@ class GradleBuildService :
 
   override fun metadata(): CompletableFuture<ToolingServerMetadata> {
     checkServerStarted()
-    return serverEndpoint!!.metadata()
+    return requireServerEndpoint().metadata()
   }
 
   override fun initializeProject(
@@ -527,7 +527,7 @@ class GradleBuildService :
   ): CompletableFuture<InitializeResult> {
     checkServerStarted()
     Objects.requireNonNull(params)
-    return performBuildTasks(serverEndpoint!!.initialize(params)).thenApply { result ->
+    return performBuildTasks(requireServerEndpoint().initialize(params)).thenApply { result ->
       if (result != null) {
         buildServiceScope.launch {
           try {
@@ -829,7 +829,7 @@ class GradleBuildService :
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> {
     checkServerStarted()
 
-    val cancellationFuture = serverEndpoint!!.cancelCurrentBuild()
+    val cancellationFuture = requireServerEndpoint().cancelCurrentBuild()
 
     buildServiceScope.launch {
       try {
@@ -860,7 +860,7 @@ class GradleBuildService :
                   request.operationTypes
                 },
         )
-    return performBuildTasks(serverEndpoint!!.execute(sanitized))
+    return performBuildTasks(requireServerEndpoint().execute(sanitized))
   }
 
   private fun resolvePreferredOperationTypes(): Set<OperationType> {
@@ -980,6 +980,12 @@ class GradleBuildService :
     if (!isToolingServerStarted()) {
       throw ToolingServerNotStartedException()
     }
+  }
+
+  @Throws(ToolingServerNotStartedException::class)
+  private fun requireServerEndpoint(): ToolingTransportServerEndpoint {
+    checkServerStarted()
+    return checkNotNull(serverEndpoint) { "Tooling transport endpoint is not available" }
   }
 
   private fun ensureTmpdir() {
