@@ -1,6 +1,7 @@
 package com.itsaky.androidide.tooling.impl.transport
 
 import com.itsaky.androidide.tooling.api.IToolingApiServer
+import com.itsaky.androidide.tooling.api.transport.ToolingTransportMode
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
 import org.slf4j.LoggerFactory
 
@@ -19,8 +20,6 @@ object ToolingServerEndpointFactories {
 
   const val TRANSPORT_SWITCH_PROPERTY: String = "androidide.tooling.transport"
   const val LEGACY: String = "legacy"
-  const val AIDL: String = "aidl"
-  const val GRPC_UDS: String = "grpc-uds"
 
   @JvmStatic
   fun fromSystemProperty(): ToolingServerEndpointFactory {
@@ -31,10 +30,11 @@ object ToolingServerEndpointFactories {
   @JvmStatic
   fun fromTransportValue(value: String?): ToolingServerEndpointFactory {
     val configured = value.orEmpty().ifBlank { LEGACY }.trim().lowercase()
-    return when (configured) {
-      LEGACY -> ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
-      AIDL,
-      GRPC_UDS -> {
+    val mode = ToolingTransportMode.fromWireValue(configured)
+    return when (mode) {
+      ToolingTransportMode.LEGACY -> ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
+      ToolingTransportMode.AIDL,
+      ToolingTransportMode.GRPC_UDS -> {
         log.info(
             "Transport '{}' is not implemented yet. Falling back to '{}' endpoint.",
             configured,
@@ -42,7 +42,7 @@ object ToolingServerEndpointFactories {
         )
         ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
       }
-      else -> {
+      null -> {
         log.warn(
             "Unknown transport switch '{}' from -D{}. Falling back to '{}'.",
             configured,

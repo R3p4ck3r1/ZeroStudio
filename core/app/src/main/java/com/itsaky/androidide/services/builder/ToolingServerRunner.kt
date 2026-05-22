@@ -23,6 +23,7 @@ import com.itsaky.androidide.tasks.cancelIfActive
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiServer
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportClientObserver
+import com.itsaky.androidide.tooling.api.transport.ToolingTransportMode
 import com.itsaky.androidide.tooling.impl.transport.ToolingServerEndpointFactories
 import com.itsaky.androidide.tooling.impl.transport.LegacyToolingClientAdapter
 import com.itsaky.androidide.tooling.api.util.ToolingApiLauncher
@@ -147,7 +148,12 @@ internal class ToolingServerRunner(
                       ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
                       ToolingServerEndpointFactories.LEGACY,
                   )
-              log.info("Tooling transport switch configured as '{}'", configuredTransport)
+              val parsedMode = ToolingTransportMode.fromWireValue(configuredTransport)
+              log.info(
+                  "Tooling transport switch configured as '{}', parsed mode={}",
+                  configuredTransport,
+                  parsedMode?.name ?: "UNKNOWN",
+              )
               observer?.onServerStarted(
                   serverEndpoint =
                       ToolingServerEndpointFactories.fromTransportValue(configuredTransport).create(
