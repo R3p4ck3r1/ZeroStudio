@@ -49,7 +49,7 @@ object ToolingServerEndpointFactories {
               requestedValue = configured,
               parsedMode = mode,
               effectiveMode = ToolingTransportMode.LEGACY_JSONRPC,
-              fallbackReason = "Integrated transport stack '$configured' is not implemented yet",
+              fallbackReason = "Integrated transport stack '$configured' is in transitional gateway mode",
           )
       null ->
           TransportSelectionResult(
@@ -67,10 +67,10 @@ object ToolingServerEndpointFactories {
       ToolingTransportMode.LEGACY_JSONRPC -> Unit
       ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI -> {
         log.info(
-            "Integrated transport stack '{}' is not implemented yet. Falling back to '{}' endpoint.",
+            "Integrated transport stack '{}' is routed through transitional gateway endpoint.",
             selection.requestedValue,
-            LEGACY,
         )
+        return ToolingServerEndpointFactory(::IntegratedToolingServerEndpointGateway)
       }
       null -> {
         log.warn(
