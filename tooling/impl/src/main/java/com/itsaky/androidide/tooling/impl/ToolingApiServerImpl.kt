@@ -306,15 +306,6 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         return ExecutionResult(false, PROJECT_NOT_INITIALIZED, "Project is not initialized")
       }
 
-      val effectiveTasks = request.tasks.filter { it.isNotBlank() }
-      if (effectiveTasks.isEmpty()) {
-        return ExecutionResult(
-            false,
-            UNSUPPORTED_CONFIGURATION,
-            "ExecutionRequest must contain at least one non-blank task",
-        )
-      }
-
       val lastInitParams = this.lastInitParams
       if (lastInitParams != null) {
         val projectDirectory = File(lastInitParams.directory)
@@ -342,7 +333,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       builder.setStandardInput("NoOp".byteInputStream())
       builder.setStandardError(out)
       builder.setStandardOutput(out)
-      builder.forTasks(*effectiveTasks.toTypedArray())
+      builder.forTasks(*request.tasks.filter { it.isNotBlank() }.toTypedArray())
 
       if (request.arguments.isNotEmpty()) {
         builder.addArguments(*request.arguments.filter { it.isNotBlank() }.toTypedArray())
@@ -371,15 +362,15 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       this.buildCancellationToken = GradleConnector.newCancellationTokenSource()
       builder.withCancellationToken(this.buildCancellationToken!!.token())
 
-      notifyBeforeBuild(BuildInfo(effectiveTasks))
+      notifyBeforeBuild(BuildInfo(request.tasks))
 
       try {
         builder.run()
         this.buildCancellationToken = null
-        notifyBuildSuccess(effectiveTasks)
+        notifyBuildSuccess(request.tasks)
         return ExecutionResult.SUCCESS
       } catch (error: Throwable) {
-        notifyBuildFailure(effectiveTasks)
+        notifyBuildFailure(request.tasks)
         return ExecutionResult(false, getTaskFailureType(error), diagnosticMessage(error))
       }
   }
