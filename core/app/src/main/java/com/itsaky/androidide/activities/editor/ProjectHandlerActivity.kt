@@ -68,6 +68,7 @@ import com.itsaky.androidide.utils.showOnUiThread
 import com.itsaky.androidide.utils.withIcon
 import com.itsaky.androidide.viewmodel.BuildVariantsViewModel
 import java.io.File
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.regex.Pattern
 import java.util.stream.Collectors
@@ -414,10 +415,15 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
       return
     }
 
+    val initParams = createProjectInitParams(projectDir, buildVariants)
     this.initializingFuture =
         if (shouldInitialize || (!isFromSavedInstance && !initialized)) {
-          log.debug("Sending init request to tooling server..")
-          buildService.initializeProject(createProjectInitParams(projectDir, buildVariants))
+          log.info(
+              "Sending init request to tooling server: requestId={} directory={}",
+              initParams.requestId,
+              initParams.directory,
+          )
+          buildService.initializeProject(initParams)
         } else {
           log.debug("Using cached initialize result as the project is already initialized")
           CompletableFuture.supplyAsync {
@@ -431,13 +437,22 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
 
       if (result == null || !result.isSuccessful || error != null) {
         if (!CancelChecker.isCancelled(error)) {
-          log.error("An error occurred initializing the project with Tooling API", error)
+          log.error(
+              "An error occurred initializing the project with Tooling API: requestId={}",
+              initParams.requestId,
+              error,
+          )
         }
 
         ThreadUtils.runOnUiThread { postProjectInit(false, result?.failure) }
         return@whenCompleteAsync
       }
 
+      log.info(
+          "Project initialization completed: requestId={} negotiatedOperationTypes={}",
+          initParams.requestId,
+          result.negotiatedOperationTypes,
+      )
       onProjectInitialized(result)
     }
   }
@@ -446,6 +461,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
       projectDir: File,
       buildVariants: Map<String, String>,
   ): InitializeProjectParams {
+    val requestId = UUID.randomUUID().toString()
     val capabilities =
         ToolingClientCapabilities(
             requestedOperationTypes =
@@ -468,6 +484,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
         gradleDistributionParams,
         createAndroidParams(buildVariants),
         capabilities,
+        requestId,
     )
   }
 

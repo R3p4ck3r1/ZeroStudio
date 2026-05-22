@@ -130,7 +130,12 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> {
     return runBuild {
       try {
-        log.debug("Received project initialization request with params: {}", params)
+        log.debug(
+            "Received project initialization request: requestId={} directory={} distribution={}",
+            params.requestId,
+            params.directory,
+            params.gradleDistribution,
+        )
 
         Main.checkGradleWrapper()
 
@@ -142,7 +147,11 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         val failureReason = validateProjectDirectory(projectDirectory)
 
         if (failureReason != null) {
-          log.error("Cannot initialize project: {}", failureReason)
+          log.error(
+              "Cannot initialize project: requestId={} failure={}",
+              params.requestId,
+              failureReason,
+          )
           return@runBuild InitializeResult(false, failureReason)
         }
 
@@ -228,13 +237,18 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
                 params.clientCapabilities.preferLightweightSync,
             )
 
+        log.info(
+            "Project initialization succeeded: requestId={} negotiatedOperationTypes={}",
+            params.requestId,
+            negotiatedOperationTypes,
+        )
         notifyBuildSuccess(emptyList())
         return@runBuild InitializeResult(
             isSuccessful = true,
             negotiatedOperationTypes = negotiatedOperationTypes,
         )
       } catch (err: Throwable) {
-        log.error("Failed to initialize project", err)
+        log.error("Failed to initialize project: requestId={}", params.requestId, err)
         notifyBuildFailure(emptyList())
         return@runBuild InitializeResult(false, getTaskFailureType(err))
       }
