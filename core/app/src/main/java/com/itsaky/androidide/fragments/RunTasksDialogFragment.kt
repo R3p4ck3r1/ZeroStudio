@@ -48,6 +48,7 @@ import com.itsaky.androidide.projects.IProjectManager
 import com.itsaky.androidide.projects.builder.BuildService
 import com.itsaky.androidide.resources.R
 import com.itsaky.androidide.tasks.executeAsync
+import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.models.GradleTask
 import com.itsaky.androidide.utils.SingleTextWatcher
 import com.itsaky.androidide.utils.doOnApplyWindowInsets
@@ -80,6 +81,11 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
     // changed before starting any further filter request.
     // A too less value here will result in UI lags
     private const val SEARCH_DELAY = 500L
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+  }
+
+  private fun useToolingExecute(): Boolean {
+    return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
   }
 
   override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -171,7 +177,26 @@ class RunTasksDialogFragment : BottomSheetDialogFragment() {
         }
 
         val toRun = viewModel.selected.toTypedArray()
-        buildService.executeTasks(*toRun).whenComplete { result, error ->
+        val executionFuture =
+            if (useToolingExecute()) {
+              buildService
+                  .execute(ExecutionRequest(tasks = viewModel.selected.toList()))
+                  .thenApply { exec ->
+                    if (exec.isSuccessful) {
+                      com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.SUCCESS
+                    } else {
+                      com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult(
+                          false,
+                          exec.failure,
+                          exec.diagnostics,
+                      )
+                    }
+                  }
+            } else {
+              buildService.executeTasks(*toRun)
+            }
+
+        executionFuture.whenComplete { result, error ->
           if (error != null) {
             log.error("Failed to execute selected tasks", error)
             return@whenComplete

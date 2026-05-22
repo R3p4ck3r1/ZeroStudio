@@ -86,6 +86,11 @@ import org.slf4j.LoggerFactory
 class GradleBuildService :
     Service(), BuildService, IToolingApiClient, ToolingServerRunner.Observer {
 
+  companion object {
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
+  }
+
   private var mBinder: GradleServiceBinder? = null
   private var isToolingServerStarted = false
   override var isBuildInProgress = false
@@ -566,15 +571,9 @@ class GradleBuildService :
     val tasksList = tasks.toList()
     isReleaseVariant = false
 
-    val useToolingExecute =
-        System.getProperty("androidide.use.tooling.execute", "false").toBoolean()
-    if (useToolingExecute) {
+    if (useToolingExecute()) {
       val buildArgs = getBuildArguments().get().filter { it.isNotBlank() }
-      val jvmArgs =
-          System.getProperty("androidide.tooling.execute.jvmArgs", "")
-              .split(' ')
-              .map { it.trim() }
-              .filter { it.isNotBlank() }
+      val jvmArgs = resolveToolingExecuteJvmArgs()
       val request =
           ExecutionRequest(
               tasks = tasksList,
@@ -789,6 +788,12 @@ class GradleBuildService :
             tasks = request.tasks.filter { it.isNotBlank() },
             arguments = request.arguments.filter { it.isNotBlank() },
             jvmArguments = request.jvmArguments.filter { it.isNotBlank() },
+            operationTypes =
+                if (request.operationTypes.isEmpty()) {
+                  resolvePreferredOperationTypes()
+                } else {
+                  request.operationTypes
+                },
         )
     return performBuildTasks(server!!.execute(sanitized))
   }
@@ -811,6 +816,17 @@ class GradleBuildService :
           OperationType.PROJECT_CONFIGURATION,
       )
     }
+  }
+
+  private fun resolveToolingExecuteJvmArgs(): List<String> {
+    return System.getProperty(PROP_TOOLING_EXECUTE_JVM_ARGS, "")
+        .split(' ')
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+  }
+
+  private fun useToolingExecute(): Boolean {
+    return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
