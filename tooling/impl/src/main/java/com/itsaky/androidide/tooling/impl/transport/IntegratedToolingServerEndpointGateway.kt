@@ -10,6 +10,7 @@ import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
+import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedProtocolCoordinator
 import com.itsaky.androidide.tooling.impl.transport.reapi.GrpcReapiExecutionGateway
 import com.itsaky.androidide.tooling.impl.transport.reapi.NoOpReapiExecutionGateway
 import com.itsaky.androidide.tooling.impl.transport.reapi.ReapiExecutionGateway
@@ -28,6 +29,7 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
   private val log = LoggerFactory.getLogger(IntegratedToolingServerEndpointGateway::class.java)
   private val runtimeConfig = IntegratedTransportRuntimeConfig.fromSystemProperties()
   private val legacyEndpoint = LegacyToolingServerEndpoint(delegate)
+  private val protocolCoordinator = IntegratedProtocolCoordinator(runtimeConfig)
   private val reapiGateway: ReapiExecutionGateway =
       if (runtimeConfig.reapiEnabled && runtimeConfig.reapiEndpoint.isNotBlank()) {
         GrpcReapiExecutionGateway(runtimeConfig.reapiEndpoint, runtimeConfig.reapiInstanceName)
@@ -36,6 +38,21 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
       }
 
   init {
+    protocolCoordinator.startHandshake().whenComplete { handshake, error ->
+      if (error != null) {
+        log.error("Integrated handshake bootstrap failed", error)
+      } else {
+        log.info(
+            "Integrated handshake established. version={}, sessionId={}, aidl={}, grpcUds={}, reapi={}",
+            handshake.protocolVersion,
+            handshake.sessionId,
+            handshake.supportsAidlControlPlane,
+            handshake.supportsGrpcUdsDataPlane,
+            handshake.supportsReapiExecution,
+        )
+      }
+    }
+
     log.info(
         "Integrated transport gateway booted. reapiEnabled={}, reapiEndpoint='{}', reapiInstance='{}'",
         reapiGateway.isEnabled(),
@@ -67,6 +84,6 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
 
   override fun shutdown(): CompletableFuture<Void> {
     reapiGateway.shutdown()
-    return legacyEndpoint.shutdown()
+    return protocolCoordinator.shutdown().thenCompose { legacyEndpoint.shutdown() }
   }
 }
