@@ -40,6 +40,7 @@ class BuildSessionGrpcService(
   private val eventStore: BuildEventStore = BuildEventStore(),
   private val dataStreamStore: BuildDataStreamStore = BuildDataStreamStore(),
   private val contextStateStore: BuildContextStateStore = BuildContextStateStore(),
+  private val transferRegistry: BuildTransferRegistry = BuildTransferRegistry(),
 ) : BuildSessionServiceGrpcKt.BuildSessionServiceCoroutineImplBase() {
 
   override suspend fun initialize(request: InitializeRequest): InitializeResponse {
@@ -90,10 +91,13 @@ class BuildSessionGrpcService(
     requests.collect { chunk ->
       buildId = if (chunk.buildId.isNotBlank()) chunk.buildId else buildId
       transferId = if (chunk.transferId.isNotBlank()) chunk.transferId else transferId
-      val acceptedBytes = dataStreamStore.append(chunk)
+
+      val sequenceAccepted = transferRegistry.validateUploadChunk(chunk)
+      val acceptedBytes = if (sequenceAccepted) dataStreamStore.append(chunk) else 0
       if (acceptedBytes == 0 && chunk.payload.size() > 0) {
         accepted = false
       }
+
       receivedBytes += acceptedBytes
       chunkCount += 1
     }
@@ -119,6 +123,7 @@ class BuildSessionGrpcService(
   }
 
   override fun fetchDataStream(request: FetchDataRequest): Flow<DataChunk> = flow {
+    val startedAt = System.currentTimeMillis()
     val bytes = dataStreamStore.read(request.transferId, request.offset, request.maxBytes)
     val chunkSize = 64 * 1024
     var cursor = 0
@@ -160,7 +165,7 @@ class BuildSessionGrpcService(
         transferId = request.transferId,
         transferredBytes = bytes.size.toLong(),
         chunkCount = sequence,
-        durationMillis = 0L,
+        durationMillis = System.currentTimeMillis() - startedAt,
         accepted = true,
       ),
       totalBytes = bytes.size.toLong(),
