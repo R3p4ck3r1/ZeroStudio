@@ -80,19 +80,21 @@ message ExecuteActionResponse {
 }
 
 message DataChunk {
-  string transfer_id = 1;
-  int64 sequence = 2;
-  bytes payload = 3;
-  bool eof = 4;
-  string content_type = 5;
-  bytes checksum = 6;
-  CompressionKind compression = 7;
+  string build_id = 1;
+  string transfer_id = 2;
+  int64 sequence = 3;
+  bytes payload = 4;
+  bool eof = 5;
+  string content_type = 6;
+  bytes checksum = 7;
+  CompressionKind compression = 8;
 }
 
 message FetchDataRequest {
-  string transfer_id = 1;
-  int64 offset = 2;
-  int64 max_bytes = 3;
+  string build_id = 1;
+  string transfer_id = 2;
+  int64 offset = 3;
+  int64 max_bytes = 4;
 }
 
 message DataTransferAck {

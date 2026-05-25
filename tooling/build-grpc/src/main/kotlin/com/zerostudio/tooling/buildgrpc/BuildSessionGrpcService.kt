@@ -71,11 +71,13 @@ class BuildSessionGrpcService(
 
 
   override suspend fun publishDataStream(requests: Flow<DataChunk>): DataTransferAck {
+    var buildId = ""
     var transferId = ""
     var receivedBytes = 0L
     var accepted = true
 
     requests.collect { chunk ->
+      buildId = if (chunk.buildId.isNotBlank()) chunk.buildId else buildId
       transferId = if (chunk.transferId.isNotBlank()) chunk.transferId else transferId
       val acceptedBytes = dataStreamStore.append(chunk)
       if (acceptedBytes == 0 && chunk.payload.size() > 0) {
@@ -85,7 +87,7 @@ class BuildSessionGrpcService(
     }
 
     appendTransferEvent(
-      buildId = transferId.substringBefore('#', missingDelimiterValue = ""),
+      buildId = buildId,
       transferId = transferId,
       transferredBytes = receivedBytes,
     )
@@ -107,6 +109,7 @@ class BuildSessionGrpcService(
     if (bytes.isEmpty()) {
       emit(
         DataChunk.newBuilder()
+           .setBuildId(request.buildId)
           .setTransferId(request.transferId)
           .setSequence(sequence)
           .setEof(true)
@@ -121,6 +124,7 @@ class BuildSessionGrpcService(
       val isEof = end == bytes.size
       emit(
         DataChunk.newBuilder()
+           .setBuildId(request.buildId)
           .setTransferId(request.transferId)
           .setSequence(sequence)
           .setPayload(ByteString.copyFrom(slice))
@@ -133,7 +137,7 @@ class BuildSessionGrpcService(
     }
 
     appendTransferEvent(
-      buildId = request.transferId.substringBefore('#', missingDelimiterValue = ""),
+      buildId = request.buildId,
       transferId = request.transferId,
       transferredBytes = bytes.size.toLong(),
       totalBytes = bytes.size.toLong(),
