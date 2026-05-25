@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package zerostudio.tooling.build.v1;
+
+option java_multiple_files = true;
+option java_package = "com.zerostudio.tooling.buildgrpc.proto";
+option java_outer_classname = "BuildServiceProto";
+
+// A BSP-inspired build session service that mixes REAPI execution hints and BEP style events.
+service BuildSessionService {
+  rpc Initialize(InitializeRequest) returns (InitializeResponse);
+  rpc StartBuild(StartBuildRequest) returns (stream BuildEventEnvelope);
+  rpc StreamBuildEvents(StreamBuildEventsRequest) returns (stream BuildEventEnvelope);
+  rpc ExecuteAction(ExecuteActionRequest) returns (ExecuteActionResponse);
+  rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
+}
+
+message InitializeRequest {
+  string workspace_root = 1;
+  string client_name = 2;
+  string client_version = 3;
+  repeated string supported_capabilities = 4;
+}
+
+message InitializeResponse {
+  string server_name = 1;
+  string server_version = 2;
+  repeated string supported_languages = 3;
+  repeated string protocol_features = 4;
+}
+
+message StartBuildRequest {
+  string build_id = 1;
+  repeated string targets = 2;
+  map<string, string> options = 3;
+  BuildMode mode = 4;
+}
+
+message StreamBuildEventsRequest {
+  string build_id = 1;
+  int64 from_sequence = 2;
+}
+
+message ExecuteActionRequest {
+  string build_id = 1;
+  string action_digest = 2;
+  bytes command = 3;
+  bytes input_root_digest = 4;
+}
+
+message ExecuteActionResponse {
+  string operation_name = 1;
+  ExecutionStatus status = 2;
+  bytes action_result = 3;
+}
+
+message ShutdownRequest {
+  string reason = 1;
+}
+
+message ShutdownResponse {
+  bool accepted = 1;
+}
+
+message BuildEventEnvelope {
+  string build_id = 1;
+  int64 sequence = 2;
+  int64 timestamp_millis = 3;
+  BuildEventKind kind = 4;
+  oneof payload {
+    BuildProgressEvent progress = 5;
+    BuildDiagnosticEvent diagnostic = 6;
+    BuildTargetEvent target = 7;
+    BuildFinishedEvent finished = 8;
+  }
+}
+
+message BuildProgressEvent {
+  string message = 1;
+  float percent = 2;
+}
+
+message BuildDiagnosticEvent {
+  string origin = 1;
+  string message = 2;
+  DiagnosticSeverity severity = 3;
+  string file = 4;
+  int32 line = 5;
+  int32 column = 6;
+}
+
+message BuildTargetEvent {
+  string label = 1;
+  BuildTargetStatus status = 2;
+}
+
+message BuildFinishedEvent {
+  bool success = 1;
+  int64 duration_millis = 2;
+  string summary = 3;
+}
+
+enum BuildMode {
+  BUILD_MODE_UNSPECIFIED = 0;
+  BUILD_MODE_INCREMENTAL = 1;
+  BUILD_MODE_REBUILD = 2;
+  BUILD_MODE_TEST = 3;
+}
+
+enum BuildEventKind {
+  BUILD_EVENT_KIND_UNSPECIFIED = 0;
+  BUILD_EVENT_KIND_PROGRESS = 1;
+  BUILD_EVENT_KIND_DIAGNOSTIC = 2;
+  BUILD_EVENT_KIND_TARGET = 3;
+  BUILD_EVENT_KIND_FINISHED = 4;
+}
+
+enum DiagnosticSeverity {
+  DIAGNOSTIC_SEVERITY_UNSPECIFIED = 0;
+  DIAGNOSTIC_SEVERITY_INFO = 1;
+  DIAGNOSTIC_SEVERITY_WARNING = 2;
+  DIAGNOSTIC_SEVERITY_ERROR = 3;
+}
+
+enum BuildTargetStatus {
+  BUILD_TARGET_STATUS_UNSPECIFIED = 0;
+  BUILD_TARGET_STATUS_PENDING = 1;
+  BUILD_TARGET_STATUS_RUNNING = 2;
+  BUILD_TARGET_STATUS_SUCCESS = 3;
+  BUILD_TARGET_STATUS_FAILED = 4;
+}
+
+enum ExecutionStatus {
+  EXECUTION_STATUS_UNSPECIFIED = 0;
+  EXECUTION_STATUS_QUEUED = 1;
+  EXECUTION_STATUS_EXECUTING = 2;
+  EXECUTION_STATUS_COMPLETED = 3;
+  EXECUTION_STATUS_FAILED = 4;
+}
