@@ -17,7 +17,6 @@
 
 package com.itsaky.androidide.tooling.api.messages.result
 
-import org.gradle.tooling.events.OperationType
 
 /**
  * Result received after an initialize project request.
@@ -29,7 +28,7 @@ class InitializeResult(
     val isSuccessful: Boolean,
     val failure: TaskExecutionResult.Failure? = null,
     val requestId: String? = null,
-    val negotiatedOperationTypes: Set<OperationType> = emptySet(),
+    val negotiatedOperationTypes: Set<String> = emptySet(),
     val supportsModelSnapshot: Boolean = false,
     val supportsQueryService: Boolean = false,
     val supportsPhasedAction: Boolean = false,
