@@ -17,6 +17,7 @@ import com.zerostudio.tooling.buildgrpc.proto.ShutdownRequest
 import com.zerostudio.tooling.buildgrpc.proto.ShutdownResponse
 import com.zerostudio.tooling.buildgrpc.proto.StartBuildRequest
 import com.zerostudio.tooling.buildgrpc.proto.StreamBuildEventsRequest
+import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -32,6 +33,7 @@ private data class TransferStats(
   val chunkCount: Long,
   val durationMillis: Long,
   val accepted: Boolean,
+  val rejectReason: TransferRejectReason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE,
 )
 
 class BuildSessionGrpcService(
@@ -85,6 +87,7 @@ class BuildSessionGrpcService(
     var transferId = ""
     var receivedBytes = 0L
     var accepted = true
+    var rejectReason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE
     var chunkCount = 0L
     val startedAt = System.currentTimeMillis()
 
@@ -92,13 +95,20 @@ class BuildSessionGrpcService(
       buildId = if (chunk.buildId.isNotBlank()) chunk.buildId else buildId
       transferId = if (chunk.transferId.isNotBlank()) chunk.transferId else transferId
 
-      val sequenceAccepted = transferRegistry.validateUploadChunk(chunk)
-      val acceptedBytes = if (sequenceAccepted) dataStreamStore.append(chunk) else 0
-      if (acceptedBytes == 0 && chunk.payload.size() > 0) {
+      val sequenceReason = transferRegistry.validateUploadChunk(chunk)
+      val appendResult = if (sequenceReason == TransferRejectReason.TRANSFER_REJECT_REASON_NONE) {
+        dataStreamStore.append(chunk)
+      } else {
+        BuildDataStreamStore.AppendResult(0, sequenceReason)
+      }
+      if (appendResult.acceptedBytes == 0 && chunk.payload.size() > 0) {
         accepted = false
+        if (rejectReason == TransferRejectReason.TRANSFER_REJECT_REASON_NONE) {
+          rejectReason = appendResult.reason
+        }
       }
 
-      receivedBytes += acceptedBytes
+      receivedBytes += appendResult.acceptedBytes
       chunkCount += 1
     }
 
@@ -110,6 +120,7 @@ class BuildSessionGrpcService(
         chunkCount = chunkCount,
         durationMillis = System.currentTimeMillis() - startedAt,
         accepted = accepted,
+        rejectReason = rejectReason,
       ),
       totalBytes = receivedBytes,
     )
@@ -118,7 +129,8 @@ class BuildSessionGrpcService(
       .setTransferId(transferId)
       .setAccepted(accepted)
       .setReceivedBytes(receivedBytes)
-      .setMessage(if (accepted) "accepted" else "checksum mismatch or invalid transfer id")
+      .setMessage(if (accepted) "accepted" else rejectReason.name)
+      .setRejectReason(rejectReason)
       .build()
   }
 

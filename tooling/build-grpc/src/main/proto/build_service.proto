@@ -102,6 +102,7 @@ message DataTransferAck {
   bool accepted = 2;
   int64 received_bytes = 3;
   string message = 4;
+  TransferRejectReason reject_reason = 5;
 }
 
 message ContextFrame {
@@ -283,6 +284,15 @@ enum CompressionKind {
   COMPRESSION_KIND_ZSTD = 2;
   COMPRESSION_KIND_GZIP = 3;
   COMPRESSION_KIND_LZ4 = 4;
+}
+
+enum TransferRejectReason {
+  TRANSFER_REJECT_REASON_UNSPECIFIED = 0;
+  TRANSFER_REJECT_REASON_NONE = 1;
+  TRANSFER_REJECT_REASON_MISSING_IDENTITY = 2;
+  TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION = 3;
+  TRANSFER_REJECT_REASON_CHECKSUM_MISMATCH = 4;
+  TRANSFER_REJECT_REASON_DECOMPRESSION_FAILED = 5;
 }
 
 enum SerializationKind {

@@ -25,7 +25,7 @@ class BuildDataStreamStoreTest {
     val accepted = store.append(chunk)
     val readBack = store.read("tx-plain", 0, 0)
 
-    assertEquals(payload.size, accepted)
+    assertEquals(payload.size, accepted.acceptedBytes)
     assertContentEquals(payload, readBack)
   }
 
@@ -43,7 +43,7 @@ class BuildDataStreamStoreTest {
     val accepted = store.append(chunk)
     val readBack = store.read("tx-invalid", 0, 0)
 
-    assertEquals(0, accepted)
+    assertEquals(0, accepted.acceptedBytes)
     assertContentEquals(ByteArray(0), readBack)
   }
 
@@ -63,7 +63,7 @@ class BuildDataStreamStoreTest {
     val accepted = store.append(chunk)
     val readBack = store.read("tx-gzip", 0, 0)
 
-    assertEquals(original.size, accepted)
+    assertEquals(original.size, accepted.acceptedBytes)
     assertContentEquals(original, readBack)
   }
 
