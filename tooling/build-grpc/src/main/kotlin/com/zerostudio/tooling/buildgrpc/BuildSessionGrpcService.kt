@@ -25,6 +25,15 @@ import kotlinx.coroutines.flow.onEach
 /**
  * gRPC service implementation for BuildSessionService.
  */
+private data class TransferStats(
+  val buildId: String,
+  val transferId: String,
+  val transferredBytes: Long,
+  val chunkCount: Long,
+  val durationMillis: Long,
+  val accepted: Boolean,
+)
+
 class BuildSessionGrpcService(
   private val module: BuildGrpcModule,
   private val actionExecutor: BuildActionExecutor = LocalNoopBuildActionExecutor(),
@@ -75,6 +84,8 @@ class BuildSessionGrpcService(
     var transferId = ""
     var receivedBytes = 0L
     var accepted = true
+    var chunkCount = 0L
+    val startedAt = System.currentTimeMillis()
 
     requests.collect { chunk ->
       buildId = if (chunk.buildId.isNotBlank()) chunk.buildId else buildId
@@ -84,12 +95,19 @@ class BuildSessionGrpcService(
         accepted = false
       }
       receivedBytes += acceptedBytes
+      chunkCount += 1
     }
 
     appendTransferEvent(
-      buildId = buildId,
-      transferId = transferId,
-      transferredBytes = receivedBytes,
+      stats = TransferStats(
+        buildId = buildId,
+        transferId = transferId,
+        transferredBytes = receivedBytes,
+        chunkCount = chunkCount,
+        durationMillis = System.currentTimeMillis() - startedAt,
+        accepted = accepted,
+      ),
+      totalBytes = receivedBytes,
     )
 
     return DataTransferAck.newBuilder()
@@ -137,9 +155,14 @@ class BuildSessionGrpcService(
     }
 
     appendTransferEvent(
-      buildId = request.buildId,
-      transferId = request.transferId,
-      transferredBytes = bytes.size.toLong(),
+      stats = TransferStats(
+        buildId = request.buildId,
+        transferId = request.transferId,
+        transferredBytes = bytes.size.toLong(),
+        chunkCount = sequence,
+        durationMillis = 0L,
+        accepted = true,
+      ),
       totalBytes = bytes.size.toLong(),
     )
   }
@@ -153,25 +176,26 @@ class BuildSessionGrpcService(
 
 
   private fun appendTransferEvent(
-    buildId: String,
-    transferId: String,
-    transferredBytes: Long,
-    totalBytes: Long = transferredBytes,
+    stats: TransferStats,
+    totalBytes: Long = stats.transferredBytes,
   ) {
-    if (buildId.isBlank()) {
+    if (stats.buildId.isBlank()) {
       return
     }
 
     val event = BuildEventEnvelope.newBuilder()
-      .setBuildId(buildId)
+      .setBuildId(stats.buildId)
       .setSequence(System.nanoTime())
       .setTimestampMillis(System.currentTimeMillis())
       .setKind(BuildEventKind.BUILD_EVENT_KIND_DATA_TRANSFER)
       .setTransfer(
         DataTransferEvent.newBuilder()
-          .setTransferId(transferId)
+          .setTransferId(stats.transferId)
           .setTotalBytes(totalBytes)
-          .setTransferredBytes(transferredBytes)
+          .setTransferredBytes(stats.transferredBytes)
+          .setChunkCount(stats.chunkCount)
+          .setDurationMillis(stats.durationMillis)
+          .setAccepted(stats.accepted)
           .build(),
       )
       .build()

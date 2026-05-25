@@ -182,6 +182,9 @@ message DataTransferEvent {
   int64 total_bytes = 2;
   int64 transferred_bytes = 3;
   CompressionKind compression = 4;
+  int64 chunk_count = 5;
+  int64 duration_millis = 6;
+  bool accepted = 7;
 }
 
 message TransportPreferences {
