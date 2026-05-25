@@ -37,3 +37,15 @@
 - protobuf gradle plugin + grpc java/kotlin codegen。
 - 额外引入 `proto-google-common-protos` 解决 REAPI 依赖的 `google/api` 与 `google/rpc` imports。
 
+
+## 6. 面向项目模块的定制范围
+- **tooling/**：作为协议定义、执行适配与后端扩展中心。
+- **core/project**：消费初始化、构建计划、事件流，用于项目构建编排。
+- **core/app**：消费构建状态、诊断与进度事件，用于 UI/命令入口。
+
+## 7. 面向未来构建系统扩展
+- 协议层保持统一（BuildSessionService + BuildEventEnvelope）。
+- 执行层通过 Backend SPI 扩展：
+  - 当前：`inprocess`。
+  - 未来：`bazel`、`llvm` 等后端通过同一契约接入。
+- 通过 `build.backend` option 路由具体后端，避免上层模块感知底层差异。

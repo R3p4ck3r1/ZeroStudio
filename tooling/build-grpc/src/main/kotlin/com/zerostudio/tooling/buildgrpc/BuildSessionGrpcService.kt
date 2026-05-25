@@ -41,14 +41,17 @@ class BuildSessionGrpcService(
   }
 
   override suspend fun executeAction(request: ExecuteActionRequest): ExecuteActionResponse {
-    val result = actionExecutor.execute(
-      ActionExecutionRequest(
-        buildId = request.buildId,
-        actionDigest = request.actionDigest,
-        command = request.command.toByteArray(),
-        inputRootDigest = request.inputRootDigest.toByteArray(),
-      ),
+    val actionRequest = ActionExecutionRequest(
+      buildId = request.buildId,
+      actionDigest = request.actionDigest,
+      command = request.command.toByteArray(),
+      inputRootDigest = request.inputRootDigest.toByteArray(),
     )
+
+    val result = when (module) {
+      is RoutingBuildGrpcModule -> module.executeAction(actionRequest)
+      else -> actionExecutor.execute(actionRequest)
+    }
 
     return ExecuteActionResponse.newBuilder()
       .setOperationName(result.operationName)
