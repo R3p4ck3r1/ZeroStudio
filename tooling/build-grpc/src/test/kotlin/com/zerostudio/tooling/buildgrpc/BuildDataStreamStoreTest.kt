@@ -7,6 +7,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import java.io.ByteArrayOutputStream
+import java.nio.file.Files
 import java.util.zip.GZIPOutputStream
 
 class BuildDataStreamStoreTest {
@@ -65,6 +66,26 @@ class BuildDataStreamStoreTest {
 
     assertEquals(original.size, accepted.acceptedBytes)
     assertContentEquals(original, readBack)
+  }
+
+
+  @Test
+  fun `persists payload on disk across store instances`() {
+    val dir = Files.createTempDirectory("build-grpc-store-test")
+    val writer = BuildDataStreamStore(baseDir = dir)
+    val payload = "persist-me".repeat(100).encodeToByteArray()
+    val chunk = DataChunk.newBuilder()
+      .setBuildId("build-1")
+      .setTransferId("tx-persist")
+      .setPayload(ByteString.copyFrom(payload))
+      .setChecksum(BuildDataStreamStore.checksumFor(payload))
+      .build()
+
+    writer.append(chunk)
+
+    val reader = BuildDataStreamStore(baseDir = dir)
+    val readBack = reader.read("tx-persist", 0, 0)
+    assertContentEquals(payload, readBack)
   }
 
   private fun gzip(bytes: ByteArray): ByteArray {

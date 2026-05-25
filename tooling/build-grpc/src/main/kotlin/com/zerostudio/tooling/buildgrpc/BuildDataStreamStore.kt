@@ -5,17 +5,26 @@ import com.zerostudio.tooling.buildgrpc.proto.CompressionKind
 import com.zerostudio.tooling.buildgrpc.proto.DataChunk
 import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
 import java.io.ByteArrayInputStream
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.GZIPInputStream
 
 /**
- * In-memory transfer store used by BuildSessionGrpcService.
+ * Transfer store used by BuildSessionGrpcService.
  *
- * This is a phase-B baseline implementation focusing on text/binary source payload transport.
+ * Phase-B baseline now supports file-backed persistence for large text/binary source payload transport.
  */
-class BuildDataStreamStore {
-  private val store = ConcurrentHashMap<String, ByteArray>()
+class BuildDataStreamStore(
+  private val baseDir: Path = Files.createTempDirectory("build-grpc-transfer-store"),
+) {
+  private val transferFiles = ConcurrentHashMap<String, Path>()
+
+  init {
+    Files.createDirectories(baseDir)
+  }
 
   fun append(chunk: DataChunk): AppendResult {
     if (chunk.transferId.isBlank()) {
@@ -29,24 +38,24 @@ class BuildDataStreamStore {
       return AppendResult(0, TransferRejectReason.TRANSFER_REJECT_REASON_CHECKSUM_MISMATCH)
     }
 
-    val merged = merge(store[chunk.transferId], payload)
-    store[chunk.transferId] = merged
+    val file = transferFiles.computeIfAbsent(chunk.transferId) { transferIdPath(chunk.transferId) }
+    Files.createDirectories(file.parent)
+    Files.write(file, payload, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND)
     return AppendResult(payload.size, TransferRejectReason.TRANSFER_REJECT_REASON_NONE)
   }
 
   fun read(transferId: String, offset: Long, maxBytes: Long): ByteArray {
-    val all = store[transferId] ?: return ByteArray(0)
+    val file = transferFiles[transferId] ?: transferIdPath(transferId)
+    if (!Files.exists(file)) return ByteArray(0)
+    val all = Files.readAllBytes(file)
     val from = offset.coerceAtLeast(0).coerceAtMost(all.size.toLong()).toInt()
     val to = if (maxBytes <= 0) all.size else (from.toLong() + maxBytes).coerceAtMost(all.size.toLong()).toInt()
     return all.copyOfRange(from, to)
   }
 
-  private fun merge(current: ByteArray?, incoming: ByteArray): ByteArray {
-    if (current == null || current.isEmpty()) return incoming
-    return ByteArray(current.size + incoming.size).also { merged ->
-      System.arraycopy(current, 0, merged, 0, current.size)
-      System.arraycopy(incoming, 0, merged, current.size, incoming.size)
-    }
+  private fun transferIdPath(transferId: String): Path {
+    val safe = transferId.replace(Regex("[^A-Za-z0-9._-]"), "_")
+    return baseDir.resolve("$safe.bin")
   }
 
   private fun verifySha256(payload: ByteArray, expected: ByteArray): Boolean {
