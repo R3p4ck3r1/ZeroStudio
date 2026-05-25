@@ -35,3 +35,43 @@ data class BuildExecutionPlan(
   val targets: List<BuildTargetDescriptor>,
   val options: Map<String, String> = emptyMap(),
 )
+
+enum class SerializationCodec {
+  CODEC_UNSPECIFIED,
+  PROTOBUF,
+  FLATBUFFERS,
+  CAPN_PROTO,
+}
+
+enum class TransferCompression {
+  COMPRESSION_UNSPECIFIED,
+  NONE,
+  ZSTD,
+  LZ4,
+  GZIP,
+}
+
+data class ProtocolContext(
+  val workspaceRoot: String,
+  val buildSystemId: String,
+  val buildSystemVersion: String,
+  val executionEnvironment: Map<String, String> = emptyMap(),
+  val requestedCapabilities: Set<String> = emptySet(),
+)
+
+data class ResourceTransferDescriptor(
+  val transferId: String,
+  val resourceUri: String,
+  val totalBytes: Long,
+  val digest: String,
+  val codec: SerializationCodec,
+  val compression: TransferCompression,
+  val chunkSizeBytes: Int,
+)
+
+data class ResourceChunk(
+  val transferId: String,
+  val sequence: Long,
+  val payload: ByteArray,
+  val eof: Boolean,
+)

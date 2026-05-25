@@ -6,12 +6,20 @@ import com.zerostudio.tooling.buildgrpc.proto.BuildSessionServiceGrpcKt
 import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionRequest
 import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionResponse
 import com.zerostudio.tooling.buildgrpc.proto.InitializeRequest
+import com.zerostudio.tooling.buildgrpc.proto.NegotiateContextRequest
+import com.zerostudio.tooling.buildgrpc.proto.NegotiateContextResponse
+import com.zerostudio.tooling.buildgrpc.proto.ResourceChunk
+import com.zerostudio.tooling.buildgrpc.proto.ResourceTransferAck
+import com.zerostudio.tooling.buildgrpc.proto.ResourceTransferRequest
+import com.zerostudio.tooling.buildgrpc.proto.SerializationCodec
+import com.zerostudio.tooling.buildgrpc.proto.TransferCompression
 import com.zerostudio.tooling.buildgrpc.proto.InitializeResponse
 import com.zerostudio.tooling.buildgrpc.proto.ShutdownRequest
 import com.zerostudio.tooling.buildgrpc.proto.ShutdownResponse
 import com.zerostudio.tooling.buildgrpc.proto.StartBuildRequest
 import com.zerostudio.tooling.buildgrpc.proto.StreamBuildEventsRequest
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flow
 
@@ -58,6 +66,60 @@ class BuildSessionGrpcService(
       .setStatus(result.status)
       .setActionResult(ByteString.copyFrom(result.actionResult))
       .build()
+  }
+
+
+
+  override suspend fun negotiateContext(request: NegotiateContextRequest): NegotiateContextResponse {
+    val accepted = request.requestedCapabilitiesList
+      .filter { capability -> capability in module.supportedFeatures() }
+
+    val codec = if (request.preferredCodec != SerializationCodec.SERIALIZATION_CODEC_UNSPECIFIED) {
+      request.preferredCodec
+    } else {
+      SerializationCodec.SERIALIZATION_CODEC_PROTOBUF
+    }
+
+    val compression = if (
+      request.preferredCompression != TransferCompression.TRANSFER_COMPRESSION_UNSPECIFIED
+    ) {
+      request.preferredCompression
+    } else {
+      TransferCompression.TRANSFER_COMPRESSION_ZSTD
+    }
+
+    return NegotiateContextResponse.newBuilder()
+      .addAllAcceptedCapabilities(accepted)
+      .setNegotiatedCodec(codec)
+      .setNegotiatedCompression(compression)
+      .setMaxChunkSizeBytes(1024 * 1024)
+      .build()
+  }
+
+  override suspend fun uploadResource(requests: Flow<ResourceChunk>): ResourceTransferAck {
+    var transferId = ""
+    var count = 0L
+    requests.collect { chunk ->
+      transferId = chunk.transferId
+      count++
+    }
+
+    return ResourceTransferAck.newBuilder()
+      .setTransferId(transferId)
+      .setAccepted(true)
+      .setReceivedChunks(count)
+      .setMessage("Resource stream received by stub transport")
+      .build()
+  }
+
+  override fun downloadResource(request: ResourceTransferRequest): Flow<ResourceChunk> = flow {
+    emit(
+      ResourceChunk.newBuilder()
+        .setTransferId(request.transferId.ifBlank { request.resourceUri })
+        .setSequence(0)
+        .setEof(true)
+        .build(),
+    )
   }
 
   override suspend fun shutdown(request: ShutdownRequest): ShutdownResponse {
