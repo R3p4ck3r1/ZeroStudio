@@ -18,6 +18,8 @@ import com.zerostudio.tooling.buildgrpc.proto.ShutdownResponse
 import com.zerostudio.tooling.buildgrpc.proto.StartBuildRequest
 import com.zerostudio.tooling.buildgrpc.proto.StreamBuildEventsRequest
 import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
+import com.zerostudio.tooling.buildgrpc.proto.CleanupTransferResponse
+import com.zerostudio.tooling.buildgrpc.proto.CleanupTransferRequest
 import com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorResponse
 import com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorRequest
 import kotlinx.coroutines.flow.Flow
@@ -199,6 +201,15 @@ class BuildSessionGrpcService(
       .setTransferId(request.transferId)
       .setNextExpectedSequence(next)
       .setFound(found)
+      .build()
+  }
+
+
+  override suspend fun cleanupTransfer(request: CleanupTransferRequest): CleanupTransferResponse {
+    val removedData = dataStreamStore.remove(request.transferId)
+    val removedCursor = transferRegistry.removeTransfer(request.buildId, request.transferId)
+    return CleanupTransferResponse.newBuilder()
+      .setRemoved(removedData || removedCursor)
       .build()
   }
 

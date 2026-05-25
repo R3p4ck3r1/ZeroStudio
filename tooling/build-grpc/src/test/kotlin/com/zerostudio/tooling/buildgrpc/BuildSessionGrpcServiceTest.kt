@@ -72,6 +72,32 @@ class BuildSessionGrpcServiceTest {
     assertEquals(3, cursor.nextExpectedSequence)
   }
 
+
+  @Test
+  fun `cleanupTransfer removes persisted transfer and cursor`() = runBlocking {
+    val service = BuildSessionGrpcService(module = NoopModule())
+    val payload = "abc".encodeToByteArray()
+
+    service.publishDataStream(flowOf(chunk(seq = 1, payload = payload)))
+
+    val cleaned = service.cleanupTransfer(
+      com.zerostudio.tooling.buildgrpc.proto.CleanupTransferRequest.newBuilder()
+        .setBuildId("build-1")
+        .setTransferId("tx-1")
+        .build(),
+    )
+    val cursor = service.queryTransferCursor(
+      com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorRequest.newBuilder()
+        .setBuildId("build-1")
+        .setTransferId("tx-1")
+        .build(),
+    )
+
+    assertEquals(true, cleaned.removed)
+    assertEquals(false, cursor.found)
+    assertEquals(0, cursor.nextExpectedSequence)
+  }
+
   private fun chunk(seq: Long, payload: ByteArray): DataChunk = DataChunk.newBuilder()
     .setBuildId("build-1")
     .setTransferId("tx-1")

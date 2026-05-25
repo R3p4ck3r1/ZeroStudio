@@ -62,6 +62,12 @@ class BuildTransferRegistry(
   fun hasTransfer(buildId: String, transferId: String): Boolean =
     uploads.containsKey(key(buildId, transferId))
 
+  fun removeTransfer(buildId: String, transferId: String): Boolean {
+    val removed = uploads.remove(key(buildId, transferId)) != null
+    if (removed) persistState()
+    return removed
+  }
+
   private fun key(buildId: String, transferId: String): String = "$buildId::$transferId"
 
   private fun persistState() {

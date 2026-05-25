@@ -20,6 +20,7 @@ service BuildSessionService {
   rpc PublishDataStream(stream DataChunk) returns (DataTransferAck);
   rpc FetchDataStream(FetchDataRequest) returns (stream DataChunk);
   rpc QueryTransferCursor(QueryTransferCursorRequest) returns (QueryTransferCursorResponse);
+  rpc CleanupTransfer(CleanupTransferRequest) returns (CleanupTransferResponse);
   rpc ExchangeContext(stream ContextFrame) returns (stream ContextFrame);
   rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
 }
@@ -108,6 +109,15 @@ message QueryTransferCursorResponse {
   string transfer_id = 2;
   int64 next_expected_sequence = 3;
   bool found = 4;
+}
+
+message CleanupTransferRequest {
+  string build_id = 1;
+  string transfer_id = 2;
+}
+
+message CleanupTransferResponse {
+  bool removed = 1;
 }
 
 message DataTransferAck {

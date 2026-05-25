@@ -44,6 +44,11 @@ class BuildDataStreamStore(
     return AppendResult(payload.size, TransferRejectReason.TRANSFER_REJECT_REASON_NONE)
   }
 
+  fun remove(transferId: String): Boolean {
+    val file = transferFiles.remove(transferId) ?: transferIdPath(transferId)
+    return Files.deleteIfExists(file)
+  }
+
   fun read(transferId: String, offset: Long, maxBytes: Long): ByteArray {
     val file = transferFiles[transferId] ?: transferIdPath(transferId)
     if (!Files.exists(file)) return ByteArray(0)
