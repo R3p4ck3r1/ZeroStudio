@@ -92,7 +92,8 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
                     )
                 )
           } else {
-            GradleProjectModelBuilder(initializationParams).build(rootModule.gradleProject)
+            GradleProjectModelBuilder(initializationParams)
+                .build(GradleProjectModelBuilderParams(controller, rootModule.gradleProject))
           }
 
       val projects = ideaModules.map { ideaModule ->
