@@ -19,19 +19,25 @@ sourceSets {
   main {
     proto {
       srcDir("src/main/proto")
+      include("**/*.proto")
     }
   }
 }
 
 dependencies {
+  api(projects.tooling.api)
+  api(projects.tooling.reapiProto)
+
   api(libs.google.protobuf.java)
   api(libs.google.protobuf.kotlin)
   api(libs.grpc.protobuf)
   api(libs.grpc.stub)
   api(libs.grpc.kotlin.stub)
 
-  implementation(libs.common.jkotlin)
-  implementation(projects.tooling.reapiProto)
+  implementation(libs.grpc.netty.shaded)
+  implementation(libs.kotlinx.coroutines.core)
+
+  protobuf("com.google.api.grpc:proto-google-common-protos:2.62.0")
 
   compileOnly("javax.annotation:javax.annotation-api:1.3.2")
 }

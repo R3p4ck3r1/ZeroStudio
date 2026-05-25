@@ -200,6 +200,7 @@ include(
     ":tooling:plugin",
     ":tooling:plugin-config",
     ":tooling:reapi-proto",
+    ":tooling:build-grpc",
     ":utilities:build-info",
     ":utilities:flashbar",
     ":utilities:framework-stubs",
