@@ -16,8 +16,9 @@ import com.zerostudio.tooling.buildgrpc.proto.ShutdownResponse
 import com.zerostudio.tooling.buildgrpc.proto.StartBuildRequest
 import com.zerostudio.tooling.buildgrpc.proto.StreamBuildEventsRequest
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onEach
 
 /**
  * gRPC service implementation for BuildSessionService.
@@ -26,6 +27,7 @@ class BuildSessionGrpcService(
   private val module: BuildGrpcModule,
   private val actionExecutor: BuildActionExecutor = LocalNoopBuildActionExecutor(),
   private val eventStore: BuildEventStore = BuildEventStore(),
+  private val dataStreamStore: BuildDataStreamStore = BuildDataStreamStore(),
 ) : BuildSessionServiceGrpcKt.BuildSessionServiceCoroutineImplBase() {
 
   override suspend fun initialize(request: InitializeRequest): InitializeResponse {
@@ -67,28 +69,59 @@ class BuildSessionGrpcService(
 
   override suspend fun publishDataStream(requests: Flow<DataChunk>): DataTransferAck {
     var transferId = ""
-    var bytes = 0L
+    var receivedBytes = 0L
+    var accepted = true
+
     requests.collect { chunk ->
       transferId = if (chunk.transferId.isNotBlank()) chunk.transferId else transferId
-      bytes += chunk.payload.size().toLong()
+      val acceptedBytes = dataStreamStore.append(chunk)
+      if (acceptedBytes == 0 && chunk.payload.size() > 0) {
+        accepted = false
+      }
+      receivedBytes += acceptedBytes
     }
 
     return DataTransferAck.newBuilder()
       .setTransferId(transferId)
-      .setAccepted(true)
-      .setReceivedBytes(bytes)
-      .setMessage("accepted")
+      .setAccepted(accepted)
+      .setReceivedBytes(receivedBytes)
+      .setMessage(if (accepted) "accepted" else "checksum mismatch or invalid transfer id")
       .build()
   }
 
   override fun fetchDataStream(request: FetchDataRequest): Flow<DataChunk> = flow {
-    emit(
-      DataChunk.newBuilder()
-        .setTransferId(request.transferId)
-        .setSequence(0)
-        .setEof(true)
-        .build(),
-    )
+    val bytes = dataStreamStore.read(request.transferId, request.offset, request.maxBytes)
+    val chunkSize = 64 * 1024
+    var cursor = 0
+    var sequence = 0L
+
+    if (bytes.isEmpty()) {
+      emit(
+        DataChunk.newBuilder()
+          .setTransferId(request.transferId)
+          .setSequence(sequence)
+          .setEof(true)
+          .build(),
+      )
+      return@flow
+    }
+
+    while (cursor < bytes.size) {
+      val end = (cursor + chunkSize).coerceAtMost(bytes.size)
+      val slice = bytes.copyOfRange(cursor, end)
+      val isEof = end == bytes.size
+      emit(
+        DataChunk.newBuilder()
+          .setTransferId(request.transferId)
+          .setSequence(sequence)
+          .setPayload(ByteString.copyFrom(slice))
+          .setChecksum(BuildDataStreamStore.checksumFor(slice))
+          .setEof(isEof)
+          .build(),
+      )
+      cursor = end
+      sequence += 1
+    }
   }
 
   override fun exchangeContext(requests: Flow<ContextFrame>): Flow<ContextFrame> = requests

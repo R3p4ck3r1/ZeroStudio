@@ -46,3 +46,13 @@
 - Sustained artifact stream throughput > 200MB/s on loopback.
 - Peak process RSS bounded under configurable budget policy.
 - Zero protocol-breaking changes for minor version updates.
+
+
+## 8. Text-First Data Plane Note
+- Source files, compiler diagnostics, patch hunks, and script snippets are predominantly text payloads.
+- The binary channel must optimize text transfer via:
+  - chunked UTF-8 byte streams with checksum validation,
+  - resumable offset-based reads,
+  - optional compression negotiated per transfer,
+  - bounded frame sizing to avoid memory spikes.
+- For very large mono-repos, stream text deltas incrementally instead of materializing full snapshots in memory.
