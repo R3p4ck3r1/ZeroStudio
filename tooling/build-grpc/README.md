@@ -52,6 +52,7 @@
 
 
 ## 8. 构建系统定制方向（Gradle Tooling API / Bazel）
+- 定制 API（替代 legacy tooling/api 的二进制接口）统一放在 `src/main/kotlin/com/zerostudio/tooling/buildgrpc/customapi/`。
 - 会话初始化通过 capability `buildSystem:gradle|bazel` 明确构建系统语义。
 - 路由层按构建系统选择后端实现，而不是按仓库目录名推断。
 - 协议主线保持一致：Initialize -> StartBuild/EventStream -> ExecuteAction -> Shutdown。
