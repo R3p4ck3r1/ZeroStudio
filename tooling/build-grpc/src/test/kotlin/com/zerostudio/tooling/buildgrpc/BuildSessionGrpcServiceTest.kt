@@ -4,6 +4,7 @@ import com.google.protobuf.ByteString
 import com.zerostudio.tooling.buildgrpc.proto.DataChunk
 import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -96,6 +97,27 @@ class BuildSessionGrpcServiceTest {
     assertEquals(true, cleaned.removed)
     assertEquals(false, cursor.found)
     assertEquals(0, cursor.nextExpectedSequence)
+  }
+
+  @Test
+  fun `data transfer event sequence is monotonic per build`() = runBlocking {
+    val store = BuildEventStore()
+    val service = BuildSessionGrpcService(module = NoopModule(), eventStore = store)
+    val payload = "abc".encodeToByteArray()
+
+    service.publishDataStream(flowOf(chunk(seq = 1, payload = payload)))
+    service.publishDataStream(flowOf(chunk(seq = 2, payload = payload)))
+
+    val events = service.streamBuildEvents(
+      com.zerostudio.tooling.buildgrpc.proto.StreamBuildEventsRequest.newBuilder()
+        .setBuildId("build-1")
+        .setFromSequence(0)
+        .build(),
+    ).toList()
+
+    assertEquals(2, events.size)
+    assertEquals(1, events[0].sequence)
+    assertEquals(2, events[1].sequence)
   }
 
   private fun chunk(seq: Long, payload: ByteArray): DataChunk = DataChunk.newBuilder()

@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * gRPC service implementation for BuildSessionService.
@@ -48,6 +50,7 @@ class BuildSessionGrpcService(
   private val contextStateStore: BuildContextStateStore = BuildContextStateStore(),
   private val transferRegistry: BuildTransferRegistry = BuildTransferRegistry(),
 ) : BuildSessionServiceGrpcKt.BuildSessionServiceCoroutineImplBase() {
+  private val buildSequences = ConcurrentHashMap<String, AtomicLong>()
 
   override suspend fun initialize(request: InitializeRequest): InitializeResponse {
     val init = BuildProtocolMapper.toInit(request)
@@ -231,7 +234,7 @@ class BuildSessionGrpcService(
 
     val event = BuildEventEnvelope.newBuilder()
       .setBuildId(stats.buildId)
-      .setSequence(System.nanoTime())
+      .setSequence(nextEventSequence(stats.buildId))
       .setTimestampMillis(System.currentTimeMillis())
       .setKind(BuildEventKind.BUILD_EVENT_KIND_DATA_TRANSFER)
       .setTransfer(
@@ -249,6 +252,9 @@ class BuildSessionGrpcService(
 
     eventStore.append(event)
   }
+
+  private fun nextEventSequence(buildId: String): Long =
+    buildSequences.computeIfAbsent(buildId) { AtomicLong(0L) }.incrementAndGet()
 
   override suspend fun shutdown(request: ShutdownRequest): ShutdownResponse {
     val accepted = module.shutdown(request.reason)

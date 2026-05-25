@@ -1,9 +1,11 @@
 package com.zerostudio.tooling.buildgrpc
 
 import com.google.protobuf.ByteString
+import com.github.luben.zstd.Zstd
 import com.zerostudio.tooling.buildgrpc.proto.CompressionKind
 import com.zerostudio.tooling.buildgrpc.proto.DataChunk
 import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
+import net.jpountz.lz4.LZ4Factory
 import java.io.ByteArrayInputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -74,15 +76,34 @@ class BuildDataStreamStore(
       CompressionKind.COMPRESSION_KIND_UNSPECIFIED,
       CompressionKind.COMPRESSION_KIND_NONE,
       CompressionKind.UNRECOGNIZED,
-      CompressionKind.COMPRESSION_KIND_ZSTD,
-      CompressionKind.COMPRESSION_KIND_LZ4,
       -> payload
+      CompressionKind.COMPRESSION_KIND_ZSTD -> decompressZstd(payload)
+      CompressionKind.COMPRESSION_KIND_LZ4 -> decompressLz4(payload)
       CompressionKind.COMPRESSION_KIND_GZIP -> decompressGzip(payload)
     }
   }
 
   private fun decompressGzip(payload: ByteArray): ByteArray? = try {
     GZIPInputStream(ByteArrayInputStream(payload)).use { it.readBytes() }
+  } catch (_: Throwable) {
+    null
+  }
+
+  private fun decompressZstd(payload: ByteArray): ByteArray? = try {
+    if (!Zstd.isCompressed(payload)) return payload
+    Zstd.decompress(payload, Zstd.decompressedSize(payload).toInt())
+  } catch (_: Throwable) {
+    null
+  }
+
+  private fun decompressLz4(payload: ByteArray): ByteArray? = try {
+    if (payload.size < Int.SIZE_BYTES) return null
+    val originalSize = java.nio.ByteBuffer.wrap(payload, 0, Int.SIZE_BYTES).int
+    if (originalSize < 0) return null
+    val compressed = payload.copyOfRange(Int.SIZE_BYTES, payload.size)
+    val restored = ByteArray(originalSize)
+    LZ4Factory.fastestInstance().safeDecompressor().decompress(compressed, 0, compressed.size, restored, 0)
+    restored
   } catch (_: Throwable) {
     null
   }
