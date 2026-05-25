@@ -12,9 +12,11 @@ class RoutingBuildGrpcModule(
 ) : BuildGrpcModule {
 
   private val backendByBuildId = ConcurrentHashMap<String, BuildBackend>()
+  private var sessionContext: BuildSessionContext? = null
 
   override suspend fun initialize(request: BuildInit): BuildServerInfo {
-    val backend = backendRegistry.default()
+    sessionContext = BuildSessionContextResolver.fromInit(request)
+    val backend = resolveBackendFromContextOrDefault()
     val info = backend.initialize(request)
     return info.copy(
       protocolFeatures = (info.protocolFeatures +
@@ -44,7 +46,12 @@ class RoutingBuildGrpcModule(
     if (hinted != null) {
       return backendRegistry.require(hinted)
     }
-    return backendRegistry.default()
+    return resolveBackendFromContextOrDefault()
+  }
+
+  private fun resolveBackendFromContextOrDefault(): BuildBackend {
+    val hinted = sessionContext?.backendHint
+    return if (hinted.isNullOrBlank()) backendRegistry.default() else backendRegistry.require(hinted)
   }
 
   companion object {

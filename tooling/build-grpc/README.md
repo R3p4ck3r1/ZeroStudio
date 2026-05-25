@@ -38,10 +38,10 @@
 - 额外引入 `proto-google-common-protos` 解决 REAPI 依赖的 `google/api` 与 `google/rpc` imports。
 
 
-## 6. 面向项目模块的定制范围
-- **tooling/**：作为协议定义、执行适配与后端扩展中心。
-- **core/project**：消费初始化、构建计划、事件流，用于项目构建编排。
-- **core/app**：消费构建状态、诊断与进度事件，用于 UI/命令入口。
+## 6. 面向项目源码的定制原则
+- 不把仓库目录名硬编码到协议枚举；调用方通过 capability/caller 元数据声明身份与特性。
+- 协议只约束“能力”和“行为”（初始化、执行、事件流、动作执行），不预设具体模块实现细节。
+- 现有项目内调用方（含 app/tooling 等）与未来调用方复用同一会话模型。
 
 ## 7. 面向未来构建系统扩展
 - 协议层保持统一（BuildSessionService + BuildEventEnvelope）。
