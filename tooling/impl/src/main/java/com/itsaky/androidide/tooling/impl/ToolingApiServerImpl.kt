@@ -131,8 +131,8 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
           supportsPhasedBuildAction = SERVER_SUPPORTS_PHASED_ACTION,
           supportsModelSnapshot = SERVER_SUPPORTS_MODEL_SNAPSHOT,
           supportsQueryService = SERVER_SUPPORTS_QUERY_SERVICE,
-          supportedOperationTypes = Main.progressUpdateTypes(),
-          negotiatedOperationTypes = negotiatedOperationTypes,
+          supportedOperationTypes = Main.progressUpdateTypes().map { it.name }.toSet(),
+          negotiatedOperationTypes = negotiatedOperationTypes.map { it.name }.toSet(),
           maxProgressEventsPerSecond =
               Main.maxProgressEventsPerSecond.takeIf { it != Int.MAX_VALUE },
       )
