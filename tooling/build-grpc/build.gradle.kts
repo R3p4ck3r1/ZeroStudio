@@ -25,6 +25,7 @@ sourceSets {
 }
 
 dependencies {
+  api(projects.tooling.api)
   api(projects.tooling.reapiProto)
 
   api(libs.google.protobuf.java)
