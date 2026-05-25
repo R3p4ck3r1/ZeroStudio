@@ -3,8 +3,10 @@ package com.zerostudio.tooling.buildgrpc
 import com.google.protobuf.ByteString
 import com.zerostudio.tooling.buildgrpc.proto.CompressionKind
 import com.zerostudio.tooling.buildgrpc.proto.DataChunk
+import java.io.ByteArrayInputStream
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.GZIPInputStream
 
 /**
  * In-memory transfer store used by BuildSessionGrpcService.
@@ -19,7 +21,7 @@ class BuildDataStreamStore {
       return 0
     }
 
-    val payload = decompressIfRequired(chunk)
+    val payload = decompressIfRequired(chunk) ?: return 0
     if (chunk.checksum.size() > 0 && !verifySha256(payload, chunk.checksum.toByteArray())) {
       return 0
     }
@@ -55,7 +57,7 @@ class BuildDataStreamStore {
     return digest.contentEquals(expected)
   }
 
-  private fun decompressIfRequired(chunk: DataChunk): ByteArray {
+  private fun decompressIfRequired(chunk: DataChunk): ByteArray? {
     val payload = chunk.payload.toByteArray()
     return when (chunk.compression) {
       CompressionKind.COMPRESSION_KIND_UNSPECIFIED,
@@ -63,9 +65,16 @@ class BuildDataStreamStore {
       CompressionKind.UNRECOGNIZED,
       CompressionKind.COMPRESSION_KIND_ZSTD,
       CompressionKind.COMPRESSION_KIND_LZ4,
-      CompressionKind.COMPRESSION_KIND_GZIP,
       -> payload
+
+      CompressionKind.COMPRESSION_KIND_GZIP -> decompressGzip(payload)
     }
+  }
+
+  private fun decompressGzip(payload: ByteArray): ByteArray? = try {
+    GZIPInputStream(ByteArrayInputStream(payload)).use { it.readBytes() }
+  } catch (_: Throwable) {
+    null
   }
 
   companion object {
