@@ -186,6 +186,7 @@ message DataTransferEvent {
   int64 chunk_count = 5;
   int64 duration_millis = 6;
   bool accepted = 7;
+  TransferRejectReason reject_reason = 8;
 }
 
 message TransportPreferences {

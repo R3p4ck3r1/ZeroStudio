@@ -179,6 +179,7 @@ class BuildSessionGrpcService(
         chunkCount = sequence,
         durationMillis = System.currentTimeMillis() - startedAt,
         accepted = true,
+        rejectReason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE,
       ),
       totalBytes = bytes.size.toLong(),
     )
@@ -213,6 +214,7 @@ class BuildSessionGrpcService(
           .setChunkCount(stats.chunkCount)
           .setDurationMillis(stats.durationMillis)
           .setAccepted(stats.accepted)
+          .setRejectReason(stats.rejectReason)
           .build(),
       )
       .build()
