@@ -3,10 +3,12 @@ package com.zerostudio.tooling.buildgrpc
 import com.google.protobuf.ByteString
 import com.zerostudio.tooling.buildgrpc.proto.BuildEventEnvelope
 import com.zerostudio.tooling.buildgrpc.proto.BuildEventKind
+import com.zerostudio.tooling.buildgrpc.proto.ArtifactKind
 import com.zerostudio.tooling.buildgrpc.proto.DataTransferEvent
 import com.zerostudio.tooling.buildgrpc.proto.ContextFrame
 import com.zerostudio.tooling.buildgrpc.proto.DataChunk
 import com.zerostudio.tooling.buildgrpc.proto.DataTransferAck
+import com.zerostudio.tooling.buildgrpc.proto.CompressionKind
 import com.zerostudio.tooling.buildgrpc.proto.FetchDataRequest
 import com.zerostudio.tooling.buildgrpc.proto.BuildSessionServiceGrpcKt
 import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionRequest
@@ -35,6 +37,8 @@ import java.util.concurrent.atomic.AtomicLong
 private data class TransferStats(
   val buildId: String,
   val transferId: String,
+  val contentType: String,
+  val compression: CompressionKind,
   val transferredBytes: Long,
   val chunkCount: Long,
   val durationMillis: Long,
@@ -97,11 +101,17 @@ class BuildSessionGrpcService(
     var rejectReason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE
     var chunkCount = 0L
     var nextExpectedSequence = 0L
+    var contentType = ""
+    var compression = CompressionKind.COMPRESSION_KIND_UNSPECIFIED
     val startedAt = System.currentTimeMillis()
 
     requests.collect { chunk ->
       buildId = if (chunk.buildId.isNotBlank()) chunk.buildId else buildId
       transferId = if (chunk.transferId.isNotBlank()) chunk.transferId else transferId
+      contentType = if (chunk.contentType.isNotBlank()) chunk.contentType else contentType
+      if (chunk.compression != CompressionKind.COMPRESSION_KIND_UNSPECIFIED) {
+        compression = chunk.compression
+      }
 
       val validation = transferRegistry.validateUploadChunk(chunk)
       nextExpectedSequence = validation.nextExpectedSequence
@@ -125,6 +135,8 @@ class BuildSessionGrpcService(
       stats = TransferStats(
         buildId = buildId,
         transferId = transferId,
+        contentType = contentType,
+        compression = compression,
         transferredBytes = receivedBytes,
         chunkCount = chunkCount,
         durationMillis = System.currentTimeMillis() - startedAt,
@@ -185,6 +197,8 @@ class BuildSessionGrpcService(
       stats = TransferStats(
         buildId = request.buildId,
         transferId = request.transferId,
+        contentType = "",
+        compression = CompressionKind.COMPRESSION_KIND_NONE,
         transferredBytes = bytes.size.toLong(),
         chunkCount = sequence,
         durationMillis = System.currentTimeMillis() - startedAt,
@@ -246,6 +260,8 @@ class BuildSessionGrpcService(
           .setDurationMillis(stats.durationMillis)
           .setAccepted(stats.accepted)
           .setRejectReason(stats.rejectReason)
+          .setCompression(stats.compression)
+          .setArtifactKind(inferArtifactKind(stats.transferId, stats.contentType))
           .build(),
       )
       .build()
@@ -255,6 +271,25 @@ class BuildSessionGrpcService(
 
   private fun nextEventSequence(buildId: String): Long =
     buildSequences.computeIfAbsent(buildId) { AtomicLong(0L) }.incrementAndGet()
+
+  private fun inferArtifactKind(transferId: String, contentType: String): ArtifactKind {
+    val id = transferId.lowercase()
+    val type = contentType.lowercase()
+    return when {
+      id.endsWith(".jar") -> ArtifactKind.ARTIFACT_KIND_JAR
+      id.endsWith(".aar") -> ArtifactKind.ARTIFACT_KIND_AAR
+      id.endsWith(".zip") -> ArtifactKind.ARTIFACT_KIND_ZIP
+      id.endsWith(".tar.gz") || id.endsWith(".tgz") -> ArtifactKind.ARTIFACT_KIND_TAR_GZ
+      id.endsWith(".desc") || id.endsWith(".pb") -> ArtifactKind.ARTIFACT_KIND_PROTO_DESCRIPTOR
+      id.endsWith(".log") || type.contains("text/plain") -> ArtifactKind.ARTIFACT_KIND_BUILD_LOG
+      id.endsWith(".kt") || id.endsWith(".java") || id.endsWith(".scala") || id.endsWith(".cpp") ||
+        id.endsWith(".c") || id.endsWith(".h") || id.endsWith(".py") || id.endsWith(".rs") ||
+        type.contains("text/") -> ArtifactKind.ARTIFACT_KIND_SOURCE_TEXT
+      type.contains("application/vnd.build.remote-cache") || id.contains("/cas/") ->
+        ArtifactKind.ARTIFACT_KIND_REMOTE_CACHE_BLOB
+      else -> ArtifactKind.ARTIFACT_KIND_UNSPECIFIED
+    }
+  }
 
   override suspend fun shutdown(request: ShutdownRequest): ShutdownResponse {
     val accepted = module.shutdown(request.reason)

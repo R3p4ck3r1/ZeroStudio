@@ -1,6 +1,8 @@
 package com.zerostudio.tooling.buildgrpc
 
 import com.google.protobuf.ByteString
+import com.zerostudio.tooling.buildgrpc.proto.ArtifactKind
+import com.zerostudio.tooling.buildgrpc.proto.CompressionKind
 import com.zerostudio.tooling.buildgrpc.proto.DataChunk
 import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
 import kotlinx.coroutines.flow.flowOf
@@ -118,6 +120,36 @@ class BuildSessionGrpcServiceTest {
     assertEquals(2, events.size)
     assertEquals(1, events[0].sequence)
     assertEquals(2, events[1].sequence)
+  }
+
+  @Test
+  fun `data transfer event infers artifact kind for jar-like payload`() = runBlocking {
+    val service = BuildSessionGrpcService(module = NoopModule())
+    val payload = "PK\u0003\u0004jar-content".encodeToByteArray()
+    service.publishDataStream(
+      flowOf(
+        DataChunk.newBuilder()
+          .setBuildId("build-jar")
+          .setTransferId("libs/app.jar")
+          .setSequence(1)
+          .setCompression(CompressionKind.COMPRESSION_KIND_NONE)
+          .setContentType("application/java-archive")
+          .setPayload(ByteString.copyFrom(payload))
+          .setChecksum(BuildDataStreamStore.checksumFor(payload))
+          .build(),
+      ),
+    )
+
+    val events = service.streamBuildEvents(
+      com.zerostudio.tooling.buildgrpc.proto.StreamBuildEventsRequest.newBuilder()
+        .setBuildId("build-jar")
+        .setFromSequence(0)
+        .build(),
+    ).toList()
+
+    assertEquals(1, events.size)
+    assertEquals(ArtifactKind.ARTIFACT_KIND_JAR, events.first().transfer.artifactKind)
+    assertEquals(CompressionKind.COMPRESSION_KIND_NONE, events.first().transfer.compression)
   }
 
   private fun chunk(seq: Long, payload: ByteArray): DataChunk = DataChunk.newBuilder()

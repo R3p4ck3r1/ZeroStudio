@@ -211,6 +211,7 @@ message DataTransferEvent {
   int64 duration_millis = 6;
   bool accepted = 7;
   TransferRejectReason reject_reason = 8;
+  ArtifactKind artifact_kind = 9;
 }
 
 message TransportPreferences {
@@ -325,4 +326,16 @@ enum SerializationKind {
   SERIALIZATION_KIND_PROTOBUF_BINARY = 1;
   SERIALIZATION_KIND_FLATBUFFERS = 2;
   SERIALIZATION_KIND_CAPNPROTO = 3;
+}
+
+enum ArtifactKind {
+  ARTIFACT_KIND_UNSPECIFIED = 0;
+  ARTIFACT_KIND_SOURCE_TEXT = 1;
+  ARTIFACT_KIND_BUILD_LOG = 2;
+  ARTIFACT_KIND_JAR = 3;
+  ARTIFACT_KIND_AAR = 4;
+  ARTIFACT_KIND_ZIP = 5;
+  ARTIFACT_KIND_TAR_GZ = 6;
+  ARTIFACT_KIND_PROTO_DESCRIPTOR = 7;
+  ARTIFACT_KIND_REMOTE_CACHE_BLOB = 8;
 }
