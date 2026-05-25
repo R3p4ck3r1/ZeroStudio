@@ -25,6 +25,7 @@ class BuildSessionGrpcServiceTest {
 
     assertFalse(ack.accepted)
     assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION, ack.rejectReason)
+    assertEquals(2, ack.nextExpectedSequence)
   }
 
   @Test
@@ -44,6 +45,7 @@ class BuildSessionGrpcServiceTest {
 
     assertFalse(ack.accepted)
     assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_CHECKSUM_MISMATCH, ack.rejectReason)
+    assertEquals(2, ack.nextExpectedSequence)
   }
 
   private fun chunk(seq: Long, payload: ByteArray): DataChunk = DataChunk.newBuilder()

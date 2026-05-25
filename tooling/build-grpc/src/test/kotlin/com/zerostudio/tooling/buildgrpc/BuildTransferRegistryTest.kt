@@ -9,17 +9,17 @@ class BuildTransferRegistryTest {
   @Test
   fun `accepts strictly increasing chunk sequence`() {
     val registry = BuildTransferRegistry()
-    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_NONE, registry.validateUploadChunk(chunk(1)))
-    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_NONE, registry.validateUploadChunk(chunk(2)))
-    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_NONE, registry.validateUploadChunk(chunk(3)))
+    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_NONE, registry.validateUploadChunk(chunk(1)).reason)
+    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_NONE, registry.validateUploadChunk(chunk(2)).reason)
+    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_NONE, registry.validateUploadChunk(chunk(3)).reason)
   }
 
   @Test
   fun `rejects duplicate or decreasing sequence`() {
     val registry = BuildTransferRegistry()
-    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_NONE, registry.validateUploadChunk(chunk(2)))
-    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION, registry.validateUploadChunk(chunk(2)))
-    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION, registry.validateUploadChunk(chunk(1)))
+    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_NONE, registry.validateUploadChunk(chunk(2)).reason)
+    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION, registry.validateUploadChunk(chunk(2)).reason)
+    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION, registry.validateUploadChunk(chunk(1)).reason)
   }
 
   @Test
@@ -27,8 +27,16 @@ class BuildTransferRegistryTest {
     val registry = BuildTransferRegistry()
     val missingBuild = DataChunk.newBuilder().setTransferId("t").setSequence(1).build()
     val missingTransfer = DataChunk.newBuilder().setBuildId("b").setSequence(1).build()
-    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_MISSING_IDENTITY, registry.validateUploadChunk(missingBuild))
-    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_MISSING_IDENTITY, registry.validateUploadChunk(missingTransfer))
+    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_MISSING_IDENTITY, registry.validateUploadChunk(missingBuild).reason)
+    assertEquals(TransferRejectReason.TRANSFER_REJECT_REASON_MISSING_IDENTITY, registry.validateUploadChunk(missingTransfer).reason)
+  }
+
+  @Test
+  fun `reports next expected sequence for resume`() {
+    val registry = BuildTransferRegistry()
+    registry.validateUploadChunk(chunk(1))
+    registry.validateUploadChunk(chunk(2))
+    assertEquals(3, registry.nextExpectedSequence("build-1", "transfer-1"))
   }
 
   private fun chunk(seq: Long): DataChunk = DataChunk.newBuilder()

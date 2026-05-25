@@ -10,9 +10,12 @@ import java.util.concurrent.ConcurrentHashMap
 class BuildTransferRegistry {
   private val uploads = ConcurrentHashMap<String, UploadState>()
 
-  fun validateUploadChunk(chunk: DataChunk): TransferRejectReason {
+  fun validateUploadChunk(chunk: DataChunk): ValidationResult {
     if (chunk.buildId.isBlank() || chunk.transferId.isBlank()) {
-      return TransferRejectReason.TRANSFER_REJECT_REASON_MISSING_IDENTITY
+      return ValidationResult(
+        reason = TransferRejectReason.TRANSFER_REJECT_REASON_MISSING_IDENTITY,
+        nextExpectedSequence = 0,
+      )
     }
 
     val key = key(chunk.buildId, chunk.transferId)
@@ -21,15 +24,29 @@ class BuildTransferRegistry {
     }
 
     if (state.buildId != chunk.buildId || state.transferId != chunk.transferId) {
-      return TransferRejectReason.TRANSFER_REJECT_REASON_MISSING_IDENTITY
+      return ValidationResult(
+        reason = TransferRejectReason.TRANSFER_REJECT_REASON_MISSING_IDENTITY,
+        nextExpectedSequence = state.lastSequence + 1,
+      )
     }
 
     if (chunk.sequence < 0 || chunk.sequence <= state.lastSequence) {
-      return TransferRejectReason.TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION
+      return ValidationResult(
+        reason = TransferRejectReason.TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION,
+        nextExpectedSequence = state.lastSequence + 1,
+      )
     }
 
     state.lastSequence = chunk.sequence
-    return TransferRejectReason.TRANSFER_REJECT_REASON_NONE
+    return ValidationResult(
+      reason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE,
+      nextExpectedSequence = state.lastSequence + 1,
+    )
+  }
+
+  fun nextExpectedSequence(buildId: String, transferId: String): Long {
+    val state = uploads[key(buildId, transferId)] ?: return 0
+    return state.lastSequence + 1
   }
 
   private fun key(buildId: String, transferId: String): String = "$buildId::$transferId"
@@ -38,5 +55,10 @@ class BuildTransferRegistry {
     val buildId: String,
     val transferId: String,
     @Volatile var lastSequence: Long,
+  )
+
+  data class ValidationResult(
+    val reason: TransferRejectReason,
+    val nextExpectedSequence: Long,
   )
 }

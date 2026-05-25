@@ -89,17 +89,19 @@ class BuildSessionGrpcService(
     var accepted = true
     var rejectReason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE
     var chunkCount = 0L
+    var nextExpectedSequence = 0L
     val startedAt = System.currentTimeMillis()
 
     requests.collect { chunk ->
       buildId = if (chunk.buildId.isNotBlank()) chunk.buildId else buildId
       transferId = if (chunk.transferId.isNotBlank()) chunk.transferId else transferId
 
-      val sequenceReason = transferRegistry.validateUploadChunk(chunk)
-      val appendResult = if (sequenceReason == TransferRejectReason.TRANSFER_REJECT_REASON_NONE) {
+      val validation = transferRegistry.validateUploadChunk(chunk)
+      nextExpectedSequence = validation.nextExpectedSequence
+      val appendResult = if (validation.reason == TransferRejectReason.TRANSFER_REJECT_REASON_NONE) {
         dataStreamStore.append(chunk)
       } else {
-        BuildDataStreamStore.AppendResult(0, sequenceReason)
+        BuildDataStreamStore.AppendResult(0, validation.reason)
       }
       if (appendResult.acceptedBytes == 0 && chunk.payload.size() > 0) {
         accepted = false
@@ -131,6 +133,7 @@ class BuildSessionGrpcService(
       .setReceivedBytes(receivedBytes)
       .setMessage(if (accepted) "accepted" else rejectReason.name)
       .setRejectReason(rejectReason)
+      .setNextExpectedSequence(nextExpectedSequence)
       .build()
   }
 

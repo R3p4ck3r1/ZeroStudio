@@ -103,6 +103,7 @@ message DataTransferAck {
   int64 received_bytes = 3;
   string message = 4;
   TransferRejectReason reject_reason = 5;
+  int64 next_expected_sequence = 6;
 }
 
 message ContextFrame {
