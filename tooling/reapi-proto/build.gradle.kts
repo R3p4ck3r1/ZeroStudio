@@ -15,13 +15,13 @@ kotlin {
   jvmToolchain(17)
 }
 
-val reapiProtoRoot = layout.projectDirectory.dir("../reapi/build/bazel")
+val reapiProtoRoot = layout.projectDirectory.dir("../reapi")
 
 sourceSets {
   main {
     proto {
       srcDir(reapiProtoRoot)
-      include("**/*.proto")
+      include("build/bazel/**/*.proto")
     }
   }
 }

@@ -10,13 +10,12 @@
 package com.itsaky.androidide.tooling.api.messages
 
 import java.io.Serializable
-import org.gradle.tooling.events.OperationType
 
 /**
  * Optional capabilities/preferences sent by tooling client during initialization.
  */
 data class ToolingClientCapabilities(
-    val requestedOperationTypes: Set<OperationType> = emptySet(),
+    val requestedOperationTypes: Set<String> = emptySet(),
     val maxEventsPerSecond: Int? = null,
     val preferLightweightSync: Boolean = false,
     val requestModelSnapshotSupport: Boolean = false,

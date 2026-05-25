@@ -17,8 +17,6 @@
 
 package com.itsaky.androidide.tooling.api.models
 
-import org.gradle.tooling.events.OperationType
-
 /**
  * Metadata about the tooling server.
  *
@@ -31,7 +29,7 @@ data class ToolingServerMetadata(
     val supportsPhasedBuildAction: Boolean = true,
     val supportsModelSnapshot: Boolean = false,
     val supportsQueryService: Boolean = false,
-    val supportedOperationTypes: Set<OperationType> = emptySet(),
-    val negotiatedOperationTypes: Set<OperationType> = emptySet(),
+    val supportedOperationTypes: Set<String> = emptySet(),
+    val negotiatedOperationTypes: Set<String> = emptySet(),
     val maxProgressEventsPerSecond: Int? = null,
 )
