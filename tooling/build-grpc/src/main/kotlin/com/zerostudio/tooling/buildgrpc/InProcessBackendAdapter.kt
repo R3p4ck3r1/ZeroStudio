@@ -9,7 +9,8 @@ import kotlinx.coroutines.flow.Flow
 class InProcessBackendAdapter(
   private val module: InProcessBuildGrpcModule,
   private val actionExecutor: BuildActionExecutor = LocalNoopBuildActionExecutor(),
-  override val backendId: String = "inprocess",
+  override val backendId: String = "gradle-inprocess",
+  override val buildSystem: BuildSystem = BuildSystem.GRADLE,
 ) : BuildBackend {
 
   override suspend fun initialize(request: BuildInit): BuildServerInfo = module.initialize(request)

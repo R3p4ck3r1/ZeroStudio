@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * High-level orchestrator that routes builds to pluggable backends.
+ * Orchestrator that routes requests to Gradle/Bazel specific backends.
  */
 class RoutingBuildGrpcModule(
   private val backendRegistry: BuildBackendRegistry,
@@ -16,11 +16,13 @@ class RoutingBuildGrpcModule(
 
   override suspend fun initialize(request: BuildInit): BuildServerInfo {
     sessionContext = BuildSessionContextResolver.fromInit(request)
-    val backend = resolveBackendFromContextOrDefault()
+    val backend = resolveContextBackend()
     val info = backend.initialize(request)
     return info.copy(
-      protocolFeatures = (info.protocolFeatures +
-        listOf("routing.backends:${backendRegistry.ids().sorted().joinToString(",")}")).distinct(),
+      protocolFeatures = (info.protocolFeatures + listOf(
+        "buildSystem:${sessionContext!!.buildSystem.name.lowercase()}",
+        "routing.backends:${backendRegistry.ids().sorted().joinToString(",")}",
+      )).distinct(),
     )
   }
 
@@ -33,25 +35,26 @@ class RoutingBuildGrpcModule(
   override suspend fun shutdown(reason: String): Boolean {
     val grouped = backendByBuildId.values.toSet()
     backendByBuildId.clear()
+    sessionContext = null
     return grouped.all { it.shutdown(reason) }
   }
 
   suspend fun executeAction(request: ActionExecutionRequest): ActionExecutionResult {
-    val backend = backendByBuildId[request.buildId] ?: backendRegistry.default()
+    val backend = backendByBuildId[request.buildId] ?: resolveContextBackend()
     return backend.executeAction(request)
   }
 
   private fun selectBackend(request: BuildStart): BuildBackend {
-    val hinted = request.options[BACKEND_OPTION_KEY]
-    if (hinted != null) {
-      return backendRegistry.require(hinted)
+    val explicitBackendId = request.options[BACKEND_OPTION_KEY]
+    if (!explicitBackendId.isNullOrBlank()) {
+      return backendRegistry.requireById(explicitBackendId)
     }
-    return resolveBackendFromContextOrDefault()
+    return resolveContextBackend()
   }
 
-  private fun resolveBackendFromContextOrDefault(): BuildBackend {
-    val hinted = sessionContext?.backendHint
-    return if (hinted.isNullOrBlank()) backendRegistry.default() else backendRegistry.require(hinted)
+  private fun resolveContextBackend(): BuildBackend {
+    val context = sessionContext ?: error("Build session is not initialized")
+    return backendRegistry.requireByBuildSystem(context.buildSystem)
   }
 
   companion object {

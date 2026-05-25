@@ -49,3 +49,10 @@
   - 当前：`inprocess`。
   - 未来：`bazel`、`llvm` 等后端通过同一契约接入。
 - 通过 `build.backend` option 路由具体后端，避免上层模块感知底层差异。
+
+
+## 8. 构建系统定制方向（Gradle Tooling API / Bazel）
+- 会话初始化通过 capability `buildSystem:gradle|bazel` 明确构建系统语义。
+- 路由层按构建系统选择后端实现，而不是按仓库目录名推断。
+- 协议主线保持一致：Initialize -> StartBuild/EventStream -> ExecuteAction -> Shutdown。
+- Gradle 后端优先对接现有 Tooling API 服务链路；Bazel 后端按同一 SPI 接入。

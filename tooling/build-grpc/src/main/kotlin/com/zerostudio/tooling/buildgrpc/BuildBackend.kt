@@ -4,11 +4,11 @@ import com.zerostudio.tooling.buildgrpc.proto.BuildEventEnvelope
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Extensible backend SPI for multi-build-system support (Gradle/Bazel/LLVM/...)
- * while keeping one unified build-grpc protocol surface.
+ * Extensible backend SPI for build-system-specific execution.
  */
 interface BuildBackend {
   val backendId: String
+  val buildSystem: BuildSystem
 
   suspend fun initialize(request: BuildInit): BuildServerInfo
 
@@ -23,12 +23,13 @@ class BuildBackendRegistry(
   backends: List<BuildBackend>,
 ) {
   private val byId: Map<String, BuildBackend> = backends.associateBy { it.backendId }
+  private val byBuildSystem: Map<BuildSystem, BuildBackend> = backends.associateBy { it.buildSystem }
 
-  fun require(backendId: String): BuildBackend =
+  fun requireById(backendId: String): BuildBackend =
     byId[backendId] ?: error("Unknown build backend: $backendId")
 
-  fun default(): BuildBackend = byId.values.firstOrNull()
-    ?: error("No build backend registered")
+  fun requireByBuildSystem(buildSystem: BuildSystem): BuildBackend =
+    byBuildSystem[buildSystem] ?: error("No backend registered for build system: $buildSystem")
 
   fun ids(): Set<String> = byId.keys
 }

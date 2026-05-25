@@ -1,54 +1,45 @@
 package com.zerostudio.tooling.buildgrpc
 
 /**
- * Build service consumer scope.
+ * Supported build systems for this binary protocol.
  *
- * Scope is intentionally capability-based (not hard-coded to repository module paths),
- * so protocol can serve current project internals and future external integrations.
+ * This protocol is specialized for Gradle Tooling API and Bazel integrations,
+ * while preserving extension points for future systems.
  */
-enum class BuildServiceScope {
-  /** Internal IDE/runtime callers. */
-  INTERNAL,
-
-  /** External or third-party caller. */
-  EXTERNAL,
+enum class BuildSystem {
+  GRADLE,
+  BAZEL,
 }
 
 data class BuildSessionContext(
-  val scope: BuildServiceScope,
-  /** Logical caller id, e.g. package/class/component identifier. */
+  val buildSystem: BuildSystem,
+  /** Logical caller id (component/module/service name). */
   val callerId: String,
   val workspaceRoot: String,
-  val backendHint: String? = null,
   val featureFlags: Set<String> = emptySet(),
 )
 
 object BuildSessionContextResolver {
-  private const val CAP_INTERNAL = "scope:internal"
-  private const val CAP_EXTERNAL = "scope:external"
+  private const val CAP_BUILDSYSTEM_GRADLE = "buildSystem:gradle"
+  private const val CAP_BUILDSYSTEM_BAZEL = "buildSystem:bazel"
   private const val CAP_CALLER_PREFIX = "caller:"
-  private const val CAP_BACKEND_PREFIX = "backend:"
 
   fun fromInit(request: BuildInit): BuildSessionContext {
     val caps = request.capabilities.toSet()
-    val scope = when {
-      CAP_EXTERNAL in caps -> BuildServiceScope.EXTERNAL
-      else -> BuildServiceScope.INTERNAL
+    val buildSystem = when {
+      CAP_BUILDSYSTEM_BAZEL in caps -> BuildSystem.BAZEL
+      else -> BuildSystem.GRADLE
     }
     val callerId = caps.firstOrNull { it.startsWith(CAP_CALLER_PREFIX) }
       ?.removePrefix(CAP_CALLER_PREFIX)
       ?.ifBlank { "unknown" }
       ?: "unknown"
-    val backendHint = caps.firstOrNull { it.startsWith(CAP_BACKEND_PREFIX) }
-      ?.removePrefix(CAP_BACKEND_PREFIX)
-      ?.ifBlank { null }
 
     return BuildSessionContext(
-      scope = scope,
+      buildSystem = buildSystem,
       callerId = callerId,
       workspaceRoot = request.workspaceRoot,
-      backendHint = backendHint,
-      featureFlags = caps - CAP_INTERNAL - CAP_EXTERNAL,
+      featureFlags = caps - CAP_BUILDSYSTEM_GRADLE - CAP_BUILDSYSTEM_BAZEL,
     )
   }
 }
