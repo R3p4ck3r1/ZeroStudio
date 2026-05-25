@@ -2,6 +2,8 @@ package com.zerostudio.tooling.buildgrpc
 
 import com.google.protobuf.ByteString
 import com.zerostudio.tooling.buildgrpc.proto.BuildEventEnvelope
+import com.zerostudio.tooling.buildgrpc.proto.BuildEventKind
+import com.zerostudio.tooling.buildgrpc.proto.DataTransferEvent
 import com.zerostudio.tooling.buildgrpc.proto.ContextFrame
 import com.zerostudio.tooling.buildgrpc.proto.DataChunk
 import com.zerostudio.tooling.buildgrpc.proto.DataTransferAck
@@ -28,6 +30,7 @@ class BuildSessionGrpcService(
   private val actionExecutor: BuildActionExecutor = LocalNoopBuildActionExecutor(),
   private val eventStore: BuildEventStore = BuildEventStore(),
   private val dataStreamStore: BuildDataStreamStore = BuildDataStreamStore(),
+  private val contextStateStore: BuildContextStateStore = BuildContextStateStore(),
 ) : BuildSessionServiceGrpcKt.BuildSessionServiceCoroutineImplBase() {
 
   override suspend fun initialize(request: InitializeRequest): InitializeResponse {
@@ -81,6 +84,12 @@ class BuildSessionGrpcService(
       receivedBytes += acceptedBytes
     }
 
+    appendTransferEvent(
+      buildId = transferId.substringBefore('#', missingDelimiterValue = ""),
+      transferId = transferId,
+      transferredBytes = receivedBytes,
+    )
+
     return DataTransferAck.newBuilder()
       .setTransferId(transferId)
       .setAccepted(accepted)
@@ -122,9 +131,49 @@ class BuildSessionGrpcService(
       cursor = end
       sequence += 1
     }
+
+    appendTransferEvent(
+      buildId = request.transferId.substringBefore('#', missingDelimiterValue = ""),
+      transferId = request.transferId,
+      transferredBytes = bytes.size.toLong(),
+      totalBytes = bytes.size.toLong(),
+    )
   }
 
-  override fun exchangeContext(requests: Flow<ContextFrame>): Flow<ContextFrame> = requests
+  override fun exchangeContext(requests: Flow<ContextFrame>): Flow<ContextFrame> = flow {
+    requests.collect { frame ->
+      contextStateStore.update(frame)
+      emit(frame)
+    }
+  }
+
+
+  private fun appendTransferEvent(
+    buildId: String,
+    transferId: String,
+    transferredBytes: Long,
+    totalBytes: Long = transferredBytes,
+  ) {
+    if (buildId.isBlank()) {
+      return
+    }
+
+    val event = BuildEventEnvelope.newBuilder()
+      .setBuildId(buildId)
+      .setSequence(System.nanoTime())
+      .setTimestampMillis(System.currentTimeMillis())
+      .setKind(BuildEventKind.BUILD_EVENT_KIND_DATA_TRANSFER)
+      .setTransfer(
+        DataTransferEvent.newBuilder()
+          .setTransferId(transferId)
+          .setTotalBytes(totalBytes)
+          .setTransferredBytes(transferredBytes)
+          .build(),
+      )
+      .build()
+
+    eventStore.append(event)
+  }
 
   override suspend fun shutdown(request: ShutdownRequest): ShutdownResponse {
     val accepted = module.shutdown(request.reason)
