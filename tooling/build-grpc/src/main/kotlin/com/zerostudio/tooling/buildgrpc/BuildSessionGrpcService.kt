@@ -161,7 +161,7 @@ class BuildSessionGrpcService(
     val bytes = dataStreamStore.read(request.transferId, request.offset, request.maxBytes)
     val chunkSize = 64 * 1024
     var cursor = 0
-    var sequence = 0L
+    var sequence = (request.offset / chunkSize).coerceAtLeast(0) + 1
 
     if (bytes.isEmpty()) {
       emit(

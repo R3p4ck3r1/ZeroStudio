@@ -5,6 +5,7 @@ import com.zerostudio.tooling.buildgrpc.proto.ArtifactKind
 import com.zerostudio.tooling.buildgrpc.proto.CompressionKind
 import com.zerostudio.tooling.buildgrpc.proto.DataChunk
 import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
+import com.zerostudio.tooling.buildgrpc.proto.FetchDataRequest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -150,6 +151,26 @@ class BuildSessionGrpcServiceTest {
     assertEquals(1, events.size)
     assertEquals(ArtifactKind.ARTIFACT_KIND_JAR, events.first().transfer.artifactKind)
     assertEquals(CompressionKind.COMPRESSION_KIND_NONE, events.first().transfer.compression)
+  }
+
+  @Test
+  fun `fetchDataStream sequence aligns with resume offset`() = runBlocking {
+    val service = BuildSessionGrpcService(module = NoopModule())
+    val payload = ByteArray(70 * 1024) { 'a'.code.toByte() }
+    service.publishDataStream(flowOf(chunk(seq = 1, payload = payload)))
+
+    val resumed = service.fetchDataStream(
+      FetchDataRequest.newBuilder()
+        .setBuildId("build-1")
+        .setTransferId("tx-1")
+        .setOffset(64 * 1024L)
+        .setMaxBytes(8 * 1024L)
+        .build(),
+    ).toList()
+
+    assertEquals(1, resumed.size)
+    assertEquals(2, resumed.first().sequence)
+    assertEquals(true, resumed.first().eof)
   }
 
   private fun chunk(seq: Long, payload: ByteArray): DataChunk = DataChunk.newBuilder()
