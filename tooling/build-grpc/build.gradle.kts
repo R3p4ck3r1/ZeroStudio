@@ -36,8 +36,6 @@ dependencies {
 
   implementation(libs.grpc.netty.shaded)
   implementation(libs.kotlinx.coroutines.core)
-  implementation("org.lz4:lz4-java:1.8.0")
-  implementation("com.github.luben:zstd-jni:1.5.7-3")
 
   protobuf("com.google.api.grpc:proto-google-common-protos:2.62.0")
 
