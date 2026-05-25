@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package tooling.buildgrpc.v1;
+
+option java_multiple_files = true;
+option java_package = "com.itsaky.androidide.tooling.buildgrpc.proto";
+option java_outer_classname = "BuildServiceProto";
+
+message BuildClientCapabilities {
+  bool supports_build_event_stream = 1;
+  bool supports_remote_execution = 2;
+  bool supports_incremental_tasks = 3;
+}
+
+message InitializeBuildRequest {
+  string protocol_version = 1;
+  string workspace_root = 2;
+  BuildClientCapabilities client_capabilities = 3;
+}
+
+message BuildServerCapabilities {
+  bool provides_build_event_stream = 1;
+  bool provides_remote_execution = 2;
+  bool provides_task_graph = 3;
+  bool supports_aidl_bridge = 4;
+}
+
+message InitializeBuildResponse {
+  string server_name = 1;
+  string server_version = 2;
+  BuildServerCapabilities capabilities = 3;
+}
+
+message BuildTarget {
+  string id = 1;
+  string display_name = 2;
+  repeated string tags = 3;
+}
+
+message QueryBuildTargetsRequest {}
+
+message QueryBuildTargetsResponse {
+  repeated BuildTarget targets = 1;
+}
+
+message ExecuteBuildRequest {
+  string request_id = 1;
+  repeated string target_ids = 2;
+  repeated string arguments = 3;
+  bool run_tests = 4;
+}
+
+message BuildEvent {
+  string request_id = 1;
+  string event_id = 2;
+  int64 event_time_epoch_ms = 3;
+  string category = 4;
+  string payload_json = 5;
+}
+
+message ExecuteBuildResponse {
+  string request_id = 1;
+  bool accepted = 2;
+}
+
+message BuildResult {
+  string request_id = 1;
+  bool success = 2;
+  int64 duration_ms = 3;
+  string summary = 4;
+}
+
+service BuildService {
+  rpc Initialize(InitializeBuildRequest) returns (InitializeBuildResponse);
+  rpc QueryTargets(QueryBuildTargetsRequest) returns (QueryBuildTargetsResponse);
+  rpc ExecuteBuild(ExecuteBuildRequest) returns (ExecuteBuildResponse);
+  rpc StreamBuildEvents(ExecuteBuildRequest) returns (stream BuildEvent);
+  rpc GetBuildResult(ExecuteBuildRequest) returns (BuildResult);
+}
