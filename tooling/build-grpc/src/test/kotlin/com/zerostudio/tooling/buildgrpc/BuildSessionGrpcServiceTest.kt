@@ -173,6 +173,31 @@ class BuildSessionGrpcServiceTest {
     assertEquals(true, resumed.first().eof)
   }
 
+  @Test
+  fun `fetch transfer event chunk count reflects emitted chunks not absolute sequence`() = runBlocking {
+    val service = BuildSessionGrpcService(module = NoopModule())
+    val payload = ByteArray(70 * 1024) { 'b'.code.toByte() }
+    service.publishDataStream(flowOf(chunk(seq = 1, payload = payload)))
+
+    service.fetchDataStream(
+      FetchDataRequest.newBuilder()
+        .setBuildId("build-1")
+        .setTransferId("tx-1")
+        .setOffset(64 * 1024L)
+        .setMaxBytes(8 * 1024L)
+        .build(),
+    ).toList()
+
+    val events = service.streamBuildEvents(
+      com.zerostudio.tooling.buildgrpc.proto.StreamBuildEventsRequest.newBuilder()
+        .setBuildId("build-1")
+        .setFromSequence(0)
+        .build(),
+    ).toList()
+    val fetchEvent = events.last().transfer
+    assertEquals(1, fetchEvent.chunkCount)
+  }
+
   private fun chunk(seq: Long, payload: ByteArray): DataChunk = DataChunk.newBuilder()
     .setBuildId("build-1")
     .setTransferId("tx-1")

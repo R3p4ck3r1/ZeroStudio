@@ -162,6 +162,7 @@ class BuildSessionGrpcService(
     val chunkSize = 64 * 1024
     var cursor = 0
     var sequence = (request.offset / chunkSize).coerceAtLeast(0) + 1
+    var emittedChunkCount = 0L
 
     if (bytes.isEmpty()) {
       emit(
@@ -191,6 +192,7 @@ class BuildSessionGrpcService(
       )
       cursor = end
       sequence += 1
+      emittedChunkCount += 1
     }
 
     appendTransferEvent(
@@ -200,7 +202,7 @@ class BuildSessionGrpcService(
         contentType = "",
         compression = CompressionKind.COMPRESSION_KIND_NONE,
         transferredBytes = bytes.size.toLong(),
-        chunkCount = sequence,
+        chunkCount = emittedChunkCount,
         durationMillis = System.currentTimeMillis() - startedAt,
         accepted = true,
         rejectReason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE,
