@@ -4,60 +4,59 @@ import com.zerostudio.tooling.buildgrpc.proto.BuildEventEnvelope
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Binary build-service API intended to replace legacy lsp4j-rpc + gson transport path.
+ * BSP-like generic binary build service protocol.
  *
- * Design goal mirrors BSP-style M+N interoperability:
- * - IDE/client binds this API once.
- * - Build-system backend (Gradle/Bazel/...) is selected by session/build context.
+ * Purpose:
+ * - Solve M+N IDE/build-system integration complexity with one common contract.
+ * - Replace legacy JSON-RPC+Gson transport with typed binary protocol semantics.
  */
 interface BinaryBuildServiceApi {
-  suspend fun initialize(request: BinaryInitializeRequest): BinaryInitializeResponse
+  suspend fun buildInitialize(request: BuildInitializeRequest): BuildInitializeResponse
 
   suspend fun workspaceBuildTargets(request: WorkspaceBuildTargetsRequest): WorkspaceBuildTargetsResponse
 
-  fun compile(request: BuildTargetCompileRequest): Flow<BuildEventEnvelope>
+  fun buildTargetCompile(request: BuildTargetCompileRequest): Flow<BuildEventEnvelope>
 
-  fun test(request: BuildTargetTestRequest): Flow<BuildEventEnvelope>
+  fun buildTargetTest(request: BuildTargetTestRequest): Flow<BuildEventEnvelope>
 
-  fun run(request: BuildTargetRunRequest): Flow<BuildEventEnvelope>
+  fun buildTargetRun(request: BuildTargetRunRequest): Flow<BuildEventEnvelope>
 
-  suspend fun dependencyModules(request: BuildTargetDependencyModulesRequest): BuildTargetDependencyModulesResponse
+  suspend fun buildTargetDependencyModules(
+    request: BuildTargetDependencyModulesRequest,
+  ): BuildTargetDependencyModulesResponse
 
   suspend fun executeAction(request: ActionExecutionRequest): ActionExecutionResult
 
-  suspend fun cancelBuild(buildId: String): Boolean
+  suspend fun cancelBuild(request: BuildCancelRequest): BuildCancelResponse
 
-  suspend fun shutdown(reason: String): Boolean
+  suspend fun shutdown(request: BuildShutdownRequest): BuildShutdownResponse
 }
 
-data class BinaryInitializeRequest(
+data class BuildInitializeRequest(
   val workspaceRoot: String,
-  val buildSystem: BuildSystem,
+  val buildSystemId: String,
   val clientName: String,
   val clientVersion: String,
-  val callerId: String,
   val capabilities: Set<String> = emptySet(),
 )
 
-data class BinaryInitializeResponse(
-  val server: BuildServerInfo,
+data class BuildInitializeResponse(
+  val serverName: String,
+  val serverVersion: String,
   val protocolVersion: String,
-  val negotiatedFeatures: Set<String>,
+  val negotiatedCapabilities: Set<String>,
 )
 
-data class WorkspaceBuildTargetsRequest(
-  val workspaceRoot: String,
-)
+data class WorkspaceBuildTargetsRequest(val workspaceRoot: String)
 
-data class WorkspaceBuildTargetsResponse(
-  val targets: List<BuildTargetInfo>,
-)
+data class WorkspaceBuildTargetsResponse(val targets: List<BuildTargetInfo>)
 
 data class BuildTargetInfo(
   val id: String,
   val displayName: String,
   val baseDirectory: String,
   val languageIds: List<String>,
+  val dependencies: List<String> = emptyList(),
   val tags: Set<String> = emptySet(),
 )
 
@@ -79,10 +78,16 @@ data class BuildTargetRunRequest(
   val arguments: List<String> = emptyList(),
 )
 
-data class BuildTargetDependencyModulesRequest(
-  val targetIds: List<String>,
-)
+data class BuildTargetDependencyModulesRequest(val targetIds: List<String>)
 
 data class BuildTargetDependencyModulesResponse(
   val dependencyModulesByTargetId: Map<String, List<String>>,
 )
+
+data class BuildCancelRequest(val buildId: String)
+
+data class BuildCancelResponse(val accepted: Boolean)
+
+data class BuildShutdownRequest(val reason: String)
+
+data class BuildShutdownResponse(val accepted: Boolean)
