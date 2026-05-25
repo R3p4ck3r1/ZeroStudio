@@ -2,6 +2,10 @@ package com.zerostudio.tooling.buildgrpc
 
 import com.google.protobuf.ByteString
 import com.zerostudio.tooling.buildgrpc.proto.BuildEventEnvelope
+import com.zerostudio.tooling.buildgrpc.proto.ContextFrame
+import com.zerostudio.tooling.buildgrpc.proto.DataChunk
+import com.zerostudio.tooling.buildgrpc.proto.DataTransferAck
+import com.zerostudio.tooling.buildgrpc.proto.FetchDataRequest
 import com.zerostudio.tooling.buildgrpc.proto.BuildSessionServiceGrpcKt
 import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionRequest
 import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionResponse
@@ -59,6 +63,35 @@ class BuildSessionGrpcService(
       .setActionResult(ByteString.copyFrom(result.actionResult))
       .build()
   }
+
+
+  override suspend fun publishDataStream(requests: Flow<DataChunk>): DataTransferAck {
+    var transferId = ""
+    var bytes = 0L
+    requests.collect { chunk ->
+      transferId = if (chunk.transferId.isNotBlank()) chunk.transferId else transferId
+      bytes += chunk.payload.size().toLong()
+    }
+
+    return DataTransferAck.newBuilder()
+      .setTransferId(transferId)
+      .setAccepted(true)
+      .setReceivedBytes(bytes)
+      .setMessage("accepted")
+      .build()
+  }
+
+  override fun fetchDataStream(request: FetchDataRequest): Flow<DataChunk> = flow {
+    emit(
+      DataChunk.newBuilder()
+        .setTransferId(request.transferId)
+        .setSequence(0)
+        .setEof(true)
+        .build(),
+    )
+  }
+
+  override fun exchangeContext(requests: Flow<ContextFrame>): Flow<ContextFrame> = requests
 
   override suspend fun shutdown(request: ShutdownRequest): ShutdownResponse {
     val accepted = module.shutdown(request.reason)
