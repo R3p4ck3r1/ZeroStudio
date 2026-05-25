@@ -49,6 +49,9 @@ class BuildTransferRegistry {
     return state.lastSequence + 1
   }
 
+  fun hasTransfer(buildId: String, transferId: String): Boolean =
+    uploads.containsKey(key(buildId, transferId))
+
   private fun key(buildId: String, transferId: String): String = "$buildId::$transferId"
 
   private data class UploadState(

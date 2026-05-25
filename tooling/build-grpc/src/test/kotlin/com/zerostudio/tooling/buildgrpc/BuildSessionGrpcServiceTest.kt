@@ -48,6 +48,30 @@ class BuildSessionGrpcServiceTest {
     assertEquals(2, ack.nextExpectedSequence)
   }
 
+
+  @Test
+  fun `queryTransferCursor returns next expected sequence after upload`() = runBlocking {
+    val service = BuildSessionGrpcService(module = NoopModule())
+    val payload = "abc".encodeToByteArray()
+
+    service.publishDataStream(
+      flowOf(
+        chunk(seq = 1, payload = payload),
+        chunk(seq = 2, payload = payload),
+      ),
+    )
+
+    val cursor = service.queryTransferCursor(
+      com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorRequest.newBuilder()
+        .setBuildId("build-1")
+        .setTransferId("tx-1")
+        .build(),
+    )
+
+    assertEquals(true, cursor.found)
+    assertEquals(3, cursor.nextExpectedSequence)
+  }
+
   private fun chunk(seq: Long, payload: ByteArray): DataChunk = DataChunk.newBuilder()
     .setBuildId("build-1")
     .setTransferId("tx-1")

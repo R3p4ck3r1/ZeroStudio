@@ -19,6 +19,7 @@ service BuildSessionService {
   rpc ExecuteAction(ExecuteActionRequest) returns (ExecuteActionResponse);
   rpc PublishDataStream(stream DataChunk) returns (DataTransferAck);
   rpc FetchDataStream(FetchDataRequest) returns (stream DataChunk);
+  rpc QueryTransferCursor(QueryTransferCursorRequest) returns (QueryTransferCursorResponse);
   rpc ExchangeContext(stream ContextFrame) returns (stream ContextFrame);
   rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
 }
@@ -95,6 +96,18 @@ message FetchDataRequest {
   string transfer_id = 2;
   int64 offset = 3;
   int64 max_bytes = 4;
+}
+
+message QueryTransferCursorRequest {
+  string build_id = 1;
+  string transfer_id = 2;
+}
+
+message QueryTransferCursorResponse {
+  string build_id = 1;
+  string transfer_id = 2;
+  int64 next_expected_sequence = 3;
+  bool found = 4;
 }
 
 message DataTransferAck {

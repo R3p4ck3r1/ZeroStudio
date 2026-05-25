@@ -18,6 +18,8 @@ import com.zerostudio.tooling.buildgrpc.proto.ShutdownResponse
 import com.zerostudio.tooling.buildgrpc.proto.StartBuildRequest
 import com.zerostudio.tooling.buildgrpc.proto.StreamBuildEventsRequest
 import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
+import com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorResponse
+import com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -186,6 +188,18 @@ class BuildSessionGrpcService(
       ),
       totalBytes = bytes.size.toLong(),
     )
+  }
+
+
+  override suspend fun queryTransferCursor(request: QueryTransferCursorRequest): QueryTransferCursorResponse {
+    val found = transferRegistry.hasTransfer(request.buildId, request.transferId)
+    val next = transferRegistry.nextExpectedSequence(request.buildId, request.transferId)
+    return QueryTransferCursorResponse.newBuilder()
+      .setBuildId(request.buildId)
+      .setTransferId(request.transferId)
+      .setNextExpectedSequence(next)
+      .setFound(found)
+      .build()
   }
 
   override fun exchangeContext(requests: Flow<ContextFrame>): Flow<ContextFrame> = flow {
