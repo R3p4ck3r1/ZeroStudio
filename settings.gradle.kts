@@ -192,6 +192,7 @@ include(
     ":testing:lspTest",
     ":testing:unitTest",
     ":tooling:api",
+    ":tooling:build-grpc",
     ":tooling:builder-model-impl",
     ":tooling:events",
     ":tooling:impl",
