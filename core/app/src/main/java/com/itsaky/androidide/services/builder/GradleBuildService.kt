@@ -980,7 +980,7 @@ class GradleBuildService :
     val raw =
         System.getProperty(
             ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
-            ToolingServerEndpointFactories.LEGACY,
+            ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI.wireValue,
         )
     val mode = ToolingTransportMode.fromWireValue(raw)
     if (mode == null) {
@@ -988,7 +988,7 @@ class GradleBuildService :
           "Unknown transport switch '{}' for -D{}. Fallback to '{}'.",
           raw,
           ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
-          ToolingServerEndpointFactories.LEGACY,
+          ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI.wireValue,
       )
       return ToolingServerEndpointFactories.LEGACY
     }
