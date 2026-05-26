@@ -2,6 +2,7 @@ package com.itsaky.androidide.tooling.buildgrpc.service
 
 import com.itsaky.androidide.tooling.buildgrpc.model.BuildBridgeEvent
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,16 +19,21 @@ class BuildServiceRuntime(
 ) {
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
   private val started = AtomicBoolean(false)
+  private val state = AtomicReference(BuildServiceRuntimeState.STOPPED)
 
   @Synchronized
   fun start(): BuildServiceRuntime {
     if (started.compareAndSet(false, true)) {
+      state.set(BuildServiceRuntimeState.STARTING)
       serverHost.start()
+      state.set(BuildServiceRuntimeState.RUNNING)
     }
     return this
   }
 
   fun isRunning(): Boolean = started.get() && serverHost.isRunning()
+
+  fun state(): BuildServiceRuntimeState = state.get()
 
   fun initialize(initializePayload: ByteArray): ByteArray {
     ensureStarted()
@@ -54,7 +60,9 @@ class BuildServiceRuntime(
   @Synchronized
   fun stop() {
     if (started.compareAndSet(true, false)) {
+      state.set(BuildServiceRuntimeState.STOPPING)
       serverHost.close()
+      state.set(BuildServiceRuntimeState.STOPPED)
     }
   }
 
