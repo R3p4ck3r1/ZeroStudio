@@ -52,20 +52,16 @@ internal class JavaProjectImpl(
           (thisRoot.sourceDirectories as MutableList).add(
               JavaSourceDirectory(sourceDir!!.directory, sourceDir.isGenerated)
           )
-          }
-          else -> Unit
         }
         for (testDir in contentRoot.testDirectories) {
           (thisRoot.testDirectories as MutableList).add(
               JavaSourceDirectory(testDir!!.directory, testDir.isGenerated)
           )
-          }
-          else -> Unit
         }
         list.add(thisRoot)
       }
 
-      list
+      return@supplyAsync list
     }
   }
 
@@ -73,39 +69,36 @@ internal class JavaProjectImpl(
     return CompletableFuture.supplyAsync {
       val list = ArrayList<JavaModuleDependency>()
       for (dependency in ideaModule.dependencies) {
-        when (dependency) {
-          is IdeaSingleEntryLibraryDependency -> {
-            val file = dependency.file
-            val source = dependency.source
-            val javadoc = dependency.javadoc
-            val artifact = getGradleArtifact(dependency)
-            list.add(
-                JavaModuleExternalDependency(
-                    file,
-                    source,
-                    javadoc,
-                    artifact,
-                    dependency.getScope().scope,
-                    dependency.getExported(),
-                )
-            )
-          }
-          is IdeaModuleDependency -> {
-            val moduleName = dependency.targetModuleName
-            list.add(
-                JavaModuleProjectDependency(
-                    moduleName,
-                    allModulePaths[moduleName] ?: "",
-                    dependency.scope.scope,
-                    dependency.exported,
-                )
-            )
-          }
-          else -> Unit
+        // TODO There might be unresolved dependencies here. We need to handle them too.
+        if (dependency is IdeaSingleEntryLibraryDependency) {
+          val file = dependency.file
+          val source = dependency.source
+          val javadoc = dependency.javadoc
+          val artifact = getGradleArtifact(dependency)
+          list.add(
+              JavaModuleExternalDependency(
+                  file,
+                  source,
+                  javadoc,
+                  artifact,
+                  dependency.getScope().scope,
+                  dependency.getExported(),
+              )
+          )
+        } else if (dependency is IdeaModuleDependency) {
+          val moduleName = dependency.targetModuleName
+          list.add(
+              JavaModuleProjectDependency(
+                  moduleName,
+                  allModulePaths[moduleName] ?: "",
+                  dependency.scope.scope,
+                  dependency.exported,
+              )
+          )
         }
       }
 
-      list
+      return@supplyAsync list
     }
   }
 
@@ -149,7 +142,7 @@ internal class JavaProjectImpl(
       // do not call getClassesJar() here
       // it'll try to fetch metadata which will in return call this method
       // this will result in an infinite loop
-      JavaProjectMetadata(base, compilerSettings, getClassesJar(base))
+      return@supplyAsync JavaProjectMetadata(base, compilerSettings, getClassesJar(base))
     }
   }
 }
