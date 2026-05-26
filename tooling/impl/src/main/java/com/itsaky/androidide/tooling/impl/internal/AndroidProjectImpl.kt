@@ -158,13 +158,15 @@ internal class AndroidProjectImpl(
   private fun Variant.toMetadata(): AndroidVariantMetadata {
     val moduleType = mapModuleType(basicAndroidProject.projectType)
     val buildTypeModel =
-        androidDsl.buildTypes.find { it.name == buildType }?.let {
-          BuildTypeMatrixModel(
-              name = it.name,
-              isDebuggable = it.isDebuggable,
-              isMinifyEnabled = it.isMinifyEnabled,
-              signingConfig = it.signingConfig,
-          )
+        basicAndroidProject.variants.firstOrNull { it.name == name }?.buildType?.let { bt ->
+          androidDsl.buildTypes.find { it.name == bt }?.let {
+            BuildTypeMatrixModel(
+                name = it.name,
+                isDebuggable = it.isDebuggable,
+                isMinifyEnabled = it.isMinifyEnabled,
+                signingConfig = it.signingConfig,
+            )
+          }
         }
 
     return AndroidVariantMetadata(
@@ -173,7 +175,7 @@ internal class AndroidProjectImpl(
         otherArtifacts = mutableMapOf(),
         moduleType = moduleType,
         productFlavors =
-            productFlavors.map { flavorName ->
+            (basicAndroidProject.variants.firstOrNull { it.name == name }?.productFlavors ?: emptyList()).map { flavorName ->
               androidDsl.productFlavors.find { it.name == flavorName }?.let {
                 FlavorMatrixModel(
                     name = it.name,
@@ -242,7 +244,7 @@ internal class AndroidProjectImpl(
   }
 
   private fun computeSourceSpace(variantName: String): SourceSpaceModel? {
-    val sourceSet = basicAndroidProject.sourceSets.firstOrNull { it.name == variantName }
+    val sourceSet = sourceProviderForVariant(variantName)
     val generatedBase = File(gradleProject.buildDirectory, "generated")
     return sourceSet?.let {
       SourceSpaceModel(
@@ -287,17 +289,18 @@ internal class AndroidProjectImpl(
     return DependencyGraphModel(
         artifactDependencies =
             libraries.mapNotNull {
-              val artifactAddress = it.artifactAddress ?: return@mapNotNull null
+              val artifactAddress = it.libraryInfo ?: return@mapNotNull null
               "${artifactAddress.group}:${artifactAddress.name}:${artifactAddress.version}"
             },
-        localJarDependencies = libraries.mapNotNull { it.localJar },
-        aarExplodedFolders = libraries.mapNotNull { lib -> lib.folder.takeIf { lib.type == LibraryType.ANDROID_LIBRARY } },
+        localJarDependencies = emptyList(),
+        aarExplodedFolders = emptyList(),
         aarClassesJars =
             libraries.mapNotNull { lib ->
-              lib.folder
+              lib.artifact
                   ?.takeIf { lib.type == LibraryType.ANDROID_LIBRARY }
+                  ?.parentFile
                   ?.resolve("jars/classes.jar")
-                  ?.takeIf { it.exists() }
+                  ?.takeIf(File::exists)
             },
         projectDependencies =
             libraries.mapNotNull { lib ->
@@ -403,7 +406,6 @@ internal class AndroidProjectImpl(
             },
         resolvedProjectVariants = resolvedProjectVariants,
         resolvedProjectVariantDetails = resolvedProjectVariantDetails,
-        projectInfoNodes = buildProjectInfoNodes(variantDependencies.libraries.values),
         nativeModule = nativeModule?.let { module ->
           NativeModuleModel(
               name = module.name,
@@ -727,21 +729,11 @@ internal class AndroidProjectImpl(
                       clearOnSwitchGeneratedSources =
                           artifactMetadata.generatedSourceFolders.toList(),
                       clearOnSwitchSourceDirectories =
-                          basicAndroidProject.sourceSets
-                              .filterNot { it.name == variant.name }
-                              .flatMap { candidate ->
-                                candidate.javaDirectories +
-                                    candidate.kotlinDirectories +
-                                    candidate.resourcesDirectories +
-                                    candidate.resDirectories +
-                                    candidate.assetsDirectories
-                              }
-                              .distinct(),
+                          sourceProviderDirectoriesExcept(variant.name),
                   )
             },
         resolvedProjectVariants = resolvedProjectVariants,
         resolvedProjectVariantDetails = resolvedProjectVariantDetails,
-        projectInfoNodes = buildProjectInfoNodes(variantDependencies.libraries.values),
         nativeModule = nativeModule?.let { module ->
           NativeModuleModel(
               name = module.name,
@@ -854,4 +846,34 @@ internal class AndroidProjectImpl(
       ""
     }
   }
+
+
+  private fun sourceProviderForVariant(variantName: String) =
+      basicAndroidProject.variants.firstOrNull { it.name == variantName }?.mainArtifact?.sourceProvider
+
+  private fun sourceProviderDirectoriesExcept(activeVariantName: String): List<File> =
+      basicAndroidProject.variants
+          .filterNot { it.name == activeVariantName }
+          .flatMap { it.mainArtifact.sourceProvider?.allDirectories().orEmpty() }
+          .distinct()
+
+  private fun com.android.builder.model.v2.ide.SourceProvider.allDirectories(): List<File> =
+      javaDirectories +
+          kotlinDirectories +
+          resourcesDirectories +
+          (resDirectories ?: emptyList()) +
+          (assetsDirectories ?: emptyList())
+
+  private fun com.android.builder.model.v2.ide.ArtifactDependencies.toAdjacency(): ArtifactDependencyAdjacencyModel =
+      ArtifactDependencyAdjacencyModel(
+          compileDependencies = compileDependencies.map { GraphNodeModel(it.key, it.dependencies.map { dep -> dep.key }) },
+          runtimeDependencies = runtimeDependencies?.map { GraphNodeModel(it.key, it.dependencies.map { dep -> dep.key }) } ?: emptyList(),
+      )
+
+  private fun com.android.builder.model.v2.ide.ArtifactDependenciesAdjacencyList.toAdjacencyList(): ArtifactDependenciesAdjacencyListModel =
+      ArtifactDependenciesAdjacencyListModel(
+          compileDependencies = compileDependencies.map { DependencyEdgeModel(it.from, it.to) },
+          runtimeDependencies = runtimeDependencies?.map { DependencyEdgeModel(it.from, it.to) } ?: emptyList(),
+      )
+
 }

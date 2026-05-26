@@ -21,7 +21,7 @@ object IntegratedBuildRequestCodec {
 
   fun encodeTaskExecution(message: TaskExecutionMessage): ByteArray =
     StartBuildRequest.newBuilder()
-      .setBuildId(message.requestId)
+      .setBuildId("task-exec")
       .addAllTargets(message.tasks)
       .putAllOptions((message.arguments + message.jvmArguments).associateWith { "true" })
       .build()

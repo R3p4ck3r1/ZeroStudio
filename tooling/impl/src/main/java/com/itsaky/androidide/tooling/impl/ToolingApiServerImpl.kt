@@ -89,7 +89,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   private var lastInitParams: InitializeProjectParams? = null
   private var _buildCancellationToken: CancellationTokenSource? = null
   private var httpProxy: SimpleHttpProxy? = null
-  private var negotiatedOperationTypes: Set<OperationType> = emptySet()
+  private var negotiatedOperationTypes: Set<String> = emptySet()
 
   private val cancellationTokenAccessLock = ReentrantLock(/* fair= */ true)
   private var buildCancellationToken: CancellationTokenSource?
@@ -132,7 +132,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
           supportsModelSnapshot = SERVER_SUPPORTS_MODEL_SNAPSHOT,
           supportsQueryService = SERVER_SUPPORTS_QUERY_SERVICE,
           supportedOperationTypes = Main.progressUpdateTypes().map { it.name }.toSet(),
-          negotiatedOperationTypes = negotiatedOperationTypes.map { it.name }.toSet(),
+          negotiatedOperationTypes = negotiatedOperationTypes,
           maxProgressEventsPerSecond =
               Main.maxProgressEventsPerSecond.takeIf { it != Int.MAX_VALUE },
       )
@@ -244,10 +244,12 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
 
         negotiatedOperationTypes =
             negotiateOperationTypes(
-                params.clientCapabilities.requestedOperationTypes.toOperationTypes(),
-                Main.progressUpdateTypes(),
-                params.clientCapabilities.preferLightweightSync,
-            )
+                    params.clientCapabilities.requestedOperationTypes.toOperationTypes(),
+                    Main.progressUpdateTypes(),
+                    params.clientCapabilities.preferLightweightSync,
+                )
+                .map { it.name }
+                .toSet()
         val negotiatedFeatures = negotiateFeatureSupport(params)
         log.info(
             "W1_INIT_FEATURE_SUMMARY requestId={} modelSnapshot={} queryService={} phasedAction={}",
@@ -414,7 +416,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
 
       val effectiveOperationTypes =
           if (request.operationTypes.isEmpty()) {
-            negotiatedOperationTypes
+            negotiatedOperationTypes.toOperationTypes()
           } else {
             negotiateOperationTypes(request.operationTypes.toOperationTypes(), Main.progressUpdateTypes())
           }

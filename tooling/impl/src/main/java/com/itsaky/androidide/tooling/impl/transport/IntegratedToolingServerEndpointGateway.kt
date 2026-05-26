@@ -84,7 +84,7 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
 
   override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> {
       val payload = IntegratedBuildRequestCodec.encodeTaskExecution(message)
-      log.debug("Integrated executeTasks encoded to binary payload: requestId={}, tasks={}, bytes={}", message.requestId, message.tasks.size, payload.size)
+      log.debug("Integrated executeTasks encoded to binary payload: tasks={}, bytes={}", message.tasks.size, payload.size)
       IntegratedBinaryRuntimeBridge.getOrCreate().submitBuildRequest(payload)
       return CompletableFuture.completedFuture(TaskExecutionResult.SUCCESS)
   }
