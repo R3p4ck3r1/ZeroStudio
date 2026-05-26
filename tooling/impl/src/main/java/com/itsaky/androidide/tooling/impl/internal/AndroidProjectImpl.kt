@@ -35,7 +35,12 @@ import com.itsaky.androidide.builder.model.DefaultJavaCompileOptions
 import com.itsaky.androidide.builder.model.DefaultLibrary
 import com.itsaky.androidide.builder.model.DefaultSourceSetContainer
 import com.itsaky.androidide.builder.model.DefaultViewBindingOptions
+import com.itsaky.androidide.tooling.events.configuration.ManifestMergerParsedEvent
+import com.itsaky.androidide.tooling.events.configuration.ManifestMergerParsedPermission
+import com.itsaky.androidide.tooling.events.configuration.VariantContextChangedEvent
+import com.itsaky.androidide.tooling.events.internal.DefaultOperationDescriptor
 import com.itsaky.androidide.tooling.api.IAndroidProject
+import com.itsaky.androidide.tooling.impl.Main
 import com.itsaky.androidide.tooling.api.models.AndroidArtifactMetadata
 import com.itsaky.androidide.tooling.api.models.AndroidLibraryDataModel
 import com.itsaky.androidide.tooling.api.models.AndroidModuleType
@@ -587,7 +592,7 @@ internal class AndroidProjectImpl(
           androidProject.viewBindingOptions?.let(AndroidModulePropertyCopier::copy)
               ?: DefaultViewBindingOptions()
 
-      return@supplyAsync AndroidProjectMetadata(
+      AndroidProjectMetadata(
           gradleMetadata,
           basicAndroidProject.projectType,
           copy(androidProject.flags),
@@ -602,7 +607,54 @@ internal class AndroidProjectImpl(
           computeProjectSnapshot(),
           getClassesJar(),
       )
+          .also { metadata -> publishModelDerivedEvents(metadata.modelSnapshot) }
     }
+  }
+
+  private fun publishModelDerivedEvents(snapshot: AndroidProjectModelSnapshot) {
+    val client = Main.client ?: return
+    val now = System.currentTimeMillis()
+    val descriptor =
+        DefaultOperationDescriptor(
+            name = "android-model-derived-event",
+            displayName = "Android model derived event",
+        )
+
+    snapshot.variantContexts[configuredVariant]?.let { context ->
+      client.onProgressEvent(
+          VariantContextChangedEvent(
+              projectPath = gradleProject.path,
+              oldVariant = null,
+              newVariant = context.variantName,
+              clearedGeneratedSources = context.clearOnSwitchGeneratedSources.isNotEmpty(),
+              displayName = "Variant context changed: ${context.variantName}",
+              eventTime = now,
+              descriptor = descriptor,
+          )
+      )
+    }
+
+    androidProject.variants
+        .firstOrNull { it.name == configuredVariant }
+        ?.mainArtifact
+        ?.toMetadata(configuredVariant)
+        ?.manifestMergerReport
+        ?.let { report ->
+          client.onProgressEvent(
+              ManifestMergerParsedEvent(
+                  projectPath = gradleProject.path,
+                  variant = configuredVariant,
+                  reportFile = report.reportFile,
+                  permissions =
+                      report.mergedPermissions.map {
+                        ManifestMergerParsedPermission(permission = it.permission, source = it.source)
+                      },
+                  displayName = "Manifest merger parsed: $configuredVariant",
+                  eventTime = now,
+                  descriptor = descriptor,
+              )
+          )
+        }
   }
 
   private fun computeInterpretedFlags(): AndroidProjectFlagsModel {
