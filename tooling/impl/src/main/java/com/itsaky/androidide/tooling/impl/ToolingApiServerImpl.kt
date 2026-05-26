@@ -331,7 +331,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   override fun getRootProject(): CompletableFuture<IProject> {
     return CompletableFuture.supplyAsync {
       assertProjectInitialized()
-      return@supplyAsync this.project
+      this.project
     }
   }
 
@@ -562,22 +562,18 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> {
     return CompletableFuture.supplyAsync {
       if (this.buildCancellationToken == null) {
-        return@supplyAsync BuildCancellationRequestResult(
-            false,
-            BuildCancellationRequestResult.Reason.NO_RUNNING_BUILD,
-        )
+        BuildCancellationRequestResult(false, BuildCancellationRequestResult.Reason.NO_RUNNING_BUILD)
+      } else {
+        try {
+          this.buildCancellationToken!!.cancel()
+          this.buildCancellationToken = null
+          BuildCancellationRequestResult(true, null)
+        } catch (e: Exception) {
+          val failureReason = CANCELLATION_ERROR
+          failureReason.message = "${failureReason.message}: ${e.message}"
+          BuildCancellationRequestResult(false, failureReason)
+        }
       }
-
-      try {
-        this.buildCancellationToken!!.cancel()
-        this.buildCancellationToken = null
-      } catch (e: Exception) {
-        val failureReason = CANCELLATION_ERROR
-        failureReason.message = "${failureReason.message}: ${e.message}"
-        return@supplyAsync BuildCancellationRequestResult(false, failureReason)
-      }
-
-      return@supplyAsync BuildCancellationRequestResult(true, null)
     }
   }
 
@@ -629,12 +625,10 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         else -> UNKNOWN
       }
 
-  private inline fun <T : Any?> supplyAsync(crossinline action: () -> T): CompletableFuture<T> =
-      CompletableFuture.supplyAsync {
-        action()
-      }
+  private fun <T : Any?> supplyAsync(action: () -> T): CompletableFuture<T> =
+      CompletableFuture.supplyAsync(action)
 
-  private inline fun <T : Any?> runBuild(crossinline action: () -> T): CompletableFuture<T> =
+  private fun <T : Any?> runBuild(action: () -> T): CompletableFuture<T> =
       supplyAsync {
         if (isBuildInProgress) {
           log.error("Cannot run build, build is already in prorgess!")

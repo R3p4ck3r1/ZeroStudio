@@ -1,4 +1,4 @@
-package com.zerostudio.tooling.buildgrpc.customapi
+package com.zerostudio.tooling.buildgrpc.customapi.rpc
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)

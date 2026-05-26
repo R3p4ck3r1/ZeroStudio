@@ -65,7 +65,7 @@ internal class JavaProjectImpl(
         list.add(thisRoot)
       }
 
-      return@supplyAsync list
+      list
     }
   }
 
@@ -105,7 +105,7 @@ internal class JavaProjectImpl(
         }
       }
 
-      return@supplyAsync list
+      list
     }
   }
 
@@ -149,7 +149,7 @@ internal class JavaProjectImpl(
       // do not call getClassesJar() here
       // it'll try to fetch metadata which will in return call this method
       // this will result in an infinite loop
-      return@supplyAsync JavaProjectMetadata(base, compilerSettings, getClassesJar(base))
+      JavaProjectMetadata(base, compilerSettings, getClassesJar(base))
     }
   }
 }

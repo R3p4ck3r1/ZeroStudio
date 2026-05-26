@@ -4,6 +4,7 @@ import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.messages.LogMessageParams
 import com.itsaky.androidide.tooling.api.messages.result.BuildInfo
 import com.itsaky.androidide.tooling.api.messages.result.BuildResult
+import com.itsaky.androidide.tooling.api.messages.result.GradleWrapperCheckResult
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportClientObserver
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import java.util.concurrent.CompletableFuture
@@ -17,6 +18,10 @@ class LegacyToolingClientAdapter(private val observer: ToolingTransportClientObs
 
   override fun logMessage(params: LogMessageParams) {
     observer.onLogMessage(params.tag, params.level, params.message)
+  }
+
+  override fun logOutput(line: String) {
+    observer.onLogMessage("ToolingOutput", 'I', line)
   }
 
   override fun prepareBuild(buildInfo: BuildInfo) {
@@ -36,4 +41,7 @@ class LegacyToolingClientAdapter(private val observer: ToolingTransportClientObs
   }
 
   override fun getBuildArguments(): CompletableFuture<List<String>> = observer.buildArguments()
+
+  override fun checkGradleWrapperAvailability(): CompletableFuture<GradleWrapperCheckResult> =
+      CompletableFuture.completedFuture(GradleWrapperCheckResult(true))
 }

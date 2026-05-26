@@ -1,20 +1,20 @@
 package com.itsaky.androidide.tooling.api.util
 
-import com.itsaky.androidide.tooling.buildgrpc.bridge.AidlGrpcBridge
-import com.itsaky.androidide.tooling.buildgrpc.model.BuildBridgeEvent
-import com.zerostudio.tooling.buildgrpc.proto.InitializeRequest
-import com.zerostudio.tooling.buildgrpc.proto.StartBuildRequest
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Binary-first launcher that routes tooling initialization/build requests
- * through the build-grpc AIDL+gRPC gateway.
+ * Binary launcher abstraction that keeps tooling-api module free from direct
+ * build-grpc module dependency to avoid circular project dependencies.
  */
 class BinaryToolingLauncher(
-  private val bridge: AidlGrpcBridge,
+  private val bridge: BinaryBridge,
 ) {
-  fun initialize(request: InitializeRequest): ByteArray = bridge.initialize(request.toByteArray())
+  fun initialize(requestBytes: ByteArray): ByteArray = bridge.initialize(requestBytes)
 
-  fun startBuild(request: StartBuildRequest): Flow<BuildBridgeEvent> =
-    bridge.startBuild(request.toByteArray())
+  fun startBuild(requestBytes: ByteArray): Flow<ByteArray> = bridge.startBuild(requestBytes)
+
+  interface BinaryBridge {
+    fun initialize(requestBytes: ByteArray): ByteArray
+    fun startBuild(requestBytes: ByteArray): Flow<ByteArray>
+  }
 }
