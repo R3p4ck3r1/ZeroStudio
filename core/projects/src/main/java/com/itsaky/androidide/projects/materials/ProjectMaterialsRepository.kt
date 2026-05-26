@@ -1,4 +1,4 @@
-package com.itsaky.androidide.repository.materials
+package com.itsaky.androidide.projects.materials
 
 import com.itsaky.androidide.builder.model.DefaultLibrary
 import com.itsaky.androidide.lookup.Lookup
@@ -48,7 +48,10 @@ class ProjectMaterialsRepository {
     val buildEnv = runCatching { gradle.getBuildEnvironment().get() }.getOrNull()
     val gradleBuild = runCatching { gradle.getGradleBuild().get() }.getOrNull()
 
-    buildEnv?.java?.javaHome?.let { addFileItem(add, it, "JDK Home") }
+    buildEnv?.java?.javaHome?.let {
+      addFileItem(add, it, "JDK Home")
+      collectJdkAndToolSources(it, add)
+    }
     buildEnv?.gradle?.gradleUserHome?.let { addFileItem(add, it, "Gradle user home") }
     gradleBuild?.includedBuildIds?.forEach { included ->
       add(ProjectMaterialItem("included:$included", included, MaterialSourceType.GRADLE_TOOLING_API, "GradleBuildModel", "Included build id"))
@@ -68,6 +71,16 @@ class ProjectMaterialsRepository {
 
     runCatching { android.getLibraryMap().get() }.getOrDefault(emptyMap()).forEach { (key, lib) ->
       collectLibraryFiles(key, lib, add)
+    }
+
+
+    runCatching { android.getMainSourceSet().get() }.getOrNull()?.let { main ->
+      addFileItem(add, main.sourceProvider.manifestFile, "Android manifest source")
+      main.sourceProvider.javaDirectories.forEach { addFileItem(add, it, "Android Java source dir") }
+      main.sourceProvider.kotlinDirectories.forEach { addFileItem(add, it, "Android Kotlin source dir") }
+      main.sourceProvider.resDirectories?.forEach { addFileItem(add, it, "Android res source dir") }
+      main.sourceProvider.assetsDirectories?.forEach { addFileItem(add, it, "Android assets source dir") }
+      main.sourceProvider.aidlDirectories?.forEach { addFileItem(add, it, "Android aidl source dir") }
     }
   }
 
@@ -91,6 +104,26 @@ class ProjectMaterialsRepository {
     lib.samplesJar?.let { addFileItem(add, it, "Library samples jar [$key]") }
     lib.lintJar?.let { addFileItem(add, it, "Library lint jar [$key]") }
     lib.srcJars.forEach { addFileItem(add, it, "Library source jar [$key]") }
+  }
+
+
+  private fun collectJdkAndToolSources(javaHome: File, add: (ProjectMaterialItem) -> Unit) {
+    val candidates = listOf(
+        File(javaHome, "src.zip"),
+        File(javaHome, "lib/src.zip"),
+        File(javaHome, "lib/source.zip"),
+    )
+    candidates.filter { it.exists() }.forEach { addFileItem(add, it, "JDK API source archive") }
+
+    val kotlinHome = System.getenv("KOTLIN_HOME")?.let(::File)
+    kotlinHome?.takeIf { it.exists() }?.let {
+      addFileItem(add, it, "Kotlin home")
+      File(it, "lib").takeIf(File::exists)?.listFiles()?.forEach { child ->
+        if (child.name.endsWith("-sources.jar") || child.name == "kotlin-stdlib-sources.jar") {
+          addFileItem(add, child, "Kotlin API source archive")
+        }
+      }
+    }
   }
 
   private fun addFileItem(add: (ProjectMaterialItem) -> Unit, file: File, label: String) {

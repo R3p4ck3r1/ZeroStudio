@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.viewModels
 import com.itsaky.androidide.fragments.BaseFragment
+import com.itsaky.androidide.projects.materials.ProjectMaterialItem
 
 class ProjectMaterialsFragment : BaseFragment() {
   private val viewModel: ProjectMaterialsViewModel by viewModels()

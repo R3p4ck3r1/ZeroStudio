@@ -1,4 +1,4 @@
-package com.itsaky.androidide.repository.materials
+package com.itsaky.androidide.projects.materials
 
 enum class MaterialSourceType { GRADLE_TOOLING_API, AGP_BUILDER_MODEL, SDK_TOOLING, PROJECT_FILE }
 

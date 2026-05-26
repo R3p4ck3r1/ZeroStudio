@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.itsaky.androidide.projects.materials.ProjectMaterialItem
+import com.itsaky.androidide.projects.materials.ProjectMaterialsRepository
 
 data class ProjectMaterialsUiState(
     val loading: Boolean = false,
