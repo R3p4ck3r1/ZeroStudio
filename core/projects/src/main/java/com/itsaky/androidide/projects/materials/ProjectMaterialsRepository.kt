@@ -52,7 +52,10 @@ class ProjectMaterialsRepository {
       addFileItem(add, it, "JDK Home")
       collectJdkAndToolSources(it, add)
     }
-    buildEnv?.gradle?.gradleUserHome?.let { addFileItem(add, it, "Gradle user home") }
+    buildEnv?.gradle?.gradleUserHome?.let {
+      addFileItem(add, it, "Gradle user home")
+      collectGradleCachedSources(it, add)
+    }
     gradleBuild?.includedBuildIds?.forEach { included ->
       add(ProjectMaterialItem("included:$included", included, MaterialSourceType.GRADLE_TOOLING_API, "GradleBuildModel", "Included build id"))
     }
@@ -106,6 +109,17 @@ class ProjectMaterialsRepository {
     lib.srcJars.forEach { addFileItem(add, it, "Library source jar [$key]") }
   }
 
+
+
+  private fun collectGradleCachedSources(gradleUserHome: File, add: (ProjectMaterialItem) -> Unit) {
+    val cacheRoot = File(gradleUserHome, "caches/modules-2/files-2.1")
+    if (!cacheRoot.exists()) return
+
+    cacheRoot.walkTopDown()
+        .filter { it.isFile && (it.name.endsWith("-sources.jar") || it.name.endsWith("-javadoc.jar")) }
+        .take(2000)
+        .forEach { addFileItem(add, it, "Gradle dependency source/doc archive") }
+  }
 
   private fun collectJdkAndToolSources(javaHome: File, add: (ProjectMaterialItem) -> Unit) {
     val candidates = listOf(

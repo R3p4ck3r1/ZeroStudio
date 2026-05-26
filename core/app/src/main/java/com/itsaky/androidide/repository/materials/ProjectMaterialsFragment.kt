@@ -4,27 +4,30 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.viewModels
 import com.itsaky.androidide.fragments.BaseFragment
+import com.itsaky.androidide.projects.materials.MaterialSourceType
 import com.itsaky.androidide.projects.materials.ProjectMaterialItem
+import com.unnamed.b.atv.model.TreeNode
+import com.unnamed.b.atv.view.AndroidTreeView
+import java.io.File
 
 class ProjectMaterialsFragment : BaseFragment() {
   private val viewModel: ProjectMaterialsViewModel by viewModels()
@@ -33,7 +36,7 @@ class ProjectMaterialsFragment : BaseFragment() {
     return ComposeView(requireContext()).apply {
       setContent {
         val state by viewModel.uiState.collectAsState()
-        ProjectMaterialsScreen(state, viewModel::select)
+        ProjectMaterialsScreen(state)
       }
     }
   }
@@ -45,23 +48,48 @@ class ProjectMaterialsFragment : BaseFragment() {
 }
 
 @Composable
-private fun ProjectMaterialsScreen(state: ProjectMaterialsUiState, onSelect: (ProjectMaterialItem) -> Unit) {
+private fun ProjectMaterialsScreen(state: ProjectMaterialsUiState) {
+  var selected by remember(state.items) { mutableStateOf(state.selected) }
+
   Row(modifier = Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-    LazyColumn(modifier = Modifier.weight(1f)) {
-      items(state.items, key = { it.id }) { item ->
-        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onSelect(item) }) {
-          Column(modifier = Modifier.padding(10.dp)) {
-            Text(item.title, style = MaterialTheme.typography.titleMedium)
-            Text(item.apiName, style = MaterialTheme.typography.bodySmall)
-          }
-        }
-      }
-    }
+    AndroidView(
+        modifier = Modifier.weight(1f),
+        factory = { context ->
+          val root = buildMaterialsTree(state.items)
+          AndroidTreeView(context, root, 0).apply {
+            setUseAutoToggle(true)
+            setDefaultNodeClickListener { node, _ ->
+              val item = node.value?.path?.let { path -> state.items.firstOrNull { it.id == path } }
+              if (item != null) selected = item
+            }
+          }.getView()
+        },
+        update = { _ -> }
+    )
+
     Column(modifier = Modifier.weight(1f).padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
       Text("Material Detail", style = MaterialTheme.typography.titleMedium)
-      Text(state.selected?.title ?: "None")
-      Text(state.selected?.description ?: "Select one material")
-      Text(state.selected?.path ?: "")
+      Text(selected?.title ?: "None")
+      Text(selected?.description ?: "Select one material")
+      Text(selected?.path ?: "")
     }
   }
+}
+
+private fun buildMaterialsTree(items: List<ProjectMaterialItem>): TreeNode {
+  val root = TreeNode.root(File("materials-root"))
+  val byType = items.groupBy { it.sourceType }
+
+  MaterialSourceType.entries.forEach { type ->
+    val typeNode = TreeNode(File(type.name))
+    val typeItems = byType[type].orEmpty().sortedBy { it.title }
+    typeItems.forEach { item ->
+      val module = item.id.substringBefore(':', "misc")
+      val moduleNode = typeNode.children.firstOrNull { it.value?.name == module } ?: TreeNode(File(module)).also { typeNode.addChild(it, false) }
+      val leaf = TreeNode(File(item.title)).apply { value = File(item.id) }
+      moduleNode.addChild(leaf, false)
+    }
+    root.addChild(typeNode, false)
+  }
+  return root
 }
