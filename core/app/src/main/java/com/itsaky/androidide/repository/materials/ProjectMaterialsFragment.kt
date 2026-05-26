@@ -132,7 +132,7 @@ private fun ProjectMaterialsScreen(state: ProjectMaterialsUiState, onOpenFile: (
   }
 }
 
-private fun isArchive(file: File) = file.extension.lowercase() in setOf("jar", "zip", "srcjar")
+private fun isArchive(file: File) = file.extension.lowercase() in setOf("jar", "zip", "srcjar", "aar")
 
 
 private fun decompileClassWithRelated(target: ArchiveEntryFileObject): File {

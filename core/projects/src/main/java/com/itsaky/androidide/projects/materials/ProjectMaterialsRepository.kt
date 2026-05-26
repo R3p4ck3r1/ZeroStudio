@@ -102,11 +102,23 @@ class ProjectMaterialsRepository {
 
   private fun collectLibraryFiles(key: String, lib: DefaultLibrary, add: (ProjectMaterialItem) -> Unit) {
     lib.artifact?.let { addFileItem(add, it, "Library artifact [$key]") }
+    if (lib.artifact?.extension?.equals("aar", true) == true) {
+      addFileItem(add, lib.artifact!!, "AAR package [$key]")
+    }
     lib.srcJar?.let { addFileItem(add, it, "Library source jar [$key]") }
     lib.docJar?.let { addFileItem(add, it, "Library docs jar [$key]") }
     lib.samplesJar?.let { addFileItem(add, it, "Library samples jar [$key]") }
     lib.lintJar?.let { addFileItem(add, it, "Library lint jar [$key]") }
     lib.srcJars.forEach { addFileItem(add, it, "Library source jar [$key]") }
+
+    lib.androidLibraryData?.let { androidLib ->
+      addFileItem(add, androidLib.manifest, "AAR manifest [$key]")
+      addFileItem(add, androidLib.resFolder, "AAR res folder [$key]")
+      addFileItem(add, androidLib.assetsFolder, "AAR assets folder [$key]")
+      addFileItem(add, androidLib.symbolFile, "AAR R symbols [$key]")
+      androidLib.compileJarFiles.forEach { addFileItem(add, it, "AAR compile jar [$key]") }
+      androidLib.runtimeJarFiles.forEach { addFileItem(add, it, "AAR runtime jar [$key]") }
+    }
   }
 
 
@@ -117,8 +129,7 @@ class ProjectMaterialsRepository {
 
     cacheRoot.walkTopDown()
         .filter { it.isFile && (it.name.endsWith("-sources.jar") || it.name.endsWith("-javadoc.jar")) }
-        .take(2000)
-        .forEach { addFileItem(add, it, "Gradle dependency source/doc archive") }
+                .forEach { addFileItem(add, it, "Gradle dependency source/doc archive") }
   }
 
   private fun collectJdkAndToolSources(javaHome: File, add: (ProjectMaterialItem) -> Unit) {
