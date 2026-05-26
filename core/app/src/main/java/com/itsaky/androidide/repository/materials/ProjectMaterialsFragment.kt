@@ -17,35 +17,32 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.viewModels
+import com.itsaky.androidide.activities.editor.EditorHandlerActivity
 import com.itsaky.androidide.fragments.BaseFragment
+import com.itsaky.androidide.preferences.internal.GeneralPreferences
 import com.itsaky.androidide.projects.materials.MaterialSourceType
 import com.itsaky.androidide.projects.materials.ProjectMaterialItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.io.File
 import java.io.Serializable
+import java.util.zip.ZipFile
 
 class ProjectMaterialsFragment : BaseFragment() {
   private val viewModel: ProjectMaterialsViewModel by viewModels()
 
-  override fun onCreateView(
-      inflater: LayoutInflater,
-      container: ViewGroup?,
-      savedInstanceState: Bundle?
-  ): View {
+  override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
     return ComposeView(requireContext()).apply {
       setContent {
         val state by viewModel.uiState.collectAsState()
-        ProjectMaterialsScreen(state = state, onSelect = viewModel::select)
+        ProjectMaterialsScreen(state = state, onOpenFile = ::openInEditor)
       }
     }
   }
@@ -54,64 +51,107 @@ class ProjectMaterialsFragment : BaseFragment() {
     super.onStart()
     viewModel.refresh()
   }
+
+  private fun openInEditor(file: File) {
+    (activity as? EditorHandlerActivity)?.openFile(file)
+  }
 }
 
 @Composable
-private fun ProjectMaterialsScreen(state: ProjectMaterialsUiState, onSelect: (ProjectMaterialItem) -> Unit) {
+private fun ProjectMaterialsScreen(state: ProjectMaterialsUiState, onOpenFile: (File) -> Unit) {
+  val scope = rememberCoroutineScope()
   var selected by remember(state.selected, state.items) { mutableStateOf(state.selected) }
+  var currentRoot by remember(state.items) { mutableStateOf<FileObject>(buildMaterialsTree(state.items)) }
+  var browsingArchive by remember { mutableStateOf(false) }
+  var loadingArchive by remember { mutableStateOf(false) }
 
   Row(modifier = Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-    if (state.loading) {
-      Column(
-          modifier = Modifier.weight(1f).fillMaxSize(),
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.Center) {
-            CircularProgressIndicator()
-            Text("Loading materials...", modifier = Modifier.padding(top = 12.dp))
-          }
-    } else {
-      AndroidView(
-          modifier = Modifier.weight(1f),
-          factory = { context ->
-            val tree = FileTree(context)
-            tree.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
-            tree.setOnFileClickListener(
-                object : FileClickListener {
-                  override fun onClick(node: Node<FileObject>) {
-                    val clicked = (node.value as? MaterialTreeFileObject)?.material
-                    if (clicked != null) {
-                      selected = clicked
-                      onSelect(clicked)
+    when {
+      state.loading || loadingArchive -> {
+        Column(modifier = Modifier.weight(1f).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+          CircularProgressIndicator()
+          Text(if (loadingArchive) "Loading archive entries..." else "Loading materials...", modifier = Modifier.padding(top = 12.dp))
+        }
+      }
+      else -> {
+        AndroidView(modifier = Modifier.weight(1f), factory = { context ->
+          val tree = FileTree(context)
+          tree.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+          tree.setAutoExpandSingleChildFolders(GeneralPreferences.treeAutoExpandSingleChild)
+          tree.setOnFileClickListener(object : FileClickListener {
+            override fun onClick(node: Node<FileObject>) {
+              when (val obj = node.value) {
+                is MaterialTreeFileObject -> {
+                  obj.material?.let {
+                    selected = it
+                    val p = it.path?.let(::File)
+                    if (p != null && p.isFile && isArchive(p)) {
+                      loadingArchive = true
+                      scope.launch(Dispatchers.IO) {
+                        val newRoot = buildArchiveTree(p)
+                        loadingArchive = false
+                        browsingArchive = true
+                        currentRoot = newRoot
+                      }
+                    } else if (p != null && p.isFile) {
+                      onOpenFile(p)
                     }
                   }
-                })
-            tree.loadFiles(buildMaterialsTree(state.items), true)
-            tree
-          },
-          update = { tree -> tree.loadFiles(buildMaterialsTree(state.items), true) })
+                }
+                is ArchiveEntryFileObject -> {
+                  if (!obj.isDirectory()) {
+                    val output = obj.extractToTemp()
+                    if (output.extension == "class") {
+                      val text = decompileClass(output)
+                      val decompiled = File(output.parentFile, output.nameWithoutExtension + ".decompiled.java")
+                      decompiled.writeText(text)
+                      onOpenFile(decompiled)
+                    } else {
+                      onOpenFile(output)
+                    }
+                  }
+                }
+              }
+            }
+          })
+          tree.loadFiles(currentRoot, true)
+          tree
+        }, update = { tree -> tree.loadFiles(currentRoot, true) })
+      }
     }
 
     Column(modifier = Modifier.weight(1f).padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
       Text("Material Detail", style = MaterialTheme.typography.titleMedium)
-      Text(selected?.title ?: "None")
+      Text(selected?.title ?: if (browsingArchive) "Archive Browser" else "None")
       Text(selected?.description ?: "Select one material")
       Text(selected?.path ?: "")
     }
   }
 }
 
-private fun buildMaterialsTree(items: List<ProjectMaterialItem>): MaterialTreeFileObject {
-  val root = MaterialTreeFileObject(name = "Project Materials", isDir = true, material = null)
-  val byType = items.groupBy { it.sourceType }
+private fun isArchive(file: File) = file.extension.lowercase() in setOf("jar", "zip", "srcjar")
 
+private fun decompileClass(classFile: File): String {
+  val engine = GeneralPreferences.decompilerEngine
+  val bytes = classFile.readBytes()
+  return buildString {
+    appendLine("// Decompiled by $engine")
+    appendLine("// Source: ${classFile.name}")
+    appendLine("// Note: lightweight fallback decompiler placeholder")
+    appendLine("public class ${classFile.nameWithoutExtension} {")
+    appendLine("  // bytecode size = ${bytes.size}")
+    appendLine("}")
+  }
+}
+
+private fun buildMaterialsTree(items: List<ProjectMaterialItem>): MaterialTreeFileObject {
+  val root = MaterialTreeFileObject("Project Materials", true, null)
+  val byType = items.groupBy { it.sourceType }
   MaterialSourceType.entries.forEach { type ->
     val typeNode = MaterialTreeFileObject(type.name, true, null)
-    val groupedModules = byType[type].orEmpty().groupBy { it.id.substringBefore(':', "misc") }
-    groupedModules.forEach { (module, moduleItems) ->
+    byType[type].orEmpty().groupBy { it.id.substringBefore(':', "misc") }.forEach { (module, moduleItems) ->
       val moduleNode = MaterialTreeFileObject(module, true, null)
-      moduleItems.sortedBy { it.title }.forEach { item ->
-        moduleNode.children += MaterialTreeFileObject(item.title, false, item)
-      }
+      moduleItems.sortedBy { it.title }.forEach { moduleNode.children += MaterialTreeFileObject(it.title, false, it) }
       typeNode.children += moduleNode
     }
     root.children += typeNode
@@ -119,16 +159,49 @@ private fun buildMaterialsTree(items: List<ProjectMaterialItem>): MaterialTreeFi
   return root
 }
 
-private data class MaterialTreeFileObject(
-    private val name: String,
-    private val isDir: Boolean,
-    val material: ProjectMaterialItem?,
-    val children: MutableList<MaterialTreeFileObject> = mutableListOf(),
-) : FileObject, Serializable {
+private fun buildArchiveTree(archive: File): ArchiveEntryFileObject {
+  val root = ArchiveEntryFileObject(archive, "${archive.name}!/", true, null)
+  val nodeMap = linkedMapOf<String, ArchiveEntryFileObject>()
+  nodeMap[""] = root
+  ZipFile(archive).use { zip ->
+    zip.entries().asSequence().forEach { entry ->
+      val normalized = entry.name.trim('/'); if (normalized.isEmpty()) return@forEach
+      val parts = normalized.split('/')
+      var path = ""
+      var parent = root
+      for ((idx, part) in parts.withIndex()) {
+        path = if (path.isEmpty()) part else "$path/$part"
+        val isDir = idx != parts.lastIndex || entry.isDirectory
+        val node = nodeMap.getOrPut(path) {
+          ArchiveEntryFileObject(archive, path, isDir, if (isDir) null else entry.name)
+        }
+        if (!parent.children.contains(node)) parent.children += node
+        parent = node
+      }
+    }
+  }
+  return root
+}
+
+private data class MaterialTreeFileObject(private val name: String, private val isDir: Boolean, val material: ProjectMaterialItem?, val children: MutableList<MaterialTreeFileObject> = mutableListOf()) : FileObject, Serializable {
   override fun listFiles(): List<FileObject> = children
-  override fun isDirectory(): Boolean = isDir
-  override fun isFile(): Boolean = !isDir
-  override fun getName(): String = name
+  override fun isDirectory() = isDir
+  override fun isFile() = !isDir
+  override fun getName() = name
   override fun getParentFile(): FileObject? = null
   override fun getAbsolutePath(): String = material?.id ?: "virtual://$name"
+}
+
+private data class ArchiveEntryFileObject(private val archive: File, private val entryPath: String, private val dir: Boolean, private val actualEntry: String?, val children: MutableList<ArchiveEntryFileObject> = mutableListOf()) : FileObject, Serializable {
+  override fun listFiles(): List<FileObject> = children
+  override fun isDirectory() = dir
+  override fun isFile() = !dir
+  override fun getName(): String = entryPath.substringAfterLast('/').ifBlank { archive.name }
+  override fun getParentFile(): FileObject? = null
+  override fun getAbsolutePath(): String = "${archive.absolutePath}!/$entryPath"
+  fun extractToTemp(): File {
+    val out = File.createTempFile("material_", "_" + getName())
+    ZipFile(archive).use { zip -> zip.getInputStream(zip.getEntry(actualEntry)).use { input -> out.outputStream().use { input.copyTo(it) } } }
+    return out
+  }
 }
