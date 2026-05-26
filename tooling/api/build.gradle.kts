@@ -43,6 +43,14 @@ dependencies {
   api(projects.logging.logger)
   api(projects.tooling.events)
   api(projects.tooling.model)
+
+  api(projects.tooling.buildGrpc)
+  api(projects.tooling.reapiProto)
+
+  implementation(libs.common.lsp4j.jsonrpc)
+  implementation(libs.common.org.eclipse.lsp4j)
+  implementation(libs.google.gson)
+  implementation(libs.common.kotlin.coroutines.core)
   api(projects.utilities.buildInfo)
   api(projects.utilities.shared)
 
