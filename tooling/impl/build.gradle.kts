@@ -79,6 +79,10 @@ dependencies {
   implementation(libs.xml.xercesImpl)
   implementation(libs.xml.apis)
   implementation(libs.tooling.gradleApi)
+  implementation(libs.common.lsp4j.jsonrpc)
+  implementation(libs.common.org.eclipse.lsp4j)
+  implementation(libs.google.gson)
+  implementation(projects.tooling.buildGrpc)
 
   runtimeOnly(libs.tooling.slf4j)
 }

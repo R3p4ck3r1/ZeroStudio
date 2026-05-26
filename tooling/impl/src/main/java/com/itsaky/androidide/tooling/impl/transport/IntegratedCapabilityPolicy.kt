@@ -2,7 +2,6 @@ package com.itsaky.androidide.tooling.impl.transport
 
 import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
-import org.gradle.tooling.events.OperationType
 
 /**
  * Session capability policy for integrated transport stack.
@@ -16,7 +15,7 @@ class IntegratedCapabilityPolicy {
       val supportsPhasedAction: Boolean,
       val supportsModelSnapshot: Boolean,
       val supportsQueryService: Boolean,
-      val negotiatedOperationTypes: Set<OperationType>,
+      val negotiatedOperationTypes: Set<String>,
   ) {
     companion object {
       val DEFAULT = CapabilitySnapshot(false, false, false, emptySet())
@@ -46,7 +45,7 @@ class IntegratedCapabilityPolicy {
 
   fun applyToExecutionRequest(
       request: ExecutionRequest,
-      defaultOps: Set<OperationType>,
+      defaultOps: Set<String>,
   ): ExecutionRequest {
     val cap = snapshot
     val effectiveOps =
