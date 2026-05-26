@@ -244,7 +244,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
 
         negotiatedOperationTypes =
             negotiateOperationTypes(
-                params.clientCapabilities.requestedOperationTypes,
+                params.clientCapabilities.requestedOperationTypes.toOperationTypes(),
                 Main.progressUpdateTypes(),
                 params.clientCapabilities.preferLightweightSync,
             )
@@ -403,7 +403,10 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       }
 
       val injectedArgs =
-          lastInitParams.androidParams.injectedProperties.toGradleArguments().filter { it.isNotBlank() }
+          lastInitParams?.androidParams?.injectedProperties
+              ?.toGradleArguments()
+              ?.filter { it.isNotBlank() }
+              ?: emptyList()
       if (injectedArgs.isNotEmpty()) {
         log.debug("Applying Android injected properties: {}", injectedArgs)
         builder.addArguments(*injectedArgs.toTypedArray())
@@ -413,7 +416,7 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
           if (request.operationTypes.isEmpty()) {
             negotiatedOperationTypes
           } else {
-            negotiateOperationTypes(request.operationTypes, Main.progressUpdateTypes())
+            negotiateOperationTypes(request.operationTypes.toOperationTypes(), Main.progressUpdateTypes())
           }
 
       Main.finalizeLauncher(builder, effectiveOperationTypes)
@@ -517,6 +520,12 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
     }
 
     return negotiated
+  }
+
+  private fun Set<String>.toOperationTypes(): Set<OperationType> {
+    return mapNotNullTo(linkedSetOf()) { typeName ->
+      runCatching { OperationType.valueOf(typeName) }.getOrNull()
+    }
   }
 
   private fun notifyBuildFailure(tasks: List<String>) {
