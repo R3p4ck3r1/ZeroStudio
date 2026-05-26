@@ -54,6 +54,7 @@ import com.itsaky.androidide.tooling.api.models.DependencyGraphModel
 import com.itsaky.androidide.tooling.api.models.VariantDependencyAdjacencyModel
 import com.itsaky.androidide.tooling.api.models.GraphNodeModel
 import com.itsaky.androidide.tooling.api.models.ArtifactDependencyAdjacencyModel
+import com.itsaky.androidide.tooling.api.models.ArtifactDependencyAdjacencyListModel
 import com.itsaky.androidide.tooling.api.models.FlavorMatrixModel
 import com.itsaky.androidide.tooling.api.models.GeneratedSourceModel
 import com.itsaky.androidide.tooling.api.models.LibraryGraphEntry

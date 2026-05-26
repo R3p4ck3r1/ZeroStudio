@@ -1,6 +1,7 @@
 package com.itsaky.androidide.tooling.impl.transport.reapi
 
 import build.bazel.remote.execution.v2.ActionResult
+import build.bazel.remote.execution.v2.ActionCacheGrpc
 import build.bazel.remote.execution.v2.ExecuteResponse
 import build.bazel.remote.execution.v2.ExecutionGrpc
 import build.bazel.remote.execution.v2.GetActionResultRequest
@@ -102,7 +103,7 @@ class GrpcReapiExecutionGateway(
                           .build(),
                   )
                   .build()
-          ExecutionGrpc.newBlockingStub(ch).getActionResult(request)
+          ActionCacheGrpc.newBlockingStub(ch).getActionResult(request)
         }
         .onFailure {
           log.warn(
@@ -148,7 +149,7 @@ class GrpcReapiExecutionGateway(
                   )
                   .setActionResult(result)
                   .build()
-          ExecutionGrpc.newBlockingStub(ch).updateActionResult(request)
+          ActionCacheGrpc.newBlockingStub(ch).updateActionResult(request)
         }
         .onFailure {
           log.warn(
