@@ -16,7 +16,7 @@ class DefaultBinaryBuildServiceApi(
       workspaceRoot = request.workspaceRoot,
       clientName = request.clientName,
       clientVersion = request.clientVersion,
-      capabilities = request.capabilities + setOf("buildSystem:${request.buildSystemId}"),
+      capabilities = (request.capabilities + setOf("buildSystem:${request.buildSystemId}")).toList(),
     )
     val info = module.initialize(init)
     return BuildInitializeResponse(

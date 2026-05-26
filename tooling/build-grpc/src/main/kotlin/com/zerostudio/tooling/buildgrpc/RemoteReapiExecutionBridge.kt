@@ -2,7 +2,7 @@ package com.zerostudio.tooling.buildgrpc
 
 import build.bazel.remote.execution.v2.ExecuteRequest
 import build.bazel.remote.execution.v2.ExecutionGrpcKt
-import com.google.rpc.Code
+import com.zerostudio.tooling.buildgrpc.proto.ExecutionStatus
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.flow.firstOrNull
 
@@ -31,7 +31,7 @@ class RemoteReapiExecutionBridge(
 
     return ActionExecutionResult(
       operationName = operation.name,
-      status = if (operation.done) Code.OK_VALUE else Code.UNKNOWN_VALUE,
+      status = if (operation.done) ExecutionStatus.EXECUTION_STATUS_COMPLETED else ExecutionStatus.EXECUTION_STATUS_EXECUTING,
       actionResult = metadataBytes,
     )
   }

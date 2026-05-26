@@ -64,8 +64,8 @@ message ExecuteActionRequest {
   string action_digest = 2;
   bytes command = 3;
   bytes input_root_digest = 4;
-  build.bazel.remote.execution.v2.Digest reapi_action_digest = 5;
-  build.bazel.remote.execution.v2.Platform platform = 6;
+  .build.bazel.remote.execution.v2.Digest reapi_action_digest = 5;
+  .build.bazel.remote.execution.v2.Platform platform = 6;
   string instance_name = 7;
   int32 priority = 8;
 }
@@ -74,8 +74,8 @@ message ExecuteActionResponse {
   string operation_name = 1;
   ExecutionStatus status = 2;
   bytes action_result = 3;
-  build.bazel.remote.execution.v2.Digest stdout_digest = 4;
-  build.bazel.remote.execution.v2.Digest stderr_digest = 5;
+  .build.bazel.remote.execution.v2.Digest stdout_digest = 4;
+  .build.bazel.remote.execution.v2.Digest stderr_digest = 5;
   ResourceUsage usage = 6;
 }
 
@@ -255,6 +255,40 @@ message ResourceBudget {
 message ExecutionHint {
   string key = 1;
   string value = 2;
+}
+
+
+enum CompressionKind {
+  COMPRESSION_KIND_UNSPECIFIED = 0;
+  COMPRESSION_KIND_NONE = 1;
+  COMPRESSION_KIND_ZSTD = 2;
+  COMPRESSION_KIND_LZ4 = 3;
+  COMPRESSION_KIND_GZIP = 4;
+}
+
+enum TransferRejectReason {
+  TRANSFER_REJECT_REASON_NONE = 0;
+  TRANSFER_REJECT_REASON_MISSING_IDENTITY = 1;
+  TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION = 2;
+  TRANSFER_REJECT_REASON_CHECKSUM_MISMATCH = 3;
+  TRANSFER_REJECT_REASON_UNSUPPORTED_COMPRESSION = 4;
+  TRANSFER_REJECT_REASON_PERMISSION_DENIED = 5;
+  TRANSFER_REJECT_REASON_DECOMPRESSION_FAILED = 6;
+}
+
+enum ArtifactKind {
+  ARTIFACT_KIND_UNSPECIFIED = 0;
+  ARTIFACT_KIND_LOG = 1;
+  ARTIFACT_KIND_DIAGNOSTIC = 2;
+  ARTIFACT_KIND_BINARY = 3;
+  ARTIFACT_KIND_REPORT = 4;
+}
+
+enum SerializationKind {
+  SERIALIZATION_KIND_UNSPECIFIED = 0;
+  SERIALIZATION_KIND_PROTOBUF_BINARY = 1;
+  SERIALIZATION_KIND_FLATBUFFERS = 2;
+  SERIALIZATION_KIND_JSON = 3;
 }
 
 enum BuildProtocolProfile {
