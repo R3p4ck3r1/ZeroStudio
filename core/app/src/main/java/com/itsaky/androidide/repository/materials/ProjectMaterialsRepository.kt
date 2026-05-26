@@ -1,33 +1,107 @@
 package com.itsaky.androidide.repository.materials
 
-import com.itsaky.androidide.projects.IProjectManager
+import com.itsaky.androidide.builder.model.DefaultLibrary
+import com.itsaky.androidide.lookup.Lookup
+import com.itsaky.androidide.projects.builder.BuildService
+import com.itsaky.androidide.tooling.api.IProject
+import com.itsaky.androidide.tooling.api.ProjectType
+import com.itsaky.androidide.tooling.api.models.params.StringParameter
 import java.io.File
 
 class ProjectMaterialsRepository {
+
   fun loadMaterials(): List<ProjectMaterialItem> {
-    val projectDir = IProjectManager.getInstance().workspace?.projectDir
-    return buildList {
-      addAll(defaultApiMaterials())
-      if (projectDir != null) addAll(collectProjectFiles(projectDir))
+    val proxy = Lookup.getDefault().lookup(BuildService.KEY_PROJECT_PROXY) ?: return emptyList()
+    val items = LinkedHashMap<String, ProjectMaterialItem>()
+
+    fun add(item: ProjectMaterialItem) {
+      items.putIfAbsent(item.id, item)
+    }
+
+    val projects = runCatching { proxy.getProjects().get() }.getOrDefault(emptyList())
+
+    projects.forEach { meta ->
+      runCatching { proxy.selectProject(StringParameter(meta.projectPath)).get() }
+      add(
+          ProjectMaterialItem(
+              id = "module:${meta.projectPath}",
+              title = meta.name ?: meta.projectPath,
+              sourceType = MaterialSourceType.GRADLE_TOOLING_API,
+              apiName = "org.gradle.tooling.model.GradleProject",
+              description = "Module from Tooling API model path=${meta.projectPath}",
+              path = meta.projectDir.absolutePath,
+          ))
+      addFileItem(add = ::add, file = meta.buildDir, label = "Build directory")
+
+      when (runCatching { proxy.getType().get() }.getOrNull()) {
+        ProjectType.Android -> collectAndroidMaterials(proxy, ::add)
+        ProjectType.Java -> collectJavaMaterials(proxy, ::add)
+        else -> collectGradleMaterials(proxy, ::add)
+      }
+    }
+
+    return items.values.toList()
+  }
+
+  private fun collectGradleMaterials(proxy: IProject, add: (ProjectMaterialItem) -> Unit) {
+    val gradle = runCatching { proxy.asGradleProject() }.getOrNull() ?: return
+    val buildEnv = runCatching { gradle.getBuildEnvironment().get() }.getOrNull()
+    val gradleBuild = runCatching { gradle.getGradleBuild().get() }.getOrNull()
+
+    buildEnv?.java?.javaHome?.let { addFileItem(add, it, "JDK Home") }
+    buildEnv?.gradle?.gradleUserHome?.let { addFileItem(add, it, "Gradle user home") }
+    gradleBuild?.includedBuildIds?.forEach { included ->
+      add(ProjectMaterialItem("included:$included", included, MaterialSourceType.GRADLE_TOOLING_API, "GradleBuildModel", "Included build id"))
     }
   }
 
-  private fun defaultApiMaterials() =
-      listOf(
-          ProjectMaterialItem("gradle-project", "GradleProject", MaterialSourceType.GRADLE_TOOLING_API, "org.gradle.tooling.model.GradleProject", "Gradle tasks/modules model."),
-          ProjectMaterialItem("eclipse-project", "EclipseProject", MaterialSourceType.GRADLE_TOOLING_API, "org.gradle.tooling.model.eclipse.EclipseProject", "Eclipse source/classpath model."),
-          ProjectMaterialItem("idea-project", "IdeaProject", MaterialSourceType.GRADLE_TOOLING_API, "org.gradle.tooling.model.idea.IdeaProject", "IDEA module/dependency model."),
-          ProjectMaterialItem("android-project", "AndroidProject", MaterialSourceType.AGP_BUILDER_MODEL, "com.android.builder.model.AndroidProject", "Android variants/artifacts model."),
-          ProjectMaterialItem("variant", "Variant", MaterialSourceType.AGP_BUILDER_MODEL, "com.android.builder.model.Variant", "Build variant outputs model."),
-          ProjectMaterialItem("sdk-handler", "SdkHandler", MaterialSourceType.SDK_TOOLING, "com.android.sdklib.repository.AndroidSdkHandler", "Android SDK repository/materials provider."),
-      )
+  private fun collectAndroidMaterials(proxy: IProject, add: (ProjectMaterialItem) -> Unit) {
+    val android = runCatching { proxy.asAndroidProject() }.getOrNull() ?: return
 
-  private fun collectProjectFiles(projectDir: File): List<ProjectMaterialItem> {
-    val includeNames = setOf("build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts", "AndroidManifest.xml")
-    return projectDir.walkTopDown().filter { it.isFile }.filter {
-      it.name in includeNames || it.path.contains("/src/main/") || it.path.contains("/build/outputs/")
-    }.take(300).map {
-      ProjectMaterialItem("file:${it.absolutePath}", it.name, MaterialSourceType.PROJECT_FILE, "java.io.File", "Collected project material file.", it.absolutePath)
-    }.toList()
+    runCatching { android.getBootClasspaths().get() }.getOrDefault(emptyList()).forEach {
+      addFileItem(add, it, "Android boot classpath")
+    }
+
+    runCatching { android.getLintCheckJars().get() }.getOrDefault(emptyList()).forEach {
+      addFileItem(add, it, "Lint checks jar")
+    }
+
+    runCatching { android.getLibraryMap().get() }.getOrDefault(emptyMap()).forEach { (key, lib) ->
+      collectLibraryFiles(key, lib, add)
+    }
+  }
+
+  private fun collectJavaMaterials(proxy: IProject, add: (ProjectMaterialItem) -> Unit) {
+    val java = runCatching { proxy.asJavaProject() }.getOrNull() ?: return
+
+    runCatching { java.getContentRoots().get() }.getOrDefault(emptyList()).forEach { root ->
+      root.sourceDirectories.forEach { addFileItem(add, it.directory, "Java source dir") }
+      root.testDirectories.forEach { addFileItem(add, it.directory, "Java test source dir") }
+    }
+
+    runCatching { java.getDependencies().get() }.getOrDefault(emptyList()).forEach { dep ->
+      dep.jarFile?.let { addFileItem(add, it, "Java dependency jar") }
+    }
+  }
+
+  private fun collectLibraryFiles(key: String, lib: DefaultLibrary, add: (ProjectMaterialItem) -> Unit) {
+    lib.artifact?.let { addFileItem(add, it, "Library artifact [$key]") }
+    lib.srcJar?.let { addFileItem(add, it, "Library source jar [$key]") }
+    lib.docJar?.let { addFileItem(add, it, "Library docs jar [$key]") }
+    lib.samplesJar?.let { addFileItem(add, it, "Library samples jar [$key]") }
+    lib.lintJar?.let { addFileItem(add, it, "Library lint jar [$key]") }
+    lib.srcJars.forEach { addFileItem(add, it, "Library source jar [$key]") }
+  }
+
+  private fun addFileItem(add: (ProjectMaterialItem) -> Unit, file: File, label: String) {
+    add(
+        ProjectMaterialItem(
+            id = "file:${file.absolutePath}",
+            title = file.name.ifBlank { file.absolutePath },
+            sourceType = MaterialSourceType.PROJECT_FILE,
+            apiName = file.extension.ifBlank { "file" },
+            description = label,
+            path = file.absolutePath,
+        ))
   }
 }
