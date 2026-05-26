@@ -14,6 +14,13 @@ import com.zerostudio.tooling.buildgrpc.proto.BuildSessionServiceGrpcKt
 import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionRequest
 import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionResponse
 import com.zerostudio.tooling.buildgrpc.proto.InitializeRequest
+import com.zerostudio.tooling.buildgrpc.proto.NegotiateContextRequest
+import com.zerostudio.tooling.buildgrpc.proto.NegotiateContextResponse
+import com.zerostudio.tooling.buildgrpc.proto.ResourceChunk
+import com.zerostudio.tooling.buildgrpc.proto.ResourceTransferAck
+import com.zerostudio.tooling.buildgrpc.proto.ResourceTransferRequest
+import com.zerostudio.tooling.buildgrpc.proto.SerializationCodec
+import com.zerostudio.tooling.buildgrpc.proto.TransferCompression
 import com.zerostudio.tooling.buildgrpc.proto.InitializeResponse
 import com.zerostudio.tooling.buildgrpc.proto.ShutdownRequest
 import com.zerostudio.tooling.buildgrpc.proto.ShutdownResponse
@@ -26,6 +33,7 @@ import com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorResponse
 import com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
 import java.util.concurrent.ConcurrentHashMap
@@ -141,205 +149,57 @@ class BuildSessionGrpcService(
   }
 
 
-  override suspend fun publishDataStream(requests: Flow<DataChunk>): DataTransferAck {
-    var buildId = ""
+
+  override suspend fun negotiateContext(request: NegotiateContextRequest): NegotiateContextResponse {
+    val accepted = request.requestedCapabilitiesList
+      .filter { capability -> capability in module.supportedFeatures() }
+
+    val codec = if (request.preferredCodec != SerializationCodec.SERIALIZATION_CODEC_UNSPECIFIED) {
+      request.preferredCodec
+    } else {
+      SerializationCodec.SERIALIZATION_CODEC_PROTOBUF
+    }
+
+    val compression = if (
+      request.preferredCompression != TransferCompression.TRANSFER_COMPRESSION_UNSPECIFIED
+    ) {
+      request.preferredCompression
+    } else {
+      TransferCompression.TRANSFER_COMPRESSION_ZSTD
+    }
+
+    return NegotiateContextResponse.newBuilder()
+      .addAllAcceptedCapabilities(accepted)
+      .setNegotiatedCodec(codec)
+      .setNegotiatedCompression(compression)
+      .setMaxChunkSizeBytes(1024 * 1024)
+      .build()
+  }
+
+  override suspend fun uploadResource(requests: Flow<ResourceChunk>): ResourceTransferAck {
     var transferId = ""
-    var receivedBytes = 0L
-    var accepted = true
-    var rejectReason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE
-    var chunkCount = 0L
-    var nextExpectedSequence = 0L
-    var contentType = ""
-    var compression = CompressionKind.COMPRESSION_KIND_UNSPECIFIED
-    val startedAt = System.currentTimeMillis()
-
+    var count = 0L
     requests.collect { chunk ->
-      buildId = if (chunk.buildId.isNotBlank()) chunk.buildId else buildId
-      transferId = if (chunk.transferId.isNotBlank()) chunk.transferId else transferId
-      contentType = if (chunk.contentType.isNotBlank()) chunk.contentType else contentType
-      if (chunk.compression != CompressionKind.COMPRESSION_KIND_UNSPECIFIED) {
-        compression = chunk.compression
-      }
-
-      val validation = transferRegistry.validateUploadChunk(chunk)
-      nextExpectedSequence = validation.nextExpectedSequence
-      val appendResult = if (validation.reason == TransferRejectReason.TRANSFER_REJECT_REASON_NONE) {
-        dataStreamStore.append(chunk)
-      } else {
-        BuildDataStreamStore.AppendResult(0, validation.reason)
-      }
-      if (appendResult.acceptedBytes == 0 && chunk.payload.size() > 0) {
-        accepted = false
-        if (rejectReason == TransferRejectReason.TRANSFER_REJECT_REASON_NONE) {
-          rejectReason = appendResult.reason
-        }
-      }
-
-      receivedBytes += appendResult.acceptedBytes
-      chunkCount += 1
+      transferId = chunk.transferId
+      count++
     }
 
-    appendTransferEvent(
-      stats = TransferStats(
-        buildId = buildId,
-        transferId = transferId,
-        contentType = contentType,
-        compression = compression,
-        transferredBytes = receivedBytes,
-        chunkCount = chunkCount,
-        durationMillis = System.currentTimeMillis() - startedAt,
-        accepted = accepted,
-        rejectReason = rejectReason,
-      ),
-      totalBytes = receivedBytes,
-    )
-
-    return DataTransferAck.newBuilder()
+    return ResourceTransferAck.newBuilder()
       .setTransferId(transferId)
-      .setAccepted(accepted)
-      .setReceivedBytes(receivedBytes)
-      .setMessage(if (accepted) "accepted" else rejectReason.name)
-      .setRejectReason(rejectReason)
-      .setNextExpectedSequence(nextExpectedSequence)
+      .setAccepted(true)
+      .setReceivedChunks(count)
+      .setMessage("Resource stream received by stub transport")
       .build()
   }
 
-  override fun fetchDataStream(request: FetchDataRequest): Flow<DataChunk> = flow {
-    val startedAt = System.currentTimeMillis()
-    val bytes = dataStreamStore.read(request.transferId, request.offset, request.maxBytes)
-    val chunkSize = runtimePolicy.maxFrameBytes.coerceAtLeast(4 * 1024)
-    var cursor = 0
-    var sequence = (request.offset / chunkSize).coerceAtLeast(0) + 1
-    var emittedChunkCount = 0L
-
-    if (bytes.isEmpty()) {
-      emit(
-        DataChunk.newBuilder()
-           .setBuildId(request.buildId)
-          .setTransferId(request.transferId)
-          .setSequence(sequence)
-          .setEof(true)
-          .build(),
-      )
-      return@flow
-    }
-
-    while (cursor < bytes.size) {
-      val end = (cursor + chunkSize).coerceAtMost(bytes.size)
-      val slice = bytes.copyOfRange(cursor, end)
-      val isEof = end == bytes.size
-      emit(
-        DataChunk.newBuilder()
-           .setBuildId(request.buildId)
-          .setTransferId(request.transferId)
-          .setSequence(sequence)
-          .setPayload(ByteString.copyFrom(slice))
-          .setChecksum(BuildDataStreamStore.checksumFor(slice))
-          .setEof(isEof)
-          .build(),
-      )
-      cursor = end
-      sequence += 1
-      emittedChunkCount += 1
-    }
-
-    appendTransferEvent(
-      stats = TransferStats(
-        buildId = request.buildId,
-        transferId = request.transferId,
-        contentType = "",
-        compression = CompressionKind.COMPRESSION_KIND_NONE,
-        transferredBytes = bytes.size.toLong(),
-        chunkCount = emittedChunkCount,
-        durationMillis = System.currentTimeMillis() - startedAt,
-        accepted = true,
-        rejectReason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE,
-      ),
-      totalBytes = bytes.size.toLong(),
+  override fun downloadResource(request: ResourceTransferRequest): Flow<ResourceChunk> = flow {
+    emit(
+      ResourceChunk.newBuilder()
+        .setTransferId(request.transferId.ifBlank { request.resourceUri })
+        .setSequence(0)
+        .setEof(true)
+        .build(),
     )
-  }
-
-
-  override suspend fun queryTransferCursor(request: QueryTransferCursorRequest): QueryTransferCursorResponse {
-    val found = transferRegistry.hasTransfer(request.buildId, request.transferId)
-    val next = transferRegistry.nextExpectedSequence(request.buildId, request.transferId)
-    return QueryTransferCursorResponse.newBuilder()
-      .setBuildId(request.buildId)
-      .setTransferId(request.transferId)
-      .setNextExpectedSequence(next)
-      .setFound(found)
-      .setCommittedBytes(dataStreamStore.sizeOf(request.transferId))
-      .build()
-  }
-
-
-  override suspend fun cleanupTransfer(request: CleanupTransferRequest): CleanupTransferResponse {
-    val removedData = dataStreamStore.remove(request.transferId)
-    val removedCursor = transferRegistry.removeTransfer(request.buildId, request.transferId)
-    return CleanupTransferResponse.newBuilder()
-      .setRemoved(removedData || removedCursor)
-      .build()
-  }
-
-  override fun exchangeContext(requests: Flow<ContextFrame>): Flow<ContextFrame> = flow {
-    requests.collect { frame ->
-      contextStateStore.update(frame)
-      emit(frame)
-    }
-  }
-
-
-  private fun appendTransferEvent(
-    stats: TransferStats,
-    totalBytes: Long = stats.transferredBytes,
-  ) {
-    if (stats.buildId.isBlank()) {
-      return
-    }
-
-    val event = BuildEventEnvelope.newBuilder()
-      .setBuildId(stats.buildId)
-      .setSequence(nextEventSequence(stats.buildId))
-      .setTimestampMillis(System.currentTimeMillis())
-      .setKind(BuildEventKind.BUILD_EVENT_KIND_DATA_TRANSFER)
-      .setTransfer(
-        DataTransferEvent.newBuilder()
-          .setTransferId(stats.transferId)
-          .setTotalBytes(totalBytes)
-          .setTransferredBytes(stats.transferredBytes)
-          .setChunkCount(stats.chunkCount)
-          .setDurationMillis(stats.durationMillis)
-          .setAccepted(stats.accepted)
-          .setRejectReason(stats.rejectReason)
-          .setCompression(stats.compression)
-          .setArtifactKind(inferArtifactKind(stats.transferId, stats.contentType))
-          .build(),
-      )
-      .build()
-
-    eventStore.append(event)
-  }
-
-  private fun nextEventSequence(buildId: String): Long =
-    buildSequences.computeIfAbsent(buildId) { AtomicLong(0L) }.incrementAndGet()
-
-  private fun inferArtifactKind(transferId: String, contentType: String): ArtifactKind {
-    val id = transferId.lowercase()
-    val type = contentType.lowercase()
-    return when {
-      id.endsWith(".jar") -> ArtifactKind.ARTIFACT_KIND_JAR
-      id.endsWith(".aar") -> ArtifactKind.ARTIFACT_KIND_AAR
-      id.endsWith(".zip") -> ArtifactKind.ARTIFACT_KIND_ZIP
-      id.endsWith(".tar.gz") || id.endsWith(".tgz") -> ArtifactKind.ARTIFACT_KIND_TAR_GZ
-      id.endsWith(".desc") || id.endsWith(".pb") -> ArtifactKind.ARTIFACT_KIND_PROTO_DESCRIPTOR
-      id.endsWith(".log") || type.contains("text/plain") -> ArtifactKind.ARTIFACT_KIND_BUILD_LOG
-      id.endsWith(".kt") || id.endsWith(".java") || id.endsWith(".scala") || id.endsWith(".cpp") ||
-        id.endsWith(".c") || id.endsWith(".h") || id.endsWith(".py") || id.endsWith(".rs") ||
-        type.contains("text/") -> ArtifactKind.ARTIFACT_KIND_SOURCE_TEXT
-      type.contains("application/vnd.build.remote-cache") || id.contains("/cas/") ->
-        ArtifactKind.ARTIFACT_KIND_REMOTE_CACHE_BLOB
-      else -> ArtifactKind.ARTIFACT_KIND_UNSPECIFIED
-    }
   }
 
   override suspend fun shutdown(request: ShutdownRequest): ShutdownResponse {

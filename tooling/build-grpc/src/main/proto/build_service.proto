@@ -17,11 +17,9 @@ service BuildSessionService {
   rpc StartBuild(StartBuildRequest) returns (stream BuildEventEnvelope);
   rpc StreamBuildEvents(StreamBuildEventsRequest) returns (stream BuildEventEnvelope);
   rpc ExecuteAction(ExecuteActionRequest) returns (ExecuteActionResponse);
-  rpc PublishDataStream(stream DataChunk) returns (DataTransferAck);
-  rpc FetchDataStream(FetchDataRequest) returns (stream DataChunk);
-  rpc QueryTransferCursor(QueryTransferCursorRequest) returns (QueryTransferCursorResponse);
-  rpc CleanupTransfer(CleanupTransferRequest) returns (CleanupTransferResponse);
-  rpc ExchangeContext(stream ContextFrame) returns (stream ContextFrame);
+  rpc NegotiateContext(NegotiateContextRequest) returns (NegotiateContextResponse);
+  rpc UploadResource(stream ResourceChunk) returns (ResourceTransferAck);
+  rpc DownloadResource(ResourceTransferRequest) returns (stream ResourceChunk);
   rpc Shutdown(ShutdownRequest) returns (ShutdownResponse);
 }
 
@@ -305,38 +303,54 @@ enum ExecutionStatus {
   EXECUTION_STATUS_FAILED = 4;
 }
 
-enum CompressionKind {
-  COMPRESSION_KIND_UNSPECIFIED = 0;
-  COMPRESSION_KIND_NONE = 1;
-  COMPRESSION_KIND_ZSTD = 2;
-  COMPRESSION_KIND_GZIP = 3;
-  COMPRESSION_KIND_LZ4 = 4;
+
+message NegotiateContextRequest {
+  string workspace_root = 1;
+  string build_system_id = 2;
+  string build_system_version = 3;
+  map<string, string> execution_environment = 4;
+  repeated string requested_capabilities = 5;
+  SerializationCodec preferred_codec = 6;
+  TransferCompression preferred_compression = 7;
 }
 
-enum TransferRejectReason {
-  TRANSFER_REJECT_REASON_UNSPECIFIED = 0;
-  TRANSFER_REJECT_REASON_NONE = 1;
-  TRANSFER_REJECT_REASON_MISSING_IDENTITY = 2;
-  TRANSFER_REJECT_REASON_SEQUENCE_VIOLATION = 3;
-  TRANSFER_REJECT_REASON_CHECKSUM_MISMATCH = 4;
-  TRANSFER_REJECT_REASON_DECOMPRESSION_FAILED = 5;
+message NegotiateContextResponse {
+  repeated string accepted_capabilities = 1;
+  SerializationCodec negotiated_codec = 2;
+  TransferCompression negotiated_compression = 3;
+  int32 max_chunk_size_bytes = 4;
 }
 
-enum SerializationKind {
-  SERIALIZATION_KIND_UNSPECIFIED = 0;
-  SERIALIZATION_KIND_PROTOBUF_BINARY = 1;
-  SERIALIZATION_KIND_FLATBUFFERS = 2;
-  SERIALIZATION_KIND_CAPNPROTO = 3;
+message ResourceTransferRequest {
+  string transfer_id = 1;
+  string resource_uri = 2;
 }
 
-enum ArtifactKind {
-  ARTIFACT_KIND_UNSPECIFIED = 0;
-  ARTIFACT_KIND_SOURCE_TEXT = 1;
-  ARTIFACT_KIND_BUILD_LOG = 2;
-  ARTIFACT_KIND_JAR = 3;
-  ARTIFACT_KIND_AAR = 4;
-  ARTIFACT_KIND_ZIP = 5;
-  ARTIFACT_KIND_TAR_GZ = 6;
-  ARTIFACT_KIND_PROTO_DESCRIPTOR = 7;
-  ARTIFACT_KIND_REMOTE_CACHE_BLOB = 8;
+message ResourceChunk {
+  string transfer_id = 1;
+  int64 sequence = 2;
+  bytes payload = 3;
+  bool eof = 4;
+}
+
+message ResourceTransferAck {
+  string transfer_id = 1;
+  bool accepted = 2;
+  int64 received_chunks = 3;
+  string message = 4;
+}
+
+enum SerializationCodec {
+  SERIALIZATION_CODEC_UNSPECIFIED = 0;
+  SERIALIZATION_CODEC_PROTOBUF = 1;
+  SERIALIZATION_CODEC_FLATBUFFERS = 2;
+  SERIALIZATION_CODEC_CAPN_PROTO = 3;
+}
+
+enum TransferCompression {
+  TRANSFER_COMPRESSION_UNSPECIFIED = 0;
+  TRANSFER_COMPRESSION_NONE = 1;
+  TRANSFER_COMPRESSION_ZSTD = 2;
+  TRANSFER_COMPRESSION_LZ4 = 3;
+  TRANSFER_COMPRESSION_GZIP = 4;
 }
