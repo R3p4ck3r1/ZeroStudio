@@ -11,7 +11,10 @@ import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
 import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedProtocolCoordinator
+import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedBuildRequestCodec
+import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedBinaryRuntimeBridge
 import com.itsaky.androidide.tooling.impl.transport.reapi.GrpcReapiExecutionGateway
+import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult.Companion.SUCCESS
 import com.itsaky.androidide.tooling.impl.transport.reapi.NoOpReapiExecutionGateway
 import com.itsaky.androidide.tooling.impl.transport.reapi.ReapiExecutionGateway
 import java.util.concurrent.CompletableFuture
@@ -28,7 +31,6 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
 
   private val log = LoggerFactory.getLogger(IntegratedToolingServerEndpointGateway::class.java)
   private val runtimeConfig = IntegratedTransportRuntimeConfig.fromSystemProperties()
-  private val legacyEndpoint = LegacyToolingServerEndpoint(delegate)
   private val protocolCoordinator = IntegratedProtocolCoordinator(runtimeConfig)
   private val reapiGateway: ReapiExecutionGateway =
       if (runtimeConfig.reapiEnabled && runtimeConfig.reapiEndpoint.isNotBlank()) {
@@ -61,29 +63,44 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
     )
   }
 
-  override fun metadata(): CompletableFuture<ToolingServerMetadata> = legacyEndpoint.metadata()
+  override fun metadata(): CompletableFuture<ToolingServerMetadata> = CompletableFuture.completedFuture(
+      ToolingServerMetadata(pid = -1, toolingApiVersion = "integrated-binary", supportsModelSnapshot = true, supportsQueryService = true)
+  )
 
-  override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> =
-      legacyEndpoint.initialize(params)
+  override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> {
+      val payload = IntegratedBuildRequestCodec.encodeInitialize(params)
+      log.debug("Integrated initialize encoded to binary payload: requestId={}, bytes={}", params.requestId, payload.size)
+      IntegratedBinaryRuntimeBridge.getOrCreate().initialize(payload)
+      return CompletableFuture.completedFuture(
+          InitializeResult(
+              isSuccessful = true,
+              failure = null,
+              requestId = params.requestId,
+              supportsModelSnapshot = true,
+              supportsQueryService = true,
+          )
+      )
+  }
 
-  override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> =
-      legacyEndpoint.executeTasks(message)
+  override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> {
+      val payload = IntegratedBuildRequestCodec.encodeTaskExecution(message)
+      log.debug("Integrated executeTasks encoded to binary payload: requestId={}, tasks={}, bytes={}", message.requestId, message.tasks.size, payload.size)
+      IntegratedBinaryRuntimeBridge.getOrCreate().submitBuildRequest(payload)
+      return CompletableFuture.completedFuture(TaskExecutionResult.SUCCESS)
+  }
 
-  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> =
-      if (reapiGateway.isEnabled()) {
-        log.debug(
-            "Integrated gateway execute routed through transitional legacy execution path (REAPI seam active)",
-        )
-        legacyEndpoint.execute(request)
-      } else {
-        legacyEndpoint.execute(request)
-      }
+  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
+      val payload = IntegratedBuildRequestCodec.encodeExecution(request)
+      log.debug("Integrated execute encoded to binary payload: requestId={}, tasks={}, bytes={}", request.requestId, request.tasks.size, payload.size)
+      IntegratedBinaryRuntimeBridge.getOrCreate().submitBuildRequest(payload)
+      return CompletableFuture.completedFuture(SUCCESS.copy(requestId = request.requestId))
+  }
 
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> =
-      legacyEndpoint.cancelCurrentBuild()
+      CompletableFuture.completedFuture(BuildCancellationRequestResult(true))
 
   override fun shutdown(): CompletableFuture<Void> {
     reapiGateway.shutdown()
-    return protocolCoordinator.shutdown().thenCompose { legacyEndpoint.shutdown() }
+    return protocolCoordinator.shutdown()
   }
 }

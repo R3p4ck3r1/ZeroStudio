@@ -1,6 +1,6 @@
 package com.itsaky.androidide.tooling.buildgrpc;
 
 interface IBuildEventListener {
-  void onBuildEvent(String buildEventJson);
+  void onBuildEvent(in byte[] buildEventPayload);
   void onBuildStreamClosed(String requestId, boolean successful);
 }

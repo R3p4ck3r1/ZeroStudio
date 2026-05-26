@@ -22,15 +22,15 @@ import com.itsaky.androidide.tooling.api.models.BuildEnvironmentModel
 import com.itsaky.androidide.tooling.api.models.GradleBuildModel
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
 import java.util.concurrent.CompletableFuture
-import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
-import org.eclipse.lsp4j.jsonrpc.services.JsonSegment
+import com.zerostudio.tooling.buildgrpc.customapi.rpc.BinaryRpcRequest
+import com.zerostudio.tooling.buildgrpc.customapi.rpc.BinaryRpcSegment
 
 /**
  * A model for representing a project which is not an Android or Java project.
  *
  * @author Akash Yadav
  */
-@JsonSegment("gradle")
+@BinaryRpcSegment("gradle")
 interface IGradleProject {
 
   /**
@@ -38,14 +38,14 @@ interface IGradleProject {
    *
    * @see [ProjectMetadata].
    */
-  @JsonRequest fun getMetadata(): CompletableFuture<ProjectMetadata>
+  @BinaryRpcRequest fun getMetadata(): CompletableFuture<ProjectMetadata>
 
   /** Get this project's tasks. */
-  @JsonRequest fun getTasks(): CompletableFuture<List<GradleTask>>
+  @BinaryRpcRequest fun getTasks(): CompletableFuture<List<GradleTask>>
 
   /** Built-in Tooling API BuildEnvironment model snapshot. */
-  @JsonRequest fun getBuildEnvironment(): CompletableFuture<BuildEnvironmentModel>
+  @BinaryRpcRequest fun getBuildEnvironment(): CompletableFuture<BuildEnvironmentModel>
 
   /** Built-in Tooling API GradleBuild model snapshot (composite/included builds). */
-  @JsonRequest fun getGradleBuild(): CompletableFuture<GradleBuildModel>
+  @BinaryRpcRequest fun getGradleBuild(): CompletableFuture<GradleBuildModel>
 }

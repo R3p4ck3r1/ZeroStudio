@@ -65,6 +65,19 @@ class BuildSessionGrpcService(
   private val contextStateStore: BuildContextStateStore = BuildContextStateStore(),
   private val transferRegistry: BuildTransferRegistry = BuildTransferRegistry(),
 ) : BuildSessionServiceGrpcKt.BuildSessionServiceCoroutineImplBase() {
+
+  companion object {
+    fun withReapiEndpoint(
+      module: BuildGrpcModule,
+      reapiEndpoint: String?,
+      reapiInstanceName: String,
+      actionExecutor: BuildActionExecutor = LocalNoopBuildActionExecutor(),
+    ): BuildSessionGrpcService = BuildSessionGrpcService(
+      module = module,
+      actionExecutor = actionExecutor,
+      reapiExecutionBridge = ReapiExecutionBridgeFactory.fromEndpoint(reapiEndpoint, reapiInstanceName),
+    )
+  }
   private val buildSequences = ConcurrentHashMap<String, AtomicLong>()
   private val policyMutex = Mutex()
   @Volatile private var runtimePolicy = RuntimeTransportPolicy(

@@ -20,7 +20,7 @@ import com.zerostudio.tooling.buildgrpc.proto.BuildEventEnvelope
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Project-specific API layer. Kept in dedicated folder by convention.
+ * Project-specific API layer on top of the standardized binary build protocol.
  */
 interface CustomBuildServiceApi {
   suspend fun buildInitialize(request: BuildInitializeRequest): BuildInitializeResponse
