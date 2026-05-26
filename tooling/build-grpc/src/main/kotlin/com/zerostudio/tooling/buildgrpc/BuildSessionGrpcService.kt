@@ -30,6 +30,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * gRPC service implementation for BuildSessionService.
@@ -56,11 +58,33 @@ class BuildSessionGrpcService(
   private val transferRegistry: BuildTransferRegistry = BuildTransferRegistry(),
 ) : BuildSessionServiceGrpcKt.BuildSessionServiceCoroutineImplBase() {
   private val buildSequences = ConcurrentHashMap<String, AtomicLong>()
+  private val policyMutex = Mutex()
+  @Volatile private var runtimePolicy = RuntimeTransportPolicy(
+    maxFrameBytes = 64 * 1024,
+    compression = CompressionKind.COMPRESSION_KIND_NONE,
+    serialization = com.zerostudio.tooling.buildgrpc.proto.SerializationKind.SERIALIZATION_KIND_PROTOBUF_BINARY,
+  )
 
   override suspend fun initialize(request: InitializeRequest): InitializeResponse {
+    policyMutex.withLock {
+      runtimePolicy = BuildTransportPolicy.negotiate(request)
+    }
     val init = BuildProtocolMapper.toInit(request)
     val serverInfo = module.initialize(init)
-    return BuildProtocolMapper.toInitResponse(serverInfo)
+    return BuildProtocolMapper.toInitResponse(serverInfo).toBuilder()
+      .setTransport(
+        com.zerostudio.tooling.buildgrpc.proto.TransportConfig.newBuilder()
+          .setMaxFrameBytes(runtimePolicy.maxFrameBytes)
+          .setCompression(runtimePolicy.compression)
+          .setMultiplexEnabled(request.transport.supportsMultiplex)
+          .build(),
+      )
+      .setSerialization(
+        com.zerostudio.tooling.buildgrpc.proto.SerializationConfig.newBuilder()
+          .setSelected(runtimePolicy.serialization)
+          .build(),
+      )
+      .build()
   }
 
   override fun startBuild(request: StartBuildRequest): Flow<BuildEventEnvelope> {
@@ -183,7 +207,7 @@ class BuildSessionGrpcService(
   override fun fetchDataStream(request: FetchDataRequest): Flow<DataChunk> = flow {
     val startedAt = System.currentTimeMillis()
     val bytes = dataStreamStore.read(request.transferId, request.offset, request.maxBytes)
-    val chunkSize = 64 * 1024
+    val chunkSize = runtimePolicy.maxFrameBytes.coerceAtLeast(4 * 1024)
     var cursor = 0
     var sequence = (request.offset / chunkSize).coerceAtLeast(0) + 1
     var emittedChunkCount = 0L

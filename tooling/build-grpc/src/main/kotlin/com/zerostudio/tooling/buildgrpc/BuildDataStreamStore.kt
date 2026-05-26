@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.GZIPInputStream
@@ -52,10 +53,21 @@ class BuildDataStreamStore(
   fun read(transferId: String, offset: Long, maxBytes: Long): ByteArray {
     val file = transferFiles[transferId] ?: transferIdPath(transferId)
     if (!Files.exists(file)) return ByteArray(0)
-    val all = Files.readAllBytes(file)
-    val from = offset.coerceAtLeast(0).coerceAtMost(all.size.toLong()).toInt()
-    val to = if (maxBytes <= 0) all.size else (from.toLong() + maxBytes).coerceAtMost(all.size.toLong()).toInt()
-    return all.copyOfRange(from, to)
+    val size = Files.size(file)
+    if (size <= 0L) return ByteArray(0)
+    val from = offset.coerceAtLeast(0).coerceAtMost(size)
+    val desired = if (maxBytes <= 0) size - from else maxBytes.coerceAtMost(size - from)
+    if (desired <= 0) return ByteArray(0)
+    val out = ByteArray(desired.toInt())
+    Files.newByteChannel(file, StandardOpenOption.READ).use { channel ->
+      channel.position(from)
+      val buffer = ByteBuffer.wrap(out)
+      while (buffer.hasRemaining()) {
+        val read = channel.read(buffer)
+        if (read <= 0) break
+      }
+    }
+    return out
   }
 
   fun sizeOf(transferId: String): Long {
