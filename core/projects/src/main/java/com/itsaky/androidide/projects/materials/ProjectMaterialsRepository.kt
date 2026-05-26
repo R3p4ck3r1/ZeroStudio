@@ -32,6 +32,7 @@ class ProjectMaterialsRepository {
               path = meta.projectDir.absolutePath,
           ))
       addFileItem(add = ::add, file = meta.buildDir, label = "Build directory")
+      collectBuildCacheMaterials(meta.projectPath, meta.buildDir, ::add)
 
       when (runCatching { proxy.getType().get() }.getOrNull()) {
         ProjectType.Android -> collectAndroidMaterials(proxy, ::add)
@@ -148,6 +149,25 @@ class ProjectMaterialsRepository {
           addFileItem(add, child, "Kotlin API source archive")
         }
       }
+    }
+  }
+
+
+  private fun collectBuildCacheMaterials(modulePath: String, buildDir: File, add: (ProjectMaterialItem) -> Unit) {
+    if (!buildDir.exists() || !buildDir.isDirectory) return
+    val moduleKey = modulePath.replace(':', '_').ifBlank { "root" }
+    buildDir.walkTopDown().forEach { f ->
+      if (f == buildDir) return@forEach
+      val rel = f.relativeTo(buildDir).path
+      add(
+          ProjectMaterialItem(
+              id = "buildcache:${moduleKey}:${f.absolutePath}",
+              title = rel,
+              sourceType = MaterialSourceType.BUILD_CACHE,
+              apiName = if (f.isDirectory) "directory" else f.extension.ifBlank { "file" },
+              description = "Build cache/output resource for module $modulePath",
+              path = f.absolutePath,
+          ))
     }
   }
 
