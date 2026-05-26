@@ -35,7 +35,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onEach
+import com.itsaky.androidide.tooling.buildgrpc.service.BuildServiceArchitecture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.sync.Mutex
@@ -165,7 +165,7 @@ class BuildSessionGrpcService(
 
   override suspend fun negotiateContext(request: NegotiateContextRequest): NegotiateContextResponse {
     val accepted = request.requestedCapabilitiesList
-      .filter { capability -> capability in module.supportedFeatures() }
+      .filter { capability -> capability in BuildServiceArchitecture.supportedFeatures() }
 
     val codec = if (request.preferredCodec != SerializationCodec.SERIALIZATION_CODEC_UNSPECIFIED) {
       request.preferredCodec

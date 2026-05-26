@@ -1,9 +1,10 @@
 package com.itsaky.androidide.tooling.buildgrpc.service
 
-import com.itsaky.androidide.tooling.buildgrpc.api.BuildServiceArchitecture
+import com.itsaky.androidide.tooling.buildgrpc.service.BuildServiceArchitecture
 import com.itsaky.androidide.tooling.buildgrpc.bridge.AidlGrpcBridge
 import com.zerostudio.tooling.buildgrpc.BuildGrpcModule
 import com.zerostudio.tooling.buildgrpc.BuildSessionGrpcService
+import com.zerostudio.tooling.buildgrpc.DefaultBinaryBuildServiceApi
 
 /**
  * Factory for creating a fully wired binary build-service runtime.
@@ -22,7 +23,7 @@ object BuildServiceRuntimeFactory {
       reapiInstanceName = reapiInstanceName,
     )
     val host = BuildGrpcServerHost(port = grpcPort, service = service)
-    val bridge = AidlGrpcBridge(contract = BuildServiceArchitecture, binaryApi = module)
+    val bridge = AidlGrpcBridge(contract = BuildServiceArchitecture, binaryApi = DefaultBinaryBuildServiceApi(module))
     val gateway = BuildServiceGateway(bridge)
     return BuildServiceRuntime(serverHost = host, gateway = gateway)
   }

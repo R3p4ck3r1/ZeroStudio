@@ -7,7 +7,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
@@ -56,7 +55,7 @@ class InProcessBuildGrpcModule(
       stateByBuildId[request.buildId] = BuildLifecycleState.FINISHED
     }
 
-    return publisher.events.asSharedFlow()
+    return publisher.events
   }
 
   override suspend fun shutdown(reason: String): Boolean {

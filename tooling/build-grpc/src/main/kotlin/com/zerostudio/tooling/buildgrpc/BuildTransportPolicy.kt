@@ -16,7 +16,7 @@ object BuildTransportPolicy {
 
   fun negotiate(request: InitializeRequest): RuntimeTransportPolicy {
     val frame = request.transport.maxFrameBytes
-      .takeIf { it > 0 }?.coerceAtMost(MAX_FRAME_BYTES.toUInt())?.toInt()
+      .toInt().takeIf { it > 0 }?.coerceAtMost(MAX_FRAME_BYTES)
       ?: DEFAULT_FRAME_BYTES
     val compression = request.transport.supportedCompressionList
       .firstOrNull { it == CompressionKind.COMPRESSION_KIND_NONE || it == CompressionKind.COMPRESSION_KIND_GZIP }

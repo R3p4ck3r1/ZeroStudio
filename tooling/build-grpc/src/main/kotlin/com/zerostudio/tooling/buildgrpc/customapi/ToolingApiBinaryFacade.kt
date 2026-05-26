@@ -77,10 +77,10 @@ class ToolingApiBinaryFacade(
     BuildCancellationRequestResult(result.accepted)
   }
 
-  fun shutdown(): CompletableFuture<Void> = future {
-    binaryApi.shutdown(BuildShutdownRequest("tooling-api-facade shutdown"))
-    null
-  }
+  fun shutdown(): CompletableFuture<Void> =
+    future<Unit> {
+      binaryApi.shutdown(BuildShutdownRequest("tooling-api-facade shutdown"))
+    }.thenApply { null }
 
   private fun <T> future(block: suspend () -> T): CompletableFuture<T> =
     CompletableFuture.supplyAsync({ kotlinx.coroutines.runBlocking { block() } }, executor)
