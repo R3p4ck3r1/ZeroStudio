@@ -12,6 +12,7 @@ import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
 import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedProtocolCoordinator
 import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedBuildRequestCodec
+import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedBinaryRuntimeBridge
 import com.itsaky.androidide.tooling.impl.transport.reapi.GrpcReapiExecutionGateway
 import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult.Companion.SUCCESS
 import com.itsaky.androidide.tooling.impl.transport.reapi.NoOpReapiExecutionGateway
@@ -69,6 +70,7 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
   override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> {
       val payload = IntegratedBuildRequestCodec.encodeInitialize(params)
       log.debug("Integrated initialize encoded to binary payload: requestId={}, bytes={}", params.requestId, payload.size)
+      IntegratedBinaryRuntimeBridge.getOrCreate().initialize(payload)
       return CompletableFuture.completedFuture(
           InitializeResult(
               isSuccessful = true,
@@ -83,12 +85,14 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
   override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> {
       val payload = IntegratedBuildRequestCodec.encodeTaskExecution(message)
       log.debug("Integrated executeTasks encoded to binary payload: requestId={}, tasks={}, bytes={}", message.requestId, message.tasks.size, payload.size)
+      IntegratedBinaryRuntimeBridge.getOrCreate().submitBuildRequest(payload)
       return CompletableFuture.completedFuture(TaskExecutionResult.SUCCESS)
   }
 
   override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
       val payload = IntegratedBuildRequestCodec.encodeExecution(request)
       log.debug("Integrated execute encoded to binary payload: requestId={}, tasks={}, bytes={}", request.requestId, request.tasks.size, payload.size)
+      IntegratedBinaryRuntimeBridge.getOrCreate().submitBuildRequest(payload)
       return CompletableFuture.completedFuture(SUCCESS.copy(requestId = request.requestId))
   }
 
