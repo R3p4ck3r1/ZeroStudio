@@ -46,8 +46,6 @@ dependencies {
   api(projects.utilities.buildInfo)
   api(projects.utilities.shared)
 
-  api(libs.google.gson)
-  api(libs.common.lsp4j.jsonrpc)
   implementation(libs.common.jkotlin)
 }
 

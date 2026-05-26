@@ -32,7 +32,6 @@ kotlin {
 }
 
 dependencies {
-  api(libs.common.lsp4j.jsonrpc)
 
   api(projects.tooling.builderModelImpl)
   api(projects.xml.dom)
