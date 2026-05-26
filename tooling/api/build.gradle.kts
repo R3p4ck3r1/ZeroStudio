@@ -44,7 +44,6 @@ dependencies {
   api(projects.tooling.events)
   api(projects.tooling.model)
 
-  api(projects.tooling.buildGrpc)
   api(projects.tooling.reapiProto)
 
   implementation(libs.common.lsp4j.jsonrpc)
