@@ -11,5 +11,5 @@ data class BuildBridgeEvent(
   val requestId: String,
   val eventId: String,
   val category: String,
-  val payloadJson: String,
+  val payload: ByteArray,
 )
