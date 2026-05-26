@@ -58,6 +58,12 @@ class BuildDataStreamStore(
     return all.copyOfRange(from, to)
   }
 
+  fun sizeOf(transferId: String): Long {
+    val file = transferFiles[transferId] ?: transferIdPath(transferId)
+    if (!Files.exists(file)) return 0
+    return Files.size(file)
+  }
+
   private fun transferIdPath(transferId: String): Path {
     val safe = transferId.replace(Regex("[^A-Za-z0-9._-]"), "_")
     return baseDir.resolve("$safe.bin")

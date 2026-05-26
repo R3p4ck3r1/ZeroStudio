@@ -49,6 +49,7 @@ private data class TransferStats(
 class BuildSessionGrpcService(
   private val module: BuildGrpcModule,
   private val actionExecutor: BuildActionExecutor = LocalNoopBuildActionExecutor(),
+  private val reapiExecutionBridge: ReapiExecutionBridge = NoopReapiExecutionBridge(),
   private val eventStore: BuildEventStore = BuildEventStore(),
   private val dataStreamStore: BuildDataStreamStore = BuildDataStreamStore(),
   private val contextStateStore: BuildContextStateStore = BuildContextStateStore(),
@@ -73,6 +74,29 @@ class BuildSessionGrpcService(
   }
 
   override suspend fun executeAction(request: ExecuteActionRequest): ExecuteActionResponse {
+    val reapiResult =
+      if (request.hasReapiActionDigest() && request.reapiActionDigest.hash.isNotBlank()) {
+        reapiExecutionBridge.execute(
+          ReapiExecuteRequest(
+            buildId = request.buildId,
+            instanceName = request.instanceName,
+            actionDigest = request.reapiActionDigest,
+            platform = if (request.hasPlatform()) request.platform else null,
+            priority = request.priority,
+          ),
+        )
+      } else {
+        null
+      }
+
+    if (reapiResult != null) {
+      return ExecuteActionResponse.newBuilder()
+        .setOperationName(reapiResult.operationName)
+        .setStatus(reapiResult.status)
+        .setActionResult(ByteString.copyFrom(reapiResult.actionResult))
+        .build()
+    }
+
     val actionRequest = ActionExecutionRequest(
       buildId = request.buildId,
       actionDigest = request.actionDigest,
@@ -220,6 +244,7 @@ class BuildSessionGrpcService(
       .setTransferId(request.transferId)
       .setNextExpectedSequence(next)
       .setFound(found)
+      .setCommittedBytes(dataStreamStore.sizeOf(request.transferId))
       .build()
   }
 

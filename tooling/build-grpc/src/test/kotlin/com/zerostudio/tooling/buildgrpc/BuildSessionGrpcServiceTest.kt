@@ -6,12 +6,15 @@ import com.zerostudio.tooling.buildgrpc.proto.CompressionKind
 import com.zerostudio.tooling.buildgrpc.proto.DataChunk
 import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
 import com.zerostudio.tooling.buildgrpc.proto.FetchDataRequest
+import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionRequest
+import build.bazel.remote.execution.v2.Digest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 
 class BuildSessionGrpcServiceTest {
 
@@ -74,6 +77,7 @@ class BuildSessionGrpcServiceTest {
 
     assertEquals(true, cursor.found)
     assertEquals(3, cursor.nextExpectedSequence)
+    assertNotEquals(0, cursor.committedBytes)
   }
 
 
@@ -198,6 +202,20 @@ class BuildSessionGrpcServiceTest {
     assertEquals(1, fetchEvent.chunkCount)
   }
 
+  @Test
+  fun `executeAction prefers reapi bridge when digest is provided`() = runBlocking {
+    val service = BuildSessionGrpcService(module = NoopModule(), reapiExecutionBridge = BridgeOnlyReapi())
+    val response = service.executeAction(
+      ExecuteActionRequest.newBuilder()
+        .setBuildId("build-1")
+        .setReapiActionDigest(Digest.newBuilder().setHash("abc123").setSizeBytes(10).build())
+        .setInstanceName("main")
+        .setPriority(10)
+        .build(),
+    )
+    assertEquals("reapi/abc123", response.operationName)
+  }
+
   private fun chunk(seq: Long, payload: ByteArray): DataChunk = DataChunk.newBuilder()
     .setBuildId("build-1")
     .setTransferId("tx-1")
@@ -205,6 +223,15 @@ class BuildSessionGrpcServiceTest {
     .setPayload(ByteString.copyFrom(payload))
     .setChecksum(BuildDataStreamStore.checksumFor(payload))
     .build()
+}
+
+private class BridgeOnlyReapi : ReapiExecutionBridge {
+  override suspend fun execute(request: ReapiExecuteRequest): ActionExecutionResult? =
+    ActionExecutionResult(
+      operationName = "reapi/${request.actionDigest.hash}",
+      status = com.zerostudio.tooling.buildgrpc.proto.ExecutionStatus.EXECUTION_STATUS_COMPLETED,
+      actionResult = "ok".encodeToByteArray(),
+    )
 }
 
 private class NoopModule : BuildGrpcModule {
