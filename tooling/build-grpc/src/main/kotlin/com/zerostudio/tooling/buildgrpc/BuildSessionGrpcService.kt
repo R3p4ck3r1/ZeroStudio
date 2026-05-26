@@ -2,6 +2,14 @@ package com.zerostudio.tooling.buildgrpc
 
 import com.google.protobuf.ByteString
 import com.zerostudio.tooling.buildgrpc.proto.BuildEventEnvelope
+import com.zerostudio.tooling.buildgrpc.proto.BuildEventKind
+import com.zerostudio.tooling.buildgrpc.proto.ArtifactKind
+import com.zerostudio.tooling.buildgrpc.proto.DataTransferEvent
+import com.zerostudio.tooling.buildgrpc.proto.ContextFrame
+import com.zerostudio.tooling.buildgrpc.proto.DataChunk
+import com.zerostudio.tooling.buildgrpc.proto.DataTransferAck
+import com.zerostudio.tooling.buildgrpc.proto.CompressionKind
+import com.zerostudio.tooling.buildgrpc.proto.FetchDataRequest
 import com.zerostudio.tooling.buildgrpc.proto.BuildSessionServiceGrpcKt
 import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionRequest
 import com.zerostudio.tooling.buildgrpc.proto.ExecuteActionResponse
@@ -18,24 +26,73 @@ import com.zerostudio.tooling.buildgrpc.proto.ShutdownRequest
 import com.zerostudio.tooling.buildgrpc.proto.ShutdownResponse
 import com.zerostudio.tooling.buildgrpc.proto.StartBuildRequest
 import com.zerostudio.tooling.buildgrpc.proto.StreamBuildEventsRequest
+import com.zerostudio.tooling.buildgrpc.proto.TransferRejectReason
+import com.zerostudio.tooling.buildgrpc.proto.CleanupTransferResponse
+import com.zerostudio.tooling.buildgrpc.proto.CleanupTransferRequest
+import com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorResponse
+import com.zerostudio.tooling.buildgrpc.proto.QueryTransferCursorRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onEach
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * gRPC service implementation for BuildSessionService.
  */
+private data class TransferStats(
+  val buildId: String,
+  val transferId: String,
+  val contentType: String,
+  val compression: CompressionKind,
+  val transferredBytes: Long,
+  val chunkCount: Long,
+  val durationMillis: Long,
+  val accepted: Boolean,
+  val rejectReason: TransferRejectReason = TransferRejectReason.TRANSFER_REJECT_REASON_NONE,
+)
+
 class BuildSessionGrpcService(
   private val module: BuildGrpcModule,
   private val actionExecutor: BuildActionExecutor = LocalNoopBuildActionExecutor(),
+  private val reapiExecutionBridge: ReapiExecutionBridge = NoopReapiExecutionBridge(),
   private val eventStore: BuildEventStore = BuildEventStore(),
+  private val dataStreamStore: BuildDataStreamStore = BuildDataStreamStore(),
+  private val contextStateStore: BuildContextStateStore = BuildContextStateStore(),
+  private val transferRegistry: BuildTransferRegistry = BuildTransferRegistry(),
 ) : BuildSessionServiceGrpcKt.BuildSessionServiceCoroutineImplBase() {
+  private val buildSequences = ConcurrentHashMap<String, AtomicLong>()
+  private val policyMutex = Mutex()
+  @Volatile private var runtimePolicy = RuntimeTransportPolicy(
+    maxFrameBytes = 64 * 1024,
+    compression = CompressionKind.COMPRESSION_KIND_NONE,
+    serialization = com.zerostudio.tooling.buildgrpc.proto.SerializationKind.SERIALIZATION_KIND_PROTOBUF_BINARY,
+  )
 
   override suspend fun initialize(request: InitializeRequest): InitializeResponse {
+    policyMutex.withLock {
+      runtimePolicy = BuildTransportPolicy.negotiate(request)
+    }
     val init = BuildProtocolMapper.toInit(request)
     val serverInfo = module.initialize(init)
-    return BuildProtocolMapper.toInitResponse(serverInfo)
+    return BuildProtocolMapper.toInitResponse(serverInfo).toBuilder()
+      .setTransport(
+        com.zerostudio.tooling.buildgrpc.proto.TransportConfig.newBuilder()
+          .setMaxFrameBytes(runtimePolicy.maxFrameBytes)
+          .setCompression(runtimePolicy.compression)
+          .setMultiplexEnabled(request.transport.supportsMultiplex)
+          .build(),
+      )
+      .setSerialization(
+        com.zerostudio.tooling.buildgrpc.proto.SerializationConfig.newBuilder()
+          .setSelected(runtimePolicy.serialization)
+          .build(),
+      )
+      .build()
   }
 
   override fun startBuild(request: StartBuildRequest): Flow<BuildEventEnvelope> {
@@ -49,6 +106,29 @@ class BuildSessionGrpcService(
   }
 
   override suspend fun executeAction(request: ExecuteActionRequest): ExecuteActionResponse {
+    val reapiResult =
+      if (request.hasReapiActionDigest() && request.reapiActionDigest.hash.isNotBlank()) {
+        reapiExecutionBridge.execute(
+          ReapiExecuteRequest(
+            buildId = request.buildId,
+            instanceName = request.instanceName,
+            actionDigest = request.reapiActionDigest,
+            platform = if (request.hasPlatform()) request.platform else null,
+            priority = request.priority,
+          ),
+        )
+      } else {
+        null
+      }
+
+    if (reapiResult != null) {
+      return ExecuteActionResponse.newBuilder()
+        .setOperationName(reapiResult.operationName)
+        .setStatus(reapiResult.status)
+        .setActionResult(ByteString.copyFrom(reapiResult.actionResult))
+        .build()
+    }
+
     val actionRequest = ActionExecutionRequest(
       buildId = request.buildId,
       actionDigest = request.actionDigest,
