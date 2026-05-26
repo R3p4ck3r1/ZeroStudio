@@ -629,12 +629,10 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
         else -> UNKNOWN
       }
 
-  private inline fun <T : Any?> supplyAsync(crossinline action: () -> T): CompletableFuture<T> =
-      CompletableFuture.supplyAsync {
-        action()
-      }
+  private fun <T : Any?> supplyAsync(action: () -> T): CompletableFuture<T> =
+      CompletableFuture.supplyAsync(action)
 
-  private inline fun <T : Any?> runBuild(crossinline action: () -> T): CompletableFuture<T> =
+  private fun <T : Any?> runBuild(action: () -> T): CompletableFuture<T> =
       supplyAsync {
         if (isBuildInProgress) {
           log.error("Cannot run build, build is already in prorgess!")
