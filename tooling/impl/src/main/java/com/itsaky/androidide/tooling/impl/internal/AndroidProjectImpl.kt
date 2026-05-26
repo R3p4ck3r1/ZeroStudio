@@ -182,7 +182,7 @@ internal class AndroidProjectImpl(
                     dimension = it.dimension,
                     minSdkVersion = it.minSdkVersion?.apiLevel,
                     targetSdkVersion = it.targetSdkVersion?.apiLevel,
-                    resourceConfigurations = it.resourceConfigurations,
+                    resourceConfigurations = it.resourceConfigurations.toList(),
                 )
               }
             }.filterNotNull(),
@@ -246,27 +246,27 @@ internal class AndroidProjectImpl(
   private fun computeSourceSpace(variantName: String): SourceSpaceModel? {
     val sourceSet = sourceProviderForVariant(variantName)
     val generatedBase = File(gradleProject.buildDirectory, "generated")
-    return sourceSet?.let {
+    return sourceSet?.let { source ->
       SourceSpaceModel(
-          javaDirectories = it.javaDirectories,
-          kotlinDirectories = it.kotlinDirectories,
-          manifestFiles = listOfNotNull(it.manifestFile),
-          resourceDirectories = it.resDirectories,
-          assetsDirectories = it.assetsDirectories,
-          aidlDirectories = it.aidlDirectories ?: emptyList(),
-          resourcesDirectories = it.resourcesDirectories.toList(),
-          renderscriptDirectories = it.renderscriptDirectories ?: emptyList(),
-          baselineProfileDirectories = it.baselineProfileDirectories ?: emptyList(),
-          keepRulesDirectories = it.keepRulesDirectories ?: emptyList(),
-          aarKeepRulesDirectories = it.aarKeepRulesDirectories ?: emptyList(),
-          shadersDirectories = it.shadersDirectories ?: emptyList(),
-          mlModelsDirectories = it.mlModelsDirectories ?: emptyList(),
-          jniLibsDirectories = it.jniLibsDirectories,
-          customDirectories = it.customDirectories.map { custom -> custom.directory },
+          javaDirectories = source.javaDirectories.toList(),
+          kotlinDirectories = source.kotlinDirectories.toList(),
+          manifestFiles = listOfNotNull(source.manifestFile),
+          resourceDirectories = source.resDirectories?.toList() ?: emptyList(),
+          assetsDirectories = source.assetsDirectories?.toList() ?: emptyList(),
+          aidlDirectories = source.aidlDirectories?.toList() ?: emptyList(),
+          resourcesDirectories = source.resourcesDirectories.toList(),
+          renderscriptDirectories = source.renderscriptDirectories?.toList() ?: emptyList(),
+          baselineProfileDirectories = source.baselineProfileDirectories?.toList() ?: emptyList(),
+          keepRulesDirectories = source.keepRulesDirectories?.toList() ?: emptyList(),
+          aarKeepRulesDirectories = source.aarKeepRulesDirectories?.toList() ?: emptyList(),
+          shadersDirectories = source.shadersDirectories?.toList() ?: emptyList(),
+          mlModelsDirectories = source.mlModelsDirectories?.toList() ?: emptyList(),
+          jniLibsDirectories = source.jniLibsDirectories.toList(),
+          customDirectories = source.customDirectories?.map { custom -> custom.directory } ?: emptyList(),
           generatedSources =
               GeneratedSourceModel(
                   annotationProcessorSources =
-                      (listOf(File(generatedBase, "ap_generated_sources")) + generatedSourceFolders)
+                      (listOf(File(generatedBase, "ap_generated_sources")) + androidProject.variants.firstOrNull { it.name == variantName }?.mainArtifact?.generatedSourceFolders.orEmpty())
                           .distinct()
                           .filter(File::exists),
                   buildConfigSources =
@@ -404,33 +404,6 @@ internal class AndroidProjectImpl(
                       },
               )
             },
-        resolvedProjectVariants = resolvedProjectVariants,
-        resolvedProjectVariantDetails = resolvedProjectVariantDetails,
-        nativeModule = nativeModule?.let { module ->
-          NativeModuleModel(
-              name = module.name,
-              nativeBuildSystem = module.nativeBuildSystem.name,
-              ndkVersion = module.ndkVersion,
-              defaultNdkVersion = module.defaultNdkVersion,
-              externalNativeBuildFile = module.externalNativeBuildFile,
-              variants =
-                  module.variants.map { variant ->
-                    NativeVariantModel(
-                        name = variant.name,
-                        abis =
-                            variant.abis.map { abi ->
-                              NativeAbiModel(
-                                  name = abi.name,
-                                  sourceFlagsFile = abi.sourceFlagsFile,
-                                  symbolFolderIndexFile = abi.symbolFolderIndexFile,
-                                  buildFileIndexFile = abi.buildFileIndexFile,
-                                  additionalProjectFilesIndexFile = abi.additionalProjectFilesIndexFile,
-                              )
-                            },
-                    )
-                  },
-          )
-        },
     )
   }
 
@@ -481,7 +454,7 @@ internal class AndroidProjectImpl(
 
     val genericPattern =
         Pattern.compile(
-            "(<[a-zA-Z0-9._:-]+(?:\s+[^>]*)?>|[a-zA-Z0-9._:-]+#[a-zA-Z0-9._:-]+).*?(ADDED|MERGED|REPLACED|REMOVED) from (.+?)(?:\n|$)",
+            "(<[a-zA-Z0-9._:-]+(?:\\s+[^>]*)?>|[a-zA-Z0-9._:-]+#[a-zA-Z0-9._:-]+).*?(ADDED|MERGED|REPLACED|REMOVED) from (.+?)(?:\\n|$)",
             Pattern.DOTALL,
         )
     val genericMatcher = genericPattern.matcher(text)
@@ -609,7 +582,7 @@ internal class AndroidProjectImpl(
           computeProjectSnapshot(),
           getClassesJar(),
       )
-          .also { metadata -> publishModelDerivedEvents(metadata.modelSnapshot) }
+          .also { metadata -> metadata.modelSnapshot?.let(::publishModelDerivedEvents) }
     }
   }
 
@@ -688,7 +661,7 @@ internal class AndroidProjectImpl(
               dimension = it.dimension,
               minSdkVersion = it.minSdkVersion?.apiLevel,
               targetSdkVersion = it.targetSdkVersion?.apiLevel,
-              resourceConfigurations = it.resourceConfigurations,
+              resourceConfigurations = it.resourceConfigurations.toList(),
           )
         }
 
@@ -734,6 +707,7 @@ internal class AndroidProjectImpl(
             },
         resolvedProjectVariants = resolvedProjectVariants,
         resolvedProjectVariantDetails = resolvedProjectVariantDetails,
+        projectInfoNodes = buildProjectInfoNodes(variantDependencies.libraries.values),
         nativeModule = nativeModule?.let { module ->
           NativeModuleModel(
               name = module.name,
@@ -849,12 +823,12 @@ internal class AndroidProjectImpl(
 
 
   private fun sourceProviderForVariant(variantName: String) =
-      basicAndroidProject.variants.firstOrNull { it.name == variantName }?.mainArtifact?.sourceProvider
+      basicAndroidProject.variants.firstOrNull { it.name == variantName }?.mainArtifact?.variantSourceProvider
 
   private fun sourceProviderDirectoriesExcept(activeVariantName: String): List<File> =
       basicAndroidProject.variants
           .filterNot { it.name == activeVariantName }
-          .flatMap { it.mainArtifact.sourceProvider?.allDirectories().orEmpty() }
+          .flatMap { it.mainArtifact.variantSourceProvider?.allDirectories().orEmpty() }
           .distinct()
 
   private fun com.android.builder.model.v2.ide.SourceProvider.allDirectories(): List<File> =
@@ -866,14 +840,14 @@ internal class AndroidProjectImpl(
 
   private fun com.android.builder.model.v2.ide.ArtifactDependencies.toAdjacency(): ArtifactDependencyAdjacencyModel =
       ArtifactDependencyAdjacencyModel(
-          compileDependencies = compileDependencies.map { GraphNodeModel(it.key, it.dependencies.map { dep -> dep.key }) },
-          runtimeDependencies = runtimeDependencies?.map { GraphNodeModel(it.key, it.dependencies.map { dep -> dep.key }) } ?: emptyList(),
+          compile = compileDependencies.map { GraphNodeModel(it.key, null, it.dependencies.map { dep -> dep.key }) },
+          runtime = runtimeDependencies?.map { GraphNodeModel(it.key, null, it.dependencies.map { dep -> dep.key }) } ?: emptyList(),
       )
 
-  private fun com.android.builder.model.v2.ide.ArtifactDependenciesAdjacencyList.toAdjacencyList(): ArtifactDependenciesAdjacencyListModel =
-      ArtifactDependenciesAdjacencyListModel(
-          compileDependencies = compileDependencies.map { DependencyEdgeModel(it.from, it.to) },
-          runtimeDependencies = runtimeDependencies?.map { DependencyEdgeModel(it.from, it.to) } ?: emptyList(),
+  private fun com.android.builder.model.v2.ide.ArtifactDependenciesAdjacencyList.toAdjacencyList(): ArtifactDependencyAdjacencyListModel =
+      ArtifactDependencyAdjacencyListModel(
+          compile = ArtifactDependenciesAdjacencyListModel(edges = compileDependencies.map { DependencyEdgeModel(it.from, it.to) }),
+          runtime = ArtifactDependenciesAdjacencyListModel(edges = runtimeDependencies?.map { DependencyEdgeModel(it.from, it.to) } ?: emptyList()),
       )
 
 }
