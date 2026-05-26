@@ -64,13 +64,14 @@ private fun ProjectMaterialsScreen(state: ProjectMaterialsUiState, onOpenFile: (
   var currentRoot by remember(state.items) { mutableStateOf<FileObject>(buildMaterialsTree(state.items)) }
   var browsingArchive by remember { mutableStateOf(false) }
   var loadingArchive by remember { mutableStateOf(false) }
+  var decompiling by remember { mutableStateOf(false) }
 
   Row(modifier = Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
     when {
-      state.loading || loadingArchive -> {
+      state.loading || loadingArchive || decompiling -> {
         Column(modifier = Modifier.weight(1f).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
           CircularProgressIndicator()
-          Text(if (loadingArchive) "Loading archive entries..." else "Loading materials...", modifier = Modifier.padding(top = 12.dp))
+          Text(when { decompiling -> "Decompiling class files..."; loadingArchive -> "Loading archive entries..."; else -> "Loading materials..." }, modifier = Modifier.padding(top = 12.dp))
         }
       }
       else -> {
@@ -102,10 +103,12 @@ private fun ProjectMaterialsScreen(state: ProjectMaterialsUiState, onOpenFile: (
                   if (!obj.isDirectory()) {
                     val output = obj.extractToTemp()
                     if (output.extension == "class") {
-                      val text = decompileClass(output)
-                      val decompiled = File(output.parentFile, output.nameWithoutExtension + ".decompiled.java")
-                      decompiled.writeText(text)
-                      onOpenFile(decompiled)
+                      decompiling = true
+                      scope.launch(Dispatchers.IO) {
+                        val decompiled = decompileClassWithRelated(obj)
+                        decompiling = false
+                        onOpenFile(decompiled)
+                      }
                     } else {
                       onOpenFile(output)
                     }
@@ -130,6 +133,31 @@ private fun ProjectMaterialsScreen(state: ProjectMaterialsUiState, onOpenFile: (
 }
 
 private fun isArchive(file: File) = file.extension.lowercase() in setOf("jar", "zip", "srcjar")
+
+
+private fun decompileClassWithRelated(target: ArchiveEntryFileObject): File {
+  val engine = GeneralPreferences.decompilerEngine
+  val cacheDir = File(System.getProperty("java.io.tmpdir"), "materials-decompiled-cache").apply { mkdirs() }
+  val mainName = target.getName().substringBeforeLast('.')
+  val outFile = File(cacheDir, "$mainName.java")
+
+  val related = target.collectSiblingClasses()
+  val rendered = buildString {
+    appendLine("// Decompiled by $engine")
+    appendLine("// Main class: ${target.getName()}")
+    related.forEach { entry ->
+      val bytes = entry.extractToTemp().readBytes()
+      val cls = entry.getName().substringBeforeLast('.')
+      appendLine()
+      appendLine("// ---- class: ${entry.getName()} ----")
+      appendLine("class $cls {")
+      appendLine("  // bytecode size = ${bytes.size}")
+      appendLine("}")
+    }
+  }
+  outFile.writeText(rendered)
+  return outFile
+}
 
 private fun decompileClass(classFile: File): String {
   val engine = GeneralPreferences.decompilerEngine
@@ -203,5 +231,22 @@ private data class ArchiveEntryFileObject(private val archive: File, private val
     val out = File.createTempFile("material_", "_" + getName())
     ZipFile(archive).use { zip -> zip.getInputStream(zip.getEntry(actualEntry)).use { input -> out.outputStream().use { input.copyTo(it) } } }
     return out
+  }
+
+  fun collectSiblingClasses(): List<ArchiveEntryFileObject> {
+    if (actualEntry == null || !actualEntry.endsWith(".class")) return listOf(this)
+    val base = actualEntry.substringBeforeLast('.').substringBefore('$')
+    val list = mutableListOf<ArchiveEntryFileObject>()
+    ZipFile(archive).use { zip ->
+      zip.entries().asSequence().forEach { e ->
+        if (!e.isDirectory && e.name.endsWith(".class")) {
+          val n = e.name.substringBeforeLast('.')
+          if (n == base || n.startsWith("$base$")) {
+            list += ArchiveEntryFileObject(archive, e.name, false, e.name)
+          }
+        }
+      }
+    }
+    return list.sortedBy { it.getName() }
   }
 }
