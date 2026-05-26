@@ -615,7 +615,7 @@ internal class AndroidProjectImpl(
           androidProject.viewBindingOptions?.let(AndroidModulePropertyCopier::copy)
               ?: DefaultViewBindingOptions()
 
-      return@supplyAsync AndroidProjectMetadata(
+      AndroidProjectMetadata(
           gradleMetadata,
           basicAndroidProject.projectType,
           copy(androidProject.flags),
