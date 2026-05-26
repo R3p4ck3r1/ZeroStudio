@@ -11,6 +11,7 @@ import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
 import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedProtocolCoordinator
+import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedBuildRequestCodec
 import com.itsaky.androidide.tooling.impl.transport.reapi.GrpcReapiExecutionGateway
 import com.itsaky.androidide.tooling.impl.transport.reapi.NoOpReapiExecutionGateway
 import com.itsaky.androidide.tooling.impl.transport.reapi.ReapiExecutionGateway
@@ -63,14 +64,22 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
 
   override fun metadata(): CompletableFuture<ToolingServerMetadata> = legacyEndpoint.metadata()
 
-  override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> =
-      legacyEndpoint.initialize(params)
+  override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> {
+      val payload = IntegratedBuildRequestCodec.encodeInitialize(params)
+      log.debug("Integrated initialize encoded to binary payload: requestId={}, bytes={}", params.requestId, payload.size)
+      return legacyEndpoint.initialize(params)
+  }
 
-  override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> =
-      legacyEndpoint.executeTasks(message)
+  override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> {
+      val payload = IntegratedBuildRequestCodec.encodeTaskExecution(message)
+      log.debug("Integrated executeTasks encoded to binary payload: requestId={}, tasks={}, bytes={}", message.requestId, message.tasks.size, payload.size)
+      return legacyEndpoint.executeTasks(message)
+  }
 
-  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> =
-      if (reapiGateway.isEnabled()) {
+  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
+      val payload = IntegratedBuildRequestCodec.encodeExecution(request)
+      log.debug("Integrated execute encoded to binary payload: requestId={}, tasks={}, bytes={}", request.requestId, request.tasks.size, payload.size)
+      return if (reapiGateway.isEnabled()) {
         log.debug(
             "Integrated gateway execute routed through transitional legacy execution path (REAPI seam active)",
         )
@@ -78,6 +87,7 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
       } else {
         legacyEndpoint.execute(request)
       }
+  }
 
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> =
       legacyEndpoint.cancelCurrentBuild()
