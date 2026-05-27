@@ -29,7 +29,13 @@ android {
 
   // Avoid duplicated source roots being passed to KAPT/Javac for build variants, which can
   // surface as "duplicate class" errors for Kotlin-generated Java stubs.
-  sourceSets.configureEach { java.setSrcDirs(java.srcDirs.distinct()) }
+  sourceSets.configureEach {
+    java.setSrcDirs(
+        java.srcDirs
+            .map { it.canonicalFile }
+            .distinct()
+    )
+  }
 }
 
 kapt {
