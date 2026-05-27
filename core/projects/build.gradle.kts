@@ -24,7 +24,13 @@ plugins {
   id("kotlin-kapt")
 }
 
-android { namespace = "${BuildConfig.packageName}.projects" }
+android {
+  namespace = "${BuildConfig.packageName}.projects"
+
+  // Avoid duplicated source roots being passed to KAPT/Javac for build variants, which can
+  // surface as "duplicate class" errors for Kotlin-generated Java stubs.
+  sourceSets.configureEach { java.setSrcDirs(java.srcDirs.distinct()) }
+}
 
 kapt {
   arguments { arg("eventBusIndex", "${BuildConfig.packageName}.events.ProjectsApiEventsIndex") }
