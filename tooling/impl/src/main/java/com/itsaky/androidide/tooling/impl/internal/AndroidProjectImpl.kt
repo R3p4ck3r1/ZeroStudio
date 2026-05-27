@@ -355,7 +355,7 @@ internal class AndroidProjectImpl(
                         TestSuiteSourceDependenciesAdjacencyListModel(
                             sourceType = sourceDeps.type.name,
                             sourceName = sourceDeps.name,
-                            artifactDependencies = sourceDeps.artifactDependencies.toAdjacencyList(),
+                            artifactDependencies = sourceDeps.artifactDependencies.toAdjacencyEdges(),
                         )
                       },
               )
@@ -849,6 +849,14 @@ internal class AndroidProjectImpl(
       ArtifactDependencyAdjacencyListModel(
           compile = ArtifactDependenciesAdjacencyListModel(edges = compileDependencies.map { DependencyEdgeModel(it.from, it.to) }),
           runtime = ArtifactDependenciesAdjacencyListModel(edges = runtimeDependencies?.map { DependencyEdgeModel(it.from, it.to) } ?: emptyList()),
+      )
+
+  private fun com.android.builder.model.v2.ide.ArtifactDependenciesAdjacencyList.toAdjacencyEdges(): ArtifactDependenciesAdjacencyListModel =
+      ArtifactDependenciesAdjacencyListModel(
+          edges =
+              (compileDependencies + (runtimeDependencies ?: emptyList()))
+                  .map { DependencyEdgeModel(it.from, it.to) }
+                  .distinct(),
       )
 
 }
