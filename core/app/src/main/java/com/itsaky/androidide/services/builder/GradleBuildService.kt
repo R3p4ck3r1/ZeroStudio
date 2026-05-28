@@ -28,7 +28,6 @@ import androidx.core.app.NotificationManagerCompat
 import com.blankj.utilcode.util.ResourceUtils
 import com.blankj.utilcode.util.ZipUtils
 import com.itsaky.androidide.BuildConfig
-import com.itsaky.androidide.R.*
 import com.itsaky.androidide.app.BaseApplication
 import com.itsaky.androidide.lookup.Lookup
 import com.itsaky.androidide.managers.ToolsManager
@@ -162,7 +161,7 @@ class GradleBuildService :
     val buildNotificationChannel =
         NotificationChannel(
             BaseApplication.NOTIFICATION_GRADLE_BUILD_SERVICE,
-            getString(string.title_gradle_service_notification_channel),
+            getString(R.string.title_gradle_service_notification_channel),
             NotificationManager.IMPORTANCE_LOW,
         )
     NotificationManagerCompat.from(this).createNotificationChannel(buildNotificationChannel)
