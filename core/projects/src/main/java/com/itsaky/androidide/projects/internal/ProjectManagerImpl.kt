@@ -76,10 +76,6 @@ import org.slf4j.LoggerFactory
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 class ProjectManagerImpl : IProjectManager, EventReceiver {
 
-  companion object {
-    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
-  }
-
   private fun toTaskExecutionResult(
       exec: com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
   ): com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult {
@@ -452,6 +448,8 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
   }
 
   companion object {
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+
     private val log = LoggerFactory.getLogger(ProjectManagerImpl::class.java)
 
     @JvmStatic
