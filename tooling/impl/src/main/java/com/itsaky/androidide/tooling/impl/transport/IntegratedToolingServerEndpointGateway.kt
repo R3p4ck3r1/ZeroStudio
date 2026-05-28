@@ -70,7 +70,7 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
   override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> {
       val payload = IntegratedBuildRequestCodec.encodeInitialize(params)
       log.debug("Integrated initialize encoded to binary payload: requestId={}, bytes={}", params.requestId, payload.size)
-      IntegratedBinaryRuntimeBridge.getOrCreate().initialize(payload)
+      invokeRuntime("initialize", payload)
       return CompletableFuture.completedFuture(
           InitializeResult(
               isSuccessful = true,
@@ -84,16 +84,21 @@ class IntegratedToolingServerEndpointGateway(delegate: IToolingApiServer) :
 
   override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> {
       val payload = IntegratedBuildRequestCodec.encodeTaskExecution(message)
-      log.debug("Integrated executeTasks encoded to binary payload: requestId={}, tasks={}, bytes={}", message.requestId, message.tasks.size, payload.size)
-      IntegratedBinaryRuntimeBridge.getOrCreate().submitBuildRequest(payload)
+      log.debug("Integrated executeTasks encoded to binary payload: tasks={}, bytes={}", message.tasks.size, payload.size)
+      invokeRuntime("submitBuildRequest", payload)
       return CompletableFuture.completedFuture(TaskExecutionResult.SUCCESS)
   }
 
   override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
       val payload = IntegratedBuildRequestCodec.encodeExecution(request)
       log.debug("Integrated execute encoded to binary payload: requestId={}, tasks={}, bytes={}", request.requestId, request.tasks.size, payload.size)
-      IntegratedBinaryRuntimeBridge.getOrCreate().submitBuildRequest(payload)
+      invokeRuntime("submitBuildRequest", payload)
       return CompletableFuture.completedFuture(SUCCESS.copy(requestId = request.requestId))
+  }
+
+  private fun invokeRuntime(methodName: String, payload: ByteArray) {
+    val runtime = IntegratedBinaryRuntimeBridge.getOrCreate()
+    runtime.javaClass.getMethod(methodName, ByteArray::class.java).invoke(runtime, payload)
   }
 
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> =
