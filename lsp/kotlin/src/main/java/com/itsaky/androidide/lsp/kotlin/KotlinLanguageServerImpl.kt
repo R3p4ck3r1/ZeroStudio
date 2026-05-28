@@ -643,7 +643,7 @@ class KotlinLanguageServerImpl(
             throw IllegalStateException("Kotlin LSP is not initialized. Cannot execute command '$commandName'.")
         }
         if (!canExecuteCommand(commandName)) {
-            log.warn("Executing Kotlin LSP command '{}' even though it was not advertised by the server.", commandName)
+            log.warn("Executing Kotlin LSP command '$commandName' even though it was not advertised by the server.")
         }
 
         val params = LspExecuteCommandParams(commandName, toLspArguments(arguments))
