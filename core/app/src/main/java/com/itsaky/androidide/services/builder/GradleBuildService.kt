@@ -85,11 +85,6 @@ import org.slf4j.LoggerFactory
 class GradleBuildService :
     Service(), BuildService, ToolingServerRunner.Observer {
 
-  companion object {
-    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
-    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
-  }
-
   private var mBinder: GradleServiceBinder? = null
   private var isToolingServerStarted = false
   override var isBuildInProgress = false
@@ -133,6 +128,8 @@ class GradleBuildService :
 
   companion object {
 
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
     private val log = LoggerFactory.getLogger(GradleBuildService::class.java)
     private val NOTIFICATION_ID = R.string.app_name
     private val SERVER_System_err = LoggerFactory.getLogger("ToolingApiErrorStream")
