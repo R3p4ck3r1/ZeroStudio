@@ -28,10 +28,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git zip unzip protobuf-compiler python3 python3-pip wget curl
 
-      - name: Configure JDK 21 (Temurin)
+      - name: Configure JDK 21 (Zulu 21.0.9)
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '21'
           cache: 'gradle'
 
