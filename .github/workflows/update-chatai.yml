@@ -6,7 +6,7 @@ on:
       source_ref:
         description: 'RikkaHub git ref to import (branch/tag/sha)'
         required: true
-        default: 'main'
+        default: 'master'
       base_ref:
         description: 'Previous imported RikkaHub ref for 3-way merge; leave empty to do a direct update'
         required: false
@@ -45,14 +45,27 @@ jobs:
           INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
           set -euo pipefail
-          source_ref="${INPUT_SOURCE_REF:-main}"
+          source_ref="${INPUT_SOURCE_REF:-master}"
           base_ref="${INPUT_BASE_REF:-}"
+          # On non-workflow_dispatch events, github.event.inputs is not populated.
+          # Avoid treating fallback strings such as "push" as an upstream base ref.
+          if [[ "$EVENT_NAME" != "workflow_dispatch" ]]; then
+            source_ref="master"
+            base_ref=""
+          fi
           if [[ -z "$base_ref" && -f core/chatai/.rikkahub-sync-ref ]]; then
             base_ref="$(cat core/chatai/.rikkahub-sync-ref)"
+          fi
+          # Defend against bad historical/default input values becoming pathspecs.
+          if [[ "$base_ref" == "push" || "$base_ref" == "schedule" || "$base_ref" == "workflow_dispatch" ]]; then
+            base_ref=""
           fi
           dry_run="${INPUT_DRY_RUN:-true}"
           if [[ "$EVENT_NAME" == "schedule" ]]; then
             dry_run="false"
+          fi
+          if [[ -z "$source_ref" ]]; then
+            source_ref="master"
           fi
           {
             echo "source_ref=$source_ref"
@@ -68,9 +81,11 @@ jobs:
           set -euo pipefail
           rm -rf /tmp/rikkahub-src /tmp/rikkahub-base
           git clone https://github.com/rikkahub/rikkahub.git /tmp/rikkahub-src
+          git -C /tmp/rikkahub-src fetch --tags --force origin
           git -C /tmp/rikkahub-src checkout "$SOURCE_REF"
           if [[ -n "$BASE_REF" ]]; then
             git clone https://github.com/rikkahub/rikkahub.git /tmp/rikkahub-base
+            git -C /tmp/rikkahub-base fetch --tags --force origin
             git -C /tmp/rikkahub-base checkout "$BASE_REF"
           fi
 
