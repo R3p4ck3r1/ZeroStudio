@@ -26,6 +26,16 @@ sourceSets {
   }
 }
 
+tasks.jar {
+  // Keep the REAPI proto descriptors available to downstream protobuf tasks as
+  // import-only protos. This lets modules generate only their own APIs while
+  // resolving imports from this compiled project dependency.
+  from(reapiProtoRoot) {
+    include("build/bazel/**/*.proto")
+  }
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 dependencies {
   api(libs.google.protobuf.java)
   api(libs.google.protobuf.kotlin)
