@@ -28,7 +28,6 @@ import androidx.core.app.NotificationManagerCompat
 import com.blankj.utilcode.util.ResourceUtils
 import com.blankj.utilcode.util.ZipUtils
 import com.itsaky.androidide.BuildConfig
-import com.itsaky.androidide.R.*
 import com.itsaky.androidide.app.BaseApplication
 import com.itsaky.androidide.lookup.Lookup
 import com.itsaky.androidide.managers.ToolsManager
@@ -86,11 +85,6 @@ import org.slf4j.LoggerFactory
 class GradleBuildService :
     Service(), BuildService, ToolingServerRunner.Observer {
 
-  companion object {
-    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
-    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
-  }
-
   private var mBinder: GradleServiceBinder? = null
   private var isToolingServerStarted = false
   override var isBuildInProgress = false
@@ -134,6 +128,8 @@ class GradleBuildService :
 
   companion object {
 
+    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
+    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
     private val log = LoggerFactory.getLogger(GradleBuildService::class.java)
     private val NOTIFICATION_ID = R.string.app_name
     private val SERVER_System_err = LoggerFactory.getLogger("ToolingApiErrorStream")
@@ -162,7 +158,7 @@ class GradleBuildService :
     val buildNotificationChannel =
         NotificationChannel(
             BaseApplication.NOTIFICATION_GRADLE_BUILD_SERVICE,
-            getString(string.title_gradle_service_notification_channel),
+            getString(R.string.title_gradle_service_notification_channel),
             NotificationManager.IMPORTANCE_LOW,
         )
     NotificationManagerCompat.from(this).createNotificationChannel(buildNotificationChannel)
