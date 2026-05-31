@@ -73,7 +73,6 @@ protobuf {
   }
 }
 
-
 tasks.processResources {
   duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

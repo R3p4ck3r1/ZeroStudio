@@ -9,6 +9,10 @@ java {
   toolchain {
     languageVersion.set(JavaLanguageVersion.of(17))
   }
+
+  // Publish a sources artifact alongside the generated classes so Android/Gradle
+  // consumers can inspect the official remote-apis definitions from tooling/reapi.
+  withSourcesJar()
 }
 
 kotlin {
@@ -62,4 +66,15 @@ protobuf {
       }
     }
   }
+}
+
+// Keep the official Bazel remote-apis proto files in this module's published jar.
+// Downstream modules, such as :tooling:build-grpc, use this artifact on their
+// protobuf configuration to import REAPI definitions without vendoring another
+// copy and regenerating duplicate build.bazel.* classes.
+tasks.processResources {
+  from(reapiProtoRoot) {
+    include("build/bazel/**/*.proto")
+  }
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
