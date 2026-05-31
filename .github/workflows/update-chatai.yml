@@ -4,14 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: 'RikkaHub git ref (branch/tag/sha), e.g. main'
+        description: 'RikkaHub git ref to import (branch/tag/sha)'
         required: true
-        default: 'main'
+        default: 'master'
+      base_ref:
+        description: 'Previous imported RikkaHub ref for 3-way merge; leave empty to do a direct update'
+        required: false
+        default: ''
       dry_run:
         description: 'Only show diff, do not commit'
         required: true
         type: boolean
         default: true
+  schedule:
+    # Poll upstream daily; GitHub cannot subscribe directly to another repo push event.
+    - cron: '17 3 * * *'
 
 concurrency:
   group: sync-chatai-${{ github.ref }}
@@ -24,36 +31,81 @@ jobs:
   sync-chatai:
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout
+      - name: Checkout ZeroStudio
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Prepare tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y rsync jq
-
-      - name: Export upstream source
+      - name: Resolve sync inputs
+        id: sync-inputs
         env:
-          REF: ${{ github.event.inputs.source_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SOURCE_REF: ${{ github.event.inputs.source_ref }}
+          INPUT_BASE_REF: ${{ github.event.inputs.base_ref }}
+          INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
           set -euo pipefail
-          rm -rf /tmp/rikkahub-src
-          git clone --depth 1 --branch "$REF" https://github.com/rikkahub/rikkahub.git /tmp/rikkahub-src || {
-            git clone https://github.com/rikkahub/rikkahub.git /tmp/rikkahub-src
-            cd /tmp/rikkahub-src && git checkout "$REF"
-          }
+          source_ref="${INPUT_SOURCE_REF:-master}"
+          base_ref="${INPUT_BASE_REF:-}"
+          # On non-workflow_dispatch events, github.event.inputs is not populated.
+          # Avoid treating fallback strings such as "push" as an upstream base ref.
+          if [[ "$EVENT_NAME" != "workflow_dispatch" ]]; then
+            source_ref="master"
+            base_ref=""
+          fi
+          if [[ -z "$base_ref" && -f core/chatai/.rikkahub-sync-ref ]]; then
+            base_ref="$(cat core/chatai/.rikkahub-sync-ref)"
+          fi
+          # Defend against bad historical/default input values becoming pathspecs.
+          if [[ "$base_ref" == "push" || "$base_ref" == "schedule" || "$base_ref" == "workflow_dispatch" ]]; then
+            base_ref=""
+          fi
+          dry_run="${INPUT_DRY_RUN:-true}"
+          if [[ "$EVENT_NAME" == "schedule" ]]; then
+            dry_run="false"
+          fi
+          if [[ -z "$source_ref" ]]; then
+            source_ref="master"
+          fi
+          {
+            echo "source_ref=$source_ref"
+            echo "base_ref=$base_ref"
+            echo "dry_run=$dry_run"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Sync files into core/chatai
+      - name: Checkout upstream RikkaHub
+        env:
+          SOURCE_REF: ${{ steps.sync-inputs.outputs.source_ref }}
+          BASE_REF: ${{ steps.sync-inputs.outputs.base_ref }}
         run: |
           set -euo pipefail
-          rsync -a --delete \
-            --exclude '.git' \
-            --exclude '.github' \
-            --exclude '.idea' \
-            --exclude 'local.properties' \
-            /tmp/rikkahub-src/ core/chatai/
+          rm -rf /tmp/rikkahub-src /tmp/rikkahub-base
+          git clone https://github.com/rikkahub/rikkahub.git /tmp/rikkahub-src
+          git -C /tmp/rikkahub-src fetch --tags --force origin
+          git -C /tmp/rikkahub-src checkout "$SOURCE_REF"
+          if [[ -n "$BASE_REF" ]]; then
+            git clone https://github.com/rikkahub/rikkahub.git /tmp/rikkahub-base
+            git -C /tmp/rikkahub-base fetch --tags --force origin
+            git -C /tmp/rikkahub-base checkout "$BASE_REF"
+          fi
+
+      - name: Merge upstream into core/chatai
+        env:
+          BASE_REF: ${{ steps.sync-inputs.outputs.base_ref }}
+        run: |
+          set -euo pipefail
+          args=(--source /tmp/rikkahub-src --target core/chatai)
+          if [[ -n "$BASE_REF" ]]; then
+            args+=(--base /tmp/rikkahub-base)
+          fi
+          # Preserve local Gradle/Kotlin script wiring; merge regular sources with
+          # a three-way merge whenever base_ref is provided.
+          python3 scripts/chatai/sync_from_rikkahub.py "${args[@]}" --protect '*.kts,**/*.kts'
+
+      - name: Record upstream revision
+        run: |
+          set -euo pipefail
+          git -C /tmp/rikkahub-src rev-parse HEAD > core/chatai/.rikkahub-sync-ref
 
       - name: Re-apply ZeroStudio integration patches
         run: |
@@ -66,20 +118,21 @@ jobs:
           git diff --stat
 
       - name: Commit changes
-        if: github.event.inputs.dry_run != 'true'
+        if: steps.sync-inputs.outputs.dry_run != 'true'
         run: |
           set -euo pipefail
-          if git diff --quiet; then
+          git add core/chatai scripts/chatai .github/workflows/update-chatai.yml
+          if git diff --cached --quiet; then
             echo "No changes after sync"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          UPSTREAM_SHA=$(git -C /tmp/rikkahub-src rev-parse --short HEAD)
-          git add core/chatai scripts/chatai/reapply-integrations.sh .github/workflows/update-chatai.yml
-          git commit -m "chore(chatai): sync from rikkahub @ ${UPSTREAM_SHA}"
+          upstream_sha=$(git -C /tmp/rikkahub-src rev-parse --short HEAD)
+          git commit -m "chore(chatai): sync from rikkahub @ ${upstream_sha}"
 
-      - name: Upload patch artifact
+      - name: Upload sync diff
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: chatai-sync-diff
