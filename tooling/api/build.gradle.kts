@@ -46,7 +46,7 @@ dependencies {
 
   api(projects.tooling.reapiProto)
 
-  implementation(libs.common.lsp4j.jsonrpc)
+  api(libs.common.lsp4j.jsonrpc)
   implementation(libs.common.org.eclipse.lsp4j)
   implementation(libs.google.gson)
   implementation(libs.kotlinx.coroutines.core)
