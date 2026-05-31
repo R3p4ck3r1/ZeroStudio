@@ -127,7 +127,9 @@ class DefaultActionsRegistry : ActionsRegistry() {
     val (data, location, menu, onClickListener) = params
     val actions = getActions(location)
 
-    for (action in actions.values) {
+    val sortedActions =
+        actions.values.sortedWith(compareBy<ActionItem> { it.order }.thenBy { it.id })
+    for (action in sortedActions) {
       action.prepare(data)
 
       if (!action.visible) {

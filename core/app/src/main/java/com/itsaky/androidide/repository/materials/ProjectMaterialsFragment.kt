@@ -27,6 +27,7 @@ import androidx.fragment.app.viewModels
 import com.itsaky.androidide.activities.editor.EditorHandlerActivity
 import com.itsaky.androidide.fragments.BaseFragment
 import com.itsaky.androidide.preferences.internal.GeneralPreferences
+import com.itsaky.androidide.provider.IDEFileIconProvider
 import com.itsaky.androidide.projects.materials.MaterialSourceType
 import com.itsaky.androidide.projects.materials.ProjectMaterialItem
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +80,7 @@ private fun ProjectMaterialsScreen(state: ProjectMaterialsUiState, onOpenFile: (
           val tree = FileTree(context)
           tree.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
           tree.setAutoExpandSingleChildFolders(GeneralPreferences.treeAutoExpandSingleChild)
+          tree.setIconProvider(IDEFileIconProvider(context))
           tree.setOnFileClickListener(object : FileClickListener {
             override fun onClick(node: Node<FileObject>) {
               when (val obj = node.value) {

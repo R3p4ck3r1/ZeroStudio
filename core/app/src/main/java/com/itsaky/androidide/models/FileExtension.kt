@@ -667,6 +667,12 @@ enum class FileExtension(
       }
 
       /**
+       * Get [FileExtension] for a directory name without requiring the directory to exist on disk.
+       */
+      @JvmStatic
+      fun forDirectoryName(name: String): FileExtension = DIRECTORY_MAP[name] ?: DIRECTORY
+
+      /**
        * Get [FileExtension] for the given file.
        *
        * @param file The file to check.
@@ -680,11 +686,7 @@ enum class FileExtension(
 
         // Directory Check
         if (file.isDirectory) {
-          // Try exact match first
-          val dirEnum = DIRECTORY_MAP[name]
-          if (dirEnum != null) return dirEnum
-          // Default directory icon
-          return DIRECTORY
+          return forDirectoryName(name)
         }
 
         val exactEnum = EXACT_FILE_MAP[name]

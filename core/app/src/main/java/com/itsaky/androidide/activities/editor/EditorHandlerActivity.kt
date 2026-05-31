@@ -46,6 +46,7 @@ import com.itsaky.androidide.editor.language.treesitter.JsonLanguage
 import com.itsaky.androidide.editor.language.treesitter.KotlinLanguage
 import com.itsaky.androidide.editor.language.treesitter.LogLanguage
 import com.itsaky.androidide.editor.language.treesitter.TSLanguageRegistry
+import com.itsaky.androidide.editor.language.treesitter.TreeSitterLanguage
 import com.itsaky.androidide.editor.language.treesitter.TomlLanguage
 import com.itsaky.androidide.editor.language.treesitter.XMLLanguage
 import com.itsaky.androidide.editor.language.treesitter.YamlLanguage
@@ -153,65 +154,65 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
       }
     }
 
+    registerTreeSitterLanguages()
     executeAsync {
-      TSLanguageRegistry.instance.register(JavaLanguage.TS_TYPE, JavaLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(KotlinLanguage.TS_TYPE_KT, KotlinLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(KotlinLanguage.TS_TYPE_KTS, KotlinLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(LogLanguage.TS_TYPE, LogLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(JsonLanguage.TS_TYPE, JsonLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(TomlLanguage.TOML_TYPE, TomlLanguage.FACTORY)
-
-      TSLanguageRegistry.instance.register(AidlLanguage.TS_TYPE, AidlLanguage.FACTORY)
-
-      // Yaml Language
-      TSLanguageRegistry.instance.register(YamlLanguage.TS_TYPE, YamlLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(YamlLanguage.TS_TYPE_YML, YamlLanguage.FACTORY)
-      // xml language tree sitter
-      TSLanguageRegistry.instance.register(XMLLanguage.TS_TYPE, XMLLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(XMLLanguage.TS_TYPE_QRC, XMLLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(XMLLanguage.TS_TYPE_UI, XMLLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(XMLLanguage.TS_TYPE_POML, XMLLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(XMLLanguage.TS_TYPE_KML, XMLLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(XMLLanguage.TS_TYPE_SVG, XMLLanguage.FACTORY)
-      // C++ language tree sitter
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_CPP, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_C, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_H_small, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_H_CAPITAL_LETTERS, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_HPP, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_CP, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_CC, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_HH, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_CXX, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_CJJ, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_HXX, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_HJJ, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_CPPM, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_MPP, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_mm, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_HIN, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_HXXIN, CppLang.FACTORY)
-      TSLanguageRegistry.instance.register(CppLang.TS_TYPE_CXXIN, CppLang.FACTORY)
-      // C language tree sitter
-      TSLanguageRegistry.instance.register(CLang.TS_TYPE_C, CLang.FACTORY)
-      TSLanguageRegistry.instance.register(CLang.TS_TYPE_M_small, CLang.FACTORY)
-      TSLanguageRegistry.instance.register(CLang.TS_TYPE_M_CAPITAL_LETTERS, CLang.FACTORY)
-      // cmake language tree sitter
-      TSLanguageRegistry.instance.register(CmakeLanguage.TS_TYPE, CmakeLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(CmakeLanguage.TS_TYPE_CMAKE_IN, CmakeLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(CmakeLanguage.TS_TYPE_CMAKE_CTEST, CmakeLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(CmakeLanguage.TS_TYPE_CMAKE_CPACK, CmakeLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(CmakeLanguage.TS_TYPE_CMAKE_CBPS, CmakeLanguage.FACTORY)
-      TSLanguageRegistry.instance.register(
-          CmakeLanguage.TS_TYPE_CMAKE_CMLISTSTXT,
-          CmakeLanguage.FACTORY,
-      )
-      TSLanguageRegistry.instance.register(
-          CmakeLanguage.TS_TYPE_CMAKE_CMCACHE,
-          CmakeLanguage.FACTORY,
-      )
-
+      CodeEditorView.ensureTreeSitterLoaded()
       IDEColorSchemeProvider.initIfNeeded()
+    }
+  }
+
+  private fun registerTreeSitterLanguages() {
+    registerTreeSitterLanguage(JavaLanguage.TS_TYPE, JavaLanguage.FACTORY)
+    registerTreeSitterLanguage(KotlinLanguage.TS_TYPE_KT, KotlinLanguage.FACTORY)
+    registerTreeSitterLanguage(KotlinLanguage.TS_TYPE_KTS, KotlinLanguage.FACTORY)
+    registerTreeSitterLanguage(LogLanguage.TS_TYPE, LogLanguage.FACTORY)
+    registerTreeSitterLanguage(JsonLanguage.TS_TYPE, JsonLanguage.FACTORY)
+    registerTreeSitterLanguage(TomlLanguage.TOML_TYPE, TomlLanguage.FACTORY)
+    registerTreeSitterLanguage(AidlLanguage.TS_TYPE, AidlLanguage.FACTORY)
+    registerTreeSitterLanguage(YamlLanguage.TS_TYPE, YamlLanguage.FACTORY)
+    registerTreeSitterLanguage(YamlLanguage.TS_TYPE_YML, YamlLanguage.FACTORY)
+    registerTreeSitterLanguage(XMLLanguage.TS_TYPE, XMLLanguage.FACTORY)
+    registerTreeSitterLanguage(XMLLanguage.TS_TYPE_QRC, XMLLanguage.FACTORY)
+    registerTreeSitterLanguage(XMLLanguage.TS_TYPE_UI, XMLLanguage.FACTORY)
+    registerTreeSitterLanguage(XMLLanguage.TS_TYPE_POML, XMLLanguage.FACTORY)
+    registerTreeSitterLanguage(XMLLanguage.TS_TYPE_KML, XMLLanguage.FACTORY)
+    registerTreeSitterLanguage(XMLLanguage.TS_TYPE_SVG, XMLLanguage.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_CPP, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_C, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_H_small, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_H_CAPITAL_LETTERS, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_HPP, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_CP, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_CC, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_HH, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_CXX, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_CJJ, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_HXX, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_HJJ, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_CPPM, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_MPP, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_mm, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_HIN, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_HXXIN, CppLang.FACTORY)
+    registerTreeSitterLanguage(CppLang.TS_TYPE_CXXIN, CppLang.FACTORY)
+    registerTreeSitterLanguage(CLang.TS_TYPE_C, CLang.FACTORY)
+    registerTreeSitterLanguage(CLang.TS_TYPE_M_small, CLang.FACTORY)
+    registerTreeSitterLanguage(CLang.TS_TYPE_M_CAPITAL_LETTERS, CLang.FACTORY)
+    registerTreeSitterLanguage(CmakeLanguage.TS_TYPE, CmakeLanguage.FACTORY)
+    registerTreeSitterLanguage(CmakeLanguage.TS_TYPE_CMAKE_IN, CmakeLanguage.FACTORY)
+    registerTreeSitterLanguage(CmakeLanguage.TS_TYPE_CMAKE_CTEST, CmakeLanguage.FACTORY)
+    registerTreeSitterLanguage(CmakeLanguage.TS_TYPE_CMAKE_CPACK, CmakeLanguage.FACTORY)
+    registerTreeSitterLanguage(CmakeLanguage.TS_TYPE_CMAKE_CBPS, CmakeLanguage.FACTORY)
+    registerTreeSitterLanguage(CmakeLanguage.TS_TYPE_CMAKE_CMLISTSTXT, CmakeLanguage.FACTORY)
+    registerTreeSitterLanguage(CmakeLanguage.TS_TYPE_CMAKE_CMCACHE, CmakeLanguage.FACTORY)
+  }
+
+  private fun <T : TreeSitterLanguage> registerTreeSitterLanguage(
+      type: String,
+      factory: TreeSitterLanguage.Factory<T>,
+  ) {
+    if (!TSLanguageRegistry.instance.hasLanguage(type)) {
+      TSLanguageRegistry.instance.register(type, factory)
     }
   }
 

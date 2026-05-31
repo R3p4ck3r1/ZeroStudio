@@ -195,8 +195,6 @@ class CodeEditorView(context: Context, file: File, selection: Range) :
   }
 
   init {
-    ensureTreeSitterLoaded()
-
     _binding = LayoutCodeEditorBinding.inflate(LayoutInflater.from(context))
 
     binding.editor.apply {
