@@ -15,18 +15,11 @@ kotlin {
   jvmToolchain(17)
 }
 
-val reapiProtoRoot = layout.projectDirectory.dir("../reapi")
-
 sourceSets {
   main {
     proto {
       srcDir("src/main/proto")
-      // Add the official remote-apis checkout as an import path for build_service.proto.
-      // The include list below keeps generation limited to build-grpc service protos;
-      // :tooling:reapi-proto owns generated build.bazel.* classes for Android use.
-      srcDir(reapiProtoRoot)
-      include("binary_protocol.proto")
-      include("build_service.proto")
+      include("**/*.proto")
     }
   }
 }
@@ -74,6 +67,7 @@ protobuf {
     }
   }
 }
+
 
 tasks.processResources {
   duplicatesStrategy = DuplicatesStrategy.EXCLUDE

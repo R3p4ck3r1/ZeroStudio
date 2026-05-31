@@ -87,11 +87,6 @@ android {
           "META-INF/services/reactor.blockhound.integration.BlockHoundIntegration",
           "com/android/builder/model/version.properties",
           "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
-          // gRPC/protobuf modules package imported proto definitions that may also
-          // be present in other proto dependency jars/projects. These are compile-time
-          // descriptors, not app runtime resources, so keep them out of the APK to avoid
-          // duplicate Java resource merge failures.
-          "**/*.proto",
       )
   packaging {
     jniLibs {
