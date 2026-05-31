@@ -19,7 +19,11 @@ sourceSets {
   main {
     proto {
       srcDir("src/main/proto")
-      include("**/*.proto")
+      // REAPI imports are provided by :tooling:reapi-proto. Generate only the
+      // build-grpc protocol files here so this module does not publish duplicate
+      // build.bazel.* classes into Android dex merging.
+      include("binary_protocol.proto")
+      include("build_service.proto")
     }
   }
 }
@@ -67,7 +71,6 @@ protobuf {
     }
   }
 }
-
 
 tasks.processResources {
   duplicatesStrategy = DuplicatesStrategy.EXCLUDE
