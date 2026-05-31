@@ -87,11 +87,11 @@ android {
           "META-INF/services/reactor.blockhound.integration.BlockHoundIntegration",
           "com/android/builder/model/version.properties",
           "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
-          // build-grpc packages imported Google API proto definitions that are also
-          // present in proto-google-common-protos. They are compile-time descriptors,
-          // not app runtime resources, so keep them out of the APK to avoid duplicate
-          // Java resource merge failures.
-          "google/**/*.proto",
+          // gRPC/protobuf modules package imported proto definitions that may also
+          // be present in other proto dependency jars/projects. These are compile-time
+          // descriptors, not app runtime resources, so keep them out of the APK to avoid
+          // duplicate Java resource merge failures.
+          "**/*.proto",
       )
   packaging {
     jniLibs {
