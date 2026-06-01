@@ -38,7 +38,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.itsaky.androidide.fragments.git.*;
-import android.studio.zero.regular.expression.preview.RegexPreviewFragment;
+import com.itsaky.androidide.fragments.toolbox.EditorToolboxFragment;
+import com.itsaky.androidide.utils.EditorToolboxActions;
 
 public class EditorBottomSheetTabAdapter extends FragmentStateAdapter {
 
@@ -50,32 +51,30 @@ public class EditorBottomSheetTabAdapter extends FragmentStateAdapter {
 
     var index = -1;
     this.fragments = new ArrayList<>();
-    
+    EditorToolboxActions.registerActions(fragmentActivity);
+
     //构建输出
     this.fragments.add(new Tab(fragmentActivity.getString(R.string.build_output),
         BuildOutputFragment.class,++index));
-     
+
      //application log
-    this.fragments.add(new Tab(fragmentActivity.getString(R.string.app_logs), 
+    this.fragments.add(new Tab(fragmentActivity.getString(R.string.app_logs),
         AppLogFragment.class, ++index));
         // IDE log
-    this.fragments.add(new Tab(fragmentActivity.getString(R.string.ide_logs), 
+    this.fragments.add(new Tab(fragmentActivity.getString(R.string.ide_logs),
         IDELogFragment.class, ++index));
 
-    this.fragments.add(new Tab(fragmentActivity.getString(R.string.view_apm_panel), 
+    this.fragments.add(new Tab(fragmentActivity.getString(R.string.view_apm_panel),
         EditorProcessApmFragment.class, ++index));
-        
-       //正则表达式可视化调试与预览
-    this.fragments.add(new Tab(fragmentActivity.getString(R.string.title_regular_preview), 
-       RegexPreviewFragment.class, ++index));
-       
-    this.fragments.add(new Tab(fragmentActivity.getString(R.string.title_regular_preview), 
-       com.itsaky.androidide.repository.dependencies.analyzer.ui.DependencyUpdateFragment.class, ++index));
-       
+
+       // 多功能入口工具箱：按需打开正则、依赖更新、MCP、AI 路由等工具。
+    this.fragments.add(new Tab(fragmentActivity.getString(R.string.title_editor_toolbox),
+       EditorToolboxFragment.class, ++index));
+
     //诊断
      this.fragments.add(new Tab(fragmentActivity.getString(R.string.view_diags),
          DiagnosticsListFragment.class,++index));
-   
+
    //搜索结果
      this.fragments.add(
         new Tab(
