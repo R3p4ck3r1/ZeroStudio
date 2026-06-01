@@ -6,13 +6,13 @@ import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.FrameLayout
-import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
+import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commit
 import me.rerere.rikkahub.ui.activity.SafeModeActivity
 import me.rerere.rikkahub.utils.CrashHandler
 
-class RouteActivity : ComponentActivity() {
+class RouteActivity : FragmentActivity() {
 
     // Volume key listener registry — last registered handler wins
     internal val volumeKeyListeners = mutableListOf<(isVolumeUp: Boolean) -> Boolean>()

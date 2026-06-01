@@ -23,6 +23,9 @@ android {
         // versionCode = 159
         // versionName = "2.2.3"
 
+        buildConfigField("String", "VERSION_NAME", "\"2.2.3\"")
+        buildConfigField("int", "VERSION_CODE", "159")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

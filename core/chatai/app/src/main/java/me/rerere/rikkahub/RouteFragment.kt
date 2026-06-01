@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.Fragment
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
@@ -204,6 +205,7 @@ class RouteFragment : Fragment() {
         val tts = rememberCustomTtsState()
         val asr = rememberCustomAsrState()
         val eventBus = koinInject<AppEventBus>()
+        val context = LocalContext.current
         LaunchedEffect(tts) {
             eventBus.events.collect { event ->
                 when (event) {
@@ -214,10 +216,10 @@ class RouteFragment : Fragment() {
         val migrationState by DatabaseMigrationTracker.state.collectAsStateWithLifecycle()
 
         val startScreen = Screen.Chat(
-            id = if (readBooleanPreference("create_new_conversation_on_start", true)) {
+            id = if (context.readBooleanPreference("create_new_conversation_on_start", true)) {
                 Uuid.random().toString()
             } else {
-                readStringPreference(
+                context.readStringPreference(
                     "lastConversationId",
                     Uuid.random().toString()
                 ) ?: Uuid.random().toString()
