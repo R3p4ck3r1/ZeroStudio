@@ -19,4 +19,14 @@
     <string name="lsp_clangd_fuzzy_ratio">Fuzzy match ratio: %1$d</string>
     <string name="lsp_clangd_reset_defaults">Reset defaults</string>
     <string name="title_template_native_build_imgui">C++ image gui</string>
+
+    <string name="title_editor_toolbox">工具箱</string>
+    <string name="title_editor_toolbox_grid">工具</string>
+    <string name="editor_toolbox_usage_count">已使用 %1$d 次</string>
+    <string name="title_dependency_updates">依赖更新</string>
+    <string name="title_chat_route">AI 聊天</string>
+    <string name="desc_dependency_updates">分析项目依赖并生成更新建议。</string>
+    <string name="desc_regular_preview">可视化预览和调试正则表达式。</string>
+    <string name="desc_mcp_server">打开 MCP 服务器控制台。</string>
+    <string name="desc_chat_route">打开内嵌 AI 聊天路由页面。</string>
 </resources>

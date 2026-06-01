@@ -331,4 +331,14 @@ Permission: %5$s
 %6$s
 MD5: %7$s
 SHA1: %8$s
-SHA256: %9$s</string></resources>
+SHA256: %9$s</string>
+    <string name="title_editor_toolbox">Toolbox</string>
+    <string name="title_editor_toolbox_grid">Tools</string>
+    <string name="editor_toolbox_usage_count">Used %1$d times</string>
+    <string name="title_dependency_updates">Dependency Updates</string>
+    <string name="title_chat_route">AI Chat</string>
+    <string name="desc_dependency_updates">Analyze project dependencies and prepare update suggestions.</string>
+    <string name="desc_regular_preview">Preview and debug regular expressions visually.</string>
+    <string name="desc_mcp_server">Open the MCP server control console.</string>
+    <string name="desc_chat_route">Open the embedded AI chat route page.</string>
+</resources>
