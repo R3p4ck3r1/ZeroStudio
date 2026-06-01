@@ -23,8 +23,6 @@ import com.itsaky.androidide.tasks.cancelIfActive
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiServer
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportClientObserver
-import com.itsaky.androidide.tooling.impl.transport.ToolingServerEndpointFactories
-import com.itsaky.androidide.tooling.impl.transport.LegacyToolingClientAdapter
 import com.itsaky.androidide.tooling.api.util.ToolingApiLauncher
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.reflection.ReflectionUtils
