@@ -42,6 +42,7 @@ object KotlinLspIntegration {
 
   private val log = LoggerFactory.getLogger(KotlinLspIntegration::class.java)
   private val isInitialized = AtomicBoolean(false)
+  private val isStarting = AtomicBoolean(false)
   private var workspaceSetup: KotlinWorkspaceSetup? = null
 
   /**
@@ -56,10 +57,17 @@ object KotlinLspIntegration {
     val existingServer = registry.getServer("kotlin-lsp") as? KotlinLanguageServerImpl
     if (isInitialized.get()) {
       val workspace = IProjectManager.getInstance().getWorkspace()
-      if (workspace != null && existingServer != null) {
-        existingServer.setupWorkspace(workspace)
+      if (existingServer != null) {
+        if (workspace != null) {
+          existingServer.setupWorkspace(workspace)
+        }
         existingServer.applySettings(KotlinServerSettings())
         log.info("Kotlin LSP already initialized. Refreshed workspace/configuration binding.")
+        return
+      }
+
+      if (isStarting.get()) {
+        log.debug("Kotlin LSP startup is already in progress; skipping duplicate setup request.")
         return
       }
 
@@ -71,6 +79,7 @@ object KotlinLspIntegration {
     if (!isInitialized.compareAndSet(false, true)) {
       return
     }
+    isStarting.set(true)
 
     try {
       KotlinTextDocumentSyncHandler.init()
@@ -104,14 +113,17 @@ object KotlinLspIntegration {
           server.connectClient(clientImpl)
           // 下发首选项设置与初始化数据，包括 R 类支持等机制的激活
           server.applySettings(KotlinServerSettings())
+          isStarting.set(false)
           log.info("Kotlin LSP Integration successfully stitched together with Workspace support!")
         } else {
           isInitialized.set(false)
+          isStarting.set(false)
           log.warn("Kotlin LSP Server failed to start or register within timeout.")
         }
       }
     } catch (e: Exception) {
       isInitialized.set(false)
+      isStarting.set(false)
       log.error("Critical error during Kotlin LSP Integration setup", e)
     }
   }

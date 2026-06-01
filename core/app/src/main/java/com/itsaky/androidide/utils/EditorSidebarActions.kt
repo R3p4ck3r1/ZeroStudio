@@ -19,6 +19,7 @@ package com.itsaky.androidide.utils
 
 import android.content.Context
 import android.os.Bundle
+import android.view.Menu
 import android.view.View
 import androidx.annotation.IdRes
 import androidx.core.view.forEach
@@ -94,6 +95,7 @@ internal object EditorSidebarActions {
         }
 
     rail.menu.clear()
+    allowUnlimitedNavigationItems(rail.menu)
 
     val data = ActionData()
     data.put(Context::class.java, context) // needed for inflating the menu
@@ -203,6 +205,15 @@ internal object EditorSidebarActions {
             }
       }
       true
+    }
+  }
+
+
+  private fun allowUnlimitedNavigationItems(menu: Menu) {
+    runCatching {
+      val field = menu.javaClass.getDeclaredField("maxItemCount")
+      field.isAccessible = true
+      field.setInt(menu, Int.MAX_VALUE)
     }
   }
 

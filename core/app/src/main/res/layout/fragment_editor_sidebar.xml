@@ -30,19 +30,28 @@
     app:defaultNavHost="true"
     app:layout_constraintBottom_toBottomOf="parent"
     app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintStart_toEndOf="@id/navigation"
+    app:layout_constraintStart_toEndOf="@id/navigation_container"
     app:layout_constraintTop_toBottomOf="@id/title" />
 
-  <com.google.android.material.navigationrail.NavigationRailView
-    android:id="@+id/navigation"
+  <androidx.core.widget.NestedScrollView
+    android:id="@+id/navigation_container"
     android:layout_width="56dp"
     android:layout_height="0dp"
-    app:headerLayout="@layout/layout_editor_sidebar_header"
-    app:labelVisibilityMode="unlabeled"
+    android:fillViewport="false"
+    android:overScrollMode="ifContentScrolls"
     app:layout_constraintBottom_toBottomOf="parent"
     app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toTopOf="parent"
-    app:menuGravity="bottom" />
+    app:layout_constraintTop_toTopOf="parent">
+
+    <com.google.android.material.navigationrail.NavigationRailView
+      android:id="@+id/navigation"
+      android:layout_width="56dp"
+      android:layout_height="wrap_content"
+      app:headerLayout="@layout/layout_editor_sidebar_header"
+      app:labelVisibilityMode="unlabeled"
+      app:menuGravity="bottom" />
+
+  </androidx.core.widget.NestedScrollView>
 
   <com.google.android.material.textview.MaterialTextView
     android:id="@+id/title"
@@ -57,7 +66,7 @@
     android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
     app:layout_constraintBottom_toTopOf="@id/fragment_container"
     app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintStart_toEndOf="@id/navigation"
+    app:layout_constraintStart_toEndOf="@id/navigation_container"
     app:layout_constraintTop_toTopOf="parent"
     tools:text="File tree" />
 
