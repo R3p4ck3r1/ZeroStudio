@@ -42,6 +42,7 @@ import com.termux.app.TermuxApplication
 
 
 private const val TAG = "RikkaHubApp"
+private const val ACCESS_LOCAL_NETWORK_PERMISSION = "android.permission.ACCESS_LOCAL_NETWORK"
 
 const val CHAT_COMPLETED_NOTIFICATION_CHANNEL_ID = "chat_completed"
 const val CHAT_LIVE_UPDATE_NOTIFICATION_CHANNEL_ID = "chat_live_update"
@@ -142,7 +143,7 @@ class RikkaHubApp : TermuxApplication() {
                         !settings.webServerLocalhostOnly &&
                         ContextCompat.checkSelfPermission(
                             this@RikkaHubApp,
-                            android.Manifest.permission.ACCESS_LOCAL_NETWORK
+                            ACCESS_LOCAL_NETWORK_PERMISSION
                         ) != PackageManager.PERMISSION_GRANTED
                     ) {
                         Log.w(TAG, "startWebServerIfEnabled: local network permission not granted, skipping")
