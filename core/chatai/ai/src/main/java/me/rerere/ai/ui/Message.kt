@@ -10,6 +10,7 @@ import kotlinx.serialization.json.JsonObject
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.core.TokenUsage
 import me.rerere.ai.provider.Model
+import me.rerere.ai.util.KotlinInstantSerializer
 import me.rerere.ai.util.json
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -392,7 +393,9 @@ sealed class UIMessagePart {
     @SerialName("reasoning")
     data class Reasoning(
         val reasoning: String,
+        @Serializable(with = KotlinInstantSerializer::class)
         val createdAt: Instant = Clock.System.now(),
+        @Serializable(with = KotlinInstantSerializer::class)
         val finishedAt: Instant? = Clock.System.now(),
         override var metadata: JsonObject? = null
     ) : UIMessagePart()
