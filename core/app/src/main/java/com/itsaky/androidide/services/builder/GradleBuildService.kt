@@ -977,12 +977,23 @@ class GradleBuildService :
         )
     val selection = ToolingServerEndpointFactories.resolveSelection(raw)
     if (selection.reason != null) {
-      log.warn(
-          "Tooling transport switch '{}' resolved to '{}': {}",
-          raw,
-          selection.resolvedMode.wireValue,
-          selection.reason,
-      )
+      val isFallback =
+          selection.requestedMode == null || selection.requestedMode != selection.resolvedMode
+      if (isFallback) {
+        log.warn(
+            "Tooling transport switch '{}' resolved to '{}': {}",
+            raw,
+            selection.resolvedMode.wireValue,
+            selection.reason,
+        )
+      } else {
+        log.info(
+            "Tooling transport switch '{}' resolved to '{}': {}",
+            raw,
+            selection.resolvedMode.wireValue,
+            selection.reason,
+        )
+      }
     }
     return selection.resolvedMode.wireValue
   }

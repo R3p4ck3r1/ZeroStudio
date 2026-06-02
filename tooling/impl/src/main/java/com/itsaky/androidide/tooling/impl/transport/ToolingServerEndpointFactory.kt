@@ -49,23 +49,17 @@ object ToolingServerEndpointFactories {
               reapiWorkspaceReady = workspaceReady,
           )
       ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI ->
-          if (!workspaceReady) {
-            TransportSelectionResult.legacy(
-                requestedValue = configured,
-                requestedMode = requestedMode,
-                reapiWorkspacePath = REAPI_WORKSPACE_PATH,
-                reapiWorkspaceReady = false,
-                reason =
-                    "Missing REAPI workspace at '$REAPI_WORKSPACE_PATH'. Run: git clone https://github.com/bazelbuild/remote-apis.git tooling/reapi",
-            )
-          } else {
-            TransportSelectionResult.integrated(
-                requestedValue = configured,
-                reapiWorkspacePath = REAPI_WORKSPACE_PATH,
-                reapiWorkspaceReady = true,
-                reason = "Integrated transport stack '$configured' is in transitional gateway mode",
-            )
-          }
+          TransportSelectionResult.integrated(
+              requestedValue = configured,
+              reapiWorkspacePath = REAPI_WORKSPACE_PATH,
+              reapiWorkspaceReady = workspaceReady,
+              reason =
+                  if (workspaceReady) {
+                    "Integrated transport stack '$configured' is in binary gateway mode"
+                  } else {
+                    "REAPI workspace missing at '$REAPI_WORKSPACE_PATH'; starting integrated binary gateway with REAPI disabled"
+                  },
+          )
       null ->
           TransportSelectionResult.legacy(
               requestedValue = configured,
@@ -83,15 +77,13 @@ object ToolingServerEndpointFactories {
       ToolingTransportMode.LEGACY_JSONRPC -> Unit
       ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI -> {
         if (!selection.reapiWorkspaceReady) {
-          log.warn(
-              "Integrated transport requested but REAPI workspace is missing at '{}'. Falling back to '{}'.",
+          log.info(
+              "Integrated transport requested without REAPI workspace at '{}'; REAPI stays disabled.",
               selection.reapiWorkspacePath,
-              LEGACY,
           )
-          return ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
         }
         log.info(
-            "Integrated transport stack '{}' is routed through transitional gateway endpoint.",
+            "Integrated transport stack '{}' is routed through binary gateway endpoint.",
             selection.requestedValue,
         )
         return ToolingServerEndpointFactory(::IntegratedToolingServerEndpointGateway)

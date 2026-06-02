@@ -2,15 +2,28 @@ package com.itsaky.androidide.tooling.buildgrpc.service
 
 import com.itsaky.androidide.tooling.buildgrpc.service.BuildServiceArchitecture
 import com.itsaky.androidide.tooling.buildgrpc.bridge.AidlGrpcBridge
+import com.zerostudio.tooling.buildgrpc.BuildBackendRegistry
 import com.zerostudio.tooling.buildgrpc.BuildGrpcModule
 import com.zerostudio.tooling.buildgrpc.BuildSessionGrpcService
 import com.zerostudio.tooling.buildgrpc.DefaultBinaryBuildServiceApi
+import com.zerostudio.tooling.buildgrpc.InProcessBackendAdapter
+import com.zerostudio.tooling.buildgrpc.InProcessBuildGrpcModule
 import com.zerostudio.tooling.buildgrpc.RoutingBuildGrpcModule
 
 /**
  * Factory for creating a fully wired binary build-service runtime.
  */
 object BuildServiceRuntimeFactory {
+  @JvmStatic
+  fun createDefaultRoutingModule(): RoutingBuildGrpcModule {
+    val gradleModule = InProcessBuildGrpcModule()
+    return RoutingBuildGrpcModule(
+      BuildBackendRegistry(
+        listOf(InProcessBackendAdapter(gradleModule)),
+      ),
+    )
+  }
+
   @JvmStatic
   fun create(
     module: BuildGrpcModule,

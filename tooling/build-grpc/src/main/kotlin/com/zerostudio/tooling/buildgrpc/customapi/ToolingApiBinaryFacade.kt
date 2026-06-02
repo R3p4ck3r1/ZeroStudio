@@ -13,8 +13,10 @@ import com.zerostudio.tooling.buildgrpc.BuildCancelRequest
 import com.zerostudio.tooling.buildgrpc.BuildInitializeRequest
 import com.zerostudio.tooling.buildgrpc.BuildShutdownRequest
 import com.zerostudio.tooling.buildgrpc.BuildTargetCompileRequest
+import com.zerostudio.tooling.buildgrpc.proto.BuildEventKind
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import kotlinx.coroutines.flow.first
 
 /**
  * Binary facade used to replace lsp4j-rpc server call flows in tooling/api consumers.
@@ -45,8 +47,10 @@ class ToolingApiBinaryFacade(
       isSuccessful = true,
       failure = null,
       requestId = params.requestId,
+      negotiatedOperationTypes = setOf("TASK", "PROJECT_CONFIGURATION"),
       supportsModelSnapshot = true,
       supportsQueryService = true,
+      supportsPhasedAction = true,
     )
   }
 
@@ -54,10 +58,10 @@ class ToolingApiBinaryFacade(
     binaryApi.buildTargetCompile(
       BuildTargetCompileRequest(
         buildId = "task-${System.currentTimeMillis()}",
-        targetIds = message.tasks,
+        targetIds = message.tasks.ifEmpty { listOf(":") },
         arguments = message.arguments + message.jvmArguments,
       ),
-    )
+    ).first { it.kind == BuildEventKind.BUILD_EVENT_KIND_FINISHED }
     TaskExecutionResult.SUCCESS
   }
 
@@ -65,10 +69,10 @@ class ToolingApiBinaryFacade(
     binaryApi.buildTargetCompile(
       BuildTargetCompileRequest(
         buildId = request.requestId.ifBlank { "exec-${System.currentTimeMillis()}" },
-        targetIds = request.tasks,
+        targetIds = request.tasks.ifEmpty { listOf(":") },
         arguments = request.arguments + request.jvmArguments,
       ),
-    )
+    ).first { it.kind == BuildEventKind.BUILD_EVENT_KIND_FINISHED }
     ExecutionResult.SUCCESS.copy(requestId = request.requestId)
   }
 
