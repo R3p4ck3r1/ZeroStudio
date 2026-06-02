@@ -3,9 +3,11 @@ package com.itsaky.androidide.utils
 import android.content.Context
 import android.studio.zero.regular.expression.preview.RegexPreviewFragment
 import android.zero.studio.chatai.server.mcp.McpFragment
+import com.itsaky.androidide.fragments.output.EditorProcessApmFragment
 import com.itsaky.androidide.fragments.toolbox.EditorToolboxEntry
 import com.itsaky.androidide.fragments.toolbox.EditorToolboxRegistry
 import com.itsaky.androidide.repository.dependencies.analyzer.ui.DependencyUpdateFragment
+import com.itsaky.androidide.repository.materials.ProjectMaterialsFragment
 import com.itsaky.androidide.resources.R
 import me.rerere.rikkahub.RouteFragment
 
@@ -51,6 +53,26 @@ object EditorToolboxActions {
             description = context.getString(R.string.desc_chat_route),
             iconRes = R.drawable.ic_settings,
             fragmentClass = RouteFragment::class.java,
+            order = ++order,
+        )
+    )
+    EditorToolboxRegistry.register(
+        EditorToolboxEntry(
+            id = "editor.toolbox.projectMaterials",
+            title = context.getString(R.string.title_project_materials),
+            description = context.getString(R.string.desc_project_materials),
+            iconRes = R.drawable.ic_folder,
+            fragmentClass = ProjectMaterialsFragment::class.java,
+            order = ++order,
+        )
+    )
+    EditorToolboxRegistry.register(
+        EditorToolboxEntry(
+            id = "editor.toolbox.editorProcessApm",
+            title = context.getString(R.string.view_apm_panel),
+            description = context.getString(R.string.desc_editor_process_apm),
+            iconRes = R.drawable.ic_bug,
+            fragmentClass = EditorProcessApmFragment::class.java,
             order = ++order,
         )
     )

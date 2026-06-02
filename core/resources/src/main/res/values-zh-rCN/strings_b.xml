@@ -29,4 +29,7 @@
     <string name="desc_regular_preview">可视化预览和调试正则表达式。</string>
     <string name="desc_mcp_server">打开 MCP 服务器控制台。</string>
     <string name="desc_chat_route">打开内嵌 AI 聊天路由页面。</string>
+    <string name="title_project_materials">项目素材</string>
+    <string name="desc_project_materials">从编辑器工具箱浏览和管理可复用项目素材。</string>
+    <string name="desc_editor_process_apm">监控编辑器进程内存、语言服务和清理控制。</string>
 </resources>

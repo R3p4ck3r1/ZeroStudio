@@ -88,7 +88,12 @@ class EditorToolboxFragment : Fragment() {
     }
     val openedEntries = openedToolIds.mapNotNull { EditorToolboxRegistry.find(it) }
 
-    LaunchedEffect(selectedTab, openedToolIds, containerId) {
+    LaunchedEffect(selectedTab, openedEntries, containerId) {
+      if (selectedTab != GRID_TAB_ID && openedEntries.none { it.id == selectedTab }) {
+        selectedTab = GRID_TAB_ID
+        return@LaunchedEffect
+      }
+
       if (selectedTab == GRID_TAB_ID) {
         releaseToolFragments(allowStateLoss = false)
       } else {
@@ -140,9 +145,10 @@ class EditorToolboxFragment : Fragment() {
       val openedIndex = openedEntries.indexOfFirst { it.id == selectedTab }
       if (openedIndex >= 0) openedIndex + 1 else 0
     }
+    val tabCount = openedEntries.size + 1
 
     ScrollableTabRow(
-        selectedTabIndex = selectedIndex,
+        selectedTabIndex = selectedIndex.coerceIn(0, tabCount - 1),
         edgePadding = 8.dp,
     ) {
       Tab(

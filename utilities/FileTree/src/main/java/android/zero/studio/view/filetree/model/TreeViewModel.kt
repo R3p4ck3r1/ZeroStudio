@@ -17,6 +17,8 @@
 
 package android.zero.studio.view.filetree.model
 
+import android.zero.studio.view.filetree.interfaces.FileObject
+
 /** @author android_zero */
 data class Node<T>(
     var value: T,
@@ -34,15 +36,24 @@ data class Node<T>(
 
     other as Node<*>
 
-    return value == other.value &&
-        parent == other.parent &&
-        child == other.child &&
+    return value.contentKey() == other.value.contentKey() &&
+        parent.nodeKey() == other.parent.nodeKey() &&
+        child.nodeKeys() == other.child.nodeKeys() &&
         isExpand == other.isExpand &&
-        level == other.level
+        level == other.level &&
+        isSelected == other.isSelected &&
+        isHighlighted == other.isHighlighted
   }
 
   override fun hashCode(): Int {
-    return value.hashCode()
+    var result = value.contentKey().hashCode()
+    result = 31 * result + parent.nodeKey().hashCode()
+    result = 31 * result + child.nodeKeys().hashCode()
+    result = 31 * result + isExpand.hashCode()
+    result = 31 * result + level
+    result = 31 * result + isSelected.hashCode()
+    result = 31 * result + isHighlighted.hashCode()
+    return result
   }
 
   fun deleteChild(childNode: Node<T>) {
@@ -59,6 +70,31 @@ data class Node<T>(
     child = currentChildren
   }
 }
+
+private fun Any?.contentKey(): Any? =
+    when (this) {
+      is FileObject -> fileObjectKey()
+      else -> this
+    }
+
+private fun FileObject.fileObjectKey(): FileObjectKey =
+    FileObjectKey(
+        absolutePath = getAbsolutePath(),
+        name = getName(),
+        isDirectory = isDirectory(),
+        isFile = isFile(),
+    )
+
+private fun Node<*>?.nodeKey(): Any? = this?.value.contentKey()
+
+private fun List<Node<*>>?.nodeKeys(): List<Any?>? = this?.map { it.value.contentKey() }
+
+private data class FileObjectKey(
+    val absolutePath: String,
+    val name: String,
+    val isDirectory: Boolean,
+    val isFile: Boolean,
+)
 
 object TreeViewModel {
 
