@@ -167,6 +167,7 @@ class EditorToolboxFragment : Fragment() {
     LaunchedEffect(tabs, requestedIndex) {
       tabRowSelectedIndex = requestedIndex
     }
+    val tabCount = openedEntries.size + 1
 
     ScrollableTabRow(
         selectedTabIndex = safeSelectedIndex,

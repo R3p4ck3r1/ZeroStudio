@@ -341,4 +341,7 @@ SHA256: %9$s</string>
     <string name="desc_regular_preview">Preview and debug regular expressions visually.</string>
     <string name="desc_mcp_server">Open the MCP server control console.</string>
     <string name="desc_chat_route">Open the embedded AI chat route page.</string>
+    <string name="title_project_materials">Project Materials</string>
+    <string name="desc_project_materials">Browse and manage reusable project materials from the editor toolbox.</string>
+    <string name="desc_editor_process_apm">Monitor editor process memory, language services, and cleanup controls.</string>
 </resources>

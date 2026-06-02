@@ -213,13 +213,33 @@ private fun buildArchiveTree(archive: File): ArchiveEntryFileObject {
   return root
 }
 
-private data class MaterialTreeFileObject(private val name: String, private val isDir: Boolean, val material: ProjectMaterialItem?, val children: MutableList<MaterialTreeFileObject> = mutableListOf()) : FileObject, Serializable {
+private class MaterialTreeFileObject(
+    private val name: String,
+    private val isDir: Boolean,
+    val material: ProjectMaterialItem?,
+    val children: MutableList<MaterialTreeFileObject> = mutableListOf(),
+) : FileObject, Serializable {
   override fun listFiles(): List<FileObject> = children
   override fun isDirectory() = isDir
   override fun isFile() = !isDir
   override fun getName() = name
   override fun getParentFile(): FileObject? = null
   override fun getAbsolutePath(): String = material?.id ?: "virtual://$name"
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is MaterialTreeFileObject) return false
+    return getAbsolutePath() == other.getAbsolutePath() &&
+        getName() == other.getName() &&
+        isDirectory() == other.isDirectory()
+  }
+
+  override fun hashCode(): Int {
+    var result = getAbsolutePath().hashCode()
+    result = 31 * result + getName().hashCode()
+    result = 31 * result + isDirectory().hashCode()
+    return result
+  }
 }
 
 private data class ArchiveEntryFileObject(private val archive: File, private val entryPath: String, private val dir: Boolean, private val actualEntry: String?, val children: MutableList<ArchiveEntryFileObject> = mutableListOf()) : FileObject, Serializable {
