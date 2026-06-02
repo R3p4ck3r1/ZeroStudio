@@ -2,7 +2,6 @@ package com.itsaky.androidide.tooling.impl.transport.integrated
 
 import com.itsaky.androidide.tooling.buildgrpc.service.BuildServiceRuntime
 import com.itsaky.androidide.tooling.buildgrpc.service.BuildServiceRuntimeFactory
-import com.zerostudio.tooling.buildgrpc.InProcessBuildGrpcModule
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -15,7 +14,7 @@ object IntegratedBinaryRuntimeBridge {
     runtimeRef.get()?.let { return it }
 
     val created = BuildServiceRuntimeFactory.create(
-      module = InProcessBuildGrpcModule(),
+      module = BuildServiceRuntimeFactory.createDefaultRoutingModule(),
       grpcPort = 47920,
       reapiEndpoint = System.getProperty("androidide.tooling.reapi.endpoint", ""),
       reapiInstanceName = System.getProperty("androidide.tooling.reapi.instance", "default"),

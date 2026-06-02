@@ -122,6 +122,22 @@ internal data class TransportSelectionResult(
           reason = reason,
       )
     }
+
+    fun integrated(
+        requestedValue: String,
+        reapiWorkspacePath: String,
+        reapiWorkspaceReady: Boolean,
+        reason: String? = null,
+    ): TransportSelectionResult {
+      return TransportSelectionResult(
+          requestedValue = requestedValue,
+          requestedMode = ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI,
+          resolvedMode = ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI,
+          reapiWorkspacePath = reapiWorkspacePath,
+          reapiWorkspaceReady = reapiWorkspaceReady,
+          reason = reason,
+      )
+    }
   }
 }
 
@@ -151,13 +167,12 @@ internal object ToolingServerEndpointFactories {
               reapiWorkspaceReady = workspaceReady,
           )
       ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI ->
-          TransportSelectionResult.legacy(
+          TransportSelectionResult.integrated(
               requestedValue = configured,
-              requestedMode = requestedMode,
               reapiWorkspacePath = REAPI_WORKSPACE_PATH,
               reapiWorkspaceReady = workspaceReady,
               reason =
-                  "Integrated transport endpoint is unavailable in the Android app process; using legacy JSON-RPC endpoint.",
+                  "Using app-process build-grpc binary endpoint; REAPI workspace ready=$workspaceReady.",
           )
       null ->
           TransportSelectionResult.legacy(
@@ -172,14 +187,30 @@ internal object ToolingServerEndpointFactories {
 
   fun fromSelection(selection: TransportSelectionResult): ToolingServerEndpointFactory {
     if (selection.reason != null) {
-      log.warn(
-          "Tooling transport configured='{}' resolved to '{}' because {}",
-          selection.requestedValue,
-          selection.resolvedMode.wireValue,
-          selection.reason,
-      )
+      val isFallback =
+          selection.requestedMode == null || selection.requestedMode != selection.resolvedMode
+      val message = "Tooling transport configured='{}' resolved to '{}' because {}"
+      if (isFallback) {
+        log.warn(
+            message,
+            selection.requestedValue,
+            selection.resolvedMode.wireValue,
+            selection.reason,
+        )
+      } else {
+        log.info(
+            message,
+            selection.requestedValue,
+            selection.resolvedMode.wireValue,
+            selection.reason,
+        )
+      }
     }
-    return ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
+    return when (selection.resolvedMode) {
+      ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI ->
+          ToolingServerEndpointFactory { _ -> IntegratedBinaryToolingServerEndpoint() }
+      ToolingTransportMode.LEGACY_JSONRPC -> ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
+    }
   }
 
   private fun isReapiWorkspaceReady(): Boolean {

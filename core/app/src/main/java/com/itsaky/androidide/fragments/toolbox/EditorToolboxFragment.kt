@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -46,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentContainerView
 import androidx.lifecycle.Lifecycle
@@ -166,14 +170,31 @@ class EditorToolboxFragment : Fragment() {
 
     ScrollableTabRow(
         selectedTabIndex = safeSelectedIndex,
-        edgePadding = 8.dp,
+        modifier = Modifier.height(36.dp),
+        edgePadding = 4.dp,
     ) {
       tabs.forEach { tab ->
         Tab(
             selected = selectedTab == tab.id,
             onClick = { onSelectTab(tab.id) },
-            text = { Text(text = tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            icon = { Icon(painterResource(tab.iconRes), contentDescription = null) },
+            modifier = Modifier.height(36.dp),
+            text = {
+              Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painter = painterResource(tab.iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = tab.title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 11.sp,
+                )
+              }
+            },
         )
       }
     }
@@ -223,23 +244,34 @@ class EditorToolboxFragment : Fragment() {
         Icon(
             painter = painterResource(entry.iconRes),
             contentDescription = null,
+            modifier = Modifier.size(42.dp),
             tint = MaterialTheme.colorScheme.primary,
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = entry.title,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            text = entry.description,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
         if (launchCount > 0) {
-          Spacer(modifier = Modifier.height(4.dp))
+          Spacer(modifier = Modifier.height(3.dp))
           Text(
               text = getString(R.string.editor_toolbox_usage_count, launchCount),
               style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              color = MaterialTheme.colorScheme.outline,
+              fontSize = 10.sp,
               maxLines = 1,
           )
         }
