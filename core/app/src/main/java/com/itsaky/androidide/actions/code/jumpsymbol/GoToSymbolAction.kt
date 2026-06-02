@@ -14,10 +14,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * An action to parse the current file using Tree-Sitter and display a bottom sheet with all
- * symbols.
+ * Parses the current file and displays a bottom sheet with code symbols.
  *
- * Supports Java, Kotlin, and can be extended.
+ * Java and Kotlin symbols are resolved with the generated ANTLR lexers/parsers; other supported
+ * languages continue to use the Tree-Sitter fallback.
  *
  * @author android_zero
  */
@@ -48,7 +48,6 @@ class GoToSymbolAction(context: Context, override val order: Int) : EditorRelate
     ) { _, _ ->
       val code = editor.text.toString()
 
-      // 使用 Tree-Sitter 解析，避免 Unsafe 崩溃
       val symbols =
           withContext(Dispatchers.IO) { TreeSitterSymbolResolver.parseSymbols(context, file, code) }
 
