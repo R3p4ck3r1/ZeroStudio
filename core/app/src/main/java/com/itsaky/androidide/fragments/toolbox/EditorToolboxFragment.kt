@@ -30,6 +30,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentContainerView
+import androidx.lifecycle.Lifecycle
 import com.itsaky.androidide.resources.R
 
 /** Multi-purpose editor toolbox with a fixed grid tab and lazily materialized tool fragments. */
@@ -87,13 +89,19 @@ class EditorToolboxFragment : Fragment() {
       )
     }
     val openedEntries = openedToolIds.mapNotNull { EditorToolboxRegistry.find(it) }
+    val visibleTabIds = buildList {
+      add(GRID_TAB_ID)
+      openedEntries.mapTo(this) { it.id }
+    }
+
+    LaunchedEffect(selectedTab, visibleTabIds) {
+      if (selectedTab !in visibleTabIds) {
+        selectedTab = GRID_TAB_ID
+      }
+    }
 
     LaunchedEffect(selectedTab, openedToolIds, containerId) {
-      if (selectedTab == GRID_TAB_ID) {
-        releaseToolFragments(allowStateLoss = false)
-      } else {
-        showToolFragment(selectedTab)
-      }
+      freezeInactiveToolFragments(activeToolId = selectedTab.takeUnless { it == GRID_TAB_ID })
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -134,31 +142,38 @@ class EditorToolboxFragment : Fragment() {
       openedEntries: List<EditorToolboxEntry>,
       onSelectTab: (String) -> Unit,
   ) {
-    val selectedIndex = if (selectedTab == GRID_TAB_ID) {
-      0
-    } else {
-      val openedIndex = openedEntries.indexOfFirst { it.id == selectedTab }
-      if (openedIndex >= 0) openedIndex + 1 else 0
+    val tabs = remember(openedEntries) {
+      buildList {
+        add(
+            ToolboxTabSpec(
+                id = GRID_TAB_ID,
+                title = getString(R.string.title_editor_toolbox_grid),
+                iconRes = R.drawable.ic_widget_grid_view,
+            )
+        )
+        openedEntries.mapTo(this) { entry ->
+          ToolboxTabSpec(id = entry.id, title = entry.title, iconRes = entry.iconRes)
+        }
+      }
+    }
+    val requestedIndex = tabs.indexOfFirst { it.id == selectedTab }.coerceAtLeast(0)
+    var tabRowSelectedIndex by remember { mutableIntStateOf(0) }
+    val safeSelectedIndex = tabRowSelectedIndex.coerceIn(0, tabs.lastIndex.coerceAtLeast(0))
+
+    LaunchedEffect(tabs, requestedIndex) {
+      tabRowSelectedIndex = requestedIndex
     }
 
     ScrollableTabRow(
-        selectedTabIndex = selectedIndex,
+        selectedTabIndex = safeSelectedIndex,
         edgePadding = 8.dp,
     ) {
-      Tab(
-          selected = selectedTab == GRID_TAB_ID,
-          onClick = { onSelectTab(GRID_TAB_ID) },
-          text = { Text(text = getString(R.string.title_editor_toolbox_grid), maxLines = 1) },
-          icon = {
-            Icon(painterResource(R.drawable.ic_widget_grid_view), contentDescription = null)
-          },
-      )
-      openedEntries.forEach { entry ->
+      tabs.forEach { tab ->
         Tab(
-            selected = selectedTab == entry.id,
-            onClick = { onSelectTab(entry.id) },
-            text = { Text(text = entry.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            icon = { Icon(painterResource(entry.iconRes), contentDescription = null) },
+            selected = selectedTab == tab.id,
+            onClick = { onSelectTab(tab.id) },
+            text = { Text(text = tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            icon = { Icon(painterResource(tab.iconRes), contentDescription = null) },
         )
       }
     }
@@ -249,29 +264,49 @@ class EditorToolboxFragment : Fragment() {
     )
   }
 
-  private fun showToolFragment(toolId: String) {
-    val entry = EditorToolboxRegistry.find(toolId) ?: return
-    if (containerId == View.NO_ID || view == null) return
+  private fun freezeInactiveToolFragments(activeToolId: String?) {
+    if (containerId == View.NO_ID || view == null || childFragmentManager.isStateSaved) return
+
     val manager = childFragmentManager
-    val tag = toolTag(toolId)
-    val current = manager.findFragmentByTag(tag)
     val transaction = manager.beginTransaction().setReorderingAllowed(true)
+    var hasChanges = false
+    val activeTag = activeToolId?.let(::toolTag)
+    val activeEntry = activeToolId?.let(EditorToolboxRegistry::find)
+
     manager.fragments
-        .filter { it.tag?.startsWith(TOOL_TAG_PREFIX) == true && it.tag != tag }
-        .forEach { transaction.remove(it) }
-    if (current == null) {
+        .filter { it.tag?.startsWith(TOOL_TAG_PREFIX) == true }
+        .forEach { fragment ->
+          if (fragment.tag == activeTag) {
+            if (fragment.isHidden) {
+              transaction.show(fragment)
+              hasChanges = true
+            }
+            transaction.setMaxLifecycle(fragment, Lifecycle.State.RESUMED)
+            hasChanges = true
+          } else {
+            if (!fragment.isHidden) {
+              transaction.hide(fragment)
+              hasChanges = true
+            }
+            transaction.setMaxLifecycle(fragment, Lifecycle.State.CREATED)
+            hasChanges = true
+          }
+        }
+
+    if (activeTag != null && activeEntry != null && manager.findFragmentByTag(activeTag) == null) {
       val fragment =
           manager.fragmentFactory.instantiate(
-              entry.fragmentClass.classLoader!!,
-              entry.fragmentClass.name,
+              activeEntry.fragmentClass.classLoader!!,
+              activeEntry.fragmentClass.name,
           )
-      transaction.replace(containerId, fragment, tag)
-    } else if (!current.isAdded) {
-      transaction.add(containerId, current, tag)
-    } else {
-      transaction.setMaxLifecycle(current, androidx.lifecycle.Lifecycle.State.RESUMED)
+      transaction.add(containerId, fragment, activeTag)
+      transaction.setMaxLifecycle(fragment, Lifecycle.State.RESUMED)
+      hasChanges = true
     }
-    transaction.commitNowAllowingStateLoss()
+
+    if (hasChanges) {
+      transaction.commitNow()
+    }
   }
 
   private fun releaseToolFragments(allowStateLoss: Boolean) {
@@ -287,6 +322,13 @@ class EditorToolboxFragment : Fragment() {
       transaction.commitNow()
     }
   }
+
+  @Stable
+  private data class ToolboxTabSpec(
+      val id: String,
+      val title: String,
+      val iconRes: Int,
+  )
 
   private class ToolboxUsageStore(context: Context) {
     private val preferences =
