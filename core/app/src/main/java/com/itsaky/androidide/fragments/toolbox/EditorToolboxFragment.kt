@@ -6,15 +6,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -24,7 +27,6 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -134,16 +136,9 @@ class EditorToolboxFragment : Fragment() {
       openedEntries: List<EditorToolboxEntry>,
       onSelectTab: (String) -> Unit,
   ) {
-    val selectedIndex = if (selectedTab == GRID_TAB_ID) {
-      0
-    } else {
-      val openedIndex = openedEntries.indexOfFirst { it.id == selectedTab }
-      if (openedIndex >= 0) openedIndex + 1 else 0
-    }
-
-    ScrollableTabRow(
-        selectedTabIndex = selectedIndex,
-        edgePadding = 8.dp,
+    Row(
+        modifier =
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
     ) {
       Tab(
           selected = selectedTab == GRID_TAB_ID,

@@ -27,7 +27,6 @@ import com.itsaky.androidide.fragments.DiagnosticsListFragment;
 import com.itsaky.androidide.fragments.SearchResultFragment;
 import com.itsaky.androidide.fragments.output.AppLogFragment;
 import com.itsaky.androidide.fragments.output.BuildOutputFragment;
-import com.itsaky.androidide.fragments.output.EditorProcessApmFragment;
 import com.itsaky.androidide.fragments.output.IDELogFragment;
 // import com.itsaky.androidide.app.MatrixApmPanelFragment;
 import com.itsaky.androidide.BuildConfig;
@@ -63,9 +62,6 @@ public class EditorBottomSheetTabAdapter extends FragmentStateAdapter {
         // IDE log
     this.fragments.add(new Tab(fragmentActivity.getString(R.string.ide_logs),
         IDELogFragment.class, ++index));
-
-    this.fragments.add(new Tab(fragmentActivity.getString(R.string.view_apm_panel),
-        EditorProcessApmFragment.class, ++index));
 
        // 多功能入口工具箱：按需打开正则、依赖更新、MCP、AI 路由等工具。
     this.fragments.add(new Tab(fragmentActivity.getString(R.string.title_editor_toolbox),
