@@ -2,13 +2,12 @@ package com.itsaky.androidide.services.builder
 
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportMode
-import com.itsaky.androidide.tooling.impl.transport.IntegratedCapabilityPolicy
 
 /**
  * Centralized client-side routing policy for deciding whether build requests should be executed
  * through Tooling transport execute(request) or through local gradlew shell invocation.
  */
-class IntegratedExecutionRoutingPolicy {
+internal class IntegratedExecutionRoutingPolicy {
 
   data class RoutingContext(
       val executeEnabled: Boolean,

@@ -54,8 +54,6 @@ import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportMode
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
-import com.itsaky.androidide.tooling.impl.transport.ToolingServerEndpointFactories
-import com.itsaky.androidide.tooling.impl.transport.IntegratedCapabilityPolicy
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
@@ -977,17 +975,16 @@ class GradleBuildService :
             ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
             ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI.wireValue,
         )
-    val mode = ToolingTransportMode.fromWireValue(raw)
-    if (mode == null) {
+    val selection = ToolingServerEndpointFactories.resolveSelection(raw)
+    if (selection.reason != null) {
       log.warn(
-          "Unknown transport switch '{}' for -D{}. Fallback to '{}'.",
+          "Tooling transport switch '{}' resolved to '{}': {}",
           raw,
-          ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
-          ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI.wireValue,
+          selection.resolvedMode.wireValue,
+          selection.reason,
       )
-      return ToolingServerEndpointFactories.LEGACY
     }
-    return mode.wireValue
+    return selection.resolvedMode.wireValue
   }
 
   private fun wrap(listener: EventListener?): EventListener? {

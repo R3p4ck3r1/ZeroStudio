@@ -46,8 +46,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.commitNow
-import androidx.fragment.app.commitNowAllowingStateLoss
 import androidx.fragment.app.FragmentContainerView
 import com.itsaky.androidide.resources.R
 
@@ -257,24 +255,23 @@ class EditorToolboxFragment : Fragment() {
     val manager = childFragmentManager
     val tag = toolTag(toolId)
     val current = manager.findFragmentByTag(tag)
-    manager.commitNowAllowingStateLoss {
-      manager.fragments
-          .filter { it.tag?.startsWith(TOOL_TAG_PREFIX) == true && it.tag != tag }
-          .forEach { remove(it) }
-      if (current == null) {
-        val fragment =
-            manager.fragmentFactory.instantiate(
-                entry.fragmentClass.classLoader!!,
-                entry.fragmentClass.name,
-            )
-        replace(containerId, fragment, tag)
-      } else if (!current.isAdded) {
-        add(containerId, current, tag)
-      } else {
-        setMaxLifecycle(current, androidx.lifecycle.Lifecycle.State.RESUMED)
-      }
-      setReorderingAllowed(true)
+    val transaction = manager.beginTransaction().setReorderingAllowed(true)
+    manager.fragments
+        .filter { it.tag?.startsWith(TOOL_TAG_PREFIX) == true && it.tag != tag }
+        .forEach { transaction.remove(it) }
+    if (current == null) {
+      val fragment =
+          manager.fragmentFactory.instantiate(
+              entry.fragmentClass.classLoader!!,
+              entry.fragmentClass.name,
+          )
+      transaction.replace(containerId, fragment, tag)
+    } else if (!current.isAdded) {
+      transaction.add(containerId, current, tag)
+    } else {
+      transaction.setMaxLifecycle(current, androidx.lifecycle.Lifecycle.State.RESUMED)
     }
+    transaction.commitNowAllowingStateLoss()
   }
 
   private fun releaseToolFragments(allowStateLoss: Boolean) {
@@ -282,10 +279,12 @@ class EditorToolboxFragment : Fragment() {
     val fragments =
         childFragmentManager.fragments.filter { it.tag?.startsWith(TOOL_TAG_PREFIX) == true }
     if (fragments.isEmpty()) return
+    val transaction = childFragmentManager.beginTransaction().setReorderingAllowed(true)
+    fragments.forEach { transaction.remove(it) }
     if (allowStateLoss) {
-      childFragmentManager.commitNowAllowingStateLoss { fragments.forEach { remove(it) } }
+      transaction.commitNowAllowingStateLoss()
     } else {
-      childFragmentManager.commitNow { fragments.forEach { remove(it) } }
+      transaction.commitNow()
     }
   }
 

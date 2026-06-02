@@ -231,7 +231,6 @@ dependencies {
   implementation(projects.tooling.api)
   implementation(projects.tooling.buildGrpc)
   implementation(projects.tooling.pluginConfig)
-  compileOnly(projects.tooling.impl)
   implementation(projects.utilities.buildInfo)
   implementation(projects.utilities.lookup)
   implementation(projects.utilities.flashbar)

@@ -37,6 +37,7 @@ import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.androidx.workmanager.koin.workManagerFactory
+import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import com.termux.app.TermuxApplication
 
@@ -51,12 +52,7 @@ const val WEB_SERVER_NOTIFICATION_CHANNEL_ID = "web_server"
 class RikkaHubApp : TermuxApplication() {
     override fun onCreate() {
         super.onCreate()
-        startKoin {
-            androidLogger()
-            androidContext(this@RikkaHubApp)
-            workManagerFactory()
-            modules(appModule, viewModelModule, dataSourceModule, repositoryModule)
-        }
+        RikkaHubRuntime.ensureKoinStarted(this)
         this.createNotificationChannel()
 
         // set cursor window size to 32MB
@@ -197,6 +193,33 @@ class RikkaHubApp : TermuxApplication() {
         super.onTerminate()
         get<AppScope>().cancel()
         stopService(Intent(this, WebServerService::class.java))
+    }
+}
+
+
+object RikkaHubRuntime {
+    @Volatile
+    private var koinStarted = false
+
+    fun ensureKoinStarted(application: Application) {
+        if (koinStarted || GlobalContext.getOrNull() != null) {
+            koinStarted = true
+            return
+        }
+
+        synchronized(this) {
+            if (koinStarted || GlobalContext.getOrNull() != null) {
+                koinStarted = true
+                return
+            }
+            startKoin {
+                androidLogger()
+                androidContext(application)
+                workManagerFactory()
+                modules(appModule, viewModelModule, dataSourceModule, repositoryModule)
+            }
+            koinStarted = true
+        }
     }
 }
 
