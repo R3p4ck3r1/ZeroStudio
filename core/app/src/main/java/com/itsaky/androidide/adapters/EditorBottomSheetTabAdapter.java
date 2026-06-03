@@ -37,8 +37,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.itsaky.androidide.fragments.git.*;
-import com.itsaky.androidide.fragments.toolbox.EditorToolboxFragment;
-import com.itsaky.androidide.utils.EditorToolboxActions;
 
 public class EditorBottomSheetTabAdapter extends FragmentStateAdapter {
 
@@ -50,8 +48,6 @@ public class EditorBottomSheetTabAdapter extends FragmentStateAdapter {
 
     var index = -1;
     this.fragments = new ArrayList<>();
-    EditorToolboxActions.registerActions(fragmentActivity);
-
     //构建输出
     this.fragments.add(new Tab(fragmentActivity.getString(R.string.build_output),
         BuildOutputFragment.class,++index));
@@ -62,10 +58,6 @@ public class EditorBottomSheetTabAdapter extends FragmentStateAdapter {
         // IDE log
     this.fragments.add(new Tab(fragmentActivity.getString(R.string.ide_logs),
         IDELogFragment.class, ++index));
-
-       // 多功能入口工具箱：按需打开正则、依赖更新、MCP、AI 路由等工具。
-    this.fragments.add(new Tab(fragmentActivity.getString(R.string.title_editor_toolbox),
-       EditorToolboxFragment.class, ++index));
 
     //诊断
      this.fragments.add(new Tab(fragmentActivity.getString(R.string.view_diags),

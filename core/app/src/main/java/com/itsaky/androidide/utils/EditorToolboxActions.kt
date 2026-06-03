@@ -11,7 +11,7 @@ import com.itsaky.androidide.repository.materials.ProjectMaterialsFragment
 import com.itsaky.androidide.resources.R
 import me.rerere.rikkahub.RouteFragment
 
-/** Registers pluggable tools shown by the editor toolbox bottom-sheet tab. */
+/** Registers pluggable tools shown by the editor toolbox sidebar tab. */
 object EditorToolboxActions {
   @JvmStatic
   fun registerActions(context: Context) {
