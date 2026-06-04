@@ -345,6 +345,16 @@ class GradleBuildService :
 
   override fun onServerExited(exitCode: Int) {
     log.warn("Tooling API process terminated with exit code: {}", exitCode)
+    serverEndpoint = null
+    lastInitializeResult = null
+    integratedCapabilityPolicy.reset()
+    isBuildInProgress = false
+    isToolingServerStarted = false
+    Lookup.getDefault().unregister(BuildService.KEY_PROJECT_PROXY)
+    synchronized(pendingBuildRequests) {
+      pendingBuildRequests.forEach { it.cancel(true) }
+      pendingBuildRequests.clear()
+    }
     stopForeground(STOP_FOREGROUND_REMOVE)
   }
 

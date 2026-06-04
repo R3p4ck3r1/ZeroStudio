@@ -12,7 +12,6 @@ import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
 import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedProtocolCoordinator
 import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedBuildRequestCodec
-import com.itsaky.androidide.tooling.impl.transport.integrated.IntegratedBinaryRuntimeBridge
 import com.itsaky.androidide.tooling.impl.transport.reapi.GrpcReapiExecutionGateway
 import com.itsaky.androidide.tooling.impl.transport.reapi.NoOpReapiExecutionGateway
 import com.itsaky.androidide.tooling.impl.transport.reapi.ReapiExecutionGateway
@@ -22,8 +21,10 @@ import org.slf4j.LoggerFactory
 /**
  * Transitional endpoint for the integrated AIDL+gRPC+REAPI stack.
  *
- * Iteration2 stage: this gateway delegates to legacy JSON-RPC endpoint implementation while
- * preserving an isolated integration seam for the future stack cutover.
+ * This endpoint validates and records build-grpc protobuf payloads, but it no longer starts the
+ * incomplete in-process build-grpc runtime or reports synthetic build initialization. Real Gradle
+ * initialization/execution must complete through the connected Tooling API server before the IDE is
+ * marked initialized.
  */
 class IntegratedToolingServerEndpointGateway(private val delegate: IToolingApiServer) :
     ToolingTransportServerEndpoint {
@@ -65,61 +66,34 @@ class IntegratedToolingServerEndpointGateway(private val delegate: IToolingApiSe
   override fun metadata(): CompletableFuture<ToolingServerMetadata> = delegate.metadata()
 
   override fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> {
-    emitRuntimePayload("initialize", IntegratedBuildRequestCodec.encodeInitialize(params)) { bytes ->
-      log.debug(
-          "Integrated initialize mirrored to binary payload: requestId={}, bytes={}",
-          params.requestId,
-          bytes.size,
-      )
-    }
+    val payload = IntegratedBuildRequestCodec.encodeInitialize(params)
+    log.debug(
+        "Integrated initialize encoded as build-grpc payload: requestId={}, bytes={}",
+        params.requestId,
+        payload.size,
+    )
     return delegate.initialize(params)
   }
 
   override fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult> {
-    emitRuntimePayload(
-        "submitBuildRequest",
-        IntegratedBuildRequestCodec.encodeTaskExecution(message),
-    ) { bytes ->
-      log.debug(
-          "Integrated executeTasks mirrored to binary payload: tasks={}, bytes={}",
-          message.tasks.size,
-          bytes.size,
-      )
-    }
+    val payload = IntegratedBuildRequestCodec.encodeTaskExecution(message)
+    log.debug(
+        "Integrated executeTasks encoded as build-grpc payload: tasks={}, bytes={}",
+        message.tasks.size,
+        payload.size,
+    )
     return delegate.executeTasks(message)
   }
 
   override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
-    emitRuntimePayload(
-        "submitBuildRequest",
-        IntegratedBuildRequestCodec.encodeExecution(request),
-    ) { bytes ->
-      log.debug(
-          "Integrated execute mirrored to binary payload: requestId={}, tasks={}, bytes={}",
-          request.requestId,
-          request.tasks.size,
-          bytes.size,
-      )
-    }
+    val payload = IntegratedBuildRequestCodec.encodeExecution(request)
+    log.debug(
+        "Integrated execute encoded as build-grpc payload: requestId={}, tasks={}, bytes={}",
+        request.requestId,
+        request.tasks.size,
+        payload.size,
+    )
     return delegate.execute(request)
-  }
-
-  private fun emitRuntimePayload(
-      methodName: String,
-      payload: ByteArray,
-      logPayload: (ByteArray) -> Unit,
-  ) {
-    try {
-      logPayload(payload)
-      val runtime = IntegratedBinaryRuntimeBridge.getOrCreate()
-      runtime.javaClass.getMethod(methodName, ByteArray::class.java).invoke(runtime, payload)
-    } catch (error: Throwable) {
-      log.warn(
-          "Integrated binary runtime mirror failed for '{}'. Continuing through legacy Tooling API delegate.",
-          methodName,
-          error,
-      )
-    }
   }
 
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> =
