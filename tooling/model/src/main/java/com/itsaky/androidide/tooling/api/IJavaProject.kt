@@ -20,20 +20,20 @@ package com.itsaky.androidide.tooling.api
 import com.itsaky.androidide.tooling.api.models.JavaContentRoot
 import com.itsaky.androidide.tooling.api.models.JavaModuleDependency
 import java.util.concurrent.CompletableFuture
-import com.zerostudio.tooling.buildgrpc.customapi.rpc.BinaryRpcRequest
-import com.zerostudio.tooling.buildgrpc.customapi.rpc.BinaryRpcSegment
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
+import org.eclipse.lsp4j.jsonrpc.services.JsonSegment
 
 /**
  * Model for a Java library project.
  *
  * @author Akash Yadav
  */
-@BinaryRpcSegment("java")
+@JsonSegment("java")
 interface IJavaProject : IModuleProject {
 
   /** Get the content roots for this Java project. */
-  @BinaryRpcRequest fun getContentRoots(): CompletableFuture<List<JavaContentRoot>>
+  @JsonRequest fun getContentRoots(): CompletableFuture<List<JavaContentRoot>>
 
   /** Get the dependencies of this Java project. */
-  @BinaryRpcRequest fun getDependencies(): CompletableFuture<List<JavaModuleDependency>>
+  @JsonRequest fun getDependencies(): CompletableFuture<List<JavaModuleDependency>>
 }

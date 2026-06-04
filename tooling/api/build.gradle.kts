@@ -22,16 +22,6 @@ plugins {
   // id("com.google.protobuf")
 }
 
-java {
-  toolchain {
-    languageVersion.set(JavaLanguageVersion.of(17))
-  }
-}
-
-kotlin {
-  jvmToolchain(17)
-}
-
 dependencies {
 
   // implementation("com.google.protobuf:protobuf-kotlin:4.33.2")
@@ -43,16 +33,11 @@ dependencies {
   api(projects.logging.logger)
   api(projects.tooling.events)
   api(projects.tooling.model)
-
-  api(projects.tooling.reapiProto)
-
-  api(libs.common.lsp4j.jsonrpc)
-  implementation(libs.common.org.eclipse.lsp4j)
-  implementation(libs.google.gson)
-  implementation(libs.kotlinx.coroutines.core)
   api(projects.utilities.buildInfo)
   api(projects.utilities.shared)
 
+  api(libs.google.gson)
+  api(libs.common.lsp4j.jsonrpc)
   implementation(libs.common.jkotlin)
 }
 

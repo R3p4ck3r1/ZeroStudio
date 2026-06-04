@@ -87,9 +87,22 @@ object AndroidModulePropertyCopier {
     }
   }
 
-  fun copy(flags: AndroidGradlePluginProjectFlags): DefaultAndroidGradlePluginProjectFlags {
-    val flagMap: Map<BooleanFlag, Boolean?> =
-        BooleanFlag.values().associateWith { flag -> flags.getFlagValue(flag.name) }
+  fun copy(
+      @Suppress("UNUSED_PARAMETER") flags: AndroidGradlePluginProjectFlags
+  ): DefaultAndroidGradlePluginProjectFlags {
+    val flagMap: MutableMap<BooleanFlag, Boolean?> = mutableMapOf()
+    //        log.debug("Flags:", flags)
+    //
+    //        flagMap[APPLICATION_R_CLASS_CONSTANT_IDS] =
+    //            flags.getFlagValue(APPLICATION_R_CLASS_CONSTANT_IDS.name)
+    //        flagMap[JETPACK_COMPOSE] = flags.getFlagValue(JETPACK_COMPOSE.name)
+    //        flagMap[ML_MODEL_BINDING] = flags.getFlagValue(ML_MODEL_BINDING.name)
+    //        flagMap[TEST_R_CLASS_CONSTANT_IDS] =
+    // flags.getFlagValue(TEST_R_CLASS_CONSTANT_IDS.name)
+    //        flagMap[TRANSITIVE_R_CLASS] = flags.getFlagValue(TRANSITIVE_R_CLASS.name)
+    //        flagMap[UNIFIED_TEST_PLATFORM] = flags.getFlagValue(UNIFIED_TEST_PLATFORM.name)
+    //
+    //        log.debug("Flag map:", flagMap)
     return DefaultAndroidGradlePluginProjectFlags(flagMap)
   }
 
@@ -132,8 +145,6 @@ object AndroidModulePropertyCopier {
       resourcesDirectories = provider.resourcesDirectories
       shadersDirectories = provider.shadersDirectories
       baselineProfileDirectories = provider.baselineProfileDirectories
-      keepRulesDirectories = provider.keepRulesDirectories
-      aarKeepRulesDirectories = provider.aarKeepRulesDirectories
     }
   }
 

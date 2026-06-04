@@ -21,13 +21,12 @@ import ch.qos.logback.core.CoreConstants
 import com.itsaky.androidide.shell.executeProcessAsync
 import com.itsaky.androidide.tasks.cancelIfActive
 import com.itsaky.androidide.tooling.api.IProject
+import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.IToolingApiServer
-import com.itsaky.androidide.tooling.api.transport.ToolingTransportClientObserver
 import com.itsaky.androidide.tooling.api.util.ToolingApiLauncher
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.reflection.ReflectionUtils
 import java.io.InputStream
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
@@ -68,7 +67,6 @@ internal class ToolingServerRunner(
   companion object {
 
     private val log = LoggerFactory.getLogger(ToolingServerRunner::class.java)
-    private const val STARTUP_HANDSHAKE_TIMEOUT_SECONDS = 5L
   }
 
   fun setListener(listener: OnServerStartListener?) {
@@ -132,47 +130,14 @@ internal class ToolingServerRunner(
 
               val launcher =
                   ToolingApiLauncher.newClientLauncher(
-                      LegacyToolingClientAdapter(
-                          checkNotNull(observer) {
-                            "ToolingServerRunner observer was released before launcher init"
-                          },
-                      ),
+                      observer!!.getClient(),
                       inputStream,
                       outputStream,
                   )
 
               val future = launcher.startListening()
-              val configuredTransport =
-                  System.getProperty(
-                      ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
-                      ToolingServerEndpointFactories.UNIFIED,
-                  )
-              val selection = ToolingServerEndpointFactories.resolveSelection(configuredTransport)
-              log.info(
-                  "Tooling transport configured='{}', unified={}, reason={}, reapiWorkspace='{}', reapiWorkspaceReady={}",
-                  selection.requestedValue,
-                  selection.mode.name,
-                  selection.reason,
-                  selection.reapiWorkspacePath,
-                  selection.reapiWorkspaceReady,
-              )
-              val serverEndpoint =
-                  ToolingServerEndpointFactories.fromSelection(selection)
-                      .create(launcher.remoteProxy as IToolingApiServer)
-              val metadata =
-                  serverEndpoint.metadata().get(STARTUP_HANDSHAKE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-              if (!runCatching { process.isAlive }.getOrDefault(true)) {
-                throw IllegalStateException("Tooling API process exited before startup handshake completed")
-              }
-              log.info(
-                  "Tooling API server startup handshake completed. pid={}, reportedPid={}, version={}",
-                  pid,
-                  metadata.pid,
-                  metadata.toolingApiVersion,
-              )
-
-              observer?.onServerStarted(
-                  serverEndpoint = serverEndpoint,
+              observer?.onListenerStarted(
+                  server = launcher.remoteProxy as IToolingApiServer,
                   projectProxy = launcher.remoteProxy as IProject,
                   errorStream = errorStream,
               )
@@ -232,7 +197,18 @@ internal class ToolingServerRunner(
         .getOrNull()
   }
 
-  interface Observer : ToolingTransportClientObserver
+  interface Observer {
+
+    fun onListenerStarted(
+        server: IToolingApiServer,
+        projectProxy: IProject,
+        errorStream: InputStream,
+    )
+
+    fun onServerExited(exitCode: Int)
+
+    fun getClient(): IToolingApiClient
+  }
 
   /** Callback to listen for Tooling API server start event. */
   fun interface OnServerStartListener {

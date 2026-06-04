@@ -19,42 +19,37 @@ package com.itsaky.androidide.tooling.api
 
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
 import com.itsaky.androidide.tooling.api.messages.TaskExecutionMessage
-import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult
-import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import java.util.concurrent.CompletableFuture
-import com.zerostudio.tooling.buildgrpc.customapi.rpc.BinaryRpcRequest
-import com.zerostudio.tooling.buildgrpc.customapi.rpc.BinaryRpcSegment
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
+import org.eclipse.lsp4j.jsonrpc.services.JsonSegment
 
 /**
  * A tooling api server provides services related to the Gradle Tooling API.
  *
  * @author Akash Yadav
  */
-@BinaryRpcSegment("server")
+@JsonSegment("server")
 interface IToolingApiServer {
 
   /** Returns the metadata about the tooling server. */
-  @BinaryRpcRequest fun metadata(): CompletableFuture<ToolingServerMetadata>
+  @JsonRequest fun metadata(): CompletableFuture<ToolingServerMetadata>
 
   /** Initialize the server with the project directory. */
-  @BinaryRpcRequest fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult>
+  @JsonRequest fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult>
 
   /** Is the server initialized? */
-  @BinaryRpcRequest fun isServerInitialized(): CompletableFuture<Boolean>
+  @JsonRequest fun isServerInitialized(): CompletableFuture<Boolean>
 
   /** Get the root project. */
-  @BinaryRpcRequest fun getRootProject(): CompletableFuture<IProject>
+  @JsonRequest fun getRootProject(): CompletableFuture<IProject>
 
   /** Execute the tasks specified in the message. */
-  @BinaryRpcRequest
+  @JsonRequest
   fun executeTasks(message: TaskExecutionMessage): CompletableFuture<TaskExecutionResult>
-
-  /** Execute a generic build request. */
-  @BinaryRpcRequest fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult>
 
   /**
    * Cancel the current build.
@@ -62,12 +57,12 @@ interface IToolingApiServer {
    * @return A [CompletableFuture] which completes when the current build cancellation process
    *   finishes (either successfully or with an error).
    */
-  @BinaryRpcRequest fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult>
+  @JsonRequest fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult>
 
   /**
    * Shutdown the tooling API server. This will disconnect all the project connection instances.
    *
    * @return A [CompletableFuture] which completes when the shutdown process is finished.
    */
-  @BinaryRpcRequest fun shutdown(): CompletableFuture<Void>
+  @JsonRequest fun shutdown(): CompletableFuture<Void>
 }

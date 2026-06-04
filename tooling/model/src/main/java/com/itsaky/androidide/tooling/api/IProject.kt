@@ -20,8 +20,8 @@ package com.itsaky.androidide.tooling.api
 import com.itsaky.androidide.builder.model.DefaultProjectSyncIssues
 import com.itsaky.androidide.tooling.api.models.BasicProjectMetadata
 import java.util.concurrent.CompletableFuture
-import com.zerostudio.tooling.buildgrpc.customapi.rpc.BinaryRpcRequest
-import com.zerostudio.tooling.buildgrpc.customapi.rpc.BinaryRpcSegment
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
+import org.eclipse.lsp4j.jsonrpc.services.JsonSegment
 
 /**
  * A service providing access to the whole Gradle project and its structure.
@@ -30,14 +30,14 @@ import com.zerostudio.tooling.buildgrpc.customapi.rpc.BinaryRpcSegment
  *
  * @author Akash Yadav
  */
-@BinaryRpcSegment("root")
+@JsonSegment("root")
 interface IProject : IProjectQueries {
 
   /** Get all the projects included in this root project. */
-  @BinaryRpcRequest fun getProjects(): CompletableFuture<List<BasicProjectMetadata>>
+  @JsonRequest fun getProjects(): CompletableFuture<List<BasicProjectMetadata>>
 
   /** Get the project sync issues. */
-  @BinaryRpcRequest fun getProjectSyncIssues(): CompletableFuture<DefaultProjectSyncIssues>
+  @JsonRequest fun getProjectSyncIssues(): CompletableFuture<DefaultProjectSyncIssues>
 
   companion object {
 

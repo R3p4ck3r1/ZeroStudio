@@ -28,6 +28,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.blankj.utilcode.util.ResourceUtils
 import com.blankj.utilcode.util.ZipUtils
 import com.itsaky.androidide.BuildConfig
+import com.itsaky.androidide.R.*
 import com.itsaky.androidide.app.BaseApplication
 import com.itsaky.androidide.lookup.Lookup
 import com.itsaky.androidide.managers.ToolsManager
@@ -40,20 +41,20 @@ import com.itsaky.androidide.services.ToolingServerNotStartedException
 import com.itsaky.androidide.services.builder.ToolingServerRunner.OnServerStartListener
 import com.itsaky.androidide.tasks.ifCancelledOrInterrupted
 import com.itsaky.androidide.tasks.runOnUiThread
+import com.itsaky.androidide.tooling.api.ForwardingToolingApiClient
 import com.itsaky.androidide.tooling.api.IProject
+import com.itsaky.androidide.tooling.api.IToolingApiClient
+import com.itsaky.androidide.tooling.api.IToolingApiServer
 import com.itsaky.androidide.tooling.api.LogSenderConfig.PROPERTY_LOGSENDER_ENABLED
-import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
+import com.itsaky.androidide.tooling.api.messages.LogMessageParams
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult
 import com.itsaky.androidide.tooling.api.messages.result.BuildInfo
 import com.itsaky.androidide.tooling.api.messages.result.BuildResult
 import com.itsaky.androidide.tooling.api.messages.result.GradleWrapperCheckResult
-import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
-import com.itsaky.androidide.tooling.api.transport.ToolingTransportMode
-import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoint
 import com.itsaky.androidide.tooling.events.ProgressEvent
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment
@@ -80,20 +81,24 @@ import org.slf4j.LoggerFactory
  * @author Akash Yadav
  */
 class GradleBuildService :
-    Service(), BuildService, ToolingServerRunner.Observer {
+    Service(), BuildService, IToolingApiClient, ToolingServerRunner.Observer {
 
   private var mBinder: GradleServiceBinder? = null
   private var isToolingServerStarted = false
   override var isBuildInProgress = false
     private set
 
+  /**
+   * We do not provide direct access to GradleBuildService instance to the Tooling API launcher as
+   * it may cause memory leaks. Instead, we create another client object which forwards all calls to
+   * us. So, when the service is destroyed, we release the reference to the service from this
+   * client.
+   */
+  private var _toolingApiClient: ForwardingToolingApiClient? = null
   private var toolingServerRunner: ToolingServerRunner? = null
   private var outputReaderJob: Job? = null
   private var notificationManager: NotificationManager? = null
-  private var serverEndpoint: ToolingTransportServerEndpoint? = null
-  @Volatile private var lastInitializeResult: InitializeResult? = null
-  private val integratedCapabilityPolicy = IntegratedCapabilityPolicy()
-  private val integratedRoutingPolicy = IntegratedExecutionRoutingPolicy()
+  private var server: IToolingApiServer? = null
   private var eventListener: EventListener? = null
   private var isReleaseVariant = false
 
@@ -125,8 +130,6 @@ class GradleBuildService :
 
   companion object {
 
-    private const val PROP_USE_TOOLING_EXECUTE = "androidide.use.tooling.execute"
-    private const val PROP_TOOLING_EXECUTE_JVM_ARGS = "androidide.tooling.execute.jvmArgs"
     private val log = LoggerFactory.getLogger(GradleBuildService::class.java)
     private val NOTIFICATION_ID = R.string.app_name
     private val SERVER_System_err = LoggerFactory.getLogger("ToolingApiErrorStream")
@@ -139,7 +142,7 @@ class GradleBuildService :
   }
 
   override fun isToolingServerStarted(): Boolean {
-    return isToolingServerStarted && serverEndpoint != null
+    return isToolingServerStarted && server != null
   }
 
   private fun showNotification(
@@ -155,7 +158,7 @@ class GradleBuildService :
     val buildNotificationChannel =
         NotificationChannel(
             BaseApplication.NOTIFICATION_GRADLE_BUILD_SERVICE,
-            getString(R.string.title_gradle_service_notification_channel),
+            getString(string.title_gradle_service_notification_channel),
             NotificationManager.IMPORTANCE_LOW,
         )
     NotificationManagerCompat.from(this).createNotificationChannel(buildNotificationChannel)
@@ -204,13 +207,13 @@ class GradleBuildService :
     lookup.unregister(BuildService.KEY_BUILD_SERVICE)
     lookup.unregister(BuildService.KEY_PROJECT_PROXY)
 
-    serverEndpoint?.also { endpoint ->
+    server?.also { server ->
       try {
         log.info("Shutting down Tooling API server...")
         // send the shutdown request but do not wait for the server to respond
         // the service should not block the onDestroy call in order to avoid timeouts
         // the tooling server must release resources and exit automatically
-        endpoint.shutdown().get(1, TimeUnit.SECONDS)
+        server.shutdown().get(1, TimeUnit.SECONDS)
       } catch (e: Throwable) {
         log.error("Failed to shutdown Tooling API server", e)
       }
@@ -220,6 +223,8 @@ class GradleBuildService :
     toolingServerRunner?.release()
     toolingServerRunner = null
 
+    _toolingApiClient?.client = null
+    _toolingApiClient = null
 
     log.debug("Cancelling tooling server output reader job...")
     outputReaderJob?.cancel()
@@ -236,8 +241,6 @@ class GradleBuildService :
     serviceJob.cancel()
 
     isToolingServerStarted = false
-    lastInitializeResult = null
-    integratedCapabilityPolicy.reset()
     super.onDestroy()
   }
 
@@ -329,51 +332,46 @@ class GradleBuildService :
     System.setProperty("ide.logger.init.script", initScript.absolutePath)
   }
 
-  override fun onServerStarted(
-      serverEndpoint: ToolingTransportServerEndpoint,
+  override fun onListenerStarted(
+      server: IToolingApiServer,
       projectProxy: IProject,
       errorStream: InputStream,
   ) {
     startServerOutputReader(errorStream)
-    this.serverEndpoint = serverEndpoint
-    this.lastInitializeResult = null
-    this.integratedCapabilityPolicy.reset()
+    this.server = server
     Lookup.getDefault().update(BuildService.KEY_PROJECT_PROXY, projectProxy)
     isToolingServerStarted = true
   }
 
-
   override fun onServerExited(exitCode: Int) {
     log.warn("Tooling API process terminated with exit code: {}", exitCode)
-    serverEndpoint = null
-    lastInitializeResult = null
-    integratedCapabilityPolicy.reset()
-    isBuildInProgress = false
-    isToolingServerStarted = false
-    Lookup.getDefault().unregister(BuildService.KEY_PROJECT_PROXY)
-    synchronized(pendingBuildRequests) {
-      pendingBuildRequests.forEach { it.cancel(true) }
-      pendingBuildRequests.clear()
-    }
     stopForeground(STOP_FOREGROUND_REMOVE)
   }
 
-  override fun onLogMessage(tag: String, level: Char, message: String) {
-    val logger = LoggerFactory.getLogger(tag)
-    when (level) {
-      'D' -> logger.debug(message)
-      'W' -> logger.warn(message)
-      'E' -> logger.error(message)
-      'I' -> logger.info(message)
-      else -> logger.trace(message)
+  override fun getClient(): IToolingApiClient {
+    if (_toolingApiClient == null) {
+      _toolingApiClient = ForwardingToolingApiClient(this)
+    }
+    return _toolingApiClient!!
+  }
+
+  override fun logMessage(params: LogMessageParams) {
+    val logger = LoggerFactory.getLogger(params.tag)
+    when (params.level) {
+      'D' -> logger.debug(params.message)
+      'W' -> logger.warn(params.message)
+      'E' -> logger.error(params.message)
+      'I' -> logger.info(params.message)
+
+      else -> logger.trace(params.message)
     }
   }
 
-  private fun logOutput(line: String) {
+  override fun logOutput(line: String) {
     eventListener?.onOutput(line)
   }
 
-  override fun onBuildPrepared(buildInfo: BuildInfo) {
+  override fun prepareBuild(buildInfo: BuildInfo) {
     updateNotification(getString(R.string.build_status_in_progress), true)
     eventListener?.prepareBuild(buildInfo)
   }
@@ -398,7 +396,7 @@ class GradleBuildService :
     eventListener?.onProgressEvent(event)
   }
 
-  override fun buildArguments(): CompletableFuture<List<String>> {
+  override fun getBuildArguments(): CompletableFuture<List<String>> {
     val extraArgs = ArrayList<String>()
 
     if (DevOpsPreferences.logsenderEnabled) {
@@ -442,7 +440,7 @@ class GradleBuildService :
     return CompletableFuture.completedFuture(extraArgs)
   }
 
-  fun checkGradleWrapperAvailability(): CompletableFuture<GradleWrapperCheckResult> {
+  override fun checkGradleWrapperAvailability(): CompletableFuture<GradleWrapperCheckResult> {
     return if (isGradleWrapperAvailable)
         CompletableFuture.completedFuture(GradleWrapperCheckResult(true))
     else installWrapper()
@@ -499,7 +497,7 @@ class GradleBuildService :
 
   override fun metadata(): CompletableFuture<ToolingServerMetadata> {
     checkServerStarted()
-    return requireServerEndpoint().metadata()
+    return server!!.metadata()
   }
 
   override fun initializeProject(
@@ -507,14 +505,7 @@ class GradleBuildService :
   ): CompletableFuture<InitializeResult> {
     checkServerStarted()
     Objects.requireNonNull(params)
-    return performBuildTasks(requireServerEndpoint().initialize(params)).thenApply { result ->
-      lastInitializeResult = result
-      if (result != null) {
-        integratedCapabilityPolicy.updateFromInitialize(result)
-      } else {
-        integratedCapabilityPolicy.reset()
-      }
-      logInitializeNegotiation(result)
+    return performBuildTasks(server!!.initialize(params)).thenApply { result ->
       if (result != null) {
         buildServiceScope.launch {
           try {
@@ -572,11 +563,6 @@ class GradleBuildService :
     val tasksList = tasks.toList()
     isReleaseVariant = false
 
-    if (shouldRouteThroughToolingExecute(tasksList)) {
-      val request = createToolingExecutionRequest(tasksList)
-      return execute(request).thenApply(::toTaskExecutionResult)
-    }
-
     if (isDebugBuild(tasksList)) {
       log.info("Debug build detected, injecting logger plugin")
       injectLoggerForCurrentBuild()
@@ -585,10 +571,20 @@ class GradleBuildService :
       isReleaseVariant = true
     }
 
+    /*
+    * @idea Mohammed-Baqer-Null @ https://github.com/Mohammed-baqer-null
+    * ! THIS IS A TEMPORARY FIX ! gradually transforming acs lite compiler in here properly in v..04 or 05
+
+    * - Using the local Gradle wrapper (gradlew) is significantly faster than using the Tooling API.
+    * - Employing the Tooling API for compilation on Android is a poor choice this is a resource-limited Android environment, not a desktop one.
+    * - The Tooling API consumes excessive JVM memory without delivering meaningful benefits.
+    * - The implementation below resolves OutOfMemory exceptions seamlessly.
+    */
+
     return performBuildTasks(
         CompletableFuture.supplyAsync {
           val buildInfo = BuildInfo(tasksList)
-          onBuildPrepared(buildInfo)
+          prepareBuild(buildInfo)
 
           try {
             val projectDir = ProjectManagerImpl.getInstance().projectDir
@@ -596,21 +592,59 @@ class GradleBuildService :
 
             val command = mutableListOf("sh", gradlewPath)
             command.addAll(tasks)
-            command.addAll(buildArguments().get())
+
+            val buildArgs = getBuildArguments().get()
+            command.addAll(buildArgs)
 
             log.info("Executing command: ${command.joinToString(" ")}")
 
             val processBuilder = ProcessBuilder(command)
             processBuilder.directory(projectDir)
 
+            // Get Termux environment
             val termuxEnv = TermuxShellEnvironment().getEnvironment(this@GradleBuildService, false)
+
+            // Add custom environment variables from Environment class
             val customEnv = HashMap<String, String>()
             Environment.putEnvironment(customEnv, false)
 
+            // Merge environments
             val finalEnv = processBuilder.environment()
             finalEnv.putAll(termuxEnv)
             finalEnv.putAll(customEnv)
-            augmentProcessEnvironment(finalEnv)
+
+            // Ensure PATH includes BIN_DIR for clang, python, etc.
+            val currentPath = finalEnv["PATH"] ?: ""
+            val binDirPath = Environment.BIN_DIR.absolutePath
+            val prefixBinPath = File(Environment.PREFIX, "bin").absolutePath
+
+            // Add BIN_DIR and PREFIX/bin to PATH if not already present
+            val pathEntries = mutableListOf<String>()
+            if (!currentPath.contains(binDirPath)) {
+              pathEntries.add(binDirPath)
+            }
+            if (!currentPath.contains(prefixBinPath)) {
+              pathEntries.add(prefixBinPath)
+            }
+            pathEntries.add(currentPath)
+
+            finalEnv["PATH"] = pathEntries.filter { it.isNotEmpty() }.joinToString(":")
+
+            // Add LD_LIBRARY_PATH for native libraries
+            val ldLibraryPath = finalEnv["LD_LIBRARY_PATH"] ?: ""
+            val libDirPath = Environment.LIB_DIR.absolutePath
+            finalEnv["LD_LIBRARY_PATH"] =
+                if (ldLibraryPath.isEmpty()) {
+                  libDirPath
+                } else {
+                  "$libDirPath:$ldLibraryPath"
+                }
+
+            // Set TMPDIR
+            finalEnv["TMPDIR"] = Environment.TMP_DIR.absolutePath
+
+            log.info("PATH set to: ${finalEnv["PATH"]}")
+            log.info("LD_LIBRARY_PATH set to: ${finalEnv["LD_LIBRARY_PATH"]}")
 
             val process = processBuilder.start()
             currentBuildProcess = process
@@ -659,8 +693,11 @@ class GradleBuildService :
                   TaskExecutionResult(false, TaskExecutionResult.Failure.BUILD_FAILED)
                 }
 
-            if (result.isSuccessful) onBuildSuccessful(BuildResult(tasksList))
-            else onBuildFailed(BuildResult(tasksList))
+            if (result.isSuccessful) {
+              onBuildSuccessful(BuildResult(tasksList))
+            } else {
+              onBuildFailed(BuildResult(tasksList))
+            }
 
             result
           } catch (e: Exception) {
@@ -672,65 +709,6 @@ class GradleBuildService :
           }
         }
     )
-  }
-
-  private fun shouldRouteThroughToolingExecute(tasks: List<String>): Boolean {
-    val transportValue = resolveConfiguredTransportValue()
-    val transportMode = ToolingTransportMode.fromWireValue(transportValue)
-    val decision =
-        integratedRoutingPolicy.decide(
-            IntegratedExecutionRoutingPolicy.RoutingContext(
-                executeEnabled = useToolingExecute(),
-                transportMode = transportMode,
-                initializeResult = lastInitializeResult,
-                capabilitySnapshot = integratedCapabilityPolicy.current(),
-                tasks = tasks,
-            ),
-        )
-
-    log.info(
-        "Tooling execute routing decision: useToolingExecute={}, reason={}, unifiedMode={}, capabilityReady={}, transport='{}', tasks={}",
-        decision.useToolingExecute,
-        decision.reason,
-        decision.unifiedMode,
-        decision.capabilityReady,
-        transportMode.wireValue,
-        tasks,
-    )
-
-    if (!decision.useToolingExecute) {
-      eventListener?.onOutput(
-          "Build routing fallback to shell path: reason=${decision.reason}, transport=${transportMode.wireValue}",
-      )
-    }
-
-    return decision.useToolingExecute
-  }
-
-  private fun augmentProcessEnvironment(finalEnv: MutableMap<String, String>) {
-    val currentPath = finalEnv["PATH"] ?: ""
-    val binDirPath = Environment.BIN_DIR.absolutePath
-    val prefixBinPath = File(Environment.PREFIX, "bin").absolutePath
-
-    val pathEntries = mutableListOf<String>()
-    if (!currentPath.contains(binDirPath)) {
-      pathEntries.add(binDirPath)
-    }
-    if (!currentPath.contains(prefixBinPath)) {
-      pathEntries.add(prefixBinPath)
-    }
-    pathEntries.add(currentPath)
-    finalEnv["PATH"] = pathEntries.filter { it.isNotEmpty() }.joinToString(":")
-
-    val ldLibraryPath = finalEnv["LD_LIBRARY_PATH"] ?: ""
-    val libDirPath = Environment.LIB_DIR.absolutePath
-    finalEnv["LD_LIBRARY_PATH"] =
-        if (ldLibraryPath.isEmpty()) libDirPath else "$libDirPath:$ldLibraryPath"
-
-    finalEnv["TMPDIR"] = Environment.TMP_DIR.absolutePath
-
-    log.info("PATH set to: ${finalEnv["PATH"]}")
-    log.info("LD_LIBRARY_PATH set to: ${finalEnv["LD_LIBRARY_PATH"]}")
   }
 
   /** Kills any running gradlew processes forcefully */
@@ -759,7 +737,7 @@ class GradleBuildService :
   override fun cancelCurrentBuild(): CompletableFuture<BuildCancellationRequestResult> {
     checkServerStarted()
 
-    val cancellationFuture = requireServerEndpoint().cancelCurrentBuild()
+    val cancellationFuture = server!!.cancelCurrentBuild()
 
     buildServiceScope.launch {
       try {
@@ -774,92 +752,6 @@ class GradleBuildService :
     }
 
     return cancellationFuture
-  }
-
-  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
-    checkServerStarted()
-    val sanitized =
-        integratedCapabilityPolicy.applyToExecutionRequest(
-            request = request,
-            defaultOps = resolvePreferredOperationTypes(),
-        )
-    return performBuildTasks(requireServerEndpoint().execute(sanitized))
-  }
-
-  private fun resolvePreferredOperationTypes(): Set<String> {
-    val fromInitialize = lastInitializeResult?.negotiatedOperationTypes.orEmpty()
-    if (fromInitialize.isNotEmpty()) {
-      return fromInitialize
-    }
-    return try {
-      val negotiated =
-          serverEndpoint?.metadata()?.get(2, TimeUnit.SECONDS)?.negotiatedOperationTypes.orEmpty()
-      if (negotiated.isNotEmpty()) {
-        negotiated
-      } else {
-        linkedSetOf(
-            "TASK",
-            "PROJECT_CONFIGURATION",
-        )
-      }
-    } catch (error: Throwable) {
-      log.warn("Unable to load negotiated operation types from tooling metadata", error)
-      linkedSetOf(
-          "TASK",
-          "PROJECT_CONFIGURATION",
-      )
-    }
-  }
-
-  private fun resolveToolingExecuteJvmArgs(): List<String> {
-    return System.getProperty(PROP_TOOLING_EXECUTE_JVM_ARGS, "")
-        .split(' ')
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
-  }
-
-  private fun useToolingExecute(): Boolean {
-    return System.getProperty(PROP_USE_TOOLING_EXECUTE, "false").toBoolean()
-  }
-
-  private fun toTaskExecutionResult(exec: ExecutionResult): TaskExecutionResult {
-    return if (exec.isSuccessful) {
-      TaskExecutionResult.SUCCESS
-    } else {
-      TaskExecutionResult(false, exec.failure, exec.diagnostics)
-    }
-  }
-
-  private fun createToolingExecutionRequest(tasks: List<String>): ExecutionRequest {
-    val buildArgs = buildArguments().get().filter { it.isNotBlank() }
-    val jvmArgs = resolveToolingExecuteJvmArgs()
-    return ExecutionRequest(
-        tasks = tasks,
-        arguments = buildArgs,
-        jvmArguments = jvmArgs,
-        operationTypes = resolvePreferredOperationTypes(),
-    )
-  }
-
-  private fun logInitializeNegotiation(result: InitializeResult?) {
-    if (result == null) {
-      return
-    }
-    val cap = integratedCapabilityPolicy.current()
-    log.info(
-        "Initialize negotiated capabilities: phasedAction={}, modelSnapshot={}, queryService={}, operationTypes={}",
-        cap.supportsPhasedAction,
-        cap.supportsModelSnapshot,
-        cap.supportsQueryService,
-        cap.negotiatedOperationTypes,
-    )
-
-    if (!result.supportsPhasedAction || !result.supportsModelSnapshot || !result.supportsQueryService) {
-      eventListener?.onOutput(
-          "Tooling capabilities downgraded: phasedAction=${result.supportsPhasedAction}, " +
-              "modelSnapshot=${result.supportsModelSnapshot}, queryService=${result.supportsQueryService}",
-      )
-    }
   }
 
   override fun cleanupIdleResources(trigger: String): CompletableFuture<Boolean> {
@@ -879,16 +771,14 @@ class GradleBuildService :
         currentBuildProcess = null
 
         try {
-          serverEndpoint?.shutdown()?.get(2, TimeUnit.SECONDS)
+          server?.shutdown()?.get(2, TimeUnit.SECONDS)
         } catch (e: Throwable) {
           log.warn("Tooling server shutdown during cleanup failed", e)
         }
 
         toolingServerRunner?.release()
         toolingServerRunner = null
-        serverEndpoint = null
-        lastInitializeResult = null
-        integratedCapabilityPolicy.reset()
+        server = null
         isToolingServerStarted = false
 
         Runtime.getRuntime().gc()
@@ -931,12 +821,6 @@ class GradleBuildService :
     }
   }
 
-  @Throws(ToolingServerNotStartedException::class)
-  private fun requireServerEndpoint(): ToolingTransportServerEndpoint {
-    checkServerStarted()
-    return checkNotNull(serverEndpoint) { "Tooling transport endpoint is not available" }
-  }
-
   private fun ensureTmpdir() {
     Environment.mkdirIfNotExits(Environment.TMP_DIR)
   }
@@ -952,12 +836,6 @@ class GradleBuildService :
     }
 
     if (toolingServerRunner?.isRunningOrStarting != true) {
-      val transportValue = resolveConfiguredTransportValue()
-      System.setProperty(ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY, transportValue)
-      log.info(
-          "Starting tooling server with transport switch='{}'",
-          transportValue,
-      )
       val envs = TermuxShellEnvironment().getEnvironment(this, false)
       toolingServerRunner = ToolingServerRunner(listener, this).also { it.startAsync(envs) }
       return
@@ -977,22 +855,6 @@ class GradleBuildService :
     }
     this.eventListener = wrap(eventListener)
     return this
-  }
-
-  private fun resolveConfiguredTransportValue(): String {
-    val raw =
-        System.getProperty(
-            ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
-            ToolingTransportMode.UNIFIED_BUILD_GRPC.wireValue,
-        )
-    val selection = ToolingServerEndpointFactories.resolveSelection(raw)
-    log.info(
-        "Tooling transport switch '{}' resolved to mandatory unified '{}': {}",
-        raw,
-        selection.mode.wireValue,
-        selection.reason,
-    )
-    return selection.mode.wireValue
   }
 
   private fun wrap(listener: EventListener?): EventListener? {

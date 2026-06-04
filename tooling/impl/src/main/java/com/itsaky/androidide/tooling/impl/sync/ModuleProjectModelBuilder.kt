@@ -29,13 +29,7 @@ class ModuleProjectModelBuilder(initializationParams: InitializeProjectParams) :
     AbstractModelBuilder<ModuleProjectModelBuilderParams, IModuleProject>(initializationParams) {
 
   override fun build(param: ModuleProjectModelBuilderParams): IModuleProject {
-    val versions =
-        if (isGradleDslProject(param.module.gradleProject.projectDirectory) &&
-            hasAndroidGradlePlugin(param.module.gradleProject.projectDirectory)) {
-          getAndroidVersions(param.module, param.controller)
-        } else {
-          null
-        }
+    val versions = getAndroidVersions(param.module, param.controller)
     return if (versions != null) {
       checkAgpVersion(versions, param.syncIssueReporter)
       AndroidProjectModelBuilder(initializationParams)

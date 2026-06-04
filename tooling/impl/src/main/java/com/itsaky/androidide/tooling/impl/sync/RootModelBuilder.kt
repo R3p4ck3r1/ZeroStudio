@@ -59,13 +59,7 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
           ideaModules.find { it.gradleProject.parent == null }
               ?: throw ModelBuilderException("Unable to find root project")
 
-      val rootProjectVersions =
-          if (isGradleDslProject(rootModule.gradleProject.projectDirectory) &&
-              hasAndroidGradlePlugin(rootModule.gradleProject.projectDirectory)) {
-            getAndroidVersions(rootModule, controller)
-          } else {
-            null
-          }
+      val rootProjectVersions = getAndroidVersions(rootModule, controller)
 
       val syncIssues = hashSetOf<DefaultSyncIssue>()
       val syncIssueReporter = ISyncIssueReporter {
@@ -92,8 +86,7 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
                     )
                 )
           } else {
-            GradleProjectModelBuilder(initializationParams)
-                .build(GradleProjectModelBuilderParams(controller, rootModule.gradleProject))
+            GradleProjectModelBuilder(initializationParams).build(rootModule.gradleProject)
           }
 
       val projects = ideaModules.map { ideaModule ->
@@ -118,7 +111,6 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
     }
 
     finalizeLauncher(executor)
-    applyInjectedProperties(executor)
     applyAndroidModelBuilderProps(executor)
 
     if (cancellationToken != null) {
@@ -143,12 +135,5 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
 
   private fun ConfigurableLauncher<*>.addProperty(property: String, value: Any) {
     addArguments(String.format("-P%s=%s", property, value))
-  }
-
-  private fun applyInjectedProperties(launcher: ConfigurableLauncher<*>) {
-    val args = initializationParams.androidParams.injectedProperties.toGradleArguments()
-    if (args.isNotEmpty()) {
-      launcher.addArguments(*args.toTypedArray())
-    }
   }
 }

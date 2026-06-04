@@ -24,16 +24,12 @@ package com.itsaky.androidide.tooling.api.messages.result
  * @param failure The type of failure. Non-null only if [isSuccessful] is `false`.
  * @author Akash Yadav
  */
-data class TaskExecutionResult(
-    val isSuccessful: Boolean,
-    val failure: Failure?,
-    val diagnostics: String? = null,
-) {
+data class TaskExecutionResult(val isSuccessful: Boolean, val failure: Failure?) {
 
   companion object {
 
     /** Result for a successful build. */
-    @JvmStatic val SUCCESS = TaskExecutionResult(true, null, null)
+    @JvmStatic val SUCCESS = TaskExecutionResult(true, null)
   }
 
   enum class Failure {

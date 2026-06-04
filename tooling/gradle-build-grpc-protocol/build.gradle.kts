@@ -15,35 +15,28 @@ kotlin {
   jvmToolchain(17)
 }
 
-val reapiProtoRoot = layout.projectDirectory.dir("../reapi")
-
 sourceSets {
   main {
     proto {
-      srcDir(reapiProtoRoot)
-      include("build/bazel/**/*.proto")
+      srcDir("src/main/proto")
     }
   }
 }
 
-tasks.jar {
-  // Keep the REAPI proto descriptors available to downstream protobuf tasks as
-  // import-only protos. This lets modules generate only their own APIs while
-  // resolving imports from this compiled project dependency.
-  from(reapiProtoRoot) {
-    include("build/bazel/**/*.proto")
-  }
-  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
 dependencies {
+  api(projects.tooling.api)
+  api(projects.tooling.reapiProto)
+
   api(libs.google.protobuf.java)
   api(libs.google.protobuf.kotlin)
   api(libs.grpc.protobuf)
   api(libs.grpc.stub)
   api(libs.grpc.kotlin.stub)
-  compileOnly(libs.kotlinx.coroutines.core)
+
   implementation(libs.grpc.netty.shaded)
+  implementation(libs.kotlinx.coroutines.core)
+
+  protobuf("com.google.api.grpc:proto-google-common-protos:2.62.0")
 
   compileOnly("javax.annotation:javax.annotation-api:1.3.2")
 }
@@ -72,4 +65,8 @@ protobuf {
       }
     }
   }
+}
+
+tasks.processResources {
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

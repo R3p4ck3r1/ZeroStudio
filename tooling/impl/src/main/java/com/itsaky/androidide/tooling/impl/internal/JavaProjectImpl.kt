@@ -46,23 +46,18 @@ internal class JavaProjectImpl(
   override fun getContentRoots(): CompletableFuture<List<JavaContentRoot>> {
     return CompletableFuture.supplyAsync {
       val list = ArrayList<JavaContentRoot>()
-      for (contentRoot in ideaModule.contentRoots.filterNotNull()) {
+      for (contentRoot in ideaModule.contentRoots) {
         val thisRoot = JavaContentRoot()
-        val sourceDirectories = mutableListOf<JavaSourceDirectory>()
-        contentRoot.sourceDirectories
-            .filterNotNull()
-            .forEach { sourceDir ->
-              sourceDirectories.add(JavaSourceDirectory(sourceDir.directory, sourceDir.isGenerated))
-            }
-        thisRoot.sourceDirectories = sourceDirectories
-
-        val testDirectories = mutableListOf<JavaSourceDirectory>()
-        contentRoot.testDirectories
-            .filterNotNull()
-            .forEach { testDir ->
-              testDirectories.add(JavaSourceDirectory(testDir.directory, testDir.isGenerated))
-            }
-        thisRoot.testDirectories = testDirectories
+        for (sourceDir in contentRoot!!.sourceDirectories) {
+          (thisRoot.sourceDirectories as MutableList).add(
+              JavaSourceDirectory(sourceDir!!.directory, sourceDir.isGenerated)
+          )
+        }
+        for (testDir in contentRoot.testDirectories) {
+          (thisRoot.testDirectories as MutableList).add(
+              JavaSourceDirectory(testDir!!.directory, testDir.isGenerated)
+          )
+        }
         list.add(thisRoot)
       }
 

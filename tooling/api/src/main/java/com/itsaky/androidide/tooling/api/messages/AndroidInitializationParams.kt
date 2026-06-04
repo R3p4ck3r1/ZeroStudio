@@ -25,14 +25,11 @@ import java.io.Serializable
  * @property variantSelections The map of module paths to the name of the variants which should be
  *   fetched/initialized.
  */
-data class AndroidInitializationParams(
-    val variantSelections: Map<String, String>,
-    val injectedProperties: AndroidInjectedProperties = AndroidInjectedProperties(),
-) : Serializable {
+data class AndroidInitializationParams(val variantSelections: Map<String, String>) : Serializable {
 
   companion object {
 
     /** Default initialization params. This initializes the Android modules with default values. */
-    @JvmStatic val DEFAULT = AndroidInitializationParams(emptyMap(), AndroidInjectedProperties())
+    @JvmStatic val DEFAULT = AndroidInitializationParams(emptyMap())
   }
 }
