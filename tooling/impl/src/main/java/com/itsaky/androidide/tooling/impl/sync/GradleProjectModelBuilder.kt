@@ -19,7 +19,9 @@ package com.itsaky.androidide.tooling.impl.sync
 import com.itsaky.androidide.tooling.api.IGradleProject
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
 import com.itsaky.androidide.tooling.impl.internal.GradleProjectImpl
+import org.gradle.tooling.model.build.BuildEnvironment
 import org.gradle.tooling.model.GradleProject
+import org.gradle.tooling.model.gradle.GradleBuild
 
 /**
  * Builds model for root Gradle project (represented with [IGradleProject].
@@ -32,5 +34,13 @@ class GradleProjectModelBuilder(initializationParams: InitializeProjectParams) :
   @Throws(ModelBuilderException::class)
   override fun build(param: GradleProject): IGradleProject {
     return GradleProjectImpl(param)
+  }
+
+  fun build(
+      param: GradleProject,
+      buildEnvironment: BuildEnvironment?,
+      gradleBuild: GradleBuild?,
+  ): IGradleProject {
+    return GradleProjectImpl.from(param, buildEnvironment, gradleBuild)
   }
 }

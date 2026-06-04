@@ -24,6 +24,8 @@ import com.itsaky.androidide.tooling.api.IGradleProject
 import com.itsaky.androidide.tooling.api.IJavaProject
 import com.itsaky.androidide.tooling.api.models.AndroidVariantMetadata
 import com.itsaky.androidide.tooling.api.models.BasicAndroidVariantMetadata
+import com.itsaky.androidide.tooling.api.models.GradleBuildEnvironment
+import com.itsaky.androidide.tooling.api.models.GradleBuildMetadata
 import com.itsaky.androidide.tooling.api.models.GradleTask
 import com.itsaky.androidide.tooling.api.models.JavaContentRoot
 import com.itsaky.androidide.tooling.api.models.JavaModuleDependency
@@ -100,6 +102,16 @@ internal class ForwardingProject(var project: IGradleProject? = null) :
 
   override fun getTasks(): CompletableFuture<List<GradleTask>> {
     return this.project?.getTasks()
+        ?: CompletableFuture.failedFuture(UnsupportedOperationException())
+  }
+
+  override fun getBuildEnvironment(): CompletableFuture<GradleBuildEnvironment?> {
+    return this.project?.getBuildEnvironment()
+        ?: CompletableFuture.failedFuture(UnsupportedOperationException())
+  }
+
+  override fun getGradleBuild(): CompletableFuture<GradleBuildMetadata?> {
+    return this.project?.getGradleBuild()
         ?: CompletableFuture.failedFuture(UnsupportedOperationException())
   }
 }
