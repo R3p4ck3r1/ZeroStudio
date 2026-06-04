@@ -145,15 +145,14 @@ internal class ToolingServerRunner(
               val configuredTransport =
                   System.getProperty(
                       ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
-                      ToolingServerEndpointFactories.LEGACY,
+                      ToolingServerEndpointFactories.UNIFIED,
                   )
               val selection = ToolingServerEndpointFactories.resolveSelection(configuredTransport)
               log.info(
-                  "Tooling transport configured='{}', parsed={}, effective={}, fallbackReason={}, reapiWorkspace='{}', reapiWorkspaceReady={}",
+                  "Tooling transport configured='{}', unified={}, reason={}, reapiWorkspace='{}', reapiWorkspaceReady={}",
                   selection.requestedValue,
-                  selection.requestedMode?.name ?: "UNKNOWN",
-                  selection.resolvedMode.name,
-                  selection.reason ?: "NONE",
+                  selection.mode.name,
+                  selection.reason,
                   selection.reapiWorkspacePath,
                   selection.reapiWorkspaceReady,
               )

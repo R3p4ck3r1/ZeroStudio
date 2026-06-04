@@ -6,13 +6,7 @@ import com.itsaky.androidide.tooling.api.transport.ToolingTransportServerEndpoin
 import java.io.File
 import org.slf4j.LoggerFactory
 
-/**
- * Factory contract for creating a concrete tooling transport endpoint.
- *
- * Transport stack selection is controlled by `androidide.tooling.transport`:
- * - `legacy` (default): JSON-RPC/LSP4J based server proxy.
- * - `integrated`: AIDL + gRPC(UDS) + REAPI integrated stack (reserved, not implemented yet).
- */
+/** Factory contract for creating the unified build-grpc tooling endpoint. */
 fun interface ToolingServerEndpointFactory {
   fun create(server: IToolingApiServer): ToolingTransportServerEndpoint
 }
@@ -21,83 +15,44 @@ object ToolingServerEndpointFactories {
   private val log = LoggerFactory.getLogger(ToolingServerEndpointFactories::class.java)
 
   const val TRANSPORT_SWITCH_PROPERTY: String = "androidide.tooling.transport"
-  const val LEGACY: String = "legacy"
+  const val UNIFIED: String = "build-grpc"
   const val REAPI_WORKSPACE_PATH: String = "tooling/reapi"
 
   @JvmStatic
-  fun fromSystemProperty(): ToolingServerEndpointFactory {
-    val configured = System.getProperty(TRANSPORT_SWITCH_PROPERTY, LEGACY)
-    return fromSelection(resolveSelection(configured))
-  }
+  fun fromSystemProperty(): ToolingServerEndpointFactory =
+      fromSelection(resolveSelection(System.getProperty(TRANSPORT_SWITCH_PROPERTY, UNIFIED)))
 
   @JvmStatic
-  fun fromTransportValue(value: String?): ToolingServerEndpointFactory {
-    return fromSelection(resolveSelection(value))
-  }
+  fun fromTransportValue(value: String?): ToolingServerEndpointFactory =
+      fromSelection(resolveSelection(value))
 
   @JvmStatic
   fun resolveSelection(value: String?): TransportSelectionResult {
-    val configured = value.orEmpty().ifBlank { LEGACY }.trim().lowercase()
-    val requestedMode = ToolingTransportMode.fromWireValue(configured)
+    val requested = value.orEmpty().ifBlank { UNIFIED }.trim().lowercase()
     val workspaceReady = isReapiWorkspaceReady()
-    return when (requestedMode) {
-      ToolingTransportMode.LEGACY_JSONRPC ->
-          TransportSelectionResult.legacy(
-              requestedValue = configured,
-              requestedMode = requestedMode,
-              reapiWorkspacePath = REAPI_WORKSPACE_PATH,
-              reapiWorkspaceReady = workspaceReady,
-          )
-      ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI ->
-          TransportSelectionResult.integrated(
-              requestedValue = configured,
-              reapiWorkspacePath = REAPI_WORKSPACE_PATH,
-              reapiWorkspaceReady = workspaceReady,
-              reason =
-                  if (workspaceReady) {
-                    "Integrated transport stack '$configured' is in binary gateway mode"
-                  } else {
-                    "REAPI workspace missing at '$REAPI_WORKSPACE_PATH'; starting integrated binary gateway with REAPI disabled"
-                  },
-          )
-      null ->
-          TransportSelectionResult.legacy(
-              requestedValue = configured,
-              requestedMode = null,
-              reapiWorkspacePath = REAPI_WORKSPACE_PATH,
-              reapiWorkspaceReady = workspaceReady,
-              reason = "Unknown transport value '$configured'",
-          )
-    }
+    return TransportSelectionResult(
+        requestedValue = requested,
+        mode = ToolingTransportMode.UNIFIED_BUILD_GRPC,
+        reapiWorkspacePath = REAPI_WORKSPACE_PATH,
+        reapiWorkspaceReady = workspaceReady,
+        reason =
+            if (requested == UNIFIED) {
+              "Using unified build-grpc binary protocol; REAPI workspace ready=$workspaceReady."
+            } else {
+              "Transport value '$requested' is an alias; unified build-grpc binary protocol is mandatory. REAPI workspace ready=$workspaceReady."
+            },
+    )
   }
 
   @JvmStatic
   fun fromSelection(selection: TransportSelectionResult): ToolingServerEndpointFactory {
-    when (selection.requestedMode) {
-      ToolingTransportMode.LEGACY_JSONRPC -> Unit
-      ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI -> {
-        if (!selection.reapiWorkspaceReady) {
-          log.info(
-              "Integrated transport requested without REAPI workspace at '{}'; REAPI stays disabled.",
-              selection.reapiWorkspacePath,
-          )
-        }
-        log.info(
-            "Integrated transport stack '{}' is routed through binary gateway endpoint.",
-            selection.requestedValue,
-        )
-        return ToolingServerEndpointFactory(::IntegratedToolingServerEndpointGateway)
-      }
-      null -> {
-        log.warn(
-            "Unknown transport switch '{}' from -D{}. Falling back to '{}'.",
-            selection.requestedValue,
-            TRANSPORT_SWITCH_PROPERTY,
-            LEGACY,
-        )
-      }
-    }
-    return ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
+    log.info(
+        "Tooling transport '{}' resolved to mandatory unified '{}': {}",
+        selection.requestedValue,
+        selection.mode.wireValue,
+        selection.reason,
+    )
+    return ToolingServerEndpointFactory(::IntegratedToolingServerEndpointGateway)
   }
 
   private fun isReapiWorkspaceReady(): Boolean {

@@ -676,7 +676,7 @@ class GradleBuildService :
 
   private fun shouldRouteThroughToolingExecute(tasks: List<String>): Boolean {
     val transportValue = resolveConfiguredTransportValue()
-    val transportMode = ToolingTransportMode.fromWireValue(transportValue) ?: ToolingTransportMode.LEGACY_JSONRPC
+    val transportMode = ToolingTransportMode.fromWireValue(transportValue)
     val decision =
         integratedRoutingPolicy.decide(
             IntegratedExecutionRoutingPolicy.RoutingContext(
@@ -689,10 +689,10 @@ class GradleBuildService :
         )
 
     log.info(
-        "Tooling execute routing decision: useToolingExecute={}, reason={}, integratedMode={}, capabilityReady={}, transport='{}', tasks={}",
+        "Tooling execute routing decision: useToolingExecute={}, reason={}, unifiedMode={}, capabilityReady={}, transport='{}', tasks={}",
         decision.useToolingExecute,
         decision.reason,
-        decision.integratedMode,
+        decision.unifiedMode,
         decision.capabilityReady,
         transportMode.wireValue,
         tasks,
@@ -983,29 +983,16 @@ class GradleBuildService :
     val raw =
         System.getProperty(
             ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
-            ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI.wireValue,
+            ToolingTransportMode.UNIFIED_BUILD_GRPC.wireValue,
         )
     val selection = ToolingServerEndpointFactories.resolveSelection(raw)
-    if (selection.reason != null) {
-      val isFallback =
-          selection.requestedMode == null || selection.requestedMode != selection.resolvedMode
-      if (isFallback) {
-        log.warn(
-            "Tooling transport switch '{}' resolved to '{}': {}",
-            raw,
-            selection.resolvedMode.wireValue,
-            selection.reason,
-        )
-      } else {
-        log.info(
-            "Tooling transport switch '{}' resolved to '{}': {}",
-            raw,
-            selection.resolvedMode.wireValue,
-            selection.reason,
-        )
-      }
-    }
-    return selection.resolvedMode.wireValue
+    log.info(
+        "Tooling transport switch '{}' resolved to mandatory unified '{}': {}",
+        raw,
+        selection.mode.wireValue,
+        selection.reason,
+    )
+    return selection.mode.wireValue
   }
 
   private fun wrap(listener: EventListener?): EventListener? {

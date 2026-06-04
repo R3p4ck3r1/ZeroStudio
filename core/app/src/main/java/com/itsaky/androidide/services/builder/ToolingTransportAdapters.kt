@@ -72,7 +72,7 @@ internal class LegacyToolingClientAdapter(private val observer: ToolingTransport
       CompletableFuture.completedFuture(GradleWrapperCheckResult(true))
 }
 
-/** App-dex-safe adapter that exposes the launched JSON-RPC server through the transport SPI. */
+/** App-dex-safe adapter retained only for tests that wrap a launched Tooling API server. */
 private class LegacyToolingServerEndpoint(private val delegate: IToolingApiServer) :
     ToolingTransportServerEndpoint {
 
@@ -99,118 +99,50 @@ internal fun interface ToolingServerEndpointFactory {
 
 internal data class TransportSelectionResult(
     val requestedValue: String,
-    val requestedMode: ToolingTransportMode?,
-    val resolvedMode: ToolingTransportMode,
+    val mode: ToolingTransportMode,
     val reapiWorkspacePath: String,
     val reapiWorkspaceReady: Boolean,
-    val reason: String? = null,
-) {
-  companion object {
-    fun legacy(
-        requestedValue: String,
-        requestedMode: ToolingTransportMode?,
-        reapiWorkspacePath: String,
-        reapiWorkspaceReady: Boolean,
-        reason: String? = null,
-    ): TransportSelectionResult {
-      return TransportSelectionResult(
-          requestedValue = requestedValue,
-          requestedMode = requestedMode,
-          resolvedMode = ToolingTransportMode.LEGACY_JSONRPC,
-          reapiWorkspacePath = reapiWorkspacePath,
-          reapiWorkspaceReady = reapiWorkspaceReady,
-          reason = reason,
-      )
-    }
-
-    fun integrated(
-        requestedValue: String,
-        reapiWorkspacePath: String,
-        reapiWorkspaceReady: Boolean,
-        reason: String? = null,
-    ): TransportSelectionResult {
-      return TransportSelectionResult(
-          requestedValue = requestedValue,
-          requestedMode = ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI,
-          resolvedMode = ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI,
-          reapiWorkspacePath = reapiWorkspacePath,
-          reapiWorkspaceReady = reapiWorkspaceReady,
-          reason = reason,
-      )
-    }
-  }
-}
+    val reason: String,
+)
 
 /**
- * App-side transport selector.
+ * App-side unified transport selector.
  *
- * The full tooling implementation is delivered as the external tooling jar, not as classes on the
- * app dex path. This selector must therefore only create endpoints whose classes live in the app APK.
+ * There is no longer a legacy/integrated mode split. Any configured value is treated as an alias
+ * and all requests use the app-process build-grpc binary endpoint.
  */
 internal object ToolingServerEndpointFactories {
   private val log = LoggerFactory.getLogger(ToolingServerEndpointFactories::class.java)
 
   const val TRANSPORT_SWITCH_PROPERTY: String = "androidide.tooling.transport"
-  const val LEGACY: String = "legacy"
+  const val UNIFIED: String = "build-grpc"
   const val REAPI_WORKSPACE_PATH: String = "tooling/reapi"
 
   fun resolveSelection(value: String?): TransportSelectionResult {
-    val configured = value.orEmpty().ifBlank { LEGACY }.trim().lowercase()
-    val requestedMode = ToolingTransportMode.fromWireValue(configured)
+    val requested = value.orEmpty().ifBlank { UNIFIED }.trim().lowercase()
     val workspaceReady = isReapiWorkspaceReady()
-    return when (requestedMode) {
-      ToolingTransportMode.LEGACY_JSONRPC ->
-          TransportSelectionResult.legacy(
-              requestedValue = configured,
-              requestedMode = requestedMode,
-              reapiWorkspacePath = REAPI_WORKSPACE_PATH,
-              reapiWorkspaceReady = workspaceReady,
-          )
-      ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI ->
-          TransportSelectionResult.integrated(
-              requestedValue = configured,
-              reapiWorkspacePath = REAPI_WORKSPACE_PATH,
-              reapiWorkspaceReady = workspaceReady,
-              reason =
-                  "Using app-process build-grpc binary endpoint; REAPI workspace ready=$workspaceReady.",
-          )
-      null ->
-          TransportSelectionResult.legacy(
-              requestedValue = configured,
-              requestedMode = null,
-              reapiWorkspacePath = REAPI_WORKSPACE_PATH,
-              reapiWorkspaceReady = workspaceReady,
-              reason = "Unknown transport value '$configured'",
-          )
-    }
+    return TransportSelectionResult(
+        requestedValue = requested,
+        mode = ToolingTransportMode.UNIFIED_BUILD_GRPC,
+        reapiWorkspacePath = REAPI_WORKSPACE_PATH,
+        reapiWorkspaceReady = workspaceReady,
+        reason =
+            if (requested == UNIFIED) {
+              "Using app-process unified build-grpc binary endpoint; REAPI workspace ready=$workspaceReady."
+            } else {
+              "Transport value '$requested' is an alias; app-process unified build-grpc binary endpoint is mandatory. REAPI workspace ready=$workspaceReady."
+            },
+    )
   }
 
   fun fromSelection(selection: TransportSelectionResult): ToolingServerEndpointFactory {
-    if (selection.reason != null) {
-      val isFallback =
-          selection.requestedMode == null || selection.requestedMode != selection.resolvedMode
-      val message = "Tooling transport configured='{}' resolved to '{}' because {}"
-      if (isFallback) {
-        log.warn(
-            message,
-            selection.requestedValue,
-            selection.resolvedMode.wireValue,
-            selection.reason,
-        )
-      } else {
-        log.info(
-            message,
-            selection.requestedValue,
-            selection.resolvedMode.wireValue,
-            selection.reason,
-        )
-      }
-    }
-    return when (selection.resolvedMode) {
-      ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI ->
-          ToolingServerEndpointFactory { _ -> IntegratedBinaryToolingServerEndpoint() }
-      ToolingTransportMode.LEGACY_JSONRPC -> ToolingServerEndpointFactory(::LegacyToolingServerEndpoint)
-    }
+    log.info(
+        "Tooling transport '{}' resolved to mandatory unified '{}': {}",
+        selection.requestedValue,
+        selection.mode.wireValue,
+        selection.reason,
+    )
+    return ToolingServerEndpointFactory { _ -> IntegratedBinaryToolingServerEndpoint() }
   }
 
   private fun isReapiWorkspaceReady(): Boolean {
@@ -218,4 +150,3 @@ internal object ToolingServerEndpointFactories {
     return root.exists() && File(root, ".git").exists()
   }
 }
-
