@@ -48,6 +48,7 @@ import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.Fai
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.impl.internal.ProjectImpl
 import com.itsaky.androidide.tooling.impl.net.SimpleHttpProxy
+import com.itsaky.androidide.tooling.impl.progress.ForwardingProgressListener
 import com.itsaky.androidide.tooling.impl.sync.ModelBuilderException
 import com.itsaky.androidide.tooling.impl.sync.RootModelBuilder
 import com.itsaky.androidide.tooling.impl.sync.RootProjectModelBuilderParams
