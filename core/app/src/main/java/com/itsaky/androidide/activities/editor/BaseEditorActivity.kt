@@ -262,6 +262,7 @@ abstract class BaseEditorActivity :
     _binding?.contentCard?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
       this.bottomMargin = bottomInset
     }
+    _binding?.content?.bottomSheet?.applyEditorWindowInsets(insets)
 
     if (this.isImeVisible != isImeVisibleNow) {
       this.isImeVisible = isImeVisibleNow

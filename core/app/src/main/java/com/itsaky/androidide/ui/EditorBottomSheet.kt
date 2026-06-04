@@ -34,6 +34,7 @@ import androidx.annotation.GravityInt
 import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -64,6 +65,7 @@ import java.nio.file.StandardOpenOption.CREATE_NEW
 import java.nio.file.StandardOpenOption.WRITE
 import java.util.concurrent.Callable
 import kotlin.math.max
+import kotlin.math.min
 import org.slf4j.LoggerFactory
 
 /**
@@ -130,6 +132,10 @@ class EditorBottomSheet @JvmOverloads constructor(
 
     initialize(context)
     setupDynamicPeekHeightAndIME()
+    post {
+      ViewCompat.requestApplyInsets(this)
+      updatePeekHeight()
+    }
   }
 
   private fun initialize(context: FragmentActivity) {
@@ -232,31 +238,64 @@ class EditorBottomSheet @JvmOverloads constructor(
         }
     }
 
-    // 将 WindowInsets 拦截用于 IME 同步
-    ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
-        val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-        val navInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-        val isImeVisibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
-
-        val targetBottomPadding = if (isImeVisibleNow) imeInsets.bottom else navInsets.bottom
-
-        if (currentBottomInset != targetBottomPadding) {
-            currentBottomInset = targetBottomPadding
-            view.updatePadding(bottom = targetBottomPadding)
-
-            // 因为 BottomSheet 自己被垫高了，PeekHeight 需要加上这部分垫高数值，确保 Header 留在视图上方
-            updatePeekHeight()
-        }
-
-        // 让该行为不被系统默认的 IME 手势拦截机制破坏
-        behavior.isGestureInsetBottomIgnored = true
-        insets
+    // 将 WindowInsets 拦截用于 IME 同步；BaseEditorActivity 也会直接转发一次，
+    // 以覆盖 CoordinatorLayout/BottomSheetBehavior 未把 IME insets 分发到子 View 的设备。
+    ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+      applyEditorWindowInsets(insets)
+      insets
     }
+    behavior.isGestureInsetBottomIgnored = true
+  }
+
+  fun applyEditorWindowInsets(insets: WindowInsetsCompat) {
+    val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+    val navInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+    val isImeVisibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
+    val targetBottomInset = if (isImeVisibleNow) imeInsets.bottom else navInsets.bottom
+    updateBottomInset(targetBottomInset)
+  }
+
+  private fun updateBottomInset(targetBottomInset: Int) {
+    if (currentBottomInset == targetBottomInset) {
+      return
+    }
+
+    currentBottomInset = targetBottomInset
+    updatePadding(bottom = 0)
+    binding.spaceBottom.updateLayoutParams<ViewGroup.LayoutParams> {
+      height = currentBottomInset
+    }
+
+    // BottomSheet top is derived from peekHeight in collapsed mode, so include the IME inset to
+    // keep floating_header_area/AdvancedSymbolInputView attached to the keyboard top. The drawer
+    // content uses spaceBottom so fragments such as ChatAI keep their bottom input above IME too.
+    updatePeekHeight()
+  }
+
+  override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+    val parentHeight = (parent as? View)?.height ?: 0
+    val displayHeight = resources.displayMetrics.heightPixels
+    val maxHeight = when {
+      parentHeight > 0 -> parentHeight
+      displayHeight > 0 -> displayHeight
+      else -> MeasureSpec.getSize(heightMeasureSpec)
+    }
+    val heightMode = MeasureSpec.getMode(heightMeasureSpec)
+    val heightSize = MeasureSpec.getSize(heightMeasureSpec)
+    val cappedHeightSpec =
+        if (maxHeight > 0 && (heightMode == MeasureSpec.UNSPECIFIED || heightSize > maxHeight)) {
+          MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.AT_MOST)
+        } else {
+          heightMeasureSpec
+        }
+    super.onMeasure(widthMeasureSpec, cappedHeightSpec)
   }
 
   private fun updatePeekHeight() {
       // 只有在 Header 显示时（未被 3D 隐藏），PeekHeight 才包含它
-      behavior.peekHeight = binding.floatingHeaderArea.height + currentBottomInset
+      val headerHeight = binding.floatingHeaderArea.height
+      val parentHeight = (parent as? View)?.height ?: resources.displayMetrics.heightPixels
+      behavior.peekHeight = min(max(headerHeight, 0) + currentBottomInset, parentHeight)
   }
 
   private fun setupPageSwitchGestureBubble() {
