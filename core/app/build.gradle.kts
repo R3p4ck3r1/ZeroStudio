@@ -229,7 +229,7 @@ dependencies {
   implementation(projects.xml.lsp)
   implementation(projects.xml.utils)
   implementation(projects.tooling.api)
-  implementation(projects.tooling.buildGrpc)
+ 
   implementation(projects.tooling.pluginConfig)
   implementation(projects.utilities.buildInfo)
   implementation(projects.utilities.lookup)

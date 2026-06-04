@@ -191,6 +191,7 @@ include(
     ":testing:gradleToolingTest",
     ":testing:lspTest",
     ":testing:unitTest",
+    
     ":tooling:api",
     ":tooling:build-grpc",
     ":tooling:builder-model-impl",
@@ -199,8 +200,7 @@ include(
     ":tooling:model",
     ":tooling:plugin",
     ":tooling:plugin-config",
-    ":tooling:reapi-proto",
-    ":tooling:build-grpc",
+
     ":utilities:build-info",
     ":utilities:flashbar",
     ":utilities:framework-stubs",
