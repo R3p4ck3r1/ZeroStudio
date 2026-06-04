@@ -20,7 +20,7 @@ internal class IntegratedExecutionRoutingPolicy {
   data class RoutingDecision(
       val useToolingExecute: Boolean,
       val reason: String,
-      val integratedMode: Boolean,
+      val unifiedMode: Boolean,
       val capabilityReady: Boolean,
   )
 
@@ -29,33 +29,33 @@ internal class IntegratedExecutionRoutingPolicy {
       return RoutingDecision(
           useToolingExecute = false,
           reason = "tooling_execute_disabled",
-          integratedMode = false,
+          unifiedMode = false,
           capabilityReady = false,
       )
     }
 
-    val integratedMode = context.transportMode == ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI
+    val unifiedMode = context.transportMode == ToolingTransportMode.UNIFIED_BUILD_GRPC
     val init = context.initializeResult
     val hasNegotiatedOps =
         (init?.negotiatedOperationTypes?.isNotEmpty() == true) ||
             context.capabilitySnapshot.negotiatedOperationTypes.isNotEmpty()
 
-    // Integrated mode requires initialize negotiation to be available first, preventing blind
+    // Unified build-grpc transport requires initialize negotiation to be available first, preventing blind
     // request dispatch before capability convergence.
-    if (integratedMode && init == null) {
+    if (unifiedMode && init == null) {
       return RoutingDecision(
           useToolingExecute = false,
-          reason = "integrated_waiting_initialize_negotiation",
-          integratedMode = true,
+          reason = "unified_waiting_initialize_negotiation",
+          unifiedMode = true,
           capabilityReady = false,
       )
     }
 
-    if (integratedMode && !hasNegotiatedOps) {
+    if (unifiedMode && !hasNegotiatedOps) {
       return RoutingDecision(
           useToolingExecute = false,
-          reason = "integrated_missing_negotiated_operation_types",
-          integratedMode = true,
+          reason = "unified_missing_negotiated_operation_types",
+          unifiedMode = true,
           capabilityReady = false,
       )
     }
@@ -66,15 +66,15 @@ internal class IntegratedExecutionRoutingPolicy {
       return RoutingDecision(
           useToolingExecute = false,
           reason = "cleanup_task_prefers_shell_path",
-          integratedMode = integratedMode,
+          unifiedMode = unifiedMode,
           capabilityReady = hasNegotiatedOps,
       )
     }
 
     return RoutingDecision(
         useToolingExecute = true,
-        reason = if (integratedMode) "integrated_capability_ready" else "legacy_execute_enabled",
-        integratedMode = integratedMode,
+        reason = "unified_build_grpc_capability_ready",
+        unifiedMode = unifiedMode,
         capabilityReady = hasNegotiatedOps,
     )
   }

@@ -70,16 +70,18 @@ private data class ProjectTab(val title: String, val filePath: String? = null, v
 }
 private data class ClipboardProject(val sourcePath: String)
 private data class ProjectDisplayInfo(val label: String, val iconFile: File?, val subtitle: String)
+private data class RestoredProjectManagerState(val tabs: List<ProjectTab>, val selectedIndex: Int)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProjectManagerPage(onOpenProject: (String) -> Unit) {
   val context = androidx.compose.ui.platform.LocalContext.current
-  val tabState = remember { mutableStateListOf<ProjectTab>() }
+  val restoredState = remember(context) { restoreProjectManagerState(context) }
+  val tabState = remember(context) { mutableStateListOf<ProjectTab>().apply { addAll(restoredState.tabs) } }
   val tabProjectsState = remember { mutableStateMapOf<String, List<String>>() }
   val loadingState = remember { mutableStateMapOf<String, Boolean>() }
   var clipboardState by remember { mutableStateOf<ClipboardProject?>(null) }
-  var selectedTabIndexState by rememberSaveable { mutableIntStateOf(0) }
+  var selectedTabIndexState by rememberSaveable(context) { mutableIntStateOf(restoredState.selectedIndex) }
   var menuProjectPath by remember { mutableStateOf<String?>(null) }
 
   val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -96,12 +98,7 @@ fun ProjectManagerPage(onOpenProject: (String) -> Unit) {
     }
   }
 
-  LaunchedEffect(Unit) {
-    restoreTabs(context, tabState) { selectedTabIndexState = it }
-    if (tabState.isEmpty()) tabState.add(ProjectTab(Environment.PROJECTS_FOLDER, Environment.getProjectsDir().absolutePath))
-  }
-
-  val safeSelected = selectedTabIndexState.coerceIn(0, tabState.lastIndex.coerceAtLeast(0))
+  val safeSelected = if (tabState.isEmpty()) 0 else selectedTabIndexState.coerceIn(0, tabState.lastIndex)
   if (safeSelected != selectedTabIndexState) selectedTabIndexState = safeSelected
   val selectedTab = tabState.getOrNull(safeSelected)
 
@@ -115,9 +112,18 @@ fun ProjectManagerPage(onOpenProject: (String) -> Unit) {
 
   Column(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
     Box(modifier = Modifier.fillMaxWidth()) {
-      ScrollableTabRow(selectedTabIndex = safeSelected, modifier = Modifier.fillMaxWidth().padding(end = 30.dp)) {
-        tabState.forEachIndexed { index, tab ->
-          Tab(selected = safeSelected == index, onClick = { selectedTabIndexState = index }, text = { Text(tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis) })
+      if (tabState.isNotEmpty()) {
+        ScrollableTabRow(selectedTabIndex = safeSelected, modifier = Modifier.fillMaxWidth().padding(end = 30.dp)) {
+          tabState.forEachIndexed { index, tab ->
+            Tab(
+              selected = safeSelected == index,
+              onClick = {
+                selectedTabIndexState = index
+                persistTabs(context, tabState, selectedTabIndexState)
+              },
+              text = { Text(tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            )
+          }
         }
       }
       FloatingActionButton(
@@ -190,20 +196,34 @@ private fun persistTabs(context: Context, tabs: List<ProjectTab>, selected: Int)
   context.getSharedPreferences("project_manager_tabs", Context.MODE_PRIVATE).edit().putString("tabs", arr.toString()).putInt("selected", selected).apply()
 }
 
-private fun restoreTabs(context: Context, tabs: MutableList<ProjectTab>, onSelected: (Int) -> Unit) {
-  val raw = context.getSharedPreferences("project_manager_tabs", Context.MODE_PRIVATE).getString("tabs", null) ?: return
-  runCatching {
-    val arr = JSONArray(raw)
-    for (i in 0 until arr.length()) {
-      val item = arr.getJSONArray(i)
-      val title = item.optString(0)
-      val filePath = item.optString(1).ifBlank { null }
-      val treeUri = item.optString(2).ifBlank { null }?.let(Uri::parse)
-      if (title.isNotBlank()) tabs.add(ProjectTab(title, filePath, treeUri))
+private fun restoreProjectManagerState(context: Context): RestoredProjectManagerState {
+  val prefs = context.getSharedPreferences("project_manager_tabs", Context.MODE_PRIVATE)
+  val restoredTabs = mutableListOf<ProjectTab>()
+  val raw = prefs.getString("tabs", null)
+  if (!raw.isNullOrBlank()) {
+    runCatching {
+      val arr = JSONArray(raw)
+      for (i in 0 until arr.length()) {
+        val item = arr.getJSONArray(i)
+        val title = item.optString(0)
+        val filePath = item.optString(1).ifBlank { null }?.takeUnless { it == "null" }
+        val treeUri = item.optString(2).ifBlank { null }?.takeUnless { it == "null" }?.let(Uri::parse)
+        if (title.isNotBlank() && (filePath != null || treeUri != null)) {
+          restoredTabs.add(ProjectTab(title, filePath, treeUri))
+        }
+      }
     }
-    onSelected(context.getSharedPreferences("project_manager_tabs", Context.MODE_PRIVATE).getInt("selected", 0))
   }
+
+  val tabs = restoredTabs.distinctBy { it.stableKey() }.ifEmpty { listOf(defaultProjectTab()) }
+  return RestoredProjectManagerState(
+    tabs = tabs,
+    selectedIndex = prefs.getInt("selected", 0).coerceIn(0, tabs.lastIndex),
+  )
 }
+
+private fun defaultProjectTab(): ProjectTab =
+  ProjectTab(Environment.PROJECTS_FOLDER, Environment.getProjectsDir().absolutePath)
 
 private fun parseProjectDisplayInfo(projectDir: File): ProjectDisplayInfo {
   val appModule = findApplicationModule(projectDir)

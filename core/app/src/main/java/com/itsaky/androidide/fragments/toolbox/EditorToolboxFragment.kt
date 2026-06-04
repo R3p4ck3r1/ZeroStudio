@@ -167,32 +167,32 @@ class EditorToolboxFragment : Fragment() {
     LaunchedEffect(tabs, requestedIndex) {
       tabRowSelectedIndex = requestedIndex
     }
-    val tabCount = openedEntries.size + 1
+    val compactTabHeight = 25.dp
 
     ScrollableTabRow(
         selectedTabIndex = safeSelectedIndex,
-        modifier = Modifier.height(36.dp),
+        modifier = Modifier.height(compactTabHeight),
         edgePadding = 4.dp,
     ) {
       tabs.forEach { tab ->
         Tab(
             selected = selectedTab == tab.id,
             onClick = { onSelectTab(tab.id) },
-            modifier = Modifier.height(36.dp),
+            modifier = Modifier.height(compactTabHeight),
             text = {
               Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     painter = painterResource(tab.iconRes),
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(12.dp),
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = tab.title,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.labelSmall,
-                    fontSize = 11.sp,
+                    fontSize = 9.sp,
                 )
               }
             },

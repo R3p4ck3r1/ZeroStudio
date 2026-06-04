@@ -75,3 +75,51 @@ data class ResourceChunk(
   val payload: ByteArray,
   val eof: Boolean,
 )
+
+data class SourceTextPayload(
+  val workspaceRoot: String,
+  val relativePath: String,
+  val languageId: String,
+  val charset: String = "UTF-8",
+  val text: String,
+  val version: Long = 0L,
+  val checksum: ByteArray = ByteArray(0),
+)
+
+data class FileObjectPayload(
+  val workspaceRoot: String,
+  val relativePath: String,
+  val contentType: String,
+  val sizeBytes: Long,
+  val inlineContent: ByteArray = ByteArray(0),
+  val transferId: String? = null,
+  val checksum: ByteArray = ByteArray(0),
+  val modifiedAtEpochMillis: Long? = null,
+)
+
+data class GradleTaskPayload(
+  val path: String,
+  val displayName: String = path,
+  val arguments: List<String> = emptyList(),
+  val jvmArguments: List<String> = emptyList(),
+  val environment: Map<String, String> = emptyMap(),
+  val selected: Boolean = true,
+)
+
+data class BuildLogOptionsPayload(
+  val streamStdout: Boolean = true,
+  val streamStderr: Boolean = true,
+  val includeGradleLifecycle: Boolean = true,
+  val includeStacktraces: Boolean = true,
+  val maxBufferedLines: Int = 2_000,
+)
+
+data class BuildLogLinePayload(
+  val buildId: String,
+  val sequence: Long,
+  val timestampEpochMillis: Long,
+  val logger: String,
+  val level: String,
+  val message: String,
+  val throwable: String? = null,
+)

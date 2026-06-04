@@ -20,6 +20,10 @@ import kotlinx.coroutines.flow.first
 
 /**
  * Binary facade used to replace lsp4j-rpc server call flows in tooling/api consumers.
+ *
+ * This facade deliberately refuses to report initialization success unless the build-grpc backend
+ * advertises a real Gradle Tooling sync capability. That prevents placeholder/in-process backends
+ * from causing the editor to enter an endlessly "initialized" state without a running server.
  */
 class ToolingApiBinaryFacade(
   private val binaryApi: BinaryBuildServiceApi,
@@ -35,7 +39,7 @@ class ToolingApiBinaryFacade(
   )
 
   fun initialize(params: InitializeProjectParams): CompletableFuture<InitializeResult> = future {
-    binaryApi.buildInitialize(
+    val response = binaryApi.buildInitialize(
       BuildInitializeRequest(
         workspaceRoot = params.directory,
         buildSystemId = "gradle",
@@ -43,14 +47,16 @@ class ToolingApiBinaryFacade(
         clientVersion = "binary-facade",
       ),
     )
+    val realSyncCapability = "gradle.tooling.real-sync"
+    val isRealSync = realSyncCapability in response.negotiatedCapabilities
     InitializeResult(
-      isSuccessful = true,
-      failure = null,
+      isSuccessful = isRealSync,
+      failure = if (isRealSync) null else TaskExecutionResult.Failure.UNSUPPORTED_CONFIGURATION,
       requestId = params.requestId,
-      negotiatedOperationTypes = setOf("TASK", "PROJECT_CONFIGURATION"),
-      supportsModelSnapshot = true,
-      supportsQueryService = true,
-      supportsPhasedAction = true,
+      negotiatedOperationTypes = response.negotiatedCapabilities,
+      supportsModelSnapshot = isRealSync,
+      supportsQueryService = isRealSync,
+      supportsPhasedAction = isRealSync,
     )
   }
 

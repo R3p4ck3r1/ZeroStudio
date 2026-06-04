@@ -52,6 +52,10 @@ message StartBuildRequest {
   repeated ExecutionHint execution_hints = 5;
   ResourceBudget budget = 6;
   ContextSnapshot context = 7;
+  repeated GradleTaskRequest gradle_tasks = 8;
+  repeated SourceTextData source_texts = 9;
+  repeated FileObjectData file_objects = 10;
+  BuildLogOptions log_options = 11;
 }
 
 message StreamBuildEventsRequest {
@@ -88,6 +92,54 @@ message DataChunk {
   string content_type = 6;
   bytes checksum = 7;
   CompressionKind compression = 8;
+}
+
+message SourceTextData {
+  string workspace_root = 1;
+  string relative_path = 2;
+  string language_id = 3;
+  string charset = 4;
+  string text = 5;
+  int64 version = 6;
+  bytes checksum = 7;
+}
+
+message FileObjectData {
+  string workspace_root = 1;
+  string relative_path = 2;
+  string content_type = 3;
+  int64 size_bytes = 4;
+  bytes inline_content = 5;
+  string transfer_id = 6;
+  bytes checksum = 7;
+  google.protobuf.Timestamp modified_at = 8;
+}
+
+message GradleTaskRequest {
+  string path = 1;
+  string display_name = 2;
+  repeated string arguments = 3;
+  repeated string jvm_arguments = 4;
+  map<string, string> environment = 5;
+  bool selected = 6;
+}
+
+message BuildLogOptions {
+  bool stream_stdout = 1;
+  bool stream_stderr = 2;
+  bool include_gradle_lifecycle = 3;
+  bool include_stacktraces = 4;
+  int32 max_buffered_lines = 5;
+}
+
+message BuildLogLine {
+  string build_id = 1;
+  int64 sequence = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string logger = 4;
+  string level = 5;
+  string message = 6;
+  string throwable = 7;
 }
 
 message FetchDataRequest {
@@ -168,6 +220,9 @@ message BuildEventEnvelope {
     BuildFinishedEvent finished = 8;
     BuildResourceEvent resource = 9;
     DataTransferEvent transfer = 10;
+    BuildLogLine log_line = 11;
+    SourceTextData source_text = 12;
+    FileObjectData file_object = 13;
   }
 }
 

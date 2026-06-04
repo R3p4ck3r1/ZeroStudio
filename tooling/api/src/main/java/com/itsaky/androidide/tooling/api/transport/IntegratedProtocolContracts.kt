@@ -1,9 +1,6 @@
 package com.itsaky.androidide.tooling.api.transport
 
-/**
- * Unified protocol contract for the integrated local stack:
- * AIDL (session control) + gRPC/Proto (streaming) + REAPI (execution semantics).
- */
+/** Unified protocol contract for the build-grpc binary stack. */
 object IntegratedProtocolContracts {
 
   /** Versioned handshake between Android client and Termux JVM tooling server. */

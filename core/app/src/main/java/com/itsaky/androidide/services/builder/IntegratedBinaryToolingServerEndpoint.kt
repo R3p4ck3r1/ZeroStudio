@@ -19,11 +19,11 @@ import java.util.concurrent.CompletableFuture
 import org.slf4j.LoggerFactory
 
 /**
- * App-process binary build-service endpoint for the integrated AIDL + gRPC + REAPI transport.
+ * App-process binary build-service endpoint for the unified build-grpc transport.
  *
  * This endpoint keeps client calls on the transport-neutral Tooling API surface while routing the
- * actual request payloads through the build-grpc binary facade instead of the legacy JSON-RPC
- * server proxy.
+ * actual request payloads through the build-grpc binary facade instead of mode-specific
+ * client/server adapters.
  */
 internal class IntegratedBinaryToolingServerEndpoint : ToolingTransportServerEndpoint {
 

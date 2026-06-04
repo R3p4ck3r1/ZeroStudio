@@ -37,7 +37,7 @@ class IntegratedProtocolCoordinator(
   fun capabilityEnvelope(toolingApiVersion: String): IntegratedProtocolContracts.CapabilityEnvelope =
       IntegratedProtocolContracts.CapabilityEnvelope(
           toolingApiVersion = toolingApiVersion,
-          transportMode = ToolingTransportMode.INTEGRATED_AIDL_GRPC_REAPI,
+          transportMode = ToolingTransportMode.UNIFIED_BUILD_GRPC,
           reapiInstanceName = runtimeConfig.reapiInstanceName,
           reapiEnabled = runtimeConfig.reapiEnabled,
       )

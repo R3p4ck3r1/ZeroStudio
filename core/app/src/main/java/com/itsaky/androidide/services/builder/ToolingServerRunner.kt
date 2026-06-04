@@ -27,6 +27,7 @@ import com.itsaky.androidide.tooling.api.util.ToolingApiLauncher
 import com.itsaky.androidide.utils.Environment
 import com.termux.shared.reflection.ReflectionUtils
 import java.io.InputStream
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
@@ -67,6 +68,7 @@ internal class ToolingServerRunner(
   companion object {
 
     private val log = LoggerFactory.getLogger(ToolingServerRunner::class.java)
+    private const val STARTUP_HANDSHAKE_TIMEOUT_SECONDS = 5L
   }
 
   fun setListener(listener: OnServerStartListener?) {
@@ -143,22 +145,34 @@ internal class ToolingServerRunner(
               val configuredTransport =
                   System.getProperty(
                       ToolingServerEndpointFactories.TRANSPORT_SWITCH_PROPERTY,
-                      ToolingServerEndpointFactories.LEGACY,
+                      ToolingServerEndpointFactories.UNIFIED,
                   )
               val selection = ToolingServerEndpointFactories.resolveSelection(configuredTransport)
               log.info(
-                  "Tooling transport configured='{}', parsed={}, effective={}, fallbackReason={}, reapiWorkspace='{}', reapiWorkspaceReady={}",
+                  "Tooling transport configured='{}', unified={}, reason={}, reapiWorkspace='{}', reapiWorkspaceReady={}",
                   selection.requestedValue,
-                  selection.requestedMode?.name ?: "UNKNOWN",
-                  selection.resolvedMode.name,
-                  selection.reason ?: "NONE",
+                  selection.mode.name,
+                  selection.reason,
                   selection.reapiWorkspacePath,
                   selection.reapiWorkspaceReady,
               )
+              val serverEndpoint =
+                  ToolingServerEndpointFactories.fromSelection(selection)
+                      .create(launcher.remoteProxy as IToolingApiServer)
+              val metadata =
+                  serverEndpoint.metadata().get(STARTUP_HANDSHAKE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+              if (!runCatching { process.isAlive }.getOrDefault(true)) {
+                throw IllegalStateException("Tooling API process exited before startup handshake completed")
+              }
+              log.info(
+                  "Tooling API server startup handshake completed. pid={}, reportedPid={}, version={}",
+                  pid,
+                  metadata.pid,
+                  metadata.toolingApiVersion,
+              )
+
               observer?.onServerStarted(
-                  serverEndpoint =
-                      ToolingServerEndpointFactories.fromSelection(selection)
-                          .create(launcher.remoteProxy as IToolingApiServer),
+                  serverEndpoint = serverEndpoint,
                   projectProxy = launcher.remoteProxy as IProject,
                   errorStream = errorStream,
               )

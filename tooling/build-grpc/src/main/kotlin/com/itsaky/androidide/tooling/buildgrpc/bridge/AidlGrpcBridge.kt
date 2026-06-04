@@ -61,11 +61,14 @@ class AidlGrpcBridge(
    */
   fun startBuild(payload: ByteArray): Flow<BuildBridgeEvent> {
     val request = StartBuildRequest.parseFrom(payload)
+    val taskArguments = request.gradleTasksList.flatMap { it.argumentsList + it.jvmArgumentsList }
     val bridgeRequest = BuildBridgeRequest(
       requestId = request.buildId,
-      workspaceRoot = "",
-      targetIds = request.targetsList,
-      arguments = request.optionsMap.entries.map { "${it.key}=${it.value}" },
+      workspaceRoot = request.context.workspaceRoot,
+      targetIds = (request.gradleTasksList.map { it.path } + request.targetsList)
+        .filter { it.isNotBlank() }
+        .distinct(),
+      arguments = request.optionsMap.entries.map { "${it.key}=${it.value}" } + taskArguments,
     )
 
     return binaryApi.buildTargetCompile(
