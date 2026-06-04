@@ -20,6 +20,7 @@ package com.itsaky.androidide.tooling.impl
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.IToolingApiClient
 import com.itsaky.androidide.tooling.api.IToolingApiServer
+import com.itsaky.androidide.tooling.api.messages.ExecutionRequest
 import com.itsaky.androidide.tooling.api.messages.GradleDistributionParams
 import com.itsaky.androidide.tooling.api.messages.GradleDistributionType
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
@@ -28,6 +29,7 @@ import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationReques
 import com.itsaky.androidide.tooling.api.messages.result.BuildCancellationRequestResult.Reason.CANCELLATION_ERROR
 import com.itsaky.androidide.tooling.api.messages.result.BuildInfo
 import com.itsaky.androidide.tooling.api.messages.result.BuildResult
+import com.itsaky.androidide.tooling.api.messages.result.ExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.InitializeResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult
 import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.Failure
@@ -46,6 +48,7 @@ import com.itsaky.androidide.tooling.api.messages.result.TaskExecutionResult.Fai
 import com.itsaky.androidide.tooling.api.models.ToolingServerMetadata
 import com.itsaky.androidide.tooling.impl.internal.ProjectImpl
 import com.itsaky.androidide.tooling.impl.net.SimpleHttpProxy
+import com.itsaky.androidide.tooling.impl.progress.ForwardingProgressListener
 import com.itsaky.androidide.tooling.impl.sync.ModelBuilderException
 import com.itsaky.androidide.tooling.impl.sync.RootModelBuilder
 import com.itsaky.androidide.tooling.impl.sync.RootProjectModelBuilderParams
@@ -62,6 +65,7 @@ import org.gradle.tooling.GradleConnectionException
 import org.gradle.tooling.GradleConnector
 import org.gradle.tooling.ProjectConnection
 import org.gradle.tooling.UnsupportedVersionException
+import org.gradle.tooling.events.OperationType
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException
 import org.gradle.tooling.exceptions.UnsupportedOperationConfigurationException
 import org.gradle.tooling.internal.consumer.DefaultGradleConnector
@@ -314,6 +318,92 @@ internal class ToolingApiServerImpl(private val project: ProjectImpl) : ITooling
       } catch (error: Throwable) {
         notifyBuildFailure(message.tasks)
         return@runBuild TaskExecutionResult(false, getTaskFailureType(error))
+      }
+    }
+  }
+
+  override fun execute(request: ExecutionRequest): CompletableFuture<ExecutionResult> {
+    return runBuild {
+      if (!isServerInitialized().get()) {
+        log.error("Cannot execute request {}: {}", request.requestId, PROJECT_NOT_INITIALIZED)
+        return@runBuild ExecutionResult(false, failure = PROJECT_NOT_INITIALIZED)
+      }
+
+      val lastInitParams = this.lastInitParams
+      if (lastInitParams != null) {
+        val projectDirectory = File(lastInitParams.directory)
+        val failureReason = validateProjectDirectory(projectDirectory)
+        if (failureReason != null) {
+          log.error("Cannot execute request {}: {}", request.requestId, failureReason)
+          return@runBuild ExecutionResult(false, failure = failureReason)
+        }
+      }
+
+      log.debug("Received execution request: {}", request)
+
+      Main.checkGradleWrapper()
+
+      val connection =
+          checkNotNull(this.connection) {
+            "ProjectConnection has not been initialized. Cannot execute request."
+          }
+
+      val builder = connection.newBuild()
+      val out = LoggingOutputStream()
+      builder.setStandardInput("NoOp".byteInputStream())
+      builder.setStandardError(out)
+      builder.setStandardOutput(out)
+      builder.forTasks(*request.tasks.filter { it.isNotBlank() }.toTypedArray())
+      Main.finalizeLauncher(builder)
+
+      if (request.arguments.isNotEmpty()) {
+        builder.addArguments(request.arguments.filter { it.isNotBlank() })
+      }
+      if (request.jvmArguments.isNotEmpty()) {
+        builder.setJvmArguments(request.jvmArguments.filter { it.isNotBlank() })
+      }
+      if (request.environmentVariables.isNotEmpty()) {
+        builder.setEnvironmentVariables(request.environmentVariables)
+      }
+      val requestedOperationTypes = request.operationTypes.toGradleOperationTypes()
+      if (requestedOperationTypes.isNotEmpty()) {
+        builder.addProgressListener(ForwardingProgressListener(), requestedOperationTypes)
+      }
+
+      this.buildCancellationToken = GradleConnector.newCancellationTokenSource()
+      builder.withCancellationToken(this.buildCancellationToken!!.token())
+
+      notifyBeforeBuild(BuildInfo(request.tasks))
+
+      try {
+        builder.run()
+        this.buildCancellationToken = null
+        notifyBuildSuccess(request.tasks)
+        return@runBuild ExecutionResult.SUCCESS
+      } catch (error: Throwable) {
+        this.buildCancellationToken = null
+        notifyBuildFailure(request.tasks)
+        val failure = getTaskFailureType(error)
+        return@runBuild ExecutionResult(
+            false,
+            isCancelled = failure == BUILD_CANCELLED,
+            failure = failure,
+            diagnostics = listOfNotNull(error.message, error::class.qualifiedName),
+        )
+      }
+    }
+  }
+
+  private fun Set<ExecutionRequest.OperationType>.toGradleOperationTypes(): Set<OperationType> {
+    return mapNotNullTo(mutableSetOf()) { type ->
+      when (type) {
+        ExecutionRequest.OperationType.TASK -> OperationType.TASK
+        ExecutionRequest.OperationType.TEST -> OperationType.TEST
+        ExecutionRequest.OperationType.PROJECT_CONFIGURATION -> OperationType.PROJECT_CONFIGURATION
+        ExecutionRequest.OperationType.WORK_ITEM -> OperationType.WORK_ITEM
+        ExecutionRequest.OperationType.BUILD_PHASE -> OperationType.BUILD_PHASE
+        ExecutionRequest.OperationType.BUILD -> OperationType.ROOT
+        ExecutionRequest.OperationType.PROBLEM -> OperationType.PROBLEMS
       }
     }
   }

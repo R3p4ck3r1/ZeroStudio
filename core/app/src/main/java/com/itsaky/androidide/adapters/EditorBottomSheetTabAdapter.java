@@ -28,10 +28,12 @@ import com.itsaky.androidide.fragments.SearchResultFragment;
 import com.itsaky.androidide.fragments.output.AppLogFragment;
 import com.itsaky.androidide.fragments.output.BuildOutputFragment;
 import com.itsaky.androidide.fragments.output.IDELogFragment;
+import com.itsaky.androidide.fragments.toolbox.EditorToolboxFragment;
 // import com.itsaky.androidide.app.MatrixApmPanelFragment;
 import com.itsaky.androidide.BuildConfig;
 import android.zero.studio.terminal.TermuxFragment;
 import com.itsaky.androidide.resources.R;
+import com.itsaky.androidide.utils.EditorToolboxActions;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -48,6 +50,7 @@ public class EditorBottomSheetTabAdapter extends FragmentStateAdapter {
 
     var index = -1;
     this.fragments = new ArrayList<>();
+    EditorToolboxActions.registerActions(fragmentActivity);
     //构建输出
     this.fragments.add(new Tab(fragmentActivity.getString(R.string.build_output),
         BuildOutputFragment.class,++index));
@@ -68,6 +71,10 @@ public class EditorBottomSheetTabAdapter extends FragmentStateAdapter {
         new Tab(
             fragmentActivity.getString(R.string.view_search_results),
             SearchResultFragment.class,++index));
+
+    //编辑器工具箱：集成 AI Chat、MCP、依赖分析等常用工具到底部抽屉中
+    this.fragments.add(new Tab(fragmentActivity.getString(R.string.title_editor_toolbox),
+        EditorToolboxFragment.class, ++index));
   }
 
   public Fragment getFragmentAtIndex(int index) {

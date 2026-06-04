@@ -18,6 +18,8 @@
 package com.itsaky.androidide.tooling.api
 
 import com.itsaky.androidide.tooling.api.models.GradleTask
+import com.itsaky.androidide.tooling.api.models.GradleBuildEnvironment
+import com.itsaky.androidide.tooling.api.models.GradleBuildMetadata
 import com.itsaky.androidide.tooling.api.models.ProjectMetadata
 import java.util.concurrent.CompletableFuture
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest
@@ -40,4 +42,10 @@ interface IGradleProject {
 
   /** Get this project's tasks. */
   @JsonRequest fun getTasks(): CompletableFuture<List<GradleTask>>
+
+  /** Get the Gradle runtime and Java environment used by this build. */
+  @JsonRequest fun getBuildEnvironment(): CompletableFuture<GradleBuildEnvironment?>
+
+  /** Get the Gradle build structure, including included and editable builds. */
+  @JsonRequest fun getGradleBuild(): CompletableFuture<GradleBuildMetadata?>
 }

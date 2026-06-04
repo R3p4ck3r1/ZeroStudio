@@ -27,6 +27,7 @@ import com.itsaky.androidide.utils.AndroidPluginVersion.Companion.MINIMUM_SUPPOR
 import com.itsaky.androidide.utils.ILogger
 import com.itsaky.androidide.utils.LogUtils
 import com.itsaky.androidide.utils.StopWatch
+import java.io.Serializable
 import java.util.concurrent.atomic.AtomicBoolean
 import org.gradle.api.Action
 import org.gradle.tooling.BuildController
@@ -42,9 +43,11 @@ import org.gradle.tooling.model.Model
  */
 abstract class AbstractModelBuilder<P, R>(
     protected val initializationParams: InitializeProjectParams
-) : IModelBuilder<P, R> {
+) : IModelBuilder<P, R>, Serializable {
 
   companion object {
+
+    private const val serialVersionUID = 1L
 
     private val newerAgpWarned = AtomicBoolean(false)
 

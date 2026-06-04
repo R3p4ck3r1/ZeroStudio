@@ -29,6 +29,8 @@ import com.itsaky.androidide.tooling.impl.Main.finalizeLauncher
 import com.itsaky.androidide.tooling.impl.internal.ProjectImpl
 import java.io.Serializable
 import org.gradle.tooling.ConfigurableLauncher
+import org.gradle.tooling.model.build.BuildEnvironment
+import org.gradle.tooling.model.gradle.GradleBuild
 import org.gradle.tooling.model.idea.IdeaProject
 import org.slf4j.LoggerFactory
 
@@ -52,6 +54,8 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
 
     val executor = projectConnection.action { controller ->
       val ideaProject = controller.getModelAndLog(IdeaProject::class.java)
+      val buildEnvironment = runCatching { controller.getModel(BuildEnvironment::class.java) }.getOrNull()
+      val gradleBuild = runCatching { controller.getModel(GradleBuild::class.java) }.getOrNull()
 
       val ideaModules = ideaProject.modules
       val modulePaths = mapOf(*ideaModules.map { it.name to it.gradleProject.path }.toTypedArray())
@@ -86,7 +90,8 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
                     )
                 )
           } else {
-            GradleProjectModelBuilder(initializationParams).build(rootModule.gradleProject)
+            GradleProjectModelBuilder(initializationParams)
+                .build(rootModule.gradleProject, buildEnvironment, gradleBuild)
           }
 
       val projects = ideaModules.map { ideaModule ->
