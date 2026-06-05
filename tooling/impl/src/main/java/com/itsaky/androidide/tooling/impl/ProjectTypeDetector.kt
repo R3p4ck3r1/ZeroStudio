@@ -16,12 +16,7 @@
  */
 package com.itsaky.androidide.tooling.impl
 
-import com.itsaky.androidide.builder.model.agp.AgpVersion
-import com.itsaky.androidide.builder.model.agp.AgpVersionChecker
-import org.gradle.tooling.model.GradlePlugin
 import org.gradle.tooling.model.GradleProject
-import org.gradle.tooling.model.ProjectIdentifier
-import org.gradle.tooling.model.idea.IdeaProject
 import org.slf4j.LoggerFactory
 
 /**
@@ -161,18 +156,48 @@ object ProjectTypeDetector {
       else -> "Android"
     }
 
-    // Try to detect AGP version
-    val agpVersion = AgpVersionChecker.detect(gradleProject)
+    // Try to detect AGP version from build file
+    val agpVersion = detectAgpVersion(gradleProject)
 
     return DetectionResult(
       category = projectType,
       projectType = displayName,
       isAndroidProject = true,
-      isPreview = agpVersion?.isPreview ?: false,
+      isPreview = agpVersion?.contains("alpha") == true || agpVersion?.contains("beta") == true,
       plugins = plugins,
       buildFile = detectBuildFile(gradleProject),
-      detectedVersion = agpVersion?.versionString
+      detectedVersion = agpVersion
     )
+  }
+
+  /**
+   * Detect AGP version from build file.
+   */
+  private fun detectAgpVersion(gradleProject: GradleProject): String? {
+    return try {
+      val buildFile = gradleProject.projectDirectory.file("build.gradle.kts").asFile
+        .takeIf { it.exists() }
+        ?: gradleProject.projectDirectory.file("build.gradle").asFile
+          .takeIf { it.exists() }
+          ?: return null
+
+      val content = buildFile.readText()
+
+      // Look for android gradle plugin version in plugins block
+      val pluginsPattern = Regex(
+        """id\(["']com\.android\.(application|library|feature|dynamic-feature)["']\)\s*version\s*["'](.+?)["']"""
+      )
+      pluginsPattern.find(content)?.groupValues?.getOrNull(2)?.let { return it }
+
+      // Look in buildscript classpath
+      val buildscriptPattern = Regex(
+        """classpath\s+["']com\.android\.tools\.build:gradle:(.+?)["']"""
+      )
+      buildscriptPattern.find(content)?.groupValues?.getOrNull(1)
+    } catch (e: Exception) {
+      log.debug("Failed to detect AGP version: {}", e.message)
+      null
+    }
   }
 
   /**
