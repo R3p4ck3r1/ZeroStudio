@@ -31,6 +31,12 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.tabs.TabLayout
+import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
+import com.itsaky.androidide.fragments.editor.FragmentTabEntry
+import com.itsaky.androidide.fragments.editor.FragmentTabRegistry
+import com.itsaky.androidide.fragments.editor.markdown.MarkdownPreviewFragment
+import com.itsaky.androidide.resources.R
 import com.blankj.utilcode.util.ImageUtils
 import com.itsaky.androidide.R.string
 import com.itsaky.androidide.actions.ActionData
@@ -99,6 +105,14 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
   private var openedFilesCacheWriteJob: Job? = null
   private var lastOpenedFilesCacheSignature: String? = null
 
+  /** Fragment tab manager for managing fragment tabs like Markdown Preview */
+  var fragmentTabManager: EditorFragmentTabManager? = null
+    private set
+
+  init {
+    registerFragmentTabs()
+  }
+
   override fun doOpenFile(file: File, selection: Range?) {
     openFileAndSelect(file, selection)
   }
@@ -115,6 +129,61 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     return getEditorAtIndex(index)
   }
 
+  /**
+   * Registers fragment tabs with the FragmentTabRegistry.
+   * This is called during initialization to register available fragment tabs.
+   */
+  private fun registerFragmentTabs() {
+    // Only register once
+    if (FragmentTabRegistry.isRegistered("markdown_preview")) {
+      return
+    }
+
+    // Register Markdown Preview fragment tab
+    FragmentTabRegistry.register(
+      FragmentTabEntry(
+        id = "markdown_preview",
+        title = "Markdown Preview",
+        iconRes = R.drawable.ic_markdown_preview,
+        fragmentClass = MarkdownPreviewFragment::class.java,
+        fileExtension = "md",
+        order = 100
+      )
+    )
+
+    // Register additional Markdown extensions
+    listOf("mdr", "markdown", "mdx", "mkd", "mkdn").forEach { ext ->
+      FragmentTabRegistry.register(
+        FragmentTabEntry(
+          id = "markdown_preview_$ext",
+          title = "Markdown Preview",
+          iconRes = R.drawable.ic_markdown_preview,
+          fragmentClass = MarkdownPreviewFragment::class.java,
+          fileExtension = ext,
+          order = 100
+        )
+      )
+    }
+  }
+
+  /**
+   * Override onTabSelected to handle both editor tabs and fragment tabs.
+   * Fragment tabs are identified by their tag containing a colon separator.
+   */
+  override fun onTabSelected(tab: Tab) {
+    val tabId = tab.tag as? String
+
+    // Check if this is a fragment tab
+    if (tabId != null && tabId.contains(":")) {
+      // This is a fragment tab (format: "entryId:filePath")
+      fragmentTabManager?.switchToTab(tabId)
+      return
+    }
+
+    // This is an editor tab, delegate to parent implementation
+    super.onTabSelected(tab)
+  }
+
   override fun preDestroy() {
     super.preDestroy()
     TSLanguageRegistry.instance.destroy()
@@ -124,6 +193,15 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
   override fun onCreate(savedInstanceState: Bundle?) {
     mBuildEventListener.setActivity(this)
     super.onCreate(savedInstanceState)
+
+    // Initialize fragment tab manager
+    content.root.post {
+      fragmentTabManager = EditorFragmentTabManager(
+        activity = this,
+        binding = content,
+        containerId = R.id.fragment_container
+      )
+    }
 
     editorViewModel._displayedFile.observe(this) {
       this.content.editorContainer.displayedChild = it
