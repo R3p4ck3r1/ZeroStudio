@@ -131,11 +131,6 @@ class EditorBottomSheet @JvmOverloads constructor(
     binding.pager.adapter = pagerAdapter
 
     initialize(context)
-    setupDynamicPeekHeightAndIME()
-    post {
-      ViewCompat.requestApplyInsets(this)
-      updatePeekHeight()
-    }
   }
 
   private fun initialize(context: FragmentActivity) {
@@ -372,6 +367,11 @@ class EditorBottomSheet @JvmOverloads constructor(
 
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
+    setupDynamicPeekHeightAndIME()
+    post {
+      ViewCompat.requestApplyInsets(this)
+      updatePeekHeight()
+    }
     ensureBehaviorCallbackAttached()
   }
 
