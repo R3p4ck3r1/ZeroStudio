@@ -59,6 +59,7 @@ dependencies {
   kapt(libs.google.auto.service)
 
   api(projects.tooling.api)
+  api(projects.tooling.builderModelImpl)
 
   implementation(projects.utilities.buildInfo)
   implementation(projects.utilities.shared)

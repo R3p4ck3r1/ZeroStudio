@@ -29,6 +29,7 @@ import com.android.builder.model.v2.models.BasicAndroidProject
 import com.android.builder.model.v2.models.VariantDependencies
 import com.android.builder.model.v2.models.Versions
 import com.itsaky.androidide.builder.model.DefaultJavaCompileOptions
+import com.itsaky.androidide.builder.model.agp.AgpVersion
 import com.itsaky.androidide.builder.model.DefaultLibrary
 import com.itsaky.androidide.builder.model.DefaultSourceSetContainer
 import com.itsaky.androidide.builder.model.DefaultViewBindingOptions
@@ -57,6 +58,7 @@ internal class AndroidProjectImpl(
     private val variantDependencies: VariantDependencies,
     private val versions: Versions,
     private val androidDsl: AndroidDsl,
+    private val detectedAgpVersion: AgpVersion? = null
 ) : GradleProjectImpl(gradleProject), IAndroidProject, Serializable {
 
   private val serialVersionUID = 1L
@@ -197,8 +199,11 @@ internal class AndroidProjectImpl(
   }
 
   private fun AndroidArtifact.computeApplicationId(variantName: String): String? {
+    // Use detected AGP version if available for better version handling
     val minAgpForAppId = AndroidPluginVersion(7, 4, 0)
-    return if (minAgpForAppId <= AndroidPluginVersion.parse(versions.agp)) {
+    val agpVersion = detectedAgpVersion?.let { AndroidPluginVersion(it.major, it.minor, it.patch) }
+      ?: AndroidPluginVersion.parse(versions.agp)
+    return if (minAgpForAppId <= agpVersion) {
       applicationId
     } else {
       computeApplicationIdLegacy(variantName)
