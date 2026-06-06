@@ -282,6 +282,7 @@
     <string name="idepref_useIcu_title">ICU ലൈബ് ഉപയോഗിക്കുക</string>
     <string name="idepref_useIcu_summary">ഡബിള്‍-ടാപ്പ് மற்றும் ലോങ്-പ്രസ് വാക്ക് സെലക്ഷന് വേണ്ടി വാക്ക് എഡ്ജുകള്‍ ലഭിക്കാന് ICU ലൈബ്രറി ഉപയോഗിക്കുക.</string>
     <string name="msg_drawer_for_files">എഡമയം ഡ്രോയർ തുറക്കുക @@files@@-ക്കായി.</string>
+     <string name="msg_drawer_for_files">@@files@@ എന്നതിനായി ഇടത് ഡ്രോയറ് തുറക്കുക.</string>
     <string name="msg_swipe_for_output">കണ്ണി മകളും ചെയ്ത് @@build output@@ കാണുക.</string>
     <string name="idepref_editor_useSoftTabs_title">സോഫ്റ്റ് ടാബ് ഉപയോഗിക്കുക</string>
     <string name="idepref_editor_useSoftTabs_summary">ടാബ് അക്ഷരത്തിന് (\t) പകരം സ്‌പേസ് ഉപയോഗിക്കണോ എന്ന് തിരഞ്ഞെടുക്കുക.</string>

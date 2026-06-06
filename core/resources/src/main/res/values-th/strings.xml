@@ -293,6 +293,7 @@
     <string name="idepref_useIcu_title">ใช้ไลบรารี ICU</string>
     <string name="idepref_useIcu_summary">ใช้ไลบรารี ICU เพื่อใช้ดึงขอบเขตคำสำหรับการเลือกคำด้วยการแตะสองครั้งและกดค้าง</string>
     <string name="msg_drawer_for_files">เปิดลิ้นชักซ้ายสำหรับ @@files@@.</string>
+     <string name="msg_drawer_for_files">เปิดลิ้นชักด้านซ้ายสำหรับ @@files@@.</string>
     <string name="msg_swipe_for_output">ปัดขึ้นเพื่อดู @@ผลลัพธ์การสร้าง@@.</string>
     <string name="idepref_editor_useSoftTabs_title">ใช้แท็บอ่อน</string>
     <string name="idepref_editor_useSoftTabs_summary">เลือกว่าจะใช้ช่องว่างแทนอักขระแท็บ (\t) หรือไม่</string>

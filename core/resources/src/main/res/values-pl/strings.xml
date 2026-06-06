@@ -282,6 +282,7 @@ Czy na pewno chcesz usunąć cache?</string>
     <string name="idepref_useIcu_title">Użyj biblioteki ICU</string>
     <string name="idepref_useIcu_summary">Użyj biblioteki ICU, aby uzyskać krawędzie słów do wyboru słów za pomocą podwójnego stuknięcia i długiego naciśnięcia.</string>
     <string name="msg_drawer_for_files">Otwórz lewą szufladę na @@files@@.</string>
+     <string name="msg_drawer_for_files">Otwórz lewą szufladę dla @@files@@.</string>
     <string name="msg_swipe_for_output">Przesuń w górę, aby zobaczyć @@build output@@.</string>
     <string name="idepref_editor_useSoftTabs_title">Użyj miękkiej tabulacji</string>
     <string name="idepref_editor_useSoftTabs_summary">Wybierz, czy używać spacji zamiast znaku tabulacji (\t).</string>

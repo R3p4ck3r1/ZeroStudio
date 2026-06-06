@@ -282,6 +282,7 @@
     <string name="idepref_useIcu_title">Використовуйте бібліотеку ICU</string>
     <string name="idepref_useIcu_summary">Використовуйте бібліотеку ICU, щоб отримувати краї слів для виділення слова подвійним натисканням і тривалим натисканням.</string>
     <string name="msg_drawer_for_files">Відкрийте ліву шухляду для @@files@@.</string>
+     <string name="msg_drawer_for_files">Відкрийте лівий ящик для @@files@@.</string>
     <string name="msg_swipe_for_output">Проведіть пальцем угору, щоб побачити @@build output@@.</string>
     <string name="idepref_editor_useSoftTabs_title">Використовуйте м’яку табуляцію</string>
     <string name="idepref_editor_useSoftTabs_summary">Виберіть, чи використовувати пробіли замість символу табуляції (\t).</string>

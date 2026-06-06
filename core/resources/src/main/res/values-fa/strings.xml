@@ -293,6 +293,7 @@
     <string name="idepref_useIcu_title">از کتابخانه ICU استفاده کنید</string>
     <string name="idepref_useIcu_summary">برای بازیابی لبه‌های کلمات جهت انتخاب کلمات با دو بار ضربه زدن و فشار طولانی، از کتابخانه ICU استفاده کنید.</string>
     <string name="msg_drawer_for_files">کشوی چپ را برای @@files@@ باز کنید.</string>
+     <string name="msg_drawer_for_files">کشوی چپ را برای @@files@@ باز کنید.</string>
     <string name="msg_swipe_for_output">برای @@build output@@ به بالا بکشید.</string>
     <string name="idepref_editor_useSoftTabs_title">از تب نرم استفاده کنید</string>
     <string name="idepref_editor_useSoftTabs_summary">انتخاب کنید که به جای کاراکتر تب (\t) از فاصله‌ها استفاده شود.</string>

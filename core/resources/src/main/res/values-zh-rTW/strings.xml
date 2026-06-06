@@ -282,6 +282,7 @@
      <string name="idepref_useIcu_title">使用 ICU 函式庫</string>
      <string name="idepref_useIcu_summary">使用 ICU 庫來獲取雙擊和長按文字選取的單詞邊界。</string>
      <string name="msg_drawer_for_files">打開左邊的抽屜以取出@@files@@。</string>
+     <string name="msg_drawer_for_files">打开左侧抽屉查看 @@文件树@@</string>
      <string name="msg_swipe_for_output">向上滑動以查看@@build output@@。</string>
      <string name="idepref_editor_useSoftTabs_title">使用軟式縮排</string>
      <string name="idepref_editor_useSoftTabs_summary">選擇是否使用空格來取代製表符 (\t)。</string>
