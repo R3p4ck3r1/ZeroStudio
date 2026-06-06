@@ -13,20 +13,20 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
-import com.itsaky.androidide.projects.ProjectManager
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.html.HtmlPlugin
-import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
 import kotlinx.coroutines.Dispatchers
@@ -64,13 +64,17 @@ class MarkdownPreviewFragment : Fragment() {
     container: ViewGroup?,
     savedInstanceState: Bundle?
   ): View {
-    return MarkdownPreviewView(
-      modifier = Modifier.fillMaxSize(),
-      markdownContent = markdownContent ?: loadMarkdownContent(),
-      onLinkClick = { url -> handleLinkClick(url) },
-      onImageClick = { uri -> handleImageClick(uri) },
-      onError = { error -> handleError(error) }
-    )
+    return ComposeView(requireContext()).apply {
+      setContent {
+        MarkdownPreviewView(
+        modifier = Modifier.fillMaxSize(),
+        markdownContent = markdownContent ?: loadMarkdownContent(),
+        onLinkClick = { url -> handleLinkClick(url) },
+        onImageClick = { uri -> handleImageClick(uri) },
+        onError = { error -> handleError(error) }
+      )
+      }
+    }
   }
 
   private fun loadMarkdownContent(): String? {
@@ -110,7 +114,7 @@ class MarkdownPreviewFragment : Fragment() {
     /**
      * Creates a new instance of MarkdownPreviewFragment with the given file path.
      *
-     * @param filePath The path to the Markdown file to preview
+     * @param filePath The path of the file to open
      * @return A new MarkdownPreviewFragment instance
      */
     fun newInstance(filePath: String): MarkdownPreviewFragment {
@@ -217,21 +221,14 @@ fun StandardMarkdownView(
         .usePlugin(LinkifyPlugin.create())
         .usePlugin(TaskListPlugin.create(ctx))
         .usePlugin(HtmlPlugin.create())
-        .usePlugin(
-          CoilImagesPlugin.create(
-            context = ctx,
-            asyncDrawableLoader = { drawable, view, callback ->
-              // Handle image loading
-              if (drawable is AsyncDrawable) {
-                // Image is being loaded asynchronously
-              }
-              true
-            }
-          )
-        )
+        .usePlugin(CoilImagesPlugin.create(ctx))
         .build()
 
       android.widget.TextView(ctx).apply {
+        layoutParams = ViewGroup.LayoutParams(
+          ViewGroup.LayoutParams.MATCH_PARENT,
+          ViewGroup.LayoutParams.WRAP_CONTENT
+        )
         setPadding(32, 16, 32, 16)
         textSize = 16f
         setTextColor(android.graphics.Color.BLACK)

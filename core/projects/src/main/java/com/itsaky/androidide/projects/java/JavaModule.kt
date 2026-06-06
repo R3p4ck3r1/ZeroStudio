@@ -67,9 +67,7 @@ class JavaModule(
     const val SCOPE_RUNTIME = "RUNTIME"
   }
 
-  init {
-    type = Java
-  }
+
 
   /**
    * 获取当前模块自己的编译类路径。

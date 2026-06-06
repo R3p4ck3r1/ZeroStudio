@@ -83,7 +83,7 @@ internal object WorkspaceModelBuilder {
         // The list will never change, we could make these thread-safe with
         // CopyOnWriteArrayList
         tasks = CopyOnWriteArrayList(rootProject.getTasks().get() ?: listOf()),
-    )
+    ).apply { type = metadata.type }
   }
 
   private fun transform(project: IAndroidProject): AndroidModule {
@@ -115,7 +115,7 @@ internal object WorkspaceModelBuilder {
         variants = variants,
         configuredVariant = variants.find { it.name == configuredVariant },
         classesJar = metadata.classesJar,
-    )
+    ).apply { type = metadata.type }
   }
 
   private fun transform(project: IJavaProject): JavaModule {
@@ -132,7 +132,7 @@ internal object WorkspaceModelBuilder {
         dependencies = project.getDependencies().get(),
         compilerSettings = metadata.compilerSettings,
         classesJar = metadata.classesJar,
-    )
+    ).apply { type = metadata.type }
   }
 
   private fun transform(modules: List<BasicProjectMetadata>, root: IProject): List<GradleProject> {
@@ -156,7 +156,10 @@ internal object WorkspaceModelBuilder {
       ProjectType.Unknown -> transform(root.asGradleProject())
 
       ProjectType.Android -> transform(root.asAndroidProject())
-      ProjectType.Java -> transform(root.asJavaProject())
+      ProjectType.Java,
+      ProjectType.SpringBoot,
+      ProjectType.KotlinJvm,
+      ProjectType.GradlePlugin -> transform(root.asJavaProject())
     }
   }
 }

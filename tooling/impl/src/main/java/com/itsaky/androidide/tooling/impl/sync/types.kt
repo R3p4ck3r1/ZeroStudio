@@ -40,13 +40,13 @@ data class RootProjectModelBuilderParams(
  *
  * @property controller The build controller that will be used to fetch project models.
  * @property module The [IdeaModule] to fetch the models from.
- * @property versions The Android Gradle Plugin version information.
+ * @property versions The Android Gradle Plugin version information (may be null for AGP < 9.x).
  * @property syncIssueReporter [ISyncIssueReporter] to report project synchronization issues.
  */
 data class AndroidProjectModelBuilderParams(
     val controller: BuildController,
     val module: IdeaModule,
-    val versions: Versions,
+    val versions: Versions?,
     val syncIssueReporter: ISyncIssueReporter,
 )
 

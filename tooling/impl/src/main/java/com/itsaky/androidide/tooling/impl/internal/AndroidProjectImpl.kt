@@ -55,7 +55,7 @@ internal class AndroidProjectImpl(
     private val basicAndroidProject: BasicAndroidProject,
     private val androidProject: AndroidProject,
     private val variantDependencies: VariantDependencies,
-    private val versions: Versions,
+    private val versions: Versions?,
     private val androidDsl: AndroidDsl,
     private val detectedAgpVersion: String? = null
 ) : GradleProjectImpl(gradleProject), IAndroidProject, Serializable {
@@ -203,10 +203,11 @@ internal class AndroidProjectImpl(
     
     val agpVersion = try {
       detectedAgpVersion?.let { AndroidPluginVersion.parse(it) }
-        ?: AndroidPluginVersion.parse(versions.agp)
+        ?: versions?.agp?.let { AndroidPluginVersion.parse(it) }
+        ?: AndroidPluginVersion(7, 4, 0) // Default to AGP 7.4
     } catch (e: Exception) {
       // Handle parsing failures - use default fallback
-      log.warn("Failed to parse AGP version: ${e.message}, using default")
+      implLog.warn("Failed to parse AGP version: ${e.message}, using default")
       // Fall back to assuming AGP 7.4+ behavior (most common case)
       return applicationId
     }
@@ -218,9 +219,7 @@ internal class AndroidProjectImpl(
     }
   }
   
-  private fun log(message: String) {
-    org.slf4j.LoggerFactory.getLogger(AndroidProjectImpl::class.java).warn(message)
-  }
+  private val implLog = org.slf4j.LoggerFactory.getLogger(AndroidProjectImpl::class.java)
 
   // Adapted from the following :
   // https://cs.android.com/android-studio/platform/tools/base/+/mirror-goog-studio-main:build-system/gradle-core/src/main/java/com/android/build/gradle/internal/core/dsl/impl/ComponentDslInfoImpl.kt;drc=6a5551bdea55c0c991f1ccf1e3f8f6f3d2cd2cb7;l=107

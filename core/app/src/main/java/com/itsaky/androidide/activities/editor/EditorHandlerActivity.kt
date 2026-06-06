@@ -32,6 +32,8 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayout.Tab
+import com.itsaky.androidide.databinding.ContentEditorBinding
 import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
 import com.itsaky.androidide.fragments.editor.FragmentTabEntry
 import com.itsaky.androidide.fragments.editor.FragmentTabRegistry
@@ -199,7 +201,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
       fragmentTabManager = EditorFragmentTabManager(
         activity = this,
         binding = content,
-        containerId = R.id.fragment_container
+        containerId = content.fragmentContainer.id
       )
     }
 
