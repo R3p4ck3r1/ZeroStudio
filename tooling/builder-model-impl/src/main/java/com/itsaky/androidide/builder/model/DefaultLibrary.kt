@@ -1,18 +1,18 @@
 /*
- *  This file is part of AndroidIDE.
+ * This file is part of AndroidIDE.
  *
- *  AndroidIDE is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * AndroidIDE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  AndroidIDE is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * AndroidIDE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with AndroidIDE. If not, see <https://www.gnu.org/licenses/>.
  */
 package com.itsaky.androidide.builder.model
 
@@ -24,6 +24,37 @@ import java.io.Serializable
 
 /** @author Akash Yadav */
 class DefaultLibrary : Library, Serializable {
+  
+  companion object {
+    private const val serialVersionUID = 1L
+    
+    @JvmStatic
+    fun fromLibrary(library: Library): DefaultLibrary {
+      return DefaultLibrary().apply {
+        this.artifact = library.artifact
+        this.srcJar = library.srcJar
+        this.docJar = library.docJar
+        this.samplesJar = library.samplesJar
+        this.key = library.key
+        this.lintJar = library.lintJar
+        this.type = library.type
+        this.srcJars = library.srcJars
+        
+        library.androidLibraryData?.let { data ->
+          this.androidLibraryData = DefaultAndroidLibraryData.fromAndroidLibraryData(data)
+        }
+        
+        library.libraryInfo?.let { info ->
+          this.libraryInfo = DefaultLibraryInfo.fromLibraryInfo(info)
+        }
+        
+        library.projectInfo?.let { info ->
+          this.projectInfo = DefaultProjectInfo.fromProjectInfo(info)
+        }
+      }
+    }
+  }
+  
   private val serialVersionUID = 1L
   override var androidLibraryData: DefaultAndroidLibraryData? = null
   override var artifact: File? = null

@@ -1,18 +1,18 @@
 /*
- *  This file is part of AndroidIDE.
+ * This file is part of AndroidIDE.
  *
- *  AndroidIDE is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * AndroidIDE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  AndroidIDE is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * AndroidIDE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with AndroidIDE. If not, see <https://www.gnu.org/licenses/>.
  */
 package com.itsaky.androidide.builder.model
 
@@ -26,6 +26,42 @@ import java.io.Serializable
  * @author android_zero
  */
 class DefaultVariantDependencies : VariantDependencies, Serializable {
+
+  companion object {
+    private const val serialVersionUID = 1L
+    
+    @JvmStatic
+    fun fromVariantDependencies(deps: VariantDependencies): DefaultVariantDependencies {
+      return DefaultVariantDependencies().apply {
+        this.name = deps.name
+        this.mainArtifact = DefaultArtifactDependencies.fromDependencies(deps.mainArtifact)
+        
+        deps.androidTestArtifact?.let { 
+          this.androidTestArtifact = DefaultArtifactDependencies.fromDependencies(it)
+        }
+        
+        deps.testFixturesArtifact?.let { 
+          this.testFixturesArtifact = DefaultArtifactDependencies.fromDependencies(it)
+        }
+        
+        deps.unitTestArtifact?.let { 
+          this.unitTestArtifact = DefaultArtifactDependencies.fromDependencies(it)
+        }
+        
+        this.libraries = deps.libraries.mapValues { (key, lib) ->
+          DefaultLibrary.fromLibrary(lib)
+        }
+        
+        this.deviceTestArtifacts = deps.deviceTestArtifacts.mapValues { (_, artifact) ->
+          DefaultArtifactDependencies.fromDependencies(artifact)
+        }
+        
+        this.hostTestArtifacts = deps.hostTestArtifacts.mapValues { (_, artifact) ->
+          DefaultArtifactDependencies.fromDependencies(artifact)
+        }
+      }
+    }
+  }
 
   private val serialVersionUID = 1L
   @Deprecated("Contained in deviceTestArtifacts")
