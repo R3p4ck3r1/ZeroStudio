@@ -22,11 +22,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
-import com.itsaky.androidide.projects.ProjectManager
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.html.HtmlPlugin
-import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
 import kotlinx.coroutines.Dispatchers
@@ -218,16 +216,7 @@ fun StandardMarkdownView(
         .usePlugin(TaskListPlugin.create(ctx))
         .usePlugin(HtmlPlugin.create())
         .usePlugin(
-          CoilImagesPlugin.create(
-            context = ctx,
-            asyncDrawableLoader = { drawable, view, callback ->
-              // Handle image loading
-              if (drawable is AsyncDrawable) {
-                // Image is being loaded asynchronously
-              }
-              true
-            }
-          )
+          CoilImagesPlugin.create(ctx)
         )
         .build()
 
