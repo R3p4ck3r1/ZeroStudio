@@ -55,7 +55,7 @@ internal class AndroidProjectImpl(
     private val basicAndroidProject: BasicAndroidProject,
     private val androidProject: AndroidProject,
     private val variantDependencies: VariantDependencies,
-    private val versions: Versions,
+    private val versions: Versions?,
     private val androidDsl: AndroidDsl,
     private val detectedAgpVersion: String? = null
 ) : GradleProjectImpl(gradleProject), IAndroidProject, Serializable {
