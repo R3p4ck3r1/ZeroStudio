@@ -201,7 +201,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
       fragmentTabManager = EditorFragmentTabManager(
         activity = this,
         binding = content,
-        containerId = R.id.fragment_container
+        containerId = content.fragmentContainer.id
       )
     }
 
