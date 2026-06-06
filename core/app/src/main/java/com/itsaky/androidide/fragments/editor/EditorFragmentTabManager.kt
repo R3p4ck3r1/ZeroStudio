@@ -5,7 +5,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import com.google.android.material.tabs.TabLayout
 import com.itsaky.androidide.R
-import com.itsaky.androidide.databinding.ActivityEditorBinding
+import com.itsaky.androidide.databinding.ContentEditorBinding
 import java.io.File
 import java.util.UUID
 
@@ -22,7 +22,7 @@ import java.util.UUID
  */
 class EditorFragmentTabManager(
   private val activity: FragmentActivity,
-  private val binding: ActivityEditorBinding,
+  private val binding: ContentEditorBinding,
   private val containerId: Int
 ) {
 
