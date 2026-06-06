@@ -23,7 +23,6 @@ import com.android.builder.model.v2.models.ModelBuilderParameter
 import com.android.builder.model.v2.models.ProjectSyncIssues
 import com.android.builder.model.v2.models.VariantDependencies
 import com.android.builder.model.v2.models.Versions
-import com.itsaky.androidide.builder.model.DefaultVersions
 import com.itsaky.androidide.tooling.api.IAndroidProject
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
 import com.itsaky.androidide.tooling.impl.internal.AndroidProjectImpl
@@ -59,12 +58,8 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
     val androidModel = controller.getModelAndLog(module, AndroidProject::class.java)
     val androidDsl = controller.getModelAndLog(module, AndroidDsl::class.java)
 
-    // AGP 9.x introduces Versions interface - try to fetch it
-    // If versions was provided (not null), try to use it; otherwise fetch if available
-    val modelVersions = versions ?: fetchVersionsIfAvailable(controller, module)
-    
-    // Use fallback Versions if still null (AGP 9.x Versions model unavailable)
-    val effectiveVersions = modelVersions ?: DefaultVersions.forAgp9x(detectedAgpVersion)
+    // Use the provided Versions model (may be null for AGP < 9.x)
+    val effectiveVersions = versions
 
     val variantNames = basicModel.variants.map { it.name }
     log("${variantNames.size} build variants found for project '$projectPath': $variantNames")
@@ -144,13 +139,17 @@ class AndroidProjectModelBuilder(initializationParams: InitializeProjectParams) 
    */
   private fun detectAgpVersion(gradleProject: org.gradle.tooling.model.GradleProject): String? {
     return try {
-      val buildFile = gradleProject.projectDirectory.file("build.gradle.kts").asFile
-        .takeIf { it.exists() }
-        ?: gradleProject.projectDirectory.file("build.gradle").asFile
-          .takeIf { it.exists() }
-          ?: return null
+      val buildDir = gradleProject.projectDirectory
+      val buildFileKts = java.io.File(buildDir, "build.gradle.kts")
+      val buildFile = java.io.File(buildDir, "build.gradle")
+      
+      val buildFileToRead = when {
+        buildFileKts.exists() -> buildFileKts
+        buildFile.exists() -> buildFile
+        else -> return null
+      }
 
-      val content = buildFile.readText()
+      val content = buildFileToRead.readText()
 
       // Look for android gradle plugin version in plugins block
       val pluginsPattern = Regex(
