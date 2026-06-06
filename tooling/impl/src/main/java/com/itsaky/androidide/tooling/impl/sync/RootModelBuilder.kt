@@ -17,6 +17,7 @@
 
 package com.itsaky.androidide.tooling.impl.sync
 
+import com.android.builder.model.v2.models.BasicAndroidProject
 import com.itsaky.androidide.builder.model.DefaultProjectSyncIssues
 import com.itsaky.androidide.builder.model.DefaultSyncIssue
 import com.itsaky.androidide.builder.model.shouldBeIgnored
@@ -29,6 +30,7 @@ import com.itsaky.androidide.tooling.impl.Main.finalizeLauncher
 import com.itsaky.androidide.tooling.impl.internal.ProjectImpl
 import java.io.Serializable
 import org.gradle.tooling.ConfigurableLauncher
+import org.gradle.tooling.model.Model
 import org.gradle.tooling.model.build.BuildEnvironment
 import org.gradle.tooling.model.gradle.GradleBuild
 import org.gradle.tooling.model.idea.IdeaProject
@@ -64,6 +66,10 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
               ?: throw ModelBuilderException("Unable to find root project")
 
       val rootProjectVersions = getAndroidVersions(rootModule, controller)
+      
+      // For AGP 9.x, the Versions model might not be available, so we also try
+      // to fetch BasicAndroidProject as a fallback to detect Android projects
+      val isAndroidProject = rootProjectVersions != null || isBasicAndroidProject(controller, rootModule)
 
       val syncIssues = hashSetOf<DefaultSyncIssue>()
       val syncIssueReporter = ISyncIssueReporter {
@@ -77,9 +83,11 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
       }
 
       val rootProject =
-          if (rootProjectVersions != null) {
+          if (isAndroidProject) {
             // Root project is an Android project
-            checkAgpVersion(rootProjectVersions, syncIssueReporter)
+            if (rootProjectVersions != null) {
+              checkAgpVersion(rootProjectVersions, syncIssueReporter)
+            }
             AndroidProjectModelBuilder(initializationParams)
                 .build(
                     AndroidProjectModelBuilderParams(
@@ -140,5 +148,17 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
 
   private fun ConfigurableLauncher<*>.addProperty(property: String, value: Any) {
     addArguments(String.format("-P%s=%s", property, value))
+  }
+  
+  /**
+   * Checks if the given model represents a BasicAndroidProject.
+   * This is used as a fallback when the Versions model is not available (AGP 9.x).
+   */
+  private fun isBasicAndroidProject(controller: org.gradle.tooling.BuildController, model: Model): Boolean {
+    return try {
+      controller.findModel(model, BasicAndroidProject::class.java) != null
+    } catch (e: Exception) {
+      false
+    }
   }
 }

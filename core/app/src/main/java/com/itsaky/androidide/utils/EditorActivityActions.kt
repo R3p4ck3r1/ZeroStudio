@@ -42,6 +42,7 @@ import com.itsaky.androidide.actions.etc.LaunchAppAction
 import com.itsaky.androidide.actions.etc.PreviewComposeAction
 import com.itsaky.androidide.actions.etc.PreviewLayoutAction
 import com.itsaky.androidide.actions.etc.ReloadColorSchemesAction
+import com.itsaky.androidide.actions.etc.markdown.MarkdownPreviewAction
 import com.itsaky.androidide.actions.file.CloseAllFilesAction
 import com.itsaky.androidide.actions.file.CloseFileAction
 import com.itsaky.androidide.actions.file.CloseOtherFilesAction
@@ -86,6 +87,7 @@ class EditorActivityActions {
       registry.registerAction(CursorActionsMenu(context, order++))
       registry.registerAction(PreviewLayoutAction(context, order++))
       registry.registerAction(PreviewComposeAction(context, order++))
+      registry.registerAction(MarkdownPreviewAction(context, order++))
       registry.registerAction(FindActionMenu(context, order++))
       registry.registerAction(ProjectSyncAction(context, order++))
       registry.registerAction(ReloadColorSchemesAction(context, order++))
@@ -104,6 +106,7 @@ class EditorActivityActions {
       registry.registerAction(ExpandSelectionAction(context, order++))
       registry.registerAction(FormatCodeAction(context, order++))
       registry.registerAction(SystemTextMenuAction(context, order++))
+      registry.registerAction(EditorEditLineMenuAction(context, order++))
 
       // file tab actions
       registry.registerAction(CloseFileAction(context, order++))

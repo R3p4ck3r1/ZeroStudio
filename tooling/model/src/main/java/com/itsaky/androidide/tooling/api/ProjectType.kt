@@ -39,6 +39,15 @@ enum class ProjectType {
    */
   Java,
 
+  /** A Spring Boot project. */
+  SpringBoot,
+
+  /** A Kotlin JVM project (application or library). */
+  KotlinJvm,
+
+  /** A Gradle plugin project. */
+  GradlePlugin,
+
   /** An unknown project type. */
   Unknown,
 }

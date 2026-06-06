@@ -59,14 +59,24 @@ abstract class AbstractModelBuilder<P, R>(
      * [UnsupportedOperationException]. If the version is greater than the
      * [AndroidPluginVersion.LATEST_TESTED], warns the user.
      *
+     * This method handles parsing failures gracefully for AGP 9.x versions that might have
+     * non-standard version strings.
+     *
      * @param versions The [Versions] model.
      * @param syncIssueReporter [ISyncIssueReporter] for reporting issues with the Android Gradle
      *   Plugin version.
      */
     @JvmStatic
     protected fun checkAgpVersion(versions: Versions, syncIssueReporter: ISyncIssueReporter) {
-
-      val agpVersion = AndroidPluginVersion.parse(versions.agp)
+      val agpVersion = try {
+        AndroidPluginVersion.parse(versions.agp)
+      } catch (e: Exception) {
+        // Handle parsing failures for AGP 9.x versions
+        log("Failed to parse AGP version from Versions model: ${e.message}")
+        // Emit a warning but don't fail the build
+        warnAboutUnknownVersion(syncIssueReporter)
+        return
+      }
 
       // The build should fail if the user is using an older version of AGP
       if (agpVersion < MINIMUM_SUPPORTED) {
@@ -97,8 +107,32 @@ abstract class AbstractModelBuilder<P, R>(
     }
 
     /**
+     * Warns about an unknown AGP version that couldn't be parsed.
+     */
+    @JvmStatic
+    private fun warnAboutUnknownVersion(syncIssueReporter: ISyncIssueReporter) {
+      if (!newerAgpWarned.get()) {
+        val syncIssue =
+            DefaultSyncIssue(
+                data = "unknown:unknown",
+                message =
+                    "Could not determine Android Gradle Plugin version. " +
+                        "The project may be using an unsupported AGP version.",
+                multiLineMessage = null,
+                severity = SyncIssue.SEVERITY_WARNING,
+                type = IDESyncIssue.TYPE_AGP_VERSION_TOO_NEW,
+            )
+        syncIssueReporter.report(syncIssue)
+        newerAgpWarned.set(true)
+      }
+    }
+
+    /**
      * Get the [Versions] information about Android projects. This returns `null` if the project is
-     * not an Android project.
+     * not an Android project or if the Versions model cannot be fetched.
+     *
+     * For AGP 9.x, this method handles the case where the Versions model might not be
+     * available or throws exceptions.
      *
      * @param model The model element, usually a project.
      * @param controller The build controller that is used for finding the model.
@@ -106,7 +140,14 @@ abstract class AbstractModelBuilder<P, R>(
      */
     @JvmStatic
     protected fun getAndroidVersions(model: Model, controller: BuildController): Versions? {
-      return controller.findModel(model, Versions::class.java)
+      return try {
+        controller.findModel(model, Versions::class.java)
+      } catch (e: Exception) {
+        // AGP 9.x may throw exceptions when trying to fetch Versions model
+        // Fall back to null and handle gracefully in the caller
+        log("Failed to fetch Versions model: ${e.message}")
+        null
+      }
     }
 
     /**

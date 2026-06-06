@@ -18,6 +18,7 @@
 package com.itsaky.androidide.tooling.api.models
 
 import java.io.File
+import java.io.Serializable
 
 /** Serializable snapshot of Gradle's BuildEnvironment model. */
 data class GradleBuildEnvironment(
@@ -25,14 +26,23 @@ data class GradleBuildEnvironment(
     val gradle: GradleRuntimeEnvironment?,
     val java: GradleJavaEnvironment?,
     val versionInfo: String? = null,
-)
+) : Serializable {
+
+    private val serialVersionUID = 1L
+}
 
 data class GradleRuntimeEnvironment(
     val gradleUserHome: File?,
     val gradleVersion: String?,
-)
+) : Serializable {
+
+    private val serialVersionUID = 1L
+}
 
 data class GradleJavaEnvironment(
     val javaHome: File?,
     val jvmArguments: List<String> = emptyList(),
-)
+) : Serializable {
+
+    private val serialVersionUID = 1L
+}

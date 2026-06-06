@@ -18,6 +18,7 @@
 package com.itsaky.androidide.tooling.api.models
 
 import java.io.File
+import java.io.Serializable
 
 /** Serializable snapshot of Gradle's GradleBuild model. */
 data class GradleBuildMetadata(
@@ -26,4 +27,7 @@ data class GradleBuildMetadata(
     val projectPaths: List<String> = emptyList(),
     val includedBuildIds: List<String> = emptyList(),
     val editableBuildIds: List<String> = emptyList(),
-)
+) : Serializable {
+
+    private val serialVersionUID = 1L
+}

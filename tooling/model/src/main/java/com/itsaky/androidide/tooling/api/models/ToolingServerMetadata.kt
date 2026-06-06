@@ -17,10 +17,15 @@
 
 package com.itsaky.androidide.tooling.api.models
 
+import java.io.Serializable
+
 /**
  * Metadata about the tooling server.
  *
  * @param pid The process id of the tooling server.
  * @author Akash Yadav
  */
-data class ToolingServerMetadata(val pid: Int)
+data class ToolingServerMetadata(val pid: Int) : Serializable {
+
+    private val serialVersionUID = 1L
+}
