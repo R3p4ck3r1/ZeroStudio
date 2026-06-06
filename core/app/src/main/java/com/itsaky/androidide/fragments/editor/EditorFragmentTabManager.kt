@@ -151,7 +151,10 @@ class EditorFragmentTabManager(
     // Update tab selection in TabLayout
     val tabIndex = findTabIndex(tabId)
     if (tabIndex >= 0) {
-      binding.tabs.selectTab(binding.tabs.getTabAt(tabIndex))
+      val tab = binding.tabs.getTabAt(tabIndex)
+      if (tab != null) {
+        binding.tabs.selectTab(tab)
+      }
     }
 
     // Show the fragment, hide others
@@ -166,7 +169,12 @@ class EditorFragmentTabManager(
    * @return The id of the current tab, or null if no tabs are open
    */
   fun getCurrentTabId(): String? {
-    val selectedTab = binding.tabs.selectedTab
+    val selectedTabPosition = binding.tabs.selectedTabPosition
+    val selectedTab = if (selectedTabPosition != -1) {
+      binding.tabs.getTabAt(selectedTabPosition)
+    } else {
+      null
+    }
     return selectedTab?.tag as? String
   }
 
