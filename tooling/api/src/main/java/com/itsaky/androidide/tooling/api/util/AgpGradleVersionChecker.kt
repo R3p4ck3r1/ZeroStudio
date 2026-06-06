@@ -46,6 +46,11 @@ object AgpGradleVersionChecker {
    * Based on official Android documentation.
    */
   private val AGP_TO_GRADLE_MIN_VERSION = mapOf(
+    "7.0" to "7.0",
+    "7.1" to "7.2",
+    "7.2" to "7.3.3",
+    "7.3" to "7.4",
+    "7.4" to "7.5",
     "8.0" to "8.0",
     "8.1" to "8.0",
     "8.2" to "8.2",
@@ -64,6 +69,11 @@ object AgpGradleVersionChecker {
    * Maximum recommended Gradle version for each major AGP version.
    */
   private val AGP_TO_GRADLE_MAX_VERSION = mapOf(
+    "7.0" to "7.6",
+    "7.1" to "7.6",
+    "7.2" to "7.6",
+    "7.3" to "7.6",
+    "7.4" to "7.6",
     "8.0" to "8.5",
     "8.1" to "8.6",
     "8.2" to "8.7",
@@ -87,6 +97,29 @@ object AgpGradleVersionChecker {
    * Minimum supported Gradle version.
    */
   const val MIN_SUPPORTED_GRADLE_VERSION = "7.0"
+
+  /**
+   * Compare two semantic version strings.
+   *
+   * @param version1 First version to compare
+   * @param version2 Second version to compare
+   * @return -1 if version1 < version2, 0 if equal, 1 if version1 > version2
+   */
+  fun compareSemanticVersions(version1: String, version2: String): Int {
+    val parts1 = version1.split(".").mapNotNull { it.toIntOrNull() }
+    val parts2 = version2.split(".").mapNotNull { it.toIntOrNull() }
+    
+    val maxLength = maxOf(parts1.size, parts2.size)
+    for (i in 0 until maxLength) {
+      val v1 = if (i < parts1.size) parts1[i] else 0
+      val v2 = if (i < parts2.size) parts2[i] else 0
+      
+      if (v1 < v2) return -1
+      if (v1 > v2) return 1
+    }
+    
+    return 0
+  }
 
   /**
    * Check if the given AGP and Gradle versions are compatible.
@@ -114,7 +147,6 @@ object AgpGradleVersionChecker {
 
     // Get AGP major.minor version for lookup
     val agpMajorMinor = getMajorMinorVersion(cleanAgpVersion)
-    val gradleMajorMinor = getMajorMinorVersion(cleanGradleVersion)
 
     // Check minimum required Gradle version for this AGP version
     val minGradleVersion = AGP_TO_GRADLE_MIN_VERSION[agpMajorMinor]
@@ -131,6 +163,11 @@ object AgpGradleVersionChecker {
     val maxGradleVersion = AGP_TO_GRADLE_MAX_VERSION[agpMajorMinor]
     if (maxGradleVersion != null && compareSemanticVersions(cleanGradleVersion, maxGradleVersion) > 0) {
       warnings.add("Gradle $gradleVersion is newer than recommended version $maxGradleVersion for AGP $agpVersion. Some features may not work correctly.")
+    }
+
+    // Check for AGP 9.x compatibility with Gradle 9.x
+    if (isAgp9xOrNewer(agpVersion) && !isGradle9xOrNewer(gradleVersion)) {
+      warnings.add("AGP $agpVersion works best with Gradle 9.x. Consider upgrading Gradle for better compatibility.")
     }
 
     return CompatibilityResult(
@@ -152,6 +189,13 @@ object AgpGradleVersionChecker {
     val cleanAgpVersion = cleanVersion(agpVersion)
     val agpMajorMinor = getMajorMinorVersion(cleanAgpVersion)
     return AGP_TO_GRADLE_MIN_VERSION[agpMajorMinor]
+  }
+
+  /**
+   * Get all known compatible AGP and Gradle version pairs.
+   */
+  fun getKnownCompatibleVersions(): List<Pair<String, String>> {
+    return AGP_TO_GRADLE_MIN_VERSION.entries.map { (agp, gradle) -> agp to gradle }
   }
 
   /**
