@@ -24,16 +24,41 @@ import java.io.Serializable
 /** @author Akash Yadav */
 class DefaultJavaArtifact : JavaArtifact, Serializable {
 
-  private val serialVersionUID = 1L
-  override var modelSyncFiles: Collection<Void> = emptyList()
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultJavaArtifact instance from a JavaArtifact model.
+         *
+         * @param artifact The JavaArtifact model from AGP
+         * @return A DefaultJavaArtifact instance
+         */
+        @JvmStatic
+        fun fromJavaArtifact(artifact: JavaArtifact): DefaultJavaArtifact {
+            return DefaultJavaArtifact().apply {
+                this.assembleTaskName = artifact.assembleTaskName
+                this.classesFolders = artifact.classesFolders
+                this.compileTaskName = artifact.compileTaskName
+                this.generatedSourceFolders = artifact.generatedSourceFolders
+                this.ideSetupTaskNames = artifact.ideSetupTaskNames
+                this.mockablePlatformJar = artifact.mockablePlatformJar
+                this.runtimeResourceFolder = artifact.runtimeResourceFolder
+                this.modelSyncFiles = artifact.modelSyncFiles
+                this.generatedClassPaths = artifact.generatedClassPaths
+                this.bytecodeTransformations = artifact.bytecodeTransformations
+            }
+        }
+    }
+    
+    override var modelSyncFiles: Collection<Void> = emptyList()
 
-  override var assembleTaskName: String = ""
-  override var classesFolders: Set<File> = emptySet()
-  override var compileTaskName: String = ""
-  override var generatedSourceFolders: Collection<File> = emptyList()
-  override var ideSetupTaskNames: Set<String> = emptySet()
-  override var mockablePlatformJar: File? = null
-  override var runtimeResourceFolder: File? = null
-  override val generatedClassPaths: Map<String, File> = emptyMap()
-  override val bytecodeTransformations: Collection<BytecodeTransformation> = emptyList()
+    override var assembleTaskName: String = ""
+    override var classesFolders: Set<File> = emptySet()
+    override var compileTaskName: String = ""
+    override var generatedSourceFolders: Collection<File> = emptyList()
+    override var ideSetupTaskNames: Set<String> = emptySet()
+    override var mockablePlatformJar: File? = null
+    override var runtimeResourceFolder: File? = null
+    override val generatedClassPaths: Map<String, File> = emptyMap()
+    override val bytecodeTransformations: Collection<BytecodeTransformation> = emptyList()
 }

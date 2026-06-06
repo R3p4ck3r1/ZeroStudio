@@ -21,8 +21,32 @@ import java.io.Serializable
 
 /** @author Akash Yadav */
 class DefaultArtifactDependencies : ArtifactDependencies, Serializable {
-  private val serialVersionUID = 1L
-  override var compileDependencies: List<DefaultGraphItem> = emptyList()
-  override var runtimeDependencies: List<DefaultGraphItem> = emptyList()
-  override var unresolvedDependencies: List<DefaultUnresolvedDependency> = emptyList()
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultArtifactDependencies instance from an ArtifactDependencies model.
+         *
+         * @param dependencies The ArtifactDependencies model from AGP
+         * @return A DefaultArtifactDependencies instance
+         */
+        @JvmStatic
+        fun fromDependencies(dependencies: ArtifactDependencies): DefaultArtifactDependencies {
+            return DefaultArtifactDependencies().apply {
+                this.compileDependencies = dependencies.compileDependencies.map { 
+                    DefaultGraphItem.fromGraphItem(it) 
+                }
+                this.runtimeDependencies = dependencies.runtimeDependencies.map { 
+                    DefaultGraphItem.fromGraphItem(it) 
+                }
+                this.unresolvedDependencies = dependencies.unresolvedDependencies.map { 
+                    DefaultUnresolvedDependency.fromUnresolvedDependency(it) 
+                }
+            }
+        }
+    }
+    
+    override var compileDependencies: List<DefaultGraphItem> = emptyList()
+    override var runtimeDependencies: List<DefaultGraphItem> = emptyList()
+    override var unresolvedDependencies: List<DefaultUnresolvedDependency> = emptyList()
 }

@@ -30,5 +30,28 @@ data class DefaultProjectInfo(
     override val buildId: String,
     override val projectPath: String,
 ) : ProjectInfo, Serializable {
-  private val serialVersionUID = 1L
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultProjectInfo instance from a ProjectInfo model.
+         *
+         * @param projectInfo The ProjectInfo model from AGP
+         * @return A DefaultProjectInfo instance
+         */
+        @JvmStatic
+        fun fromProjectInfo(projectInfo: ProjectInfo): DefaultProjectInfo {
+            return DefaultProjectInfo(
+                attributes = projectInfo.attributes,
+                buildType = projectInfo.buildType,
+                capabilities = projectInfo.capabilities,
+                isTestFixtures = projectInfo.isTestFixtures,
+                productFlavors = projectInfo.productFlavors,
+                buildId = projectInfo.buildId,
+                projectPath = projectInfo.projectPath
+            )
+        }
+    }
+    
+    private val serialVersionUID = 1L
 }

@@ -21,8 +21,28 @@ import java.io.Serializable
 
 /** @author Akash Yadav */
 class DefaultGraphItem : GraphItem, Serializable {
-  private val serialVersionUID = 1L
-  override var dependencies: List<DefaultGraphItem> = mutableListOf()
-  override var key: String = ""
-  override var requestedCoordinates: String? = ""
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultGraphItem instance from a GraphItem model.
+         *
+         * @param graphItem The GraphItem model from AGP
+         * @return A DefaultGraphItem instance
+         */
+        @JvmStatic
+        fun fromGraphItem(graphItem: GraphItem): DefaultGraphItem {
+            return DefaultGraphItem().apply {
+                this.dependencies = graphItem.dependencies.map { 
+                    fromGraphItem(it) 
+                }
+                this.key = graphItem.key
+                this.requestedCoordinates = graphItem.requestedCoordinates
+            }
+        }
+    }
+    
+    override var dependencies: List<DefaultGraphItem> = mutableListOf()
+    override var key: String = ""
+    override var requestedCoordinates: String? = ""
 }

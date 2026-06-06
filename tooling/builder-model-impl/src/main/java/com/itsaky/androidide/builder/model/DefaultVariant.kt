@@ -5,8 +5,7 @@
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- *
- *  AndroidIDE is distributed in the hope that it will be useful,
+ * *  AndroidIDE is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
@@ -29,10 +28,61 @@ import java.io.Serializable
  *
  * Update: Added missing interface implementations: testSuiteArtifacts, experimentalProperties to
  * fix compilation errors.
+ * Added fromVariant() factory method to support model mapping from AGP v2.
  */
 class DefaultVariant : Variant, Serializable {
 
-  private val serialVersionUID = 1L
+  companion object {
+    private const val serialVersionUID = 1L
+    
+    /**
+     * Create a DefaultVariant instance from a Variant model.
+     *
+     * @param variant The Variant model from AGP
+     * @return A DefaultVariant instance
+     */
+    @JvmStatic
+    fun fromVariant(variant: Variant): DefaultVariant {
+      return DefaultVariant().apply {
+        this.name = variant.name
+        this.displayName = variant.displayName
+        this.isInstantAppCompatible = variant.isInstantAppCompatible
+        this.desugaredMethods = variant.desugaredMethods
+        this.mainArtifact = DefaultAndroidArtifact.fromArtifact(variant.mainArtifact)
+        
+        variant.androidTestArtifact?.let {
+          this.androidTestArtifact = DefaultAndroidArtifact.fromArtifact(it)
+        }
+        
+        variant.testFixturesArtifact?.let {
+          this.testFixturesArtifact = DefaultAndroidArtifact.fromArtifact(it)
+        }
+        
+        variant.testedTargetVariant?.let {
+          this.testedTargetVariant = DefaultTestedTargetVariant.fromTestedTargetVariant(it)
+        }
+        
+        variant.unitTestArtifact?.let {
+          this.unitTestArtifact = DefaultJavaArtifact.fromJavaArtifact(it)
+        }
+        
+        this.deviceTestArtifacts = variant.deviceTestArtifacts.mapValues { (_, artifact) ->
+          DefaultAndroidArtifact.fromArtifact(artifact)
+        }
+        
+        this.hostTestArtifacts = variant.hostTestArtifacts.mapValues { (_, artifact) ->
+          DefaultJavaArtifact.fromJavaArtifact(artifact)
+        }
+        
+        this.testSuiteArtifacts = variant.testSuiteArtifacts.mapValues { (_, artifact) ->
+          DefaultTestSuiteArtifact.fromArtifact(artifact)
+        }
+        
+        this.experimentalProperties = variant.experimentalProperties
+      }
+    }
+  }
+  
   @Deprecated("Contained in deviceTestArtifacts")
   override var androidTestArtifact: DefaultAndroidArtifact? = null
   override var displayName: String = ""

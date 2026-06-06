@@ -22,7 +22,24 @@ import java.io.Serializable
 
 /** @author Akash Yadav */
 class DefaultTestedTargetVariant : TestedTargetVariant, Serializable {
-  private val serialVersionUID = 1L
-  override var targetProjectPath: String = ""
-  override var targetVariant: String = ""
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultTestedTargetVariant instance from a TestedTargetVariant model.
+         *
+         * @param targetVariant The TestedTargetVariant model from AGP
+         * @return A DefaultTestedTargetVariant instance
+         */
+        @JvmStatic
+        fun fromTestedTargetVariant(targetVariant: TestedTargetVariant): DefaultTestedTargetVariant {
+            return DefaultTestedTargetVariant().apply {
+                this.targetProjectPath = targetVariant.targetProjectPath
+                this.targetVariant = targetVariant.targetVariant
+            }
+        }
+    }
+    
+    override var targetProjectPath: String = ""
+    override var targetVariant: String = ""
 }
