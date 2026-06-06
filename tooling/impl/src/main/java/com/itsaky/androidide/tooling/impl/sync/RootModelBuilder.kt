@@ -17,17 +17,21 @@
 
 package com.itsaky.androidide.tooling.impl.sync
 
+import com.android.builder.model.v2.ide.SyncIssue
 import com.android.builder.model.v2.models.BasicAndroidProject
 import com.itsaky.androidide.builder.model.DefaultProjectSyncIssues
 import com.itsaky.androidide.builder.model.DefaultSyncIssue
+import com.itsaky.androidide.builder.model.IDESyncIssue
 import com.itsaky.androidide.builder.model.shouldBeIgnored
 import com.itsaky.androidide.tooling.api.IAndroidProject
 import com.itsaky.androidide.tooling.api.IProject
 import com.itsaky.androidide.tooling.api.messages.InitializeProjectParams
+import com.itsaky.androidide.tooling.api.util.AgpGradleVersionChecker
 import com.itsaky.androidide.tooling.api.util.AndroidModulePropertyCopier
 import com.itsaky.androidide.tooling.impl.Main
 import com.itsaky.androidide.tooling.impl.Main.finalizeLauncher
 import com.itsaky.androidide.tooling.impl.internal.ProjectImpl
+import java.io.File
 import java.io.Serializable
 import org.gradle.tooling.ConfigurableLauncher
 import org.gradle.tooling.model.Model
@@ -80,6 +84,16 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
 
         val issue = it as? DefaultSyncIssue ?: AndroidModulePropertyCopier.copy(it)
         syncIssues.add(issue)
+      }
+
+      // Check AGP and Gradle version compatibility for Android projects
+      if (isAndroidProject) {
+        val detectedAgpVersion = detectAgpVersion(rootModule.gradleProject)
+        val gradleVersion = buildEnvironment?.gradle?.gradleVersion
+        
+        if (detectedAgpVersion != null && gradleVersion != null) {
+          checkAgpGradleCompatibility(detectedAgpVersion, gradleVersion, syncIssueReporter)
+        }
       }
 
       val rootProject =
@@ -160,5 +174,72 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
     } catch (e: Exception) {
       false
     }
+  }
+
+  /**
+   * Detect the AGP version from the Gradle project's build file.
+   */
+  private fun detectAgpVersion(gradleProject: org.gradle.tooling.model.GradleProject): String? {
+    return try {
+      val buildFile = gradleProject.projectDirectory.file("build.gradle.kts").asFile
+        .takeIf { it.exists() }
+        ?: gradleProject.projectDirectory.file("build.gradle").asFile
+          .takeIf { it.exists() }
+          ?: return null
+
+      val content = buildFile.readText()
+
+      // Look for android gradle plugin version in plugins block
+      val pluginsPattern = Regex(
+        """id\(["']com\.android\.(application|library|feature|dynamic-feature)["']\)\s*version\s*["'](.+?)["']"""
+      )
+      pluginsPattern.find(content)?.groupValues?.getOrNull(2)?.let { return it }
+
+      // Look in buildscript classpath
+      val buildscriptPattern = Regex(
+        """classpath\s+["']com\.android\.tools\.build:gradle:(.+?)["']"""
+      )
+      buildscriptPattern.find(content)?.groupValues?.getOrNull(1)
+    } catch (e: Exception) {
+      log.debug("Failed to detect AGP version: {}", e.message)
+      null
+    }
+  }
+
+  /**
+   * Check AGP and Gradle version compatibility and report any issues to syncIssueReporter.
+   */
+  private fun checkAgpGradleCompatibility(
+      agpVersion: String,
+      gradleVersion: String,
+      syncIssueReporter: ISyncIssueReporter
+  ) {
+    val result = AgpGradleVersionChecker.checkCompatibility(agpVersion, gradleVersion)
+    
+    // Report compatibility issues
+    result.issues.forEach { issueMessage ->
+      val syncIssue = DefaultSyncIssue(
+        data = "$agpVersion:$gradleVersion",
+        message = issueMessage,
+        multiLineMessage = null,
+        severity = SyncIssue.SEVERITY_ERROR,
+        type = IDESyncIssue.TYPE_AGP_VERSION_TOO_NEW
+      )
+      syncIssueReporter.report(syncIssue)
+    }
+    
+    // Report compatibility warnings
+    result.warnings.forEach { warningMessage ->
+      val syncIssue = DefaultSyncIssue(
+        data = "$agpVersion:$gradleVersion",
+        message = warningMessage,
+        multiLineMessage = null,
+        severity = SyncIssue.SEVERITY_WARNING,
+        type = SyncIssue.TYPE_UNRESOLVED_DEPENDENCY
+      )
+      syncIssueReporter.report(syncIssue)
+    }
+    
+    log.info("AGP and Gradle version compatibility check: ${if (result.isCompatible) "compatible" else "incompatible"}")
   }
 }
