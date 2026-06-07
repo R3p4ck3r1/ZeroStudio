@@ -282,7 +282,7 @@ Bạn có chắc chắn muốn xóa caches không?</string>
     <string name="idepref_useIcu_title">Sử dụng thư viện ICU</string>
     <string name="idepref_useIcu_summary">Sử dụng thư viện ICU để lấy biên từ cho việc chọn từ bằng cách nhấn đúp và nhấn giữ.</string>
     <string name="msg_drawer_for_files">Mở ngăn kéo bên trái để lấy @@files@@.</string>
-     <string name="msg_drawer_for_files">Mở ngăn kéo bên trái cho @@files@@.</string>
+     
     <string name="msg_swipe_for_output">Vuốt lên để xem @@kết quả xây dựng@@.</string>
     <string name="idepref_editor_useSoftTabs_title">Sử dụng tab mềm</string>
     <string name="idepref_editor_useSoftTabs_summary">Chọn xem có sử dụng khoảng trắng thay vì ký tự tab (\t) hay không.</string>

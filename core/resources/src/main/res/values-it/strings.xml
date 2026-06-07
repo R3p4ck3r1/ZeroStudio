@@ -282,7 +282,7 @@ Sei sicuro di voler eliminare le cache?</string>
     <string name="idepref_useIcu_title">Usa la libreria ICU</string>
     <string name="idepref_useIcu_summary">Usa la libreria ICU per recuperare i bordi delle parole per la selezione delle parole con doppio tap e pressione prolungata.</string>
     <string name="msg_drawer_for_files">Apri il cassetto sinistro per @@files@@.</string>
-     <string name="msg_drawer_for_files">Apri il cassetto sinistro per @@files@@.</string>
+     
     <string name="msg_swipe_for_output">Scorri verso l\'alto per @@build output@@.</string>
     <string name="idepref_editor_useSoftTabs_title">Usa tabulazioni morbide</string>
     <string name="idepref_editor_useSoftTabs_summary">Scegli se utilizzare spazi invece del carattere di tabulazione (\t).</string>

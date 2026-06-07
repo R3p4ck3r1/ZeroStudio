@@ -594,7 +594,7 @@ Dernier projet ouvert : \n%s</string>
     <string
           name="idepref_editor_category_java"
           translatable="false">Java</string>
-    <string name="msg_drawer_for_files">Open the left drawer for @@files@@.</string>
+    
     <string
           name="xml"
           translatable="false">XML</string>
