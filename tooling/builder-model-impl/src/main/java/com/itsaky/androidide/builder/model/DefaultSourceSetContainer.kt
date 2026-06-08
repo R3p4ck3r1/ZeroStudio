@@ -29,7 +29,7 @@ class DefaultSourceSetContainer : SourceSetContainer, Serializable {
     @JvmStatic
     fun fromSourceSetContainer(sourceSetContainer: SourceSetContainer): DefaultSourceSetContainer {
       return DefaultSourceSetContainer().apply {
-        this.sourceProvider = sourceSetContainer.sourceProvider?.let { DefaultSourceProvider.fromSourceProvider(it) }
+        this.sourceProvider = sourceSetContainer.sourceProvider?.let { DefaultSourceProvider.fromSourceProvider(it) } ?: DefaultSourceProvider()
 
         sourceSetContainer.androidTestSourceProvider?.let {
           this.androidTestSourceProvider = DefaultSourceProvider.fromSourceProvider(it)
@@ -57,7 +57,7 @@ class DefaultSourceSetContainer : SourceSetContainer, Serializable {
   private val serialVersionUID = 1L
   @Deprecated("Contained in deviceTestSourceProviders")
   override var androidTestSourceProvider: DefaultSourceProvider? = null
-  override var sourceProvider: DefaultSourceProvider? = null
+  override var sourceProvider: DefaultSourceProvider = DefaultSourceProvider()
   override var testFixturesSourceProvider: DefaultSourceProvider? = null
   @Deprecated("Contained in hostTestSourceProviders")
   override var unitTestSourceProvider: DefaultSourceProvider? = null
