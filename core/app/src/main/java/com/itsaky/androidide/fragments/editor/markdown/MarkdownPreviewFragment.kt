@@ -67,7 +67,7 @@ class MarkdownPreviewFragment : Fragment() {
     /**
      * Creates a new instance of MarkdownPreviewFragment with the given file path.
      *
-     * @param filePath The path to the Markdown file to preview
+     * @param filePath The path of the file to open
      * @return A new MarkdownPreviewFragment instance
      */
     fun newInstance(filePath: String): MarkdownPreviewFragment {

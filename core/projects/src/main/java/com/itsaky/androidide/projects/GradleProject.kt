@@ -49,5 +49,5 @@ open class GradleProject(
 ) {
 
   var type: ProjectType = ProjectType.Gradle
-    protected set
+    internal set
 }
