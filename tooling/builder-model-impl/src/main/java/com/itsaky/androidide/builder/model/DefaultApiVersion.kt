@@ -22,8 +22,24 @@ import java.io.Serializable
 
 /** @author Akash Yadav */
 class DefaultApiVersion : ApiVersion, Serializable {
-  private val serialVersionUID = 1L
-
-  override var apiLevel: Int = -1
-  override var codename: String? = null
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultApiVersion instance from an ApiVersion model.
+         *
+         * @param apiVersion The ApiVersion model from AGP
+         * @return A DefaultApiVersion instance
+         */
+        @JvmStatic
+        fun fromApiVersion(apiVersion: ApiVersion): DefaultApiVersion {
+            return DefaultApiVersion().apply {
+                this.apiLevel = apiVersion.apiLevel
+                this.codename = apiVersion.codename
+            }
+        }
+    }
+    
+    override var apiLevel: Int = -1
+    override var codename: String? = null
 }

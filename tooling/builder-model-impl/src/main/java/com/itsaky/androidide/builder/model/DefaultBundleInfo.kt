@@ -23,9 +23,28 @@ import java.io.Serializable
 
 /** @author Akash Yadav */
 class DefaultBundleInfo : BundleInfo, Serializable {
-  private val serialVersionUID = 1L
-  override var apkFromBundleTaskName: String = ""
-  override var apkFromBundleTaskOutputListingFile: File = File(".")
-  override var bundleTaskName: String = ""
-  override var bundleTaskOutputListingFile: File = File(".")
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultBundleInfo instance from a BundleInfo model.
+         *
+         * @param bundleInfo The BundleInfo model from AGP
+         * @return A DefaultBundleInfo instance
+         */
+        @JvmStatic
+        fun fromBundleInfo(bundleInfo: BundleInfo): DefaultBundleInfo {
+            return DefaultBundleInfo().apply {
+                this.apkFromBundleTaskName = bundleInfo.apkFromBundleTaskName
+                this.apkFromBundleTaskOutputListingFile = bundleInfo.apkFromBundleTaskOutputListingFile
+                this.bundleTaskName = bundleInfo.bundleTaskName
+                this.bundleTaskOutputListingFile = bundleInfo.bundleTaskOutputListingFile
+            }
+        }
+    }
+    
+    override var apkFromBundleTaskName: String = ""
+    override var apkFromBundleTaskOutputListingFile: File = File(".")
+    override var bundleTaskName: String = ""
+    override var bundleTaskOutputListingFile: File = File(".")
 }

@@ -23,5 +23,23 @@ import java.io.Serializable
 /** @author Akash Yadav */
 data class DefaultUnresolvedDependency(override val cause: String?, override val name: String) :
     UnresolvedDependency, Serializable {
-  private val serialVersionUID = 1L
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultUnresolvedDependency instance from an UnresolvedDependency model.
+         *
+         * @param unresolvedDependency The UnresolvedDependency model from AGP
+         * @return A DefaultUnresolvedDependency instance
+         */
+        @JvmStatic
+        fun fromUnresolvedDependency(unresolvedDependency: UnresolvedDependency): DefaultUnresolvedDependency {
+            return DefaultUnresolvedDependency(
+                cause = unresolvedDependency.cause,
+                name = unresolvedDependency.name
+            )
+        }
+    }
+    
+    private val serialVersionUID = 1L
 }

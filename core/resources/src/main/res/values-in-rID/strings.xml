@@ -288,6 +288,7 @@
   <string name="idepref_useIcu_summary">Gunakan perpustakaan ICU untuk menggunakan ambil tepi kata untuk pemilihan kata ketuk dua kali dan tekan lama.</string>
   <!--The text sorrounded with '@@' is spanned as clickable.-->
   <!--There must be exactly two '@@' sorrounding the text that should be clickable.-->
+     <string name="msg_drawer_for_files">Buka laci kiri untuk @@files@@.</string>
   <string name="msg_swipe_for_output">Geser ke atas untuk @@build output@@.</string>
   <string name="idepref_editor_useSoftTabs_title">Gunakan soft tab</string>
   <string name="idepref_editor_useSoftTabs_summary">Pilih apakah akan menggunakan spasi alih-alih karakter tab (\\t).</string>
@@ -592,7 +593,7 @@
     <string
           name="idepref_editor_category_java"
           translatable="false">Java</string>
-    <string name="msg_drawer_for_files">Open the left drawer for @@files@@.</string>
+    
     <string
           name="xml"
           translatable="false">XML</string>

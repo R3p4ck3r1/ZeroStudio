@@ -1,37 +1,21 @@
 package com.itsaky.androidide.fragments.editor.markdown
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.graphics.Bitmap
-import android.net.Uri
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
 import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
-import io.noties.markwon.Markwon
-import io.noties.markwon.ext.tasklist.TaskListPlugin
-import io.noties.markwon.html.HtmlPlugin
-import io.noties.markwon.image.coil.CoilImagesPlugin
-import io.noties.markwon.linkify.LinkifyPlugin
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+
 import java.io.File
 
 /**
@@ -51,7 +35,7 @@ class MarkdownPreviewFragment : Fragment() {
   private var filePath: String? = null
   private var markdownContent: String? = null
 
-  override fun onCreate(savedInstanceState: Bundle?) {
+  override fun onCreate(savedInstanceState: android.os.Bundle?) {
     super.onCreate(savedInstanceState)
     arguments?.let { args ->
       filePath = args.getString(EditorFragmentTabManager.ARG_FILE_PATH)
@@ -60,52 +44,21 @@ class MarkdownPreviewFragment : Fragment() {
   }
 
   override fun onCreateView(
-    inflater: LayoutInflater,
-    container: ViewGroup?,
-    savedInstanceState: Bundle?
-  ): View {
-    return ComposeView(requireContext()).apply {
+    inflater: android.view.LayoutInflater,
+    container: android.view.ViewGroup?,
+    savedInstanceState: android.os.Bundle?
+  ): android.view.View {
+    val context = requireContext()
+    return ComposeView(context).apply {
+      setViewCompositionStrategy(androidx.compose.ui.platform.ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
       setContent {
-        MarkdownPreviewView(
-        modifier = Modifier.fillMaxSize(),
-        markdownContent = markdownContent ?: loadMarkdownContent(),
-        onLinkClick = { url -> handleLinkClick(url) },
-        onImageClick = { uri -> handleImageClick(uri) },
-        onError = { error -> handleError(error) }
-      )
+        MarkdownPreviewScreen(
+          modifier = Modifier.fillMaxSize(),
+          filePath = filePath,
+          initialContent = markdownContent
+        )
       }
     }
-  }
-
-  private fun loadMarkdownContent(): String? {
-    val path = filePath ?: return null
-    return try {
-      val file = File(path)
-      if (file.exists() && file.canRead()) {
-        file.readText()
-      } else {
-        null
-      }
-    } catch (e: Exception) {
-      null
-    }
-  }
-
-  private fun handleLinkClick(url: String) {
-    try {
-      val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-      startActivity(intent)
-    } catch (e: Exception) {
-      handleError("Failed to open link: $url")
-    }
-  }
-
-  private fun handleImageClick(uri: Uri) {
-    // Could implement image viewer dialog here
-  }
-
-  private fun handleError(error: String) {
-    // Could show error toast or dialog here
   }
 
   companion object {
@@ -119,7 +72,7 @@ class MarkdownPreviewFragment : Fragment() {
      */
     fun newInstance(filePath: String): MarkdownPreviewFragment {
       return MarkdownPreviewFragment().apply {
-        arguments = Bundle().apply {
+        arguments = android.os.Bundle().apply {
           putString(EditorFragmentTabManager.ARG_FILE_PATH, filePath)
         }
       }
@@ -133,7 +86,7 @@ class MarkdownPreviewFragment : Fragment() {
      */
     fun newInstanceWithContent(content: String): MarkdownPreviewFragment {
       return MarkdownPreviewFragment().apply {
-        arguments = Bundle().apply {
+        arguments = android.os.Bundle().apply {
           putString(ARG_MARKDOWN_CONTENT, content)
         }
       }
@@ -141,125 +94,37 @@ class MarkdownPreviewFragment : Fragment() {
   }
 }
 
-/**
- * Composable view for rendering Markdown content.
- *
- * @param modifier The modifier for this composable
- * @param markdownContent The Markdown content to render
- * @param onLinkClick Callback when a link is clicked
- * @param onImageClick Callback when an image is clicked
- * @param onError Callback when an error occurs
- */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun MarkdownPreviewView(
+fun MarkdownPreviewScreen(
   modifier: Modifier = Modifier,
-  markdownContent: String?,
-  onLinkClick: (String) -> Unit,
-  onImageClick: (Uri) -> Unit,
-  onError: (String) -> Unit
-) {
-  val context = LocalContext.current
-  val scrollState = rememberScrollState()
-
-  // State to track if we should use WebView for HTML/JS/CSS rendering
-  var useWebView by remember { mutableStateOf(false) }
-  var webViewContent by remember { mutableStateOf<String?>(null) }
-
-  // Check if content contains HTML/JS/CSS that needs WebView rendering
-  LaunchedEffect(markdownContent) {
-    if (markdownContent != null) {
-      val containsHtml = markdownContent.contains("<html", ignoreCase = true) ||
-        markdownContent.contains("<script", ignoreCase = true) ||
-        markdownContent.contains("<style", ignoreCase = true)
-      if (containsHtml) {
-        useWebView = true
-        webViewContent = convertMarkdownToHtml(markdownContent)
-      }
-    }
-  }
-
-  if (useWebView && webViewContent != null) {
-    // Use WebView for HTML/JS/CSS embedded content
-    WebViewMarkdownView(
-      modifier = modifier,
-      htmlContent = webViewContent!!,
-      onLinkClick = onLinkClick,
-      onError = onError
-    )
-  } else {
-    // Use Markwon for standard Markdown rendering
-    StandardMarkdownView(
-      modifier = modifier,
-      markdownContent = markdownContent,
-      onLinkClick = onLinkClick,
-      onImageClick = onImageClick,
-      onError = onError,
-      scrollState = scrollState
-    )
-  }
-}
-
-/**
- * Standard Markdown view using Markwon.
- */
-@Composable
-fun StandardMarkdownView(
-  modifier: Modifier = Modifier,
-  markdownContent: String?,
-  onLinkClick: (String) -> Unit,
-  onImageClick: (Uri) -> Unit,
-  onError: (String) -> Unit,
-  scrollState: androidx.compose.foundation.ScrollState
+  filePath: String?,
+  initialContent: String?
 ) {
   val context = LocalContext.current
 
-  AndroidView(
-    modifier = modifier.verticalScroll(scrollState),
-    factory = { ctx ->
-      val markwon = Markwon.builder(ctx)
-        .usePlugin(LinkifyPlugin.create())
-        .usePlugin(TaskListPlugin.create(ctx))
-        .usePlugin(HtmlPlugin.create())
-        .usePlugin(CoilImagesPlugin.create(ctx))
-        .build()
-
-      android.widget.TextView(ctx).apply {
-        layoutParams = ViewGroup.LayoutParams(
-          ViewGroup.LayoutParams.MATCH_PARENT,
-          ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        setPadding(32, 16, 32, 16)
-        textSize = 16f
-        setTextColor(android.graphics.Color.BLACK)
-        markwon.setMarkdown(this, markdownContent ?: "")
+  // Load markdown content
+  val content = remember(initialContent, filePath) {
+    initialContent ?: filePath?.let { path ->
+      try {
+        val file = File(path)
+        if (file.exists() && file.canRead()) {
+          file.readText()
+        } else {
+          null
+        }
+      } catch (e: Exception) {
+        null
       }
-    },
-    update = { textView ->
-      if (markdownContent != null) {
-        val markwon = Markwon.builder(context)
-          .usePlugin(LinkifyPlugin.create())
-          .usePlugin(TaskListPlugin.create(context))
-          .usePlugin(HtmlPlugin.create())
-          .usePlugin(CoilImagesPlugin.create(context))
-          .build()
-        markwon.setMarkdown(textView, markdownContent)
-      }
-    }
-  )
-}
+    } ?: "# No Content"
+  }
 
-/**
- * WebView-based Markdown view for HTML/JS/CSS embedded content.
- */
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-fun WebViewMarkdownView(
-  modifier: Modifier = Modifier,
-  htmlContent: String,
-  onLinkClick: (String) -> Unit,
-  onError: (String) -> Unit
-) {
+  // Convert markdown to HTML for WebView
+  val htmlContent = remember(content) {
+    convertMarkdownToHtml(content, filePath)
+  }
+
+  // Render using WebView
   AndroidView(
     modifier = modifier,
     factory = { ctx ->
@@ -276,78 +141,160 @@ fun WebViewMarkdownView(
           setSupportZoom(true)
           mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
           cacheMode = WebSettings.LOAD_DEFAULT
+          mediaPlaybackRequiresUserGesture = false
         }
 
         webViewClient = object : WebViewClient() {
           override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
             super.onPageStarted(view, url, favicon)
           }
-
-          override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-            url?.let { onLinkClick(it) }
-            return true
-          }
         }
 
         webChromeClient = WebChromeClient()
 
-        loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+        loadDataWithBaseURL(
+          filePath?.let { File(it).parentFile?.toURI()?.toString() },
+          htmlContent,
+          "text/html",
+          "UTF-8",
+          null
+        )
       }
     },
     update = { webView ->
-      webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+      webView.loadDataWithBaseURL(
+        filePath?.let { File(it).parentFile?.toURI()?.toString() },
+        htmlContent,
+        "text/html",
+        "UTF-8",
+        null
+      )
     }
   )
 }
 
 /**
  * Converts Markdown content to HTML for WebView rendering.
- * This handles embedded HTML/JS/CSS content.
+ * Uses a powerful JavaScript Markdown renderer for full feature support.
  *
  * @param markdown The Markdown content to convert
+ * @param filePath Optional path to the Markdown file (for relative path resolution)
  * @return HTML string ready for WebView rendering
  */
-private fun convertMarkdownToHtml(markdown: String): String {
-  // If the content is already HTML, return it wrapped properly
-  if (markdown.contains("<html", ignoreCase = true)) {
-    return markdown
-  }
-
-  // Basic Markdown to HTML conversion for embedded content
+private fun convertMarkdownToHtml(markdown: String, filePath: String?): String {
+  // Escape special characters in markdown for use in JavaScript
+  val escapedMarkdown = markdown
+    .replace("\\", "\\\\")
+    .replace("`", "\\`")
+    .replace("$", "\\$")
+    .replace("\n", "\\n")
+    .replace("\"", "\\\"")
+  
   return """
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Markdown Preview</title>
+      
+      <!-- GitHub Markdown CSS -->
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+      
+      <!-- Highlight.js for code syntax highlighting -->
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+      
+      <!-- Marked.js for Markdown rendering -->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+      
       <style>
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-          line-height: 1.6;
-          padding: 16px;
-          max-width: 100%;
-          overflow-x: auto;
+          box-sizing: border-box;
+          min-width: 200px;
+          max-width: 980px;
+          margin: 0 auto;
+          padding: 20px;
         }
-        pre, code {
-          background-color: #f4f4f4;
-          border-radius: 4px;
-          padding: 2px 6px;
-          overflow-x: auto;
+        
+        .markdown-body {
+          box-sizing: border-box;
+          min-width: 200px;
+          margin: 0 auto;
+          padding: 45px;
         }
-        pre {
-          padding: 16px;
+        
+        @media (max-width: 767px) {
+          .markdown-body {
+            padding: 15px;
+          }
         }
-        img {
+        
+        /* Ensure images, videos, and audio responsive */
+        .markdown-body img,
+        .markdown-body video,
+        .markdown-body audio {
           max-width: 100%;
           height: auto;
+          display: block;
+          margin: 16px 0;
         }
-        video, audio {
-          max-width: 100%;
+        
+        /* Code block styling */
+        .markdown-body pre {
+          padding: 16px;
+          overflow: auto;
+          font-size: 85%;
+          line-height: 1.45;
+          background-color: #f6f8fa;
+          border-radius: 6px;
+        }
+        
+        .markdown-body pre code {
+          background-color: transparent;
+          border: 0;
+          padding: 0;
+        }
+        
+        /* Responsive tables */
+        .markdown-body table {
+          width: 100%;
+          display: block;
+          overflow-x: auto;
         }
       </style>
     </head>
     <body>
-      $markdown
+      <article class="markdown-body" id="content"></article>
+      
+      <script>
+        // Configure marked options
+        marked.setOptions({
+          breaks: true,
+          gfm: true,
+          tables: true,
+          highlight: function(code, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+              try {
+                return hljs.highlight(code, { language: lang }).value;
+              } catch (e) {
+                // If highlighting fails, just return plain code
+              }
+            }
+            return code;
+          }
+        });
+        
+        // Render markdown
+        const markdown = `${escapedMarkdown}`;
+        const content = document.getElementById('content');
+        content.innerHTML = marked.parse(markdown);
+        
+        // Apply syntax highlighting
+        document.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightElement(block);
+        });
+      </script>
     </body>
     </html>
   """.trimIndent()

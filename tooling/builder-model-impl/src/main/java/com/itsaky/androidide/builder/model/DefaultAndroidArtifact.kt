@@ -25,32 +25,86 @@ import java.io.Serializable
 /** @author Akash Yadav */
 open class DefaultAndroidArtifact : AndroidArtifact, Serializable {
 
-  private val serialVersionUID = 1L
-  override var applicationId: String? = ""
-  override var resGenTaskName: String? = null
-  override var abiFilters: Set<String>? = null
-  override var assembleTaskOutputListingFile: File? = null
-  override var bundleInfo: DefaultBundleInfo? = null
-  override var codeShrinker: CodeShrinker? = null
-  override var generatedResourceFolders: Collection<File> = emptyList()
-  override var generatedAssetsFolders: Collection<File> = emptyList()
-  override var isSigned: Boolean = false
-  override var maxSdkVersion: Int? = null
-  override var minSdkVersion: DefaultApiVersion = DefaultApiVersion()
-  override var signingConfigName: String? = null
-  override var sourceGenTaskName: String = ""
-  override var testInfo: DefaultTestInfo? = null
-  override var assembleTaskName: String = ""
-  override var classesFolders: Set<File> = emptySet()
-  override var compileTaskName: String = ""
-  override var generatedSourceFolders: Collection<File> = emptyList()
-  override var ideSetupTaskNames: Set<String> = emptySet()
-  override var targetSdkVersionOverride: DefaultApiVersion? = null
-  override var modelSyncFiles: Collection<Void> = emptyList()
-  override var desugaredMethodsFiles: Collection<File> = emptyList()
-  override val generatedClassPaths: Map<String, File> = emptyMap()
-  override val bytecodeTransformations: Collection<BytecodeTransformation> = emptyList()
-  override var mappingR8TextFile: File? = null
-  override var mappingR8PartitionFile: File? = null
-
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultAndroidArtifact instance from an AndroidArtifact model.
+         *
+         * @param artifact The AndroidArtifact model from AGP
+         * @return A DefaultAndroidArtifact instance
+         */
+        @JvmStatic
+        fun fromArtifact(artifact: AndroidArtifact): DefaultAndroidArtifact {
+            return DefaultAndroidArtifact().apply {
+                this.applicationId = artifact.applicationId
+                this.resGenTaskName = artifact.resGenTaskName
+                this.abiFilters = artifact.abiFilters
+                this.assembleTaskOutputListingFile = artifact.assembleTaskOutputListingFile
+                
+                artifact.bundleInfo?.let {
+                    this.bundleInfo = DefaultBundleInfo.fromBundleInfo(it)
+                }
+                
+                this.codeShrinker = artifact.codeShrinker
+                this.generatedResourceFolders = artifact.generatedResourceFolders
+                this.generatedAssetsFolders = artifact.generatedAssetsFolders
+                this.isSigned = artifact.isSigned
+                this.maxSdkVersion = artifact.maxSdkVersion
+                
+                this.minSdkVersion = DefaultApiVersion.fromApiVersion(artifact.minSdkVersion)
+                
+                this.signingConfigName = artifact.signingConfigName
+                this.sourceGenTaskName = artifact.sourceGenTaskName
+                
+                artifact.testInfo?.let {
+                    this.testInfo = DefaultTestInfo.fromTestInfo(it)
+                }
+                
+                this.assembleTaskName = artifact.assembleTaskName
+                this.classesFolders = artifact.classesFolders
+                this.compileTaskName = artifact.compileTaskName
+                this.generatedSourceFolders = artifact.generatedSourceFolders
+                this.ideSetupTaskNames = artifact.ideSetupTaskNames
+                
+                artifact.targetSdkVersionOverride?.let {
+                    this.targetSdkVersionOverride = DefaultApiVersion.fromApiVersion(it)
+                }
+                
+                this.modelSyncFiles = artifact.modelSyncFiles
+                this.desugaredMethodsFiles = artifact.desugaredMethodsFiles
+                this.generatedClassPaths = artifact.generatedClassPaths
+                this.bytecodeTransformations = artifact.bytecodeTransformations
+                this.mappingR8TextFile = artifact.mappingR8TextFile
+                this.mappingR8PartitionFile = artifact.mappingR8PartitionFile
+            }
+        }
+    }
+    
+    override var applicationId: String? = ""
+    override var resGenTaskName: String? = null
+    override var abiFilters: Set<String>? = null
+    override var assembleTaskOutputListingFile: File? = null
+    override var bundleInfo: DefaultBundleInfo? = null
+    override var codeShrinker: CodeShrinker? = null
+    override var generatedResourceFolders: Collection<File> = emptyList()
+    override var generatedAssetsFolders: Collection<File> = emptyList()
+    override var isSigned: Boolean = false
+    override var maxSdkVersion: Int? = null
+    override var minSdkVersion: DefaultApiVersion = DefaultApiVersion()
+    override var signingConfigName: String? = null
+    override var sourceGenTaskName: String = ""
+    override var testInfo: DefaultTestInfo? = null
+    override var assembleTaskName: String = ""
+    override var classesFolders: Set<File> = emptySet()
+    override var compileTaskName: String = ""
+    override var generatedSourceFolders: Collection<File> = emptyList()
+    override var ideSetupTaskNames: Set<String> = emptySet()
+    override var targetSdkVersionOverride: DefaultApiVersion? = null
+    override var modelSyncFiles: Collection<Void> = emptyList()
+    override var desugaredMethodsFiles: Collection<File> = emptyList()
+    override val generatedClassPaths: Map<String, File> = emptyMap()
+    override val bytecodeTransformations: Collection<BytecodeTransformation> = emptyList()
+    override var mappingR8TextFile: File? = null
+    override var mappingR8PartitionFile: File? = null
 }

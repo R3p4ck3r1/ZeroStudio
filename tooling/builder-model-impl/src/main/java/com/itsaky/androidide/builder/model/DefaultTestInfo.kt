@@ -24,9 +24,28 @@ import java.io.Serializable
 
 /** @author Akash Yadav */
 class DefaultTestInfo : TestInfo, Serializable {
-  private val serialVersionUID = 1L
-  override var additionalRuntimeApks: Collection<File> = emptyList()
-  override var animationsDisabled: Boolean = false
-  override var execution: Execution? = null
-  override var instrumentedTestTaskName: String = ""
+    companion object {
+        private const val serialVersionUID = 1L
+        
+        /**
+         * Create a DefaultTestInfo instance from a TestInfo model.
+         *
+         * @param testInfo The TestInfo model from AGP
+         * @return A DefaultTestInfo instance
+         */
+        @JvmStatic
+        fun fromTestInfo(testInfo: TestInfo): DefaultTestInfo {
+            return DefaultTestInfo().apply {
+                this.additionalRuntimeApks = testInfo.additionalRuntimeApks
+                this.animationsDisabled = testInfo.animationsDisabled
+                this.execution = testInfo.execution
+                this.instrumentedTestTaskName = testInfo.instrumentedTestTaskName
+            }
+        }
+    }
+    
+    override var additionalRuntimeApks: Collection<File> = emptyList()
+    override var animationsDisabled: Boolean = false
+    override var execution: Execution? = null
+    override var instrumentedTestTaskName: String = ""
 }

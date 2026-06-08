@@ -323,6 +323,7 @@
   <!--The text sorrounded with '@@' is spanned as clickable.-->
   <!--There must be exactly two '@@' sorrounding the text that should be clickable.-->
   <string name="msg_drawer_for_files">@@files@@ üçin çep çekmeje açyň.</string>
+     
   <string name="msg_swipe_for_output">@@build output@@ üçin ýokary süýrüň.</string>
   <string name="idepref_editor_useSoftTabs_title">Ýumşak tab ulanyň</string>
   <string name="idepref_editor_useSoftTabs_summary">Tab nyşanynyň (\\t) deregine boşluklary ulanmagy saýlaň.</string>

@@ -282,6 +282,7 @@
     <string name="idepref_useIcu_title">ICU நூலகம் பயன்படுத்தவும்</string>
     <string name="idepref_useIcu_summary">இரட்டை-தட்டுதல் மற்றும் நீண்ட-அழுத்த வார்த்தை தேர்வுக்காக வார்த்தை விளிம்புகளை மீட்டெடுக்க ICU நூலகத்தை பயன்படுத்தவும்.</string>
     <string name="msg_drawer_for_files">இடது கைப்பெட்டியை @@files@@ க்காக திறக்கவும்.</string>
+     
     <string name="msg_swipe_for_output">உயரத்திற்கு ஸ்வைப் செய்து @@build output@@ பார்க்கவும்.</string>
     <string name="idepref_editor_useSoftTabs_title">மென்மையான டேப் பயன்படுத்தவும்</string>
     <string name="idepref_editor_useSoftTabs_summary">டேப் கேரக்டரை (\t) பதிலாக இடைவெளிகளை பயன்படுத்த முடியுமா என்பதை தேர்ந்தெடுக்கவும்.</string>
