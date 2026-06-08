@@ -29,7 +29,7 @@ class DefaultSourceProvider() : SourceProvider, Serializable {
   override var javaDirectories: Collection<File> = emptyList()
   override var jniLibsDirectories: Collection<File> = emptyList()
   override var kotlinDirectories: Collection<File> = emptyList()
-  override var manifestFile: File = NoFile
+  override var manifestFile: File? = NoFile
   override var mlModelsDirectories: Collection<File>? = null
   override var name: String = ""
   override var renderscriptDirectories: Collection<File>? = null
@@ -42,7 +42,7 @@ class DefaultSourceProvider() : SourceProvider, Serializable {
 
   companion object {
     @JvmStatic val NoFile = File("<does-not-exist>")
-    
+
     @JvmStatic
     fun fromSourceProvider(sourceProvider: SourceProvider): DefaultSourceProvider {
       return DefaultSourceProvider().apply {
@@ -61,9 +61,9 @@ class DefaultSourceProvider() : SourceProvider, Serializable {
         this.baselineProfileDirectories = sourceProvider.baselineProfileDirectories
         this.keepRulesDirectories = sourceProvider.keepRulesDirectories
         this.aarKeepRulesDirectories = sourceProvider.aarKeepRulesDirectories
-        
+
         this.customDirectories = sourceProvider.customDirectories?.map { customDir ->
-          DefaultCustomSourceDirectory(customDir.directory, customDir.name)
+          DefaultCustomSourceDirectory(customDir.directory, customDir.sourceTypeName)
         }
       }
     }

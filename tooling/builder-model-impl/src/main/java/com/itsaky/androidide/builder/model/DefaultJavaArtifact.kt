@@ -26,7 +26,7 @@ class DefaultJavaArtifact : JavaArtifact, Serializable {
 
     companion object {
         private const val serialVersionUID = 1L
-        
+
         /**
          * Create a DefaultJavaArtifact instance from a JavaArtifact model.
          *
@@ -49,16 +49,16 @@ class DefaultJavaArtifact : JavaArtifact, Serializable {
             }
         }
     }
-    
+
     override var modelSyncFiles: Collection<Void> = emptyList()
 
-    override var assembleTaskName: String = ""
+    override var assembleTaskName: String? = null
     override var classesFolders: Set<File> = emptySet()
-    override var compileTaskName: String = ""
+    override var compileTaskName: String? = null
     override var generatedSourceFolders: Collection<File> = emptyList()
     override var ideSetupTaskNames: Set<String> = emptySet()
     override var mockablePlatformJar: File? = null
     override var runtimeResourceFolder: File? = null
-    override val generatedClassPaths: Map<String, File> = emptyMap()
-    override val bytecodeTransformations: Collection<BytecodeTransformation> = emptyList()
+    override var generatedClassPaths: Map<String, File> = emptyMap()
+    override var bytecodeTransformations: Collection<BytecodeTransformation> = emptyList()
 }

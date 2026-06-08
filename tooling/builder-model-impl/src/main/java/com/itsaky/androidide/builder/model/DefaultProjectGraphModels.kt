@@ -23,48 +23,6 @@ import com.android.builder.model.v2.models.ProjectGraph
 import java.io.Serializable
 
 /**
- * Default implementation of [ProjectInfo] for AGP v2.
- *
- * Provides project information for the ProjectGraph model.
- *
- * @author android_zero
- */
-class DefaultProjectInfo(
-    override val attributes: Map<String, String>,
-    override val buildType: String?,
-    override val capabilities: List<String>,
-    override val isTestFixtures: Boolean,
-    override val productFlavors: Map<String, String>,
-    override val buildId: String,
-    override val projectPath: String,
-) : ProjectInfo, Serializable {
-    companion object {
-        private const val serialVersionUID = 1L
-        
-        /**
-         * Create a DefaultProjectInfo instance from a ProjectInfo model.
-         *
-         * @param projectInfo The ProjectInfo model from AGP
-         * @return A DefaultProjectInfo instance
-         */
-        @JvmStatic
-        fun fromProjectInfo(projectInfo: ProjectInfo): DefaultProjectInfo {
-            return DefaultProjectInfo(
-                attributes = projectInfo.attributes,
-                buildType = projectInfo.buildType,
-                capabilities = projectInfo.capabilities,
-                isTestFixtures = projectInfo.isTestFixtures,
-                productFlavors = projectInfo.productFlavors,
-                buildId = projectInfo.buildId,
-                projectPath = projectInfo.projectPath
-            )
-        }
-    }
-    
-    private val serialVersionUID = 1L
-}
-
-/**
  * Default implementation of [ComponentInfo] for AGP v2.
  *
  * @author android_zero
@@ -78,7 +36,7 @@ class DefaultComponentInfo(
 ) : ComponentInfo, Serializable {
     companion object {
         private const val serialVersionUID = 1L
-        
+
         /**
          * Create a DefaultComponentInfo instance from a ComponentInfo model.
          *
@@ -96,7 +54,7 @@ class DefaultComponentInfo(
             )
         }
     }
-    
+
     private val serialVersionUID = 1L
 }
 
@@ -110,7 +68,7 @@ class DefaultComponentInfo(
 class DefaultProjectGraph : ProjectGraph, Serializable {
     companion object {
         private const val serialVersionUID = 1L
-        
+
         /**
          * Create a DefaultProjectGraph instance from a ProjectGraph model.
          *
@@ -122,14 +80,14 @@ class DefaultProjectGraph : ProjectGraph, Serializable {
             return DefaultProjectGraph().apply {
                 // Copy resolved variants (deprecated but still provided for backward compatibility)
                 this.resolvedVariants = projectGraph.resolvedVariants
-                
+
                 // Copy resolved variants with project info (new in AGP 9.x)
-                this.resolvedVariantsWithProjectInfo = projectGraph.resolvedVariantsWithProjectInfo?.mapValues { (projectInfo, variantName) ->
+                this.resolvedVariantsWithProjectInfo = projectGraph.resolvedVariantsWithProjectInfo?.mapKeys { (projectInfo, _) ->
                     DefaultProjectInfo.fromProjectInfo(projectInfo)
-                }?.toMutableMap()
+                }
             }
         }
-        
+
         /**
          * Create an empty DefaultProjectGraph instance.
          * Used as fallback for AGP 8.x where ProjectGraph is not available.
@@ -140,13 +98,13 @@ class DefaultProjectGraph : ProjectGraph, Serializable {
         fun empty(): DefaultProjectGraph {
             return DefaultProjectGraph().apply {
                 this.resolvedVariants = emptyMap()
-                this.resolvedVariantsWithProjectInfo = mutableMapOf()
+                this.resolvedVariantsWithProjectInfo = emptyMap()
             }
         }
     }
-    
+
     override var resolvedVariants: Map<String, String>? = null
-    override var resolvedVariantsWithProjectInfo: MutableMap<DefaultProjectInfo, String> = mutableMapOf()
-    
+    override var resolvedVariantsWithProjectInfo: Map<ProjectInfo, String>? = emptyMap()
+
     private val serialVersionUID = 1L
 }
