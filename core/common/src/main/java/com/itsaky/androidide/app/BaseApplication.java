@@ -28,7 +28,6 @@ import com.itsaky.androidide.managers.PreferenceManager;
 import com.itsaky.androidide.utils.Environment;
 import com.itsaky.androidide.utils.FileUtil;
 import com.itsaky.androidide.utils.FlashbarUtilsKt;
-import com.itsaky.androidide.utils.JavaCharacter;
 import java.io.File;
 import com.itsaky.androidide.app.BaseConstants;
 import java.util.concurrent.CountDownLatch;
@@ -67,29 +66,6 @@ public class BaseApplication extends Application {
     super.onCreate();
 
     mPrefsManager = new PreferenceManager(this);
-    
-    startInitThread("JavaChar-Init-Thread", JavaCharacter::initMap);
-    startInitThread("BaseApp-Init-Thread", Environment::initSecondaryDirs);
-
-
-    
-    
-  }
-
-
-  private void startInitThread(String name, Runnable task) {
-    // Some Android 12 Samsung builds have crashed inside libc realpath()/OpenJDK
-    // canonicalize on the default small Java thread stack while the environment
-    // directory tree is created. Use an explicit larger stack and keep failures
-    // contained so background initialization cannot take down the process.
-    Thread thread = new Thread(null, () -> {
-      try {
-        task.run();
-      } catch (Throwable th) {
-        writeException(th);
-      }
-    }, name, 2L * 1024L * 1024L);
-    thread.start();
   }
 
   public void writeException(Throwable th) {
