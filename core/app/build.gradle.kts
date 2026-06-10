@@ -153,6 +153,8 @@ dependencies {
   implementation(libs.common.org.apache.commons.compress)
   implementation(libs.common.org.tukaani.tarxzip)
   implementation(libs.bundles.io.markwon)
+  // Local HTTP server for serving markdown preview assets
+  implementation(libs.common.org.nanohttpd)
 
   implementation(libs.google.auto.service.annotations)
   implementation(libs.google.gson)
