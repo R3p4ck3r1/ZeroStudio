@@ -8,9 +8,8 @@ import com.itsaky.androidide.actions.ActionData
 import com.itsaky.androidide.actions.EditorRelatedAction
 import com.itsaky.androidide.actions.markInvisible
 import com.itsaky.androidide.activities.editor.EditorHandlerActivity
-import com.itsaky.androidide.fragments.editor.FragmentTabEntry
 import com.itsaky.androidide.fragments.editor.FragmentTabRegistry
-import com.itsaky.androidide.fragments.editor.markdown.MarkdownPreviewFragment
+import com.itsaky.androidide.models.SaveResult
 import com.itsaky.androidide.resources.R
 import java.io.File
 
@@ -52,19 +51,11 @@ class MarkdownPreviewAction(context: Context, override val order: Int) : EditorR
 
     if (file != null) {
       val extension = file.extension.lowercase()
-      val markdownExtensions = listOf("md", "mdr", "markdown", "mdx", "mkd", "mkdn")
-      if (extension in markdownExtensions) {
+      if (FragmentTabRegistry.getByFileExtension(extension).isNotEmpty()) {
         visible = true
         enabled = true
       } else {
-        // Check if any Markdown preview tab is registered
-        val entries = FragmentTabRegistry.getByFileExtension(extension)
-        if (entries.isNotEmpty()) {
-          visible = true
-          enabled = true
-        } else {
-          markInvisible()
-        }
+        markInvisible()
       }
     } else {
       // No file open, check if we can open a generic Markdown preview
@@ -83,8 +74,12 @@ class MarkdownPreviewAction(context: Context, override val order: Int) : EditorR
   }
 
   override suspend fun execAction(data: ActionData): Boolean {
-    val activity = data.requireActivity() as? EditorHandlerActivity
-    activity?.saveAll()
+    val activity = data.requireActivity() as? EditorHandlerActivity ?: return false
+    val file = data.getEditor()?.file ?: return false
+    val index = activity.findIndexOfEditorByFile(file)
+    if (index >= 0) {
+      activity.saveResult(index, SaveResult())
+    }
     return true
   }
 

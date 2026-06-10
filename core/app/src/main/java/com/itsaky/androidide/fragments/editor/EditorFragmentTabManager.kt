@@ -3,7 +3,6 @@ package com.itsaky.androidide.fragments.editor
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import com.google.android.material.tabs.TabLayout
 import com.itsaky.androidide.R
 import com.itsaky.androidide.databinding.ContentEditorBinding
 import java.io.File
@@ -134,7 +133,7 @@ class EditorFragmentTabManager(
     // Remove fragment from container
     activity.supportFragmentManager.beginTransaction()
       .remove(openTab.fragment)
-      .commitNow()
+      .commitAllowingStateLoss()
 
     return true
   }
@@ -163,6 +162,14 @@ class EditorFragmentTabManager(
     return true
   }
 
+  /** Hides all lifecycle fragment tabs while an editor-file tab is selected. */
+  fun hideAllTabs() {
+    if (openTabs.isEmpty()) return
+    val transaction = activity.supportFragmentManager.beginTransaction()
+    openTabs.values.forEach { transaction.hide(it.fragment) }
+    transaction.commitAllowingStateLoss()
+  }
+
   /**
    * Gets the currently open tab id.
    *
@@ -186,6 +193,8 @@ class EditorFragmentTabManager(
   fun getOpenTabs(): List<OpenTab> {
     return openTabs.values.toList()
   }
+
+  fun hasOpenTabs(): Boolean = openTabs.isNotEmpty()
 
   /**
    * Checks if a tab is open for the given file path.
@@ -224,9 +233,9 @@ class EditorFragmentTabManager(
 
   private fun generateTabId(entry: FragmentTabEntry, filePath: String?): String {
     return if (filePath != null) {
-      "${entry.id}:$filePath"
+      "$FRAGMENT_TAB_PREFIX${entry.id}:$filePath"
     } else {
-      "${entry.id}:${UUID.randomUUID()}"
+      "$FRAGMENT_TAB_PREFIX${entry.id}:${UUID.randomUUID()}"
     }
   }
 
@@ -250,22 +259,19 @@ class EditorFragmentTabManager(
     activity.supportFragmentManager.beginTransaction()
       .add(containerId, fragment, tabId)
       .hide(fragment)
-      .commitNow()
+      .commitNowAllowingStateLoss()
   }
 
   private fun showFragment(fragment: Fragment) {
-    activity.supportFragmentManager.beginTransaction()
-      .show(fragment)
-      .commitNow()
-
-    // Hide all other fragments
+    val transaction = activity.supportFragmentManager.beginTransaction()
     openTabs.values.forEach { openTab ->
-      if (openTab.fragment != fragment) {
-        activity.supportFragmentManager.beginTransaction()
-          .hide(openTab.fragment)
-          .commitNow()
+      if (openTab.fragment == fragment) {
+        transaction.show(openTab.fragment)
+      } else {
+        transaction.hide(openTab.fragment)
       }
     }
+    transaction.commitAllowingStateLoss()
   }
 
   private fun findTabIndex(tabId: String): Int {
@@ -285,6 +291,9 @@ class EditorFragmentTabManager(
   }
 
   companion object {
+    private const val FRAGMENT_TAB_PREFIX = "fragment:"
     const val ARG_FILE_PATH = "file_path"
+
+    fun isFragmentTabId(tabId: String?): Boolean = tabId?.startsWith(FRAGMENT_TAB_PREFIX) == true
   }
 }

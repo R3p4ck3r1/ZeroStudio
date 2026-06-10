@@ -68,15 +68,30 @@ public class BaseApplication extends Application {
 
     mPrefsManager = new PreferenceManager(this);
     
-    new Thread(JavaCharacter::initMap, "JavaChar-Init-Thread").start();
-    new Thread(Environment::initSecondaryDirs, "BaseApp-Init-Thread").start();
+    startInitThread("JavaChar-Init-Thread", JavaCharacter::initMap);
+    startInitThread("BaseApp-Init-Thread", Environment::initSecondaryDirs);
 
 
     
     
   }
 
- 
+
+  private void startInitThread(String name, Runnable task) {
+    // Some Android 12 Samsung builds have crashed inside libc realpath()/OpenJDK
+    // canonicalize on the default small Java thread stack while the environment
+    // directory tree is created. Use an explicit larger stack and keep failures
+    // contained so background initialization cannot take down the process.
+    Thread thread = new Thread(null, () -> {
+      try {
+        task.run();
+      } catch (Throwable th) {
+        writeException(th);
+      }
+    }, name, 2L * 1024L * 1024L);
+    thread.start();
+  }
+
   public void writeException(Throwable th) {
     FileUtil.writeFile(new File(FileUtil.getExternalStorageDir(), "idelog.txt").getAbsolutePath(),
         ThrowableUtils.getFullStackTrace(th));

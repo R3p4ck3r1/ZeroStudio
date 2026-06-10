@@ -164,10 +164,10 @@ class BuildScriptParser {
       return null
     }
 
-    // Pattern 1: Catalog reference - implementation(libs.material) or
-    // implementation(libs.androidx.core.ktx)
-    // More flexible pattern that handles libs.xxx and libs.xxx.yyy.zzz
-    val catalogPattern = """(\w+)\s*\(\s*(libs\.[\w.]+)\s*\)""".toRegex()
+    // Pattern 1: Catalog reference - implementation(libs.material),
+    // implementation(platform(libs.androidx.compose.bom)), or
+    // implementation(enforcedPlatform(libs.foo)). AGP 9 templates commonly use platform(...) BOMs.
+    val catalogPattern = """(\w+)\s*\(\s*(?:(platform|enforcedPlatform)\s*\(\s*)?(libs\.[\w.]+)\s*\)?\s*\)""".toRegex()
     val catalogMatch = catalogPattern.find(line)
 
     if (catalogMatch != null) {
@@ -177,8 +177,9 @@ class BuildScriptParser {
         return null
       }
 
+      val wrapper = catalogMatch.groupValues.getOrNull(2).orEmpty()
       val reference =
-          catalogMatch.groupValues[2] // e.g., "libs.material" or "libs.androidx.core.ktx"
+          catalogMatch.groupValues[3] // e.g., "libs.material" or "libs.androidx.core.ktx"
       val libraryName = extractLibraryName(reference)
 
       log.debug("Extracted library name from '$reference': '$libraryName' (line $lineNumber)")
@@ -224,14 +225,15 @@ class BuildScriptParser {
 
       return DependencyDeclaration(
           configuration = configuration,
-          declaration = reference,
+          declaration = if (wrapper.isNotBlank()) "$wrapper($reference)" else reference,
           isCatalogReference = true,
           catalogLibrary = catalogLibrary,
       )
     }
 
-    // Pattern 2: Direct string - implementation("group:artifact:version")
-    val directPattern = """([\w]+)\("([^"]+)"\)""".toRegex()
+    // Pattern 2: Direct string - implementation("group:artifact:version") or
+    // implementation(platform("group:artifact:version"))
+    val directPattern = """([\w]+)\s*\(\s*(?:(platform|enforcedPlatform)\s*\(\s*)?"([^"]+)"\s*\)?\s*\)""".toRegex()
     val directMatch = directPattern.find(line)
 
     if (directMatch != null) {
@@ -240,11 +242,12 @@ class BuildScriptParser {
         return null
       }
 
-      val coordinates = directMatch.groupValues[2]
+      val wrapper = directMatch.groupValues.getOrNull(2).orEmpty()
+      val coordinates = directMatch.groupValues[3]
 
       return DependencyDeclaration(
           configuration = configuration,
-          declaration = coordinates,
+          declaration = if (wrapper.isNotBlank()) "$wrapper($coordinates)" else coordinates,
           isCatalogReference = false,
           catalogLibrary = null,
       )
