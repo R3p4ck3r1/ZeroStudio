@@ -38,7 +38,13 @@ class CloseOtherFilesAction(context: Context, override val order: Int) : FileTab
   }
 
   override fun EditorHandlerActivity.doAction(data: ActionData): Boolean {
-    closeOthers()
+    // closeOthers() only iterates editor file indices and silently ignores fragment
+    // tabs in the same TabLayout. closeOtherTabs() walks the TabLayout itself so
+    // that both kinds of tabs are closed correctly.
+    val tabIndex = content.tabs.selectedTabPosition
+    if (tabIndex < 0) return true
+    closeOtherTabs(tabIndex)
+    invalidateOptionsMenu()
     return true
   }
 }

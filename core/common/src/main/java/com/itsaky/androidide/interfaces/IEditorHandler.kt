@@ -92,9 +92,45 @@ interface IEditorHandler {
 
   fun closeFile(index: Int, runAfter: () -> Unit)
 
+  /**
+   * Close the tab at the given [tabIndex] in the editor's TabLayout. Unlike [closeFile],
+   * this method operates on the actual TabLayout position so it can correctly close
+   * both editor file tabs (CodeEditorView) and lifecycle-backed fragment tabs
+   * (e.g. MarkdownPreviewFragment) when they share the same TabLayout.
+   *
+   * The default implementation is provided for activities that do not host fragment
+   * tabs; it interprets the [tabIndex] as a file index and falls back to [closeFile].
+   */
+  fun closeTabAt(tabIndex: Int, runAfter: () -> Unit = {}) {
+    closeFile(tabIndex, runAfter)
+  }
+
   fun closeAll() = closeAll {}
 
   fun closeAll(runAfter: () -> Unit)
 
   fun closeOthers()
+
+  /**
+   * Close every tab in the editor's TabLayout except the one at [keepTabIndex].
+   * Works for both editor file tabs and fragment tabs.
+   *
+   * The default implementation falls back to [closeOthers], which only handles
+   * file tabs and is incorrect for activities that also host fragment tabs.
+   */
+  fun closeOtherTabs(keepTabIndex: Int) {
+    if (keepTabIndex >= 0) {
+      // best-effort fallback for the no-fragment-tab case
+      closeOthers()
+    }
+  }
+
+  /**
+   * Returns `true` if the editor has any open tab - either an editor file tab or a
+   * lifecycle-backed fragment tab (Markdown preview, etc.).
+   *
+   * The default implementation only checks opened files, so activities that also
+   * host fragment tabs MUST override this.
+   */
+  fun hasOpenTabs(): Boolean = false
 }

@@ -745,6 +745,50 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     runAfter()
   }
 
+  /**
+   * Close the tab at the given [tabIndex] in [content.tabs], dispatching to either the
+   * editor file close path or the fragment tab close path based on the tab's tag.
+   *
+   * The TabLayout position of a fragment tab is NOT a valid index for [closeFile]
+   * (which operates on the [editorViewModel] file list), so this method exists to
+   * give the tab-close actions a single entry point that understands both kinds of
+   * tabs.
+   */
+  override fun closeTabAt(tabIndex: Int, runAfter: () -> Unit) {
+    if (isFinishing || isDestroyed) return
+    val tab = content.tabs.getTabAt(tabIndex) ?: run {
+      // Fall back to the legacy file-index behaviour for any caller that may still
+      // hand us a stale file index (e.g. notifications, last-tab cleanup).
+      closeFile(tabIndex, runAfter)
+      return
+    }
+    val tabId = tab.tag as? String
+    if (EditorFragmentTabManager.isFragmentTabId(tabId)) {
+      log.info("Closing fragment tab at index {}: {}", tabIndex, tabId)
+      fragmentTabManager?.closeTab(tabId!!)
+      runAfter()
+      return
+    }
+    // Editor file tab: convert the TabLayout position to a file index.
+    val fileIndex =
+        if (tabId != null && tabId.startsWith(EDITOR_TAB_PREFIX)) {
+          val file = File(tabId.removePrefix(EDITOR_TAB_PREFIX))
+          findIndexOfEditorByFile(file)
+        } else {
+          // Last-resort fallback: assume the tab position maps 1:1 to the file index.
+          // This should not normally happen because every editor tab is tagged in
+          // [updateTabs] / [getEditorTabAtIndex], but keeps us correct for any
+          // legacy or 3rd-party callers.
+          tabIndex
+        }
+    if (fileIndex < 0) {
+      log.warn("Cannot resolve file index for tab at position {}. Tab is not closed.", tabIndex)
+      runAfter()
+      return
+    }
+    closeFile(fileIndex, runAfter)
+  }
+
   override fun closeOthers() {
     if (editorViewModel.getOpenedFileCount() == 0) {
       return
@@ -810,6 +854,79 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     }
 
     runAfter()
+  }
+
+  /**
+   * Close every tab in the editor's TabLayout except the one at [keepTabIndex]. The
+   * existing [closeOthers] only iterates over file indices in [editorViewModel] and
+   * therefore silently ignores fragment tabs (Markdown preview, etc.). This method
+   * walks the TabLayout itself so that both editor file tabs and fragment tabs are
+   * closed correctly.
+   */
+  override fun closeOtherTabs(keepTabIndex: Int) {
+    if (isFinishing || isDestroyed) return
+    if (!hasOpenTabs()) return
+    if (keepTabIndex < 0 || keepTabIndex >= content.tabs.tabCount) {
+      log.warn("Invalid keep tab index {}. Falling back to closeOthers().", keepTabIndex)
+      closeOthers()
+      return
+    }
+
+    val keepTab = content.tabs.getTabAt(keepTabIndex)
+    val keepTabId = keepTab?.tag as? String
+
+    val unsavedFiles =
+        editorViewModel.getOpenedFiles().map(this::getEditorForFile).filter {
+          it != null && it.isModified
+        }
+    if (unsavedFiles.isNotEmpty()) {
+      notifyFilesUnsaved(unsavedFiles) { closeOtherTabs(keepTabIndex) }
+      return
+    }
+
+    // Snapshot the tab ids to close before mutating the TabLayout, because closing a
+    // tab can shift positions and the caller expects the "keep" tab to remain at the
+    // same position when the operation completes.
+    val toClose = mutableListOf<String>()
+    for (i in 0 until content.tabs.tabCount) {
+      if (i == keepTabIndex) continue
+      val tag = content.tabs.getTabAt(i)?.tag as? String ?: continue
+      toClose.add(tag)
+    }
+
+    // Close fragment tabs first; their lifecycle fragments are independent of the
+    // editor file indices so the order with the file-tab close loop does not matter.
+    val manager = fragmentTabManager
+    toClose.forEach { tabId ->
+      if (EditorFragmentTabManager.isFragmentTabId(tabId) && tabId != keepTabId) {
+        manager?.closeTab(tabId)
+      }
+    }
+
+    // Now close file-editor tabs. We close from the highest file index to the lowest
+    // so that the indices remain valid while the list shrinks.
+    val fileIndices = mutableListOf<Int>()
+    for (i in 0 until content.tabs.tabCount) {
+      if (i == keepTabIndex) continue
+      val tabId = content.tabs.getTabAt(i)?.tag as? String ?: continue
+      if (tabId.startsWith(EDITOR_TAB_PREFIX)) {
+        val idx = findIndexOfEditorByFile(File(tabId.removePrefix(EDITOR_TAB_PREFIX)))
+        if (idx >= 0) fileIndices.add(idx)
+      }
+    }
+    fileIndices.sortDescending()
+    fileIndices.forEach { idx -> closeFile(idx) }
+  }
+
+  /**
+   * Returns `true` if the editor has any open tab - either an editor file tab in
+   * [editorViewModel] or a lifecycle-backed fragment tab managed by
+   * [fragmentTabManager]. Used by the file tab close actions to decide whether the
+   * menu item should be visible.
+   */
+  override fun hasOpenTabs(): Boolean {
+    return editorViewModel.getOpenedFiles().isNotEmpty() ||
+        (fragmentTabManager?.hasOpenTabs() == true)
   }
 
   override fun getOpenedFiles() =

@@ -38,7 +38,13 @@ class CloseFileAction(context: Context, override val order: Int) : FileTabAction
   }
 
   override fun EditorHandlerActivity.doAction(data: ActionData): Boolean {
-    content.tabs.selectedTabPosition.let { index -> closeFile(index) { invalidateOptionsMenu() } }
+    // Use the tab-aware close entry point so that fragment-backed tabs
+    // (e.g. MarkdownPreviewFragment) hosted in the same TabLayout as editor file
+    // tabs can be closed too. closeFile(int) treats the index as a file index in
+    // the EditorViewModel, which is incorrect for fragment tabs.
+    val tabIndex = content.tabs.selectedTabPosition
+    if (tabIndex < 0) return true
+    closeTabAt(tabIndex) { invalidateOptionsMenu() }
     return true
   }
 }

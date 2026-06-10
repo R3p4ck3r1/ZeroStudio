@@ -48,7 +48,12 @@ abstract class FileTabAction : EditorActivityAction() {
               return
             }
 
-    visible = activity.editorViewModel.getOpenedFiles().isNotEmpty()
+    // Previously the close-tab menu items were hidden whenever no editor files
+    // were open, which made them unusable as soon as the user only had
+    // fragment-backed tabs (Markdown preview, etc.) open. The close / close-others
+    // / close-all actions now also understand fragment tabs, so keep the menu
+    // items visible whenever ANY tab is open.
+    visible = activity.hasOpenTabs()
     enabled = visible
   }
 
