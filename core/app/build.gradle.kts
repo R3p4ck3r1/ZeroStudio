@@ -154,6 +154,10 @@ dependencies {
   implementation(libs.common.org.tukaani.tarxzip)
   implementation(libs.bundles.io.markwon)
 
+  // JetBrains markdown rendering SDK (org.intellij.markdown)
+  // Used by MarkdownPreviewFragment to render Markdown tabs in the editor.
+  implementation(libs.jetbrains.markdown)
+
   implementation(libs.google.auto.service.annotations)
   implementation(libs.google.gson)
   implementation(libs.google.guava)

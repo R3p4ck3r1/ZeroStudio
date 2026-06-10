@@ -2,8 +2,9 @@ package com.itsaky.androidide.fragments.editor.markdown
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -19,12 +20,19 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
 import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
+import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.parser.MarkdownParser
+import org.slf4j.LoggerFactory
 
 /** Fragment tab that renders Markdown from a file path or in-memory content. */
 class MarkdownPreviewFragment : Fragment() {
@@ -38,15 +46,23 @@ class MarkdownPreviewFragment : Fragment() {
       filePath = args.getString(EditorFragmentTabManager.ARG_FILE_PATH)
       markdownContent = args.getString(ARG_MARKDOWN_CONTENT)
     }
+    LOG.debug(
+      "onCreate: filePath={}, hasContent={}",
+      filePath,
+      !markdownContent.isNullOrBlank()
+    )
   }
 
   override fun onCreateView(
     inflater: android.view.LayoutInflater,
-    container: android.view.ViewGroup?,
+    container: ViewGroup?,
     savedInstanceState: Bundle?
-  ): android.view.View {
-    return androidx.compose.ui.platform.ComposeView(requireContext()).apply {
-      setViewCompositionStrategy(androidx.compose.ui.platform.ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+  ): View {
+    return ComposeView(requireContext()).apply {
+      // Use the fragment's view lifecycle so the composition follows the
+      // host tab's visibility (hidden tabs suspend, shown tabs resume) and
+      // is torn down when the view is destroyed.
+      setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
       setContent {
         MarkdownPreviewScreen(
           modifier = Modifier.fillMaxSize(),
@@ -57,7 +73,14 @@ class MarkdownPreviewFragment : Fragment() {
     }
   }
 
+  override fun onDestroyView() {
+    super.onDestroyView()
+    LOG.debug("onDestroyView: filePath={}", filePath)
+  }
+
   companion object {
+    private val LOG = LoggerFactory.getLogger(MarkdownPreviewFragment::class.java)
+
     const val ARG_MARKDOWN_CONTENT = "markdown_content"
 
     val SUPPORTED_EXTENSIONS =
@@ -89,20 +112,38 @@ private fun MarkdownPreviewScreen(
   filePath: String?,
   initialContent: String?
 ) {
-  val loadState by produceState<MarkdownLoadState>(MarkdownLoadState.Loading, initialContent, filePath) {
-    value = withContext(Dispatchers.IO) {
-      when {
-        initialContent != null -> MarkdownLoadState.Loaded(initialContent)
-        filePath.isNullOrBlank() -> MarkdownLoadState.Error("No Markdown file was provided.")
-        else -> runCatching {
-          val file = File(filePath)
-          when {
-            !file.exists() -> MarkdownLoadState.Error("Markdown file does not exist:\n$filePath")
-            !file.canRead() -> MarkdownLoadState.Error("Markdown file is not readable:\n$filePath")
-            else -> MarkdownLoadState.Loaded(file.readText(Charsets.UTF_8))
+  val loadState by produceState<MarkdownLoadState>(
+    initialValue = MarkdownLoadState.Loading,
+    key1 = initialContent,
+    key2 = filePath
+  ) {
+    // Any exception in the producer (including IO errors) must transition the
+    // state machine to a terminal Error, otherwise the UI gets stuck on the
+    // loading spinner when the SDK load path fails.
+    try {
+      val next = withContext(Dispatchers.IO) {
+        when {
+          !initialContent.isNullOrBlank() -> MarkdownLoadState.Loaded(initialContent)
+          filePath.isNullOrBlank() -> MarkdownLoadState.Error("No Markdown file was provided.")
+          else -> runCatching {
+            val file = File(filePath)
+            when {
+              !file.exists() -> MarkdownLoadState.Error("Markdown file does not exist:\n$filePath")
+              !file.canRead() -> MarkdownLoadState.Error("Markdown file is not readable:\n$filePath")
+              else -> MarkdownLoadState.Loaded(file.readText(Charsets.UTF_8))
+            }
+          }.getOrElse { t ->
+            MarkdownLoadState.Error(t.message ?: "Unable to load Markdown file.")
           }
-        }.getOrElse { MarkdownLoadState.Error(it.message ?: "Unable to load Markdown file.") }
+        }
       }
+      value = next
+    } catch (ce: CancellationException) {
+      // Cooperative cancellation: do not overwrite state, let composition handle it.
+      throw ce
+    } catch (t: Throwable) {
+      LOG.error("Failed to load markdown file={}", filePath, t)
+      value = MarkdownLoadState.Error(t.message ?: "Unable to load Markdown file.")
     }
   }
 
@@ -145,6 +186,10 @@ private fun MarkdownWebView(modifier: Modifier, filePath: String?, htmlContent: 
             super.onPageStarted(view, url, favicon)
           }
 
+          override fun onPageFinished(view: WebView?, url: String?) {
+            super.onPageFinished(view, url)
+          }
+
           override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = false
         }
         webChromeClient = WebChromeClient()
@@ -155,8 +200,23 @@ private fun MarkdownWebView(modifier: Modifier, filePath: String?, htmlContent: 
   )
 }
 
+/**
+ * Renders the given Markdown source to a self-contained HTML document using
+ * the JetBrains Markdown SDK (org.intellij.markdown) with the GitHub-flavoured
+ * Markdown flavour. The HTML body is wrapped with a small stylesheet so it
+ * renders correctly in the embedded [WebView].
+ */
 private fun convertMarkdownToHtml(markdown: String, filePath: String?): String {
-  val body = MarkdownHtmlRenderer(File(filePath ?: "").parentFile).render(markdown)
+  val body = runCatching {
+    val flavour = GFMFlavourDescriptor(useSafeLinks = true)
+    val parser = MarkdownParser(flavour)
+    val tree = parser.buildMarkdownTreeFromString(markdown)
+    HtmlGenerator(markdown, tree, flavour).generateHtml()
+  }.getOrElse { t ->
+    LOG.error("Markdown SDK render failed for {}", filePath, t)
+    "<pre>${escapeHtml(t.message ?: "Markdown render failed.")}</pre>"
+  }
+
   return """
     <!DOCTYPE html>
     <html>
@@ -183,100 +243,7 @@ private fun convertMarkdownToHtml(markdown: String, filePath: String?): String {
   """.trimIndent()
 }
 
-private class MarkdownHtmlRenderer(private val baseDir: File?) {
-  fun render(markdown: String): String {
-    val out = StringBuilder()
-    var inCode = false
-    var codeLang = ""
-    val paragraph = StringBuilder()
+private val LOG = LoggerFactory.getLogger("MarkdownPreviewFragment")
 
-    fun flushParagraph() {
-      if (paragraph.isNotBlank()) {
-        out.append("<p>").append(renderInline(paragraph.toString().trim())).append("</p>\n")
-        paragraph.clear()
-      }
-    }
-
-    markdown.replace("\r\n", "\n").lines().forEach { raw ->
-      val line = raw.trimEnd()
-      if (line.trimStart().startsWith("```")) {
-        if (inCode) {
-          out.append("</code></pre>\n")
-          inCode = false
-        } else {
-          flushParagraph()
-          codeLang = line.trim().removePrefix("```").trim()
-          out.append("<pre><code")
-          if (codeLang.isNotBlank()) out.append(" class=\"language-").append(escapeAttr(codeLang)).append("\"")
-          out.append(">")
-          inCode = true
-        }
-        return@forEach
-      }
-      if (inCode) {
-        out.append(escapeHtml(raw)).append('\n')
-        return@forEach
-      }
-      if (line.isBlank()) {
-        flushParagraph()
-        return@forEach
-      }
-      val trimmed = line.trimStart()
-      val heading = Regex("^(#{1,6})\\s+(.+)$").matchEntire(trimmed)
-      if (heading != null) {
-        flushParagraph()
-        val level = heading.groupValues[1].length
-        out.append("<h").append(level).append('>').append(renderInline(heading.groupValues[2]))
-          .append("</h").append(level).append(">\n")
-      } else if (trimmed.startsWith(">")) {
-        flushParagraph()
-        out.append("<blockquote>").append(renderInline(trimmed.removePrefix(">").trim())).append("</blockquote>\n")
-      } else if (Regex("^[-*+]\\s+.+").matches(trimmed)) {
-        flushParagraph()
-        out.append("<ul><li>").append(renderInline(trimmed.substring(2).trim())).append("</li></ul>\n")
-      } else {
-        if (paragraph.isNotEmpty()) paragraph.append('\n')
-        paragraph.append(line)
-      }
-    }
-    if (inCode) out.append("</code></pre>\n")
-    flushParagraph()
-    return out.toString()
-  }
-
-  private fun renderInline(text: String): String {
-    var html = escapeHtml(text)
-    html = Regex("!\\[([^]]*)]\\(([^)\\s]+)(?:\\s+\"([^\"]*)\")?\\)").replace(html) { m ->
-      val alt = m.groupValues[1]
-      val src = resolveResource(m.groupValues[2])
-      val title = m.groupValues.getOrNull(3).orEmpty()
-      val lower = src.substringBefore('?').lowercase()
-      when {
-        lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".mov") ->
-          "<video controls src=\"${escapeAttr(src)}\" title=\"${escapeAttr(title.ifBlank { alt })}\"></video>"
-        lower.endsWith(".mp3") || lower.endsWith(".wav") || lower.endsWith(".ogg") || lower.endsWith(".m4a") ->
-          "<audio controls src=\"${escapeAttr(src)}\"></audio>"
-        else -> "<img src=\"${escapeAttr(src)}\" alt=\"${escapeAttr(alt)}\" title=\"${escapeAttr(title)}\"/>"
-      }
-    }
-    html = Regex("\\[([^]]+)]\\(([^)\\s]+)(?:\\s+\"([^\"]*)\")?\\)").replace(html) { m ->
-      val href = resolveResource(m.groupValues[2])
-      "<a href=\"${escapeAttr(href)}\">${m.groupValues[1]}</a>"
-    }
-    html = Regex("`([^`]+)`").replace(html) { "<code>${it.groupValues[1]}</code>" }
-    html = Regex("\\*\\*([^*]+)\\*\\*").replace(html) { "<strong>${it.groupValues[1]}</strong>" }
-    html = Regex("(?<!\\*)\\*([^*]+)\\*(?!\\*)").replace(html) { "<em>${it.groupValues[1]}</em>" }
-    return html.replace("\n", "<br/>")
-  }
-
-  private fun resolveResource(resource: String): String {
-    if (resource.startsWith("http://") || resource.startsWith("https://") || resource.startsWith("data:") || resource.startsWith("file:")) {
-      return resource
-    }
-    return runCatching { Uri.fromFile(File(baseDir, resource)).toString() }.getOrDefault(resource)
-  }
-}
-
-private fun CharSequence.isNotBlank(): Boolean = this.toString().isNotBlank()
-private fun escapeHtml(value: String): String = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-private fun escapeAttr(value: String): String = escapeHtml(value).replace("\"", "&quot;")
+private fun escapeHtml(value: String): String =
+  value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
