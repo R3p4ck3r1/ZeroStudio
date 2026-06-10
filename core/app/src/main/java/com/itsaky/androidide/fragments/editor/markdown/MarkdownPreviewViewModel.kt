@@ -42,7 +42,9 @@ class MarkdownPreviewViewModel(application: Application) : AndroidViewModel(appl
    * 启动一次渲染。重复调用会取消上一次的协程。
    */
   fun load(filePath: String?, inlineContent: String?) {
+    LOG.info("MarkdownPreviewViewModel.load: filePath={}, hasInlineContent={}", filePath, !inlineContent.isNullOrBlank())
     if (filePath == lastFilePath && inlineContent == lastInline && _state.value is MarkdownPreviewState.Loaded) {
+      LOG.debug("Same inputs as last successful load; skip")
       return
     }
     lastFilePath = filePath
@@ -56,6 +58,10 @@ class MarkdownPreviewViewModel(application: Application) : AndroidViewModel(appl
         val result = withContext(Dispatchers.IO) {
           loadAndRender(app, filePath, inlineContent)
         }
+        LOG.info(
+            "MarkdownPreviewViewModel load completed: state={}",
+            result::class.java.simpleName,
+        )
         _state.value = result
       } catch (ce: CancellationException) {
         throw ce

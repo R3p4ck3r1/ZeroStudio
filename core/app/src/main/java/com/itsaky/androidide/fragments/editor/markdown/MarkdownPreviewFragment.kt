@@ -74,7 +74,13 @@ class MarkdownPreviewFragment : Fragment() {
       filePath = args.getString(EditorFragmentTabManager.ARG_FILE_PATH)
       inlineContent = args.getString(ARG_MARKDOWN_CONTENT)
     }
-    LOG.debug("onCreate: filePath={}, hasInlineContent={}", filePath, !inlineContent.isNullOrBlank())
+    // Info 级别：方便在 logcat 里直接看到文件路径是否被正确传入 fragment
+    LOG.info(
+        "MarkdownPreviewFragment.onCreate: filePath={}, hasInlineContent={}, hasArguments={}",
+        filePath,
+        !inlineContent.isNullOrBlank(),
+        arguments != null,
+    )
   }
 
   override fun onCreateView(
@@ -128,6 +134,11 @@ private fun MarkdownPreviewScreen(
  *  - 在 `AndroidView.factory` 内构造 WebView（崩溃隔离）
  *  - 等 view attached 后再 loadDataWithBaseURL
  *  - 构造失败时降级为 TextView
+ *
+ * 注意：factory **不能** 给 WebView 设置 `tag = PendingLoad(...)`，
+ * 否则紧随其后的第一次 update 会因为「prev == current」而提前 return，
+ * `loadDataWithBaseURL` 永远不会被调用，WebView 一直是空白的。
+ * tag 只在 update 里「标记为已加载」，用来在多次 recomposition 时跳过重复 load。
  */
 @Composable
 private fun WebViewContainer(html: String, baseUrl: String) {
@@ -135,9 +146,7 @@ private fun WebViewContainer(html: String, baseUrl: String) {
     modifier = Modifier.fillMaxSize(),
     factory = { ctx ->
       try {
-        createSafeWebView(ctx).also { wv ->
-          wv.tag = PendingLoad(html, baseUrl)
-        }
+        createSafeWebView(ctx)
       } catch (t: Throwable) {
         LOG.error("Failed to create WebView; falling back to TextView", t)
         TextView(ctx).apply {
@@ -148,13 +157,21 @@ private fun WebViewContainer(html: String, baseUrl: String) {
     },
     update = { view ->
       if (view !is WebView) return@AndroidView
-      // 总是把最新的内容写到 tag；如果和上次一样就跳过
+      // 如果已经为同一份 (html, baseUrl) 加载过，就跳过（避免 recomposition 重复 load）
       val prev = view.tag as? PendingLoad
-      if (prev != null && prev.matches(html, baseUrl)) return@AndroidView
+      if (prev != null && prev.matches(html, baseUrl)) {
+        LOG.debug("WebView already loaded this content, skip")
+        return@AndroidView
+      }
+      // 记录待加载内容；加载完成后保留 tag，标记「已加载」
       view.tag = PendingLoad(html, baseUrl)
+      LOG.info(
+          "Loading markdown preview into WebView: htmlLen={}, baseUrl={}",
+          html.length,
+          baseUrl,
+      )
       if (view.isAttachedToWindow) {
-        doLoad(view, view.tag as PendingLoad)
-        view.tag = null
+        doLoad(view, PendingLoad(html, baseUrl))
       } else {
         // 等 attach 后再加载；用一次性 listener 避免每次 update 都注册
         view.removeOnAttachStateChangeListener(PendingAttachListener)
@@ -169,8 +186,8 @@ private val PendingAttachListener = object : View.OnAttachStateChangeListener {
     v.removeOnAttachStateChangeListener(this)
     if (v is WebView) {
       val pending = v.tag as? PendingLoad ?: return
-      v.tag = null
       doLoad(v, pending)
+      // tag 保留为 PendingLoad(html, baseUrl)，下一次 update 同内容会跳过
     }
   }
 
