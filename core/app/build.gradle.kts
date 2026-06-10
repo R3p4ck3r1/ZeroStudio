@@ -189,6 +189,8 @@ dependencies {
 
   // UI/UX
   implementation(libs.bundles.compose) // androidx compose
+  // androidx.compose.runtime.livedata.observeAsState (used by MarkdownPreviewFragment)
+  implementation(libs.androidx.compose.runtime.livedata)
   implementation(libs.androidx.core.ktx)
 
   implementation(libs.common.kotlin)
