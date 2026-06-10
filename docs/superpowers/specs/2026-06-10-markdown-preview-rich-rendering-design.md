@@ -2,7 +2,14 @@
 
 **日期**: 2026-06-10
 **版本**: 1.0
-**状态**: 已批准（待用户 review）
+**状态**: ⚠️ **Superseded by `2026-06-11-markdown-preview-compose-native-design.md`**
+
+> 本 spec 描述的 WebView + nanohttpd 方案在 PR #304 落地后效果不达预期：
+> 排版丢失、代码无高亮、同目录图片不渲染，反而引入了 WebView 崩溃风险。
+> 后续在 PR #306 尝试修复工厂/更新 bug，最终决定改用
+> `dev.jeziellago.compose.markdowntext.MarkdownText`。
+>
+> 本文件**保留作为历史参考**，不再维护。
 
 ---
 
