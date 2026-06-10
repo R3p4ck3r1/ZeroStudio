@@ -208,6 +208,10 @@ abstract class BaseEditorActivity :
     @JvmStatic protected val PROC_GRADLE_DAEMON = "Gradle Daemon"
     @JvmStatic protected val log: Logger = LoggerFactory.getLogger(BaseEditorActivity::class.java)
 
+    protected const val EDITOR_CONTAINER_INDEX = 0
+    protected const val FRAGMENT_CONTAINER_INDEX = 1
+    protected const val NO_EDITOR_CONTAINER_INDEX = 2
+
     private const val OPTIONS_MENU_INVALIDATION_DELAY = 150L
     const val EDITOR_CONTAINER_SCALE_FACTOR = 0.87f
     const val KEY_BOTTOM_SHEET_SHOWN = "editor_bottomSheetShown"
@@ -495,10 +499,11 @@ abstract class BaseEditorActivity :
 
   override fun onTabSelected(tab: Tab) {
     if (isDestroying || _binding == null) return
-    val position = tab.position
+    val position = resolveEditorIndexForTab(tab)
+    if (position < 0) return
     editorViewModel.displayedFileIndex = position
 
-    val editorView = provideEditorAt(position)!!
+    val editorView = provideEditorAt(position) ?: return
     EditorLineOperations.applyReadOnlyState(editorView.editor!!, this)
 
     editorView.onEditorSelected()
@@ -509,6 +514,10 @@ abstract class BaseEditorActivity :
     refreshSymbolInput(editorView)
     invalidateOptionsMenu()
   }
+
+  protected open fun resolveEditorIndexForTab(tab: Tab): Int = tab.position
+
+  protected open fun hasNonEditorTabs(): Boolean = false
 
   override fun onTabUnselected(tab: Tab) {}
 
@@ -678,12 +687,12 @@ abstract class BaseEditorActivity :
     editorViewModel.observeFiles(this) { files ->
       if (isDestroying || _binding == null) return@observeFiles
       content.apply {
-        if (files.isNullOrEmpty()) {
+        if (files.isNullOrEmpty() && !hasNonEditorTabs()) {
           tabs.visibility = View.GONE
-          viewContainer.displayedChild = 1
+          viewContainer.displayedChild = NO_EDITOR_CONTAINER_INDEX
         } else {
           tabs.visibility = View.VISIBLE
-          viewContainer.displayedChild = 0
+          viewContainer.displayedChild = EDITOR_CONTAINER_INDEX
         }
       }
       invalidateOptionsMenu()

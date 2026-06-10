@@ -31,9 +31,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.Tab
-import com.itsaky.androidide.databinding.ContentEditorBinding
 import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
 import com.itsaky.androidide.fragments.editor.FragmentTabEntry
 import com.itsaky.androidide.fragments.editor.FragmentTabRegistry
@@ -141,49 +139,42 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
       return
     }
 
-    // Register Markdown Preview fragment tab
     FragmentTabRegistry.register(
       FragmentTabEntry(
         id = "markdown_preview",
         title = "Markdown Preview",
         iconRes = R.drawable.ic_markdown_preview,
         fragmentClass = MarkdownPreviewFragment::class.java,
-        fileExtension = "md",
-        order = 100
+        fileExtensions = MarkdownPreviewFragment.SUPPORTED_EXTENSIONS,
+        order = 100,
+        fragmentFactory = { MarkdownPreviewFragment() }
       )
     )
-
-    // Register additional Markdown extensions
-    listOf("mdr", "markdown", "mdx", "mkd", "mkdn").forEach { ext ->
-      FragmentTabRegistry.register(
-        FragmentTabEntry(
-          id = "markdown_preview_$ext",
-          title = "Markdown Preview",
-          iconRes = R.drawable.ic_markdown_preview,
-          fragmentClass = MarkdownPreviewFragment::class.java,
-          fileExtension = ext,
-          order = 100
-        )
-      )
-    }
   }
 
-  /**
-   * Override onTabSelected to handle both editor tabs and fragment tabs.
-   * Fragment tabs are identified by their tag containing a colon separator.
-   */
+  /** Handles both file editor tabs and lifecycle-backed fragment tabs in the same TabLayout. */
   override fun onTabSelected(tab: Tab) {
     val tabId = tab.tag as? String
-
-    // Check if this is a fragment tab
-    if (tabId != null && tabId.contains(":")) {
-      // This is a fragment tab (format: "entryId:filePath")
-      fragmentTabManager?.switchToTab(tabId)
+    if (EditorFragmentTabManager.isFragmentTabId(tabId)) {
+      content.viewContainer.displayedChild = FRAGMENT_CONTAINER_INDEX
+      fragmentTabManager?.switchToTab(tabId!!)
+      invalidateOptionsMenu()
       return
     }
 
-    // This is an editor tab, delegate to parent implementation
+    content.viewContainer.displayedChild = EDITOR_CONTAINER_INDEX
+    fragmentTabManager?.hideAllTabs()
     super.onTabSelected(tab)
+  }
+
+  override fun hasNonEditorTabs(): Boolean = fragmentTabManager?.hasOpenTabs() == true
+
+  override fun resolveEditorIndexForTab(tab: Tab): Int {
+    val tag = tab.tag as? String
+    if (tag?.startsWith(EDITOR_TAB_PREFIX) == true) {
+      return findIndexOfEditorByFile(File(tag.removePrefix(EDITOR_TAB_PREFIX)))
+    }
+    return tab.position
   }
 
   override fun preDestroy() {
@@ -196,14 +187,11 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     mBuildEventListener.setActivity(this)
     super.onCreate(savedInstanceState)
 
-    // Initialize fragment tab manager
-    content.root.post {
-      fragmentTabManager = EditorFragmentTabManager(
-        activity = this,
-        binding = content,
-        containerId = content.fragmentContainer.id
-      )
-    }
+    fragmentTabManager = EditorFragmentTabManager(
+      activity = this,
+      binding = content,
+      containerId = content.fragmentContainer.id
+    )
 
     editorViewModel._displayedFile.observe(this) {
       this.content.editorContainer.displayedChild = it
@@ -520,7 +508,8 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     }
 
     val index = openFileAndGetIndex(file, range)
-    val tab = content.tabs.getTabAt(index)
+    if (index < 0) return null
+    val tab = getEditorTabAtIndex(index)
     if (tab != null && index >= 0 && !tab.isSelected) {
       tab.select()
     }
@@ -557,7 +546,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     editor.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
 
     content.editorContainer.addView(editor)
-    content.tabs.addTab(content.tabs.newTab())
+    content.tabs.addTab(content.tabs.newTab().apply { tag = editorTabId(file) })
 
     editorViewModel.addFile(file)
     editorViewModel.setCurrentFile(position, file)
@@ -688,7 +677,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
       // editorViewModel.areFilesModified = hasUnsaved
 
       // set tab as unmodified
-      val tab = content.tabs.getTabAt(index) ?: return@withContext
+      val tab = getEditorTabAtIndex(index) ?: return@withContext
       if (tab.text!!.startsWith('*')) {
         tab.text = tab.text!!.substring(startIndex = 1)
       }
@@ -746,7 +735,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
 
     editorViewModel.removeFile(index)
     content.apply {
-      tabs.removeTabAt(index)
+      getEditorTabAtIndex(index)?.let { tabs.removeTab(it) }
       editorContainer.removeViewAt(index)
     }
 
@@ -813,6 +802,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     }
 
     editorViewModel.removeAllFiles()
+    fragmentTabManager?.closeAllTabs()
     content.apply {
       tabs.removeAllTabs()
       tabs.requestLayout()
@@ -884,7 +874,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
       return
     }
 
-    val tab = content.tabs.getTabAt(index)!!
+    val tab = getEditorTabAtIndex(index) ?: return
     val editorView = getEditorAtIndex(index)
 
     // Update the tab's text based on the new isModified state
@@ -928,7 +918,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     file ?: return
     val index = findIndexOfEditorByFile(file)
     if (index == -1) return
-    val tab = content.tabs.getTabAt(index) ?: return
+    val tab = getEditorTabAtIndex(index) ?: return
     val editorView = getEditorAtIndex(index)
 
     if (editorView?.isModified == true) {
@@ -942,11 +932,28 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
     file ?: return
     val index = findIndexOfEditorByFile(file)
     if (index == -1) return
-    val tab = content.tabs.getTabAt(index) ?: return
+    val tab = getEditorTabAtIndex(index) ?: return
 
     if (tab.text?.startsWith('*') == true) {
       tab.text = tab.text!!.substring(startIndex = 1)
     }
+  }
+
+  private fun getEditorTabAtIndex(editorIndex: Int): Tab? {
+    if (editorIndex < 0 || editorIndex >= editorViewModel.getOpenedFileCount()) return null
+    val file = editorViewModel.getOpenedFile(editorIndex)
+    val expectedTag = editorTabId(file)
+    for (i in 0 until content.tabs.tabCount) {
+      val tab = content.tabs.getTabAt(i) ?: continue
+      if (tab.tag == expectedTag) return tab
+    }
+    return null
+  }
+
+  private fun editorTabId(file: File): String = EDITOR_TAB_PREFIX + file.absolutePath
+
+  companion object {
+    private const val EDITOR_TAB_PREFIX = "editor:"
   }
 
   private fun updateTabs() {
@@ -963,7 +970,7 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
         nameBuilder.addPath(it, it.path)
       }
 
-      for (index in 0 until content.tabs.tabCount) {
+      for (index in files.indices) {
         val file = files.getOrNull(index) ?: continue
         val count = dupliCount[file.name] ?: 0
 
@@ -978,7 +985,8 @@ open class EditorHandlerActivity : ProjectHandlerActivity(), IEditorHandler {
 
       withContext(Dispatchers.Main) {
         names.forEach { index, (name, iconId) ->
-          val tab = content.tabs.getTabAt(index) ?: return@forEach
+          val tab = getEditorTabAtIndex(index) ?: return@forEach
+          tab.tag = editorTabId(editorViewModel.getOpenedFile(index))
           tab.icon = ResourcesCompat.getDrawable(resources, iconId, theme)
           tab.text = name
         }
