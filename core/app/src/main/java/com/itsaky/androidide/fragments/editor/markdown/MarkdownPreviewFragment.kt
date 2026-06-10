@@ -1,13 +1,11 @@
 package com.itsaky.androidide.fragments.editor.markdown
 
-import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.widget.TextView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,218 +13,198 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed
+import androidx.compose.ui.text.util.Linkify
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
+import com.itsaky.androidide.fragments.EditorFragmentTabManager
+import dev.jeziellago.compose.markdowntext.MarkdownText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
-
-private val LOG = LoggerFactory.getLogger("MarkdownPreviewFragment")
+import java.io.File
 
 /**
- * Markdown 预览 Fragment。
+ * Markdown 预览 fragment。
  *
- * 重写自 2026-06-10 的设计：使用 Markwon 4.6.2 + nanohttpd 本地资源服务 +
- * bundled highlight.js / github-markdown-css，在 WebView 中渲染。详细设计：
- * [docs/superpowers/specs/2026-06-10-markdown-preview-rich-rendering-design.md]
+ * 直接使用 `dev.jeziellago.compose.markdowntext.MarkdownText`（已被
+ * `core/git` 模块 vendored 进来，puppygit 长期使用），不复用 WebView / nanohttpd /
+ * 任何 bundled 资源文件。
  *
- * 关键加固（应对 Android 12 Samsung SM-A217F 上的 WebViewChromium SIGSEGV）：
- *  - WebView 在 `AndroidView.factory` 内构造，**不**在 `onCreateView` 创建
- *  - `loadDataWithBaseURL` 在 view 已 attach 后才执行
- *  - 关闭 `allowFileAccessFromFileURLs` / `allowUniversalAccessFromFileURLs` / 混合内容
- *  - 构造异常被 `runCatching` 捕获，失败时显示只读 TextView
- *  - 走 LAYER_TYPE_SOFTWARE 作为最后兜底（无 WebView 时）
+ * 公开接口（`newInstance(filePath)` / `newInstanceWithContent(content)` /
+ * `SUPPORTED_EXTENSIONS` / `ARG_MARKDOWN_CONTENT`）与重构前一致，调用方
+ * （`MarkdownPreviewAction` / `EditorFragmentTabManager`）零改动。
+ *
+ * @author android_zero
  */
 class MarkdownPreviewFragment : Fragment() {
 
-  companion object {
-    const val ARG_MARKDOWN_CONTENT = "markdown_content"
-    val SUPPORTED_EXTENSIONS = setOf("md", "mdr", "markdown", "mdown", "mkd", "mkdn", "mdoc", "mdtext", "mdx")
+    companion object {
+        /** 嵌入式 markdown 内容 key（inlineContent 模式用）。 */
+        const val ARG_MARKDOWN_CONTENT = "markdown_content"
 
-    fun newInstance(filePath: String): MarkdownPreviewFragment {
-      return MarkdownPreviewFragment().apply {
-        arguments = Bundle().apply { putString(EditorFragmentTabManager.ARG_FILE_PATH, filePath) }
-      }
-    }
-
-    fun newInstanceWithContent(content: String): MarkdownPreviewFragment {
-      return MarkdownPreviewFragment().apply {
-        arguments = Bundle().apply { putString(ARG_MARKDOWN_CONTENT, content) }
-      }
-    }
-  }
-
-  private val viewModel: MarkdownPreviewViewModel by viewModels()
-  private var filePath: String? = null
-  private var inlineContent: String? = null
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    arguments?.let { args ->
-      filePath = args.getString(EditorFragmentTabManager.ARG_FILE_PATH)
-      inlineContent = args.getString(ARG_MARKDOWN_CONTENT)
-    }
-    // Info 级别：方便在 logcat 里直接看到文件路径是否被正确传入 fragment
-    LOG.info(
-        "MarkdownPreviewFragment.onCreate: filePath={}, hasInlineContent={}, hasArguments={}",
-        filePath,
-        !inlineContent.isNullOrBlank(),
-        arguments != null,
-    )
-  }
-
-  override fun onCreateView(
-    inflater: LayoutInflater,
-    container: ViewGroup?,
-    savedInstanceState: Bundle?
-  ): View {
-    return ComposeView(requireContext()).apply {
-      setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-      setContent {
-        MarkdownPreviewScreen(
-          viewModel = viewModel,
-          filePath = filePath,
-          inlineContent = inlineContent,
-          onFirstAttach = { fp, ic -> viewModel.load(fp, ic) }
+        /** 支持的 markdown 文件后缀。 */
+        val SUPPORTED_EXTENSIONS = setOf(
+            "md", "mdr", "markdown", "mdown", "mkd", "mkdn", "mdoc", "mdtext", "mdx"
         )
-      }
+
+        /** 工厂：按文件路径创建 fragment（File 模式）。 */
+        @JvmStatic
+        fun newInstance(filePath: String): MarkdownPreviewFragment {
+            return MarkdownPreviewFragment().apply {
+                arguments = Bundle().apply {
+                    putString(EditorFragmentTabManager.ARG_FILE_PATH, filePath)
+                }
+            }
+        }
+
+        /** 工厂：按 inline content 创建 fragment（无文件模式）。 */
+        @JvmStatic
+        fun newInstanceWithContent(content: String): MarkdownPreviewFragment {
+            return MarkdownPreviewFragment().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_MARKDOWN_CONTENT, content)
+                }
+            }
+        }
     }
-  }
+
+    private var filePath: String? = null
+    private var inlineContent: String? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        arguments?.let { args ->
+            filePath = args.getString(EditorFragmentTabManager.ARG_FILE_PATH)
+            inlineContent = args.getString(ARG_MARKDOWN_CONTENT)
+        }
+        LOG.info(
+            "MarkdownPreviewFragment.onCreate: filePath={}, hasInlineContent={}, hasArguments={}",
+            filePath,
+            !inlineContent.isNullOrBlank(),
+            arguments != null,
+        )
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            MaterialTheme {
+                MarkdownPreviewScreen(filePath = filePath, inlineContent = inlineContent)
+            }
+        }
+    }
 }
 
-/**
- * 顶层 Composable。订阅 [MarkdownPreviewViewModel] 状态，三态渲染。
- */
+/** 顶层 Composable，方便 preview / 测试单独调用。 */
 @Composable
 private fun MarkdownPreviewScreen(
-  viewModel: MarkdownPreviewViewModel,
-  filePath: String?,
-  inlineContent: String?,
-  onFirstAttach: (String?, String?) -> Unit
+    filePath: String?,
+    inlineContent: String?,
 ) {
-  // 第一次进入时触发 load
-  LaunchedEffect(filePath, inlineContent) {
-    onFirstAttach(filePath, inlineContent)
-  }
-  val state by viewModel.state.observeAsState(MarkdownPreviewState.Loading)
+    // 用 produceState 在 IO 线程读文件，state 切换由 Compose 驱动
+    val state by produceState<MarkdownUiState>(initialValue = MarkdownUiState.Loading) {
+        val resolved = runCatching { loadContent(filePath, inlineContent) }
+        value = resolved.fold(
+            onSuccess = { MarkdownUiState.Loaded(it.text, it.baseDir) },
+            onFailure = { MarkdownUiState.Error(it.message ?: it.javaClass.simpleName) }
+        )
+    }
 
-  when (val s = state) {
-    is MarkdownPreviewState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-      CircularProgressIndicator()
+    when (val s = state) {
+        MarkdownUiState.Loading -> Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) { CircularProgressIndicator() }
+
+        is MarkdownUiState.Error -> Box(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = s.message, style = MaterialTheme.typography.bodyMedium)
+        }
+
+        is MarkdownUiState.Loaded -> MarkdownPreviewBody(text = s.text, baseDir = s.baseDir)
     }
-    is MarkdownPreviewState.Error -> Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-      Text(s.message, style = MaterialTheme.typography.bodyMedium)
-    }
-    is MarkdownPreviewState.Loaded -> WebViewContainer(html = s.html, baseUrl = s.baseUrl)
-  }
 }
+
+@Composable
+private fun MarkdownPreviewBody(text: String, baseDir: String) {
+    val context = LocalContext.current
+    // baseDir 变化时重建 coilStore（仅在切换文件时发生）
+    val coilStore = remember(baseDir) {
+        MarkdownImageSources(context.applicationContext, baseDir)
+    }
+
+    MarkdownText(
+        markdown = text,
+        modifier = Modifier.fillMaxSize().padding(12.dp),
+        isTextSelectable = true,
+        linkifyMask = Linkify.EMAIL_ADDRESSES or Linkify.WEB_URLS,
+        enableSoftBreakAddsNewLine = true,
+        // syntaxHighlightColor / syntaxHighlightTextColor 跟随 MaterialTheme，
+        // 不显式设值，让 MarkwonTheme 用默认就好
+        coilStore = coilStore,
+        onLinkClicked = { link ->
+            // 把 http(s) 链接交给系统默认浏览器；2a2 之后可接入 IDE 的 link handler
+            runCatching {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            }
+            true
+        },
+    )
+}
+
+// region 私有类型 / 工具
+
+private sealed class MarkdownUiState {
+    data object Loading : MarkdownUiState()
+    data class Loaded(val text: String, val baseDir: String) : MarkdownUiState()
+    data class Error(val message: String) : MarkdownUiState()
+}
+
+private data class LoadedContent(val text: String, val baseDir: String)
 
 /**
- * WebView 容器。负责：
- *  - 在 `AndroidView.factory` 内构造 WebView（崩溃隔离）
- *  - 等 view attached 后再 loadDataWithBaseURL
- *  - 构造失败时降级为 TextView
+ * 在 IO 线程读 filePath / 取 inlineContent，返回 LoadedContent。
  *
- * 注意：factory **不能** 给 WebView 设置 `tag = PendingLoad(...)`，
- * 否则紧随其后的第一次 update 会因为「prev == current」而提前 return，
- * `loadDataWithBaseURL` 永远不会被调用，WebView 一直是空白的。
- * tag 只在 update 里「标记为已加载」，用来在多次 recomposition 时跳过重复 load。
+ * baseDir 供 MarkdownImageSources 解析同目录相对路径用：
+ *  - filePath 模式：filePath 的父目录
+ *  - inlineContent 模式：空字符串（相对路径无法解析为预期文件）
  */
-@Composable
-private fun WebViewContainer(html: String, baseUrl: String) {
-  AndroidView(
-    modifier = Modifier.fillMaxSize(),
-    factory = { ctx ->
-      try {
-        createSafeWebView(ctx)
-      } catch (t: Throwable) {
-        LOG.error("Failed to create WebView; falling back to TextView", t)
-        TextView(ctx).apply {
-          text = "Preview is not available on this device.\n\n${t.javaClass.simpleName}: ${t.message ?: ""}"
-          setPadding(32, 32, 32, 32)
+private suspend fun loadContent(filePath: String?, inlineContent: String?): LoadedContent =
+    withContext(Dispatchers.IO) {
+        when {
+            !inlineContent.isNullOrBlank() -> LoadedContent(
+                text = inlineContent,
+                baseDir = "",
+            )
+
+            !filePath.isNullOrBlank() -> {
+                val file = File(filePath)
+                LoadedContent(
+                    text = file.readText(Charsets.UTF_8),
+                    baseDir = (file.parentFile?.absolutePath ?: ""),
+                )
+            }
+
+            else -> error("No markdown file or inline content was provided.")
         }
-      }
-    },
-    update = { view ->
-      if (view !is WebView) return@AndroidView
-      // 如果已经为同一份 (html, baseUrl) 加载过，就跳过（避免 recomposition 重复 load）
-      val prev = view.tag as? PendingLoad
-      if (prev != null && prev.matches(html, baseUrl)) {
-        LOG.debug("WebView already loaded this content, skip")
-        return@AndroidView
-      }
-      // 记录待加载内容；加载完成后保留 tag，标记「已加载」
-      view.tag = PendingLoad(html, baseUrl)
-      LOG.info(
-          "Loading markdown preview into WebView: htmlLen={}, baseUrl={}",
-          html.length,
-          baseUrl,
-      )
-      if (view.isAttachedToWindow) {
-        doLoad(view, PendingLoad(html, baseUrl))
-      } else {
-        // 等 attach 后再加载；用一次性 listener 避免每次 update 都注册
-        view.removeOnAttachStateChangeListener(PendingAttachListener)
-        view.addOnAttachStateChangeListener(PendingAttachListener)
-      }
     }
-  )
-}
 
-private val PendingAttachListener = object : View.OnAttachStateChangeListener {
-  override fun onViewAttachedToWindow(v: View) {
-    v.removeOnAttachStateChangeListener(this)
-    if (v is WebView) {
-      val pending = v.tag as? PendingLoad ?: return
-      doLoad(v, pending)
-      // tag 保留为 PendingLoad(html, baseUrl)，下一次 update 同内容会跳过
-    }
-  }
+private val LOG = LoggerFactory.getLogger("MarkdownPreviewFragment")
 
-  override fun onViewDetachedFromWindow(v: View) {
-    // ignore
-  }
-}
-
-private data class PendingLoad(val html: String, val baseUrl: String) {
-  fun matches(html: String, baseUrl: String) = this.html == html && this.baseUrl == baseUrl
-}
-
-@SuppressLint("SetJavaScriptEnabled")
-private fun createSafeWebView(ctx: android.content.Context): WebView {
-  return WebView(ctx).apply {
-    settings.javaScriptEnabled = true
-    settings.allowFileAccess = false
-    settings.allowContentAccess = false
-    settings.allowFileAccessFromFileURLs = false
-    settings.allowUniversalAccessFromFileURLs = false
-    settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-    settings.cacheMode = WebSettings.LOAD_DEFAULT
-    settings.domStorageEnabled = true
-    settings.useWideViewPort = true
-    settings.loadWithOverviewMode = true
-    // 不让 WebView 在被 detach 后自动销毁，由我们手动管理
-    isFocusable = true
-    isFocusableInTouchMode = true
-  }
-}
-
-private fun doLoad(webView: WebView, pending: PendingLoad) {
-  try {
-    // baseUrl 为空字符串时，回退到 about:blank（inline 模式无相对路径资源）
-    val base = if (pending.baseUrl.isBlank()) "about:blank" else pending.baseUrl
-    webView.loadDataWithBaseURL(base, pending.html, "text/html", "utf-8", null)
-  } catch (t: Throwable) {
-    LOG.error("loadDataWithBaseURL failed; falling back to LAYER_TYPE_SOFTWARE", t)
-    webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-    runCatching { webView.loadDataWithBaseURL("about:blank", pending.html, "text/html", "utf-8", null) }
-  }
-}
+// endregion
