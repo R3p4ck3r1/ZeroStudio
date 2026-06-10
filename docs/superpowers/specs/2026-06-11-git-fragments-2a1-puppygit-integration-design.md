@@ -42,54 +42,75 @@ Composable，必须先把 puppygit 的运行时基础接入 core/app。
 ### 4.1 启动期初始化
 
 ```
-IDEApplication.onCreate()
-    ↓ runBlocking { PuppyGitIntegration.ensureReady(this) }
-    ↓
-PuppyGitIntegration.ensureReady(ctx) {
-  if (AppModel.isInited) return
-  AppModel.init_forPreview(ctx)         // 同步；构造 AppContainer，注入到 AppModel
-  GitRuntimeBootstrap.markReady()
-}
+首次进入 git page fragment.onCreateView:
+    BaseGitPageFragment.setGitContent { ... }  // 或 2a2 改写具体 fragment
+        ↓
+    PuppyGitIntegration.ensureReady()           // Composable,幂等
+        ↓
+    AppModel.init_forPreview()                 // 已存在;@Composable,内部用 LocalContext.current
+        - LibLoader.load()
+        - Libgit2.init()
+        - Libgit2.optsGitOptSetOwnerValidation(false)
+        - AppModel.dbContainer = AppDataContainer(ctx)
+        - AppModel.realAppContext = ctx
+        - AppModel.masterPassword = ...
+        - AppModel.externalFilesDir / externalCacheDir / innerDataDir / ...
+        - AppModel.init_3()                    // 内部末尾调用,设 navController + homeTopBarScrollBehavior
 ```
 
-`AppModel.init_forPreview(ctx)`（位于 `core/git/.../utils/AppModel.kt`）已经存在，
-接受 `appContext: Context` 和 `initActivity = false`，**不**触发 activity-level
-副作用。
+> 注:`AppModel.init_forPreview()` 的真实签名是 `@Composable fun init_forPreview()`,
+> 不是 `init_forPreview(ctx, initActivity = false)`,所以 `PuppyGitIntegration.ensureReady()`
+> 必须是 `@Composable` 函数。原 spec 草稿误写为非-Composable,本 spec 已修正。
 
 ### 4.2 懒加载
 
 `Application.onCreate` 期间跑 `runBlocking { ... }` 不友好。`ensureReady` 改为
-**懒加载**：
+**懒加载**:
 
-- `PuppyGitIntegration.ensureReady(ctx)` 默认在第一次被调用时执行
-- 在 2a2 之后，`BaseGitPageFragment.onCreateView` 末尾调一次，确保 Composable
-  拿到的是已初始化状态
-- 不在 `Application.onCreate` 强制调，避免增加冷启动耗时
+- `PuppyGitIntegration.ensureReady()` 默认在第一次被调用时执行(Composable,内部
+  用 `LocalContext.current` 拿 context)
+- 在 2a2 之后,`BaseGitPageFragment.setGitContent` 返回的 `ComposeView.setContent`
+  块中调一次,确保 Composable 拿到的是已初始化状态
+- 不在 `Application.onCreate` 强制调,避免增加冷启动耗时
 
 ### 4.3 Compose host
 
+2a1 阶段 **不强制** base fragment 改 ComposeView body（避免破坏现有 4 个
+具体 fragment 的 RecyclerView 实现），只暴露一个 helper：
+
 ```kotlin
 abstract class BaseGitPageFragment : Fragment() {
-    protected lateinit var toolbar: MaterialToolbar
-    protected lateinit var contentRoot: FrameLayout   // 包含 toolbar + ComposeView
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        runCatching { GitRuntimeBootstrap.ensureLoaded() }
+        setupToolbar()
+    }
 
-    override fun onCreateView(...): View { ... }
+    abstract fun setupToolbar()
 
-    protected open fun setupToolbar() {}    // 子类覆写
-
-    protected fun setGitContent(content: @Composable () -> Unit) {
-        // contentRoot 是 toolbar + ComposeView 的 LinearLayout
-        val compose = ComposeView(requireContext()).apply {
+    /**
+     * 创建一个承载 puppygit Compose 内容的 [ComposeView]。
+     *
+     * 调用方负责把返回的 [ComposeView] 放到布局里。`setContent` 块内部会先
+     * 调 [PuppyGitIntegration.ensureReady] 触发 AppModel 初始化，再包一层
+     * [InitContent] 提供 Theme / LocalActivity 等 CompositionLocal。
+     */
+    protected fun setGitContent(content: @Composable () -> Unit): ComposeView {
+        val ctx = requireContext()
+        return ComposeView(ctx).apply {
             setViewCompositionStrategy(DisposeOnViewTreeLifecycleDestroyed)
-            setContent { InitContent { content() } }
+            setContent {
+                PuppyGitIntegration.ensureReady()
+                InitContent(context = ctx.applicationContext) { content() }
+            }
         }
-        // 替换现有 placeholder
     }
 }
 ```
 
-`InitContent` 是 puppygit 自己的 Composable，提供 `Theme` + `LocalActivity` 等
-CompositionLocal。本 sub-spec 不直接使用 `InitContent` 内的东西，但 2a2 会用。
+`InitContent` 是 puppygit 自己的 Composable（位于 `core/git/.../ui/theme/Theme.kt`），
+提供 `Theme` + `LocalActivity` 等 CompositionLocal。本 sub-spec 不直接使用
+`InitContent` 内的东西，但 2a2 会用。
 
 ### 4.4 关键组件
 
@@ -98,34 +119,51 @@ CompositionLocal。本 sub-spec 不直接使用 `InitContent` 内的东西，但
 ```kotlin
 object PuppyGitIntegration {
     private val inited = AtomicBoolean(false)
+    private val nativeLoaded = AtomicBoolean(false)
 
-    fun ensureReady(ctx: Context) {
-        if (inited.get()) return
+    fun isReady(): Boolean = inited.get()
+
+    /** 同步，非-Composable。仅加载 native 库（LibLoader + Libgit2.init）。 */
+    fun ensureNativeLoaded() {
+        if (nativeLoaded.get()) return
         synchronized(this) {
-            if (inited.get()) return
-            runBlocking { AppModel.init_forPreview(ctx.applicationContext, initActivity = false) }
-            inited.set(true)
+            if (nativeLoaded.get()) return
+            LibLoader.load()
+            Libgit2.init()
+            Libgit2.optsGitOptSetOwnerValidation(false)
+            nativeLoaded.set(true)
         }
     }
 
-    fun isReady(): Boolean = inited.get()
+    /** Composable。首次调用跑 AppModel.init_forPreview()；后续调用 no-op。 */
+    @Composable
+    fun ensureReady() {
+        if (inited.get()) return
+        ensureNativeLoaded()  // init_forPreview 内部也会跑，但幂等
+        AppModel.init_forPreview()  // 用 LocalContext.current
+        inited.set(true)
+    }
 }
 ```
 
-- 接受 `Context` 而不是 `Activity`（即使 puppygit 内部 `init_forPreview` 也只
-  要 `appContext`，不要 activity，避免误用）
-- `runBlocking` 是同步等待 suspend 完成；为减少阻塞时间，2a2 之后可以改成
-  第一次访问时阻塞（用户在 Composable 内看到 spinner，不在启动路径上）
-- 单例模式（`object`）防止多个 fragment 入口并发初始化
+- `ensureReady` 是 `@Composable` 因为 `AppModel.init_forPreview()` 必须
+  在 Composable 作用域内调用（用 `LocalContext.current`）。
+- `runBlocking` 不再需要：Composable 块天然是同步的（`setContent` 跑完才返回）。
+- 单例模式（`object`）防止多个 fragment 入口并发初始化。
+- `ensureNativeLoaded` 拆出来：GitRuntimeBootstrap 仍是非-Composable，需要它。
+- `inited` 与 `nativeLoaded` 两个独立 flag：`inited` 表示 AppModel 字段
+  全部就绪（包括 navController / scrollBehavior）；`nativeLoaded` 只表示
+  jni 库已加载，用于向后兼容 GitRuntimeBootstrap。
 
 **`GitRuntimeBootstrap`**（改写）
 
 ```kotlin
 object GitRuntimeBootstrap {
+    @Synchronized
     fun ensureLoaded() {
-        // 老实现：手动调 LibLoader.load() + Libgit2.init()
-        // 新实现：直接调 PuppyGitIntegration.ensureReady(ctx)；
-        // puppygit 内部已经处理 LibLoader + Libgit2
+        // 委托给 PuppyGitIntegration；native 库幂等加载。
+        // AppModel 字段初始化在 2a2 之后由 setGitContent 触发。
+        PuppyGitIntegration.ensureNativeLoaded()
     }
 }
 ```
@@ -152,9 +190,11 @@ object GitRuntimeBootstrap {
 
 | 验证项 | 方式 |
 | --- | --- |
-| `PuppyGitIntegration.ensureReady(ctx)` 单次进入幂等 | 单测 / 代码 review |
+| `PuppyGitIntegration.ensureReady()` 单次进入幂等 | 单测 / 代码 review |
+| `PuppyGitIntegration.ensureNativeLoaded()` 单次进入幂等 | code review |
 | `BaseGitPageFragment` 仍能正常 inflate 工具栏；`setupToolbar()` 子类扩展点不破 | code review（XML 不变） |
-| `GitRuntimeBootstrap.ensureLoaded()` 多次调用安全 | code review |
+| `setGitContent` 返回的 ComposeView 内部已包含 ensureReady + InitContent | code review |
+| `GitRuntimeBootstrap.ensureLoaded()` 多次调用安全（走 nativeLoaded flag） | code review |
 | `Application.onCreate` 不再调用 puppygit 初始化（懒加载） | `git grep` |
 | 现有具体 fragment（`GitChangesFragment` 等）的 RecyclerView 行为**不变** | code review（2a1 阶段不动 body） |
 
@@ -162,10 +202,10 @@ object GitRuntimeBootstrap {
 
 | 风险 | 缓解 |
 | --- | --- |
-| `AppModel.init_forPreview` 内部 `runBlocking` 在主线程造成 ANR | 2a1 阶段不强制在 `Application` 调；具体 fragment 第一次 `onCreateView` 时执行，伴随 spinner |
-| puppygit 内部 `appContext` 是 lateinit；未初始化时访问会 NPE | `AppModel.isInited` 检查；`PuppyGitIntegration.ensureReady` 包 synchronize 双重检查 |
-| 现有 `GitRuntimeBootstrap` 的 `loaded` 标志与新流程冲突 | 老 `loaded` 删除，委托 `inited` |
-| 启动时多线程并发调 `ensureReady` | `synchronized` + `AtomicBoolean` 双重检查 |
+| `AppModel.init_forPreview` 内部含 `LocalContext.current` 调用，必须在 Composable 作用域 | `PuppyGitIntegration.ensureReady` 标 `@Composable`，仅在 `setContent { ... }` 块内调用；不在 `Application.onCreate` 跑 |
+| puppygit 内部 `appContext` 是 lateinit；未初始化时访问会 NPE | 自管 `inited` AtomicBoolean；`PuppyGitIntegration.ensureReady` 包 synchronize 双重检查 |
+| 现有 `GitRuntimeBootstrap` 的 `loaded` 标志与新流程冲突 | 老 `loaded` 删除，改用 `PuppyGitIntegration.nativeLoaded` 标志 |
+| 启动时多线程并发调 `ensureNativeLoaded` | `synchronized` + `AtomicBoolean` 双重检查 |
 | 2a1 完成后 2a2 之前的中间状态——具体 fragment 仍跑老逻辑 | 这是预期：2a1 是基础设施，不改业务行为；2a2 才动 fragment body |
 
 ## 9. 关联
@@ -173,7 +213,7 @@ object GitRuntimeBootstrap {
 - 父：git 片段重构路线图（`2026-06-11-git-fragments-refactor-roadmap.md`）
 - 子：2a2（具体 fragment 改造）/ 2b（工具栏）/ 2c1（popup 修复）/ 2c2（快捷菜单）
 - 核心依赖：`core/git/.../utils/AppModel.kt::init_forPreview`
-- 核心 Compose host：`core/git/.../compose/InitContent.kt`
+- 核心 Compose host：`core/git/.../ui/theme/Theme.kt::InitContent`
 
 ## 10. 验收清单（PR 模板）
 
