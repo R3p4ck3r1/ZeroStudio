@@ -1,67 +1,55 @@
 package com.itsaky.androidide.fragments.editor.markdown
 
 import android.annotation.SuppressLint
-import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Bundle
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.widget.TextView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
-import java.io.File
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import org.slf4j.LoggerFactory
 
-/** Fragment tab that renders Markdown from a file path or in-memory content. */
+private val LOG = LoggerFactory.getLogger("MarkdownPreviewFragment")
+
+/**
+ * Markdown 预览 Fragment。
+ *
+ * 重写自 2026-06-10 的设计：使用 Markwon 4.6.2 + nanohttpd 本地资源服务 +
+ * bundled highlight.js / github-markdown-css，在 WebView 中渲染。详细设计：
+ * [docs/superpowers/specs/2026-06-10-markdown-preview-rich-rendering-design.md]
+ *
+ * 关键加固（应对 Android 12 Samsung SM-A217F 上的 WebViewChromium SIGSEGV）：
+ *  - WebView 在 `AndroidView.factory` 内构造，**不**在 `onCreateView` 创建
+ *  - `loadDataWithBaseURL` 在 view 已 attach 后才执行
+ *  - 关闭 `allowFileAccessFromFileURLs` / `allowUniversalAccessFromFileURLs` / 混合内容
+ *  - 构造异常被 `runCatching` 捕获，失败时显示只读 TextView
+ *  - 走 LAYER_TYPE_SOFTWARE 作为最后兜底（无 WebView 时）
+ */
 class MarkdownPreviewFragment : Fragment() {
-
-  private var filePath: String? = null
-  private var markdownContent: String? = null
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    arguments?.let { args ->
-      filePath = args.getString(EditorFragmentTabManager.ARG_FILE_PATH)
-      markdownContent = args.getString(ARG_MARKDOWN_CONTENT)
-    }
-  }
-
-  override fun onCreateView(
-    inflater: android.view.LayoutInflater,
-    container: android.view.ViewGroup?,
-    savedInstanceState: Bundle?
-  ): android.view.View {
-    return androidx.compose.ui.platform.ComposeView(requireContext()).apply {
-      setViewCompositionStrategy(androidx.compose.ui.platform.ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-      setContent {
-        MarkdownPreviewScreen(
-          modifier = Modifier.fillMaxSize(),
-          filePath = filePath,
-          initialContent = markdownContent
-        )
-      }
-    }
-  }
 
   companion object {
     const val ARG_MARKDOWN_CONTENT = "markdown_content"
-
-    val SUPPORTED_EXTENSIONS =
-      setOf("md", "mdr", "markdown", "mdown", "mkd", "mkdn", "mdoc", "mdtext", "mdx")
+    val SUPPORTED_EXTENSIONS = setOf("md", "mdr", "markdown", "mdown", "mkd", "mkdn", "mdoc", "mdtext", "mdx")
 
     fun newInstance(filePath: String): MarkdownPreviewFragment {
       return MarkdownPreviewFragment().apply {
@@ -75,208 +63,153 @@ class MarkdownPreviewFragment : Fragment() {
       }
     }
   }
+
+  private val viewModel: MarkdownPreviewViewModel by viewModels()
+  private var filePath: String? = null
+  private var inlineContent: String? = null
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    arguments?.let { args ->
+      filePath = args.getString(EditorFragmentTabManager.ARG_FILE_PATH)
+      inlineContent = args.getString(ARG_MARKDOWN_CONTENT)
+    }
+    LOG.debug("onCreate: filePath={}, hasInlineContent={}", filePath, !inlineContent.isNullOrBlank())
+  }
+
+  override fun onCreateView(
+    inflater: LayoutInflater,
+    container: ViewGroup?,
+    savedInstanceState: Bundle?
+  ): View {
+    return ComposeView(requireContext()).apply {
+      setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+      setContent {
+        MarkdownPreviewScreen(
+          viewModel = viewModel,
+          filePath = filePath,
+          inlineContent = inlineContent,
+          onFirstAttach = { fp, ic -> viewModel.load(fp, ic) }
+        )
+      }
+    }
+  }
 }
 
-private sealed interface MarkdownLoadState {
-  data object Loading : MarkdownLoadState
-  data class Loaded(val markdown: String) : MarkdownLoadState
-  data class Error(val message: String) : MarkdownLoadState
-}
-
+/**
+ * 顶层 Composable。订阅 [MarkdownPreviewViewModel] 状态，三态渲染。
+ */
 @Composable
 private fun MarkdownPreviewScreen(
-  modifier: Modifier = Modifier,
+  viewModel: MarkdownPreviewViewModel,
   filePath: String?,
-  initialContent: String?
+  inlineContent: String?,
+  onFirstAttach: (String?, String?) -> Unit
 ) {
-  val loadState by produceState<MarkdownLoadState>(MarkdownLoadState.Loading, initialContent, filePath) {
-    value = withContext(Dispatchers.IO) {
-      when {
-        initialContent != null -> MarkdownLoadState.Loaded(initialContent)
-        filePath.isNullOrBlank() -> MarkdownLoadState.Error("No Markdown file was provided.")
-        else -> runCatching {
-          val file = File(filePath)
-          when {
-            !file.exists() -> MarkdownLoadState.Error("Markdown file does not exist:\n$filePath")
-            !file.canRead() -> MarkdownLoadState.Error("Markdown file is not readable:\n$filePath")
-            else -> MarkdownLoadState.Loaded(file.readText(Charsets.UTF_8))
-          }
-        }.getOrElse { MarkdownLoadState.Error(it.message ?: "Unable to load Markdown file.") }
-      }
-    }
+  // 第一次进入时触发 load
+  LaunchedEffect(filePath, inlineContent) {
+    onFirstAttach(filePath, inlineContent)
   }
+  val state by viewModel.state.observeAsState(MarkdownPreviewState.Loading)
 
-  when (val state = loadState) {
-    MarkdownLoadState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-    is MarkdownLoadState.Error -> Box(modifier, contentAlignment = Alignment.Center) { Text(state.message) }
-    is MarkdownLoadState.Loaded -> {
-      val htmlContent = remember(state.markdown, filePath) { convertMarkdownToHtml(state.markdown, filePath) }
-      MarkdownWebView(modifier, filePath, htmlContent)
+  when (val s = state) {
+    is MarkdownPreviewState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+      CircularProgressIndicator()
     }
+    is MarkdownPreviewState.Error -> Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+      Text(s.message, style = MaterialTheme.typography.bodyMedium)
+    }
+    is MarkdownPreviewState.Loaded -> WebViewContainer(html = s.html, baseUrl = s.baseUrl)
   }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
+/**
+ * WebView 容器。负责：
+ *  - 在 `AndroidView.factory` 内构造 WebView（崩溃隔离）
+ *  - 等 view attached 后再 loadDataWithBaseURL
+ *  - 构造失败时降级为 TextView
+ */
 @Composable
-private fun MarkdownWebView(modifier: Modifier, filePath: String?, htmlContent: String) {
-  val baseUrl = remember(filePath) { filePath?.let { File(it).parentFile?.toURI()?.toString() } }
+private fun WebViewContainer(html: String, baseUrl: String) {
   AndroidView(
-    modifier = modifier,
+    modifier = Modifier.fillMaxSize(),
     factory = { ctx ->
-      WebView(ctx).apply {
-        settings.apply {
-          javaScriptEnabled = true
-          domStorageEnabled = true
-          allowFileAccess = true
-          allowContentAccess = true
-          allowFileAccessFromFileURLs = true
-          allowUniversalAccessFromFileURLs = true
-          loadWithOverviewMode = true
-          useWideViewPort = true
-          builtInZoomControls = true
-          displayZoomControls = false
-          setSupportZoom(true)
-          mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-          cacheMode = WebSettings.LOAD_DEFAULT
-          mediaPlaybackRequiresUserGesture = false
+      try {
+        createSafeWebView(ctx).also { wv ->
+          wv.tag = PendingLoad(html, baseUrl)
         }
-        webViewClient = object : WebViewClient() {
-          override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-            super.onPageStarted(view, url, favicon)
-          }
-
-          override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = false
+      } catch (t: Throwable) {
+        LOG.error("Failed to create WebView; falling back to TextView", t)
+        TextView(ctx).apply {
+          text = "Preview is not available on this device.\n\n${t.javaClass.simpleName}: ${t.message ?: ""}"
+          setPadding(32, 32, 32, 32)
         }
-        webChromeClient = WebChromeClient()
-        loadDataWithBaseURL(baseUrl, htmlContent, "text/html", "UTF-8", null)
       }
     },
-    update = { it.loadDataWithBaseURL(baseUrl, htmlContent, "text/html", "UTF-8", null) }
+    update = { view ->
+      if (view !is WebView) return@AndroidView
+      // 总是把最新的内容写到 tag；如果和上次一样就跳过
+      val prev = view.tag as? PendingLoad
+      if (prev != null && prev.matches(html, baseUrl)) return@AndroidView
+      view.tag = PendingLoad(html, baseUrl)
+      if (view.isAttachedToWindow) {
+        doLoad(view, view.tag as PendingLoad)
+        view.tag = null
+      } else {
+        // 等 attach 后再加载；用一次性 listener 避免每次 update 都注册
+        view.removeOnAttachStateChangeListener(PendingAttachListener)
+        view.addOnAttachStateChangeListener(PendingAttachListener)
+      }
+    }
   )
 }
 
-private fun convertMarkdownToHtml(markdown: String, filePath: String?): String {
-  val body = MarkdownHtmlRenderer(File(filePath ?: "").parentFile).render(markdown)
-  return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        :root { color-scheme: light dark; }
-        body { margin: 0; padding: 16px; font-family: sans-serif; line-height: 1.55; }
-        .markdown-body { max-width: 980px; margin: 0 auto; overflow-wrap: anywhere; }
-        img, video, audio, iframe, svg { max-width: 100%; }
-        video, audio { display: block; margin: 16px 0; }
-        pre { padding: 12px; overflow: auto; border-radius: 8px; background: rgba(127,127,127,.14); }
-        code { font-family: monospace; background: rgba(127,127,127,.14); padding: 0.1em 0.3em; border-radius: 4px; }
-        pre code { background: transparent; padding: 0; }
-        blockquote { margin-left: 0; padding-left: 1em; border-left: 4px solid #8a8a8a; color: #777; }
-        table { border-collapse: collapse; display: block; overflow-x: auto; width: 100%; }
-        th, td { border: 1px solid #8885; padding: 6px 10px; }
-        a { color: #4f8cff; }
-      </style>
-    </head>
-    <body><article class="markdown-body">$body</article></body>
-    </html>
-  """.trimIndent()
-}
-
-private class MarkdownHtmlRenderer(private val baseDir: File?) {
-  fun render(markdown: String): String {
-    val out = StringBuilder()
-    var inCode = false
-    var codeLang = ""
-    val paragraph = StringBuilder()
-
-    fun flushParagraph() {
-      if (paragraph.isNotBlank()) {
-        out.append("<p>").append(renderInline(paragraph.toString().trim())).append("</p>\n")
-        paragraph.clear()
-      }
+private val PendingAttachListener = object : View.OnAttachStateChangeListener {
+  override fun onViewAttachedToWindow(v: View) {
+    v.removeOnAttachStateChangeListener(this)
+    if (v is WebView) {
+      val pending = v.tag as? PendingLoad ?: return
+      v.tag = null
+      doLoad(v, pending)
     }
-
-    markdown.replace("\r\n", "\n").lines().forEach { raw ->
-      val line = raw.trimEnd()
-      if (line.trimStart().startsWith("```")) {
-        if (inCode) {
-          out.append("</code></pre>\n")
-          inCode = false
-        } else {
-          flushParagraph()
-          codeLang = line.trim().removePrefix("```").trim()
-          out.append("<pre><code")
-          if (codeLang.isNotBlank()) out.append(" class=\"language-").append(escapeAttr(codeLang)).append("\"")
-          out.append(">")
-          inCode = true
-        }
-        return@forEach
-      }
-      if (inCode) {
-        out.append(escapeHtml(raw)).append('\n')
-        return@forEach
-      }
-      if (line.isBlank()) {
-        flushParagraph()
-        return@forEach
-      }
-      val trimmed = line.trimStart()
-      val heading = Regex("^(#{1,6})\\s+(.+)$").matchEntire(trimmed)
-      if (heading != null) {
-        flushParagraph()
-        val level = heading.groupValues[1].length
-        out.append("<h").append(level).append('>').append(renderInline(heading.groupValues[2]))
-          .append("</h").append(level).append(">\n")
-      } else if (trimmed.startsWith(">")) {
-        flushParagraph()
-        out.append("<blockquote>").append(renderInline(trimmed.removePrefix(">").trim())).append("</blockquote>\n")
-      } else if (Regex("^[-*+]\\s+.+").matches(trimmed)) {
-        flushParagraph()
-        out.append("<ul><li>").append(renderInline(trimmed.substring(2).trim())).append("</li></ul>\n")
-      } else {
-        if (paragraph.isNotEmpty()) paragraph.append('\n')
-        paragraph.append(line)
-      }
-    }
-    if (inCode) out.append("</code></pre>\n")
-    flushParagraph()
-    return out.toString()
   }
 
-  private fun renderInline(text: String): String {
-    var html = escapeHtml(text)
-    html = Regex("!\\[([^]]*)]\\(([^)\\s]+)(?:\\s+\"([^\"]*)\")?\\)").replace(html) { m ->
-      val alt = m.groupValues[1]
-      val src = resolveResource(m.groupValues[2])
-      val title = m.groupValues.getOrNull(3).orEmpty()
-      val lower = src.substringBefore('?').lowercase()
-      when {
-        lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".mov") ->
-          "<video controls src=\"${escapeAttr(src)}\" title=\"${escapeAttr(title.ifBlank { alt })}\"></video>"
-        lower.endsWith(".mp3") || lower.endsWith(".wav") || lower.endsWith(".ogg") || lower.endsWith(".m4a") ->
-          "<audio controls src=\"${escapeAttr(src)}\"></audio>"
-        else -> "<img src=\"${escapeAttr(src)}\" alt=\"${escapeAttr(alt)}\" title=\"${escapeAttr(title)}\"/>"
-      }
-    }
-    html = Regex("\\[([^]]+)]\\(([^)\\s]+)(?:\\s+\"([^\"]*)\")?\\)").replace(html) { m ->
-      val href = resolveResource(m.groupValues[2])
-      "<a href=\"${escapeAttr(href)}\">${m.groupValues[1]}</a>"
-    }
-    html = Regex("`([^`]+)`").replace(html) { "<code>${it.groupValues[1]}</code>" }
-    html = Regex("\\*\\*([^*]+)\\*\\*").replace(html) { "<strong>${it.groupValues[1]}</strong>" }
-    html = Regex("(?<!\\*)\\*([^*]+)\\*(?!\\*)").replace(html) { "<em>${it.groupValues[1]}</em>" }
-    return html.replace("\n", "<br/>")
-  }
-
-  private fun resolveResource(resource: String): String {
-    if (resource.startsWith("http://") || resource.startsWith("https://") || resource.startsWith("data:") || resource.startsWith("file:")) {
-      return resource
-    }
-    return runCatching { Uri.fromFile(File(baseDir, resource)).toString() }.getOrDefault(resource)
+  override fun onViewDetachedFromWindow(v: View) {
+    // ignore
   }
 }
 
-private fun CharSequence.isNotBlank(): Boolean = this.toString().isNotBlank()
-private fun escapeHtml(value: String): String = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-private fun escapeAttr(value: String): String = escapeHtml(value).replace("\"", "&quot;")
+private data class PendingLoad(val html: String, val baseUrl: String) {
+  fun matches(html: String, baseUrl: String) = this.html == html && this.baseUrl == baseUrl
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+private fun createSafeWebView(ctx: android.content.Context): WebView {
+  return WebView(ctx).apply {
+    settings.javaScriptEnabled = true
+    settings.allowFileAccess = false
+    settings.allowContentAccess = false
+    settings.allowFileAccessFromFileURLs = false
+    settings.allowUniversalAccessFromFileURLs = false
+    settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+    settings.cacheMode = WebSettings.LOAD_DEFAULT
+    settings.domStorageEnabled = true
+    settings.useWideViewPort = true
+    settings.loadWithOverviewMode = true
+    // 不让 WebView 在被 detach 后自动销毁，由我们手动管理
+    isFocusable = true
+    isFocusableInTouchMode = true
+  }
+}
+
+private fun doLoad(webView: WebView, pending: PendingLoad) {
+  try {
+    // baseUrl 为空字符串时，回退到 about:blank（inline 模式无相对路径资源）
+    val base = if (pending.baseUrl.isBlank()) "about:blank" else pending.baseUrl
+    webView.loadDataWithBaseURL(base, pending.html, "text/html", "utf-8", null)
+  } catch (t: Throwable) {
+    LOG.error("loadDataWithBaseURL failed; falling back to LAYER_TYPE_SOFTWARE", t)
+    webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+    runCatching { webView.loadDataWithBaseURL("about:blank", pending.html, "text/html", "utf-8", null) }
+  }
+}
