@@ -42,12 +42,12 @@ class DefaultSourceProvider() : SourceProvider, Serializable {
 
   companion object {
     @JvmStatic val NoFile = File("<does-not-exist>")
-    
+
     @JvmStatic
     fun fromSourceProvider(sourceProvider: SourceProvider): DefaultSourceProvider {
       return DefaultSourceProvider().apply {
         this.name = sourceProvider.name
-        this.manifestFile = sourceProvider.manifestFile
+        this.manifestFile = sourceProvider.manifestFile ?: NoFile
         this.javaDirectories = sourceProvider.javaDirectories
         this.kotlinDirectories = sourceProvider.kotlinDirectories
         this.resDirectories = sourceProvider.resDirectories
@@ -61,9 +61,9 @@ class DefaultSourceProvider() : SourceProvider, Serializable {
         this.baselineProfileDirectories = sourceProvider.baselineProfileDirectories
         this.keepRulesDirectories = sourceProvider.keepRulesDirectories
         this.aarKeepRulesDirectories = sourceProvider.aarKeepRulesDirectories
-        
+
         this.customDirectories = sourceProvider.customDirectories?.map { customDir ->
-          DefaultCustomSourceDirectory(customDir.directory, customDir.name)
+          DefaultCustomSourceDirectory(customDir.directory, customDir.sourceTypeName)
         }
       }
     }

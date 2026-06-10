@@ -51,6 +51,8 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
 
   private val serialVersionUID = 1L
 
+  private val log = LoggerFactory.getLogger(RootModelBuilder::class.java)
+
   override fun build(param: RootProjectModelBuilderParams): IProject {
 
     val (projectConnection, cancellationToken) = param
@@ -181,11 +183,14 @@ class RootModelBuilder(initializationParams: InitializeProjectParams) :
    */
   private fun detectAgpVersion(gradleProject: org.gradle.tooling.model.GradleProject): String? {
     return try {
-      val buildFile = gradleProject.projectDirectory.file("build.gradle.kts").asFile
-        .takeIf { it.exists() }
-        ?: gradleProject.projectDirectory.file("build.gradle").asFile
-          .takeIf { it.exists() }
-          ?: return null
+      val projectDirectory = gradleProject.projectDirectory
+      val buildFileKts = File(projectDirectory, "build.gradle.kts")
+      val buildFileGroovy = File(projectDirectory, "build.gradle")
+      val buildFile = when {
+        buildFileKts.exists() -> buildFileKts
+        buildFileGroovy.exists() -> buildFileGroovy
+        else -> return null
+      }
 
       val content = buildFile.readText()
 

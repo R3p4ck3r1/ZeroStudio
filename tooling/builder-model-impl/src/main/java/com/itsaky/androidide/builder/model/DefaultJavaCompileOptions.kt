@@ -24,7 +24,7 @@ import java.io.Serializable
 class DefaultJavaCompileOptions : IJavaCompilerSettings(), JavaCompileOptions, Serializable {
   companion object {
     private const val serialVersionUID = 1L
-    
+
     @JvmStatic
     fun fromJavaCompileOptions(options: JavaCompileOptions): DefaultJavaCompileOptions {
       return DefaultJavaCompileOptions().apply {
@@ -32,12 +32,10 @@ class DefaultJavaCompileOptions : IJavaCompilerSettings(), JavaCompileOptions, S
         this.isCoreLibraryDesugaringEnabled = options.isCoreLibraryDesugaringEnabled
         this.sourceCompatibility = options.sourceCompatibility
         this.targetCompatibility = options.targetCompatibility
-        this.javaSourceVersion = options.javaSourceVersion
-        this.javaBytecodeVersion = options.javaBytecodeVersion
       }
     }
   }
-  
+
   override var encoding: String = ""
   override var isCoreLibraryDesugaringEnabled: Boolean = false
 

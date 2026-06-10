@@ -34,7 +34,7 @@ class DefaultVariant : Variant, Serializable {
 
   companion object {
     private const val serialVersionUID = 1L
-    
+
     /**
      * Create a DefaultVariant instance from a Variant model.
      *
@@ -49,40 +49,40 @@ class DefaultVariant : Variant, Serializable {
         this.isInstantAppCompatible = variant.isInstantAppCompatible
         this.desugaredMethods = variant.desugaredMethods
         this.mainArtifact = DefaultAndroidArtifact.fromArtifact(variant.mainArtifact)
-        
+
         variant.androidTestArtifact?.let {
           this.androidTestArtifact = DefaultAndroidArtifact.fromArtifact(it)
         }
-        
+
         variant.testFixturesArtifact?.let {
           this.testFixturesArtifact = DefaultAndroidArtifact.fromArtifact(it)
         }
-        
+
         variant.testedTargetVariant?.let {
           this.testedTargetVariant = DefaultTestedTargetVariant.fromTestedTargetVariant(it)
         }
-        
+
         variant.unitTestArtifact?.let {
           this.unitTestArtifact = DefaultJavaArtifact.fromJavaArtifact(it)
         }
-        
+
         this.deviceTestArtifacts = variant.deviceTestArtifacts.mapValues { (_, artifact) ->
           DefaultAndroidArtifact.fromArtifact(artifact)
         }
-        
+
         this.hostTestArtifacts = variant.hostTestArtifacts.mapValues { (_, artifact) ->
           DefaultJavaArtifact.fromJavaArtifact(artifact)
         }
-        
+
         this.testSuiteArtifacts = variant.testSuiteArtifacts.mapValues { (_, artifact) ->
           DefaultTestSuiteArtifact.fromArtifact(artifact)
         }
-        
+
         this.experimentalProperties = variant.experimentalProperties
       }
     }
   }
-  
+
   @Deprecated("Contained in deviceTestArtifacts")
   override var androidTestArtifact: DefaultAndroidArtifact? = null
   override var displayName: String = ""
@@ -95,12 +95,12 @@ class DefaultVariant : Variant, Serializable {
   @Deprecated("Contained in hostTestArtifacts")
   override var unitTestArtifact: DefaultJavaArtifact? = null
   override val runTestInSeparateProcess: Boolean = false
-  override val deviceTestArtifacts: Map<String, AndroidArtifact> = emptyMap()
-  override val hostTestArtifacts: Map<String, JavaArtifact> = emptyMap()
+  override var deviceTestArtifacts: Map<String, AndroidArtifact> = emptyMap()
+  override var hostTestArtifacts: Map<String, JavaArtifact> = emptyMap()
 
   /** The test suite artifacts. Added to satisfy Variant interface requirements. */
-  override val testSuiteArtifacts: Map<String, TestSuiteArtifact> = emptyMap()
+  override var testSuiteArtifacts: Map<String, TestSuiteArtifact> = emptyMap()
 
   /** Experimental properties map. Added to satisfy Variant interface requirements. */
-  override val experimentalProperties: Map<String, String> = emptyMap()
+  override var experimentalProperties: Map<String, String> = emptyMap()
 }

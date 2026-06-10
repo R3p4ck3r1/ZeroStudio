@@ -25,35 +25,35 @@ class DefaultSourceSetContainer : SourceSetContainer, Serializable {
 
   companion object {
     private const val serialVersionUID = 1L
-    
+
     @JvmStatic
     fun fromSourceSetContainer(sourceSetContainer: SourceSetContainer): DefaultSourceSetContainer {
       return DefaultSourceSetContainer().apply {
-        this.sourceProvider = DefaultSourceProvider.fromSourceProvider(sourceSetContainer.sourceProvider)
-        
+        this.sourceProvider = sourceSetContainer.sourceProvider?.let { DefaultSourceProvider.fromSourceProvider(it) } ?: DefaultSourceProvider()
+
         sourceSetContainer.androidTestSourceProvider?.let {
           this.androidTestSourceProvider = DefaultSourceProvider.fromSourceProvider(it)
         }
-        
+
         sourceSetContainer.testFixturesSourceProvider?.let {
           this.testFixturesSourceProvider = DefaultSourceProvider.fromSourceProvider(it)
         }
-        
+
         sourceSetContainer.unitTestSourceProvider?.let {
           this.unitTestSourceProvider = DefaultSourceProvider.fromSourceProvider(it)
         }
-        
+
         this.deviceTestSourceProviders = sourceSetContainer.deviceTestSourceProviders.mapValues { (_, provider) ->
           DefaultSourceProvider.fromSourceProvider(provider)
         }
-        
+
         this.hostTestSourceProviders = sourceSetContainer.hostTestSourceProviders.mapValues { (_, provider) ->
           DefaultSourceProvider.fromSourceProvider(provider)
         }
       }
     }
   }
-  
+
   private val serialVersionUID = 1L
   @Deprecated("Contained in deviceTestSourceProviders")
   override var androidTestSourceProvider: DefaultSourceProvider? = null
@@ -61,6 +61,6 @@ class DefaultSourceSetContainer : SourceSetContainer, Serializable {
   override var testFixturesSourceProvider: DefaultSourceProvider? = null
   @Deprecated("Contained in hostTestSourceProviders")
   override var unitTestSourceProvider: DefaultSourceProvider? = null
-  override val deviceTestSourceProviders: Map<String, SourceProvider> = emptyMap()
-  override val hostTestSourceProviders: Map<String, SourceProvider> = emptyMap()
+  override var deviceTestSourceProviders: Map<String, SourceProvider> = emptyMap()
+  override var hostTestSourceProviders: Map<String, SourceProvider> = emptyMap()
 }
