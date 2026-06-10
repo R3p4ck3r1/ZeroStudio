@@ -148,7 +148,7 @@ class MarkdownImageSources(
 `core/app/build.gradle.kts`：
 
 ```diff
-   implementation(libs.bundles.io.markwon)            # 删除（WebView 链路不再直接用 Markwon）
+   implementation(libs.bundles.io.markwon)            # 保留：onboarding/DisclaimerFragment.kt 仍 import io.noties.markwon.Markwon
 -  // Local HTTP server for serving markdown preview assets
 -  implementation(libs.common.org.nanohttpd)           # 删除
 +  // compose-markdown 内部使用 coil 2.x（与 core/app 自己的 coil 3.x 是分开的版本）
@@ -156,7 +156,7 @@ class MarkdownImageSources(
 ```
 
 `gradle/libs.versions.toml`：
-- 不动。`libs.bundles.io.markwon` 仍存在（其它模块可能用），`libs.common.org.nanohttpd` 也仍存在（不再被 core/app 使用）。
+- 不动。`libs.bundles.io.markwon` 仍存在（core/app 的 onboarding/DisclaimerFragment 仍 import 它，其它模块也可能用），`libs.common.org.nanohttpd` 也仍存在（不再被 core/app 使用）。
 - `libs.androidx.compose.runtime.livedata` 仍保留（PR #305 引入，未来可能用到）。
 
 ## 8. 测试 / 验收
