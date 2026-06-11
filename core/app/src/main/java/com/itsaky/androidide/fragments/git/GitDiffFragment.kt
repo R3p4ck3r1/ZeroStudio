@@ -1,372 +1,92 @@
 /*
  *  This file is part of AndroidIDE.
+ *
+ *  AndroidIDE is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  AndroidIDE is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *   along with AndroidIDE.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 package com.itsaky.androidide.fragments.git
 
-import android.app.AlertDialog
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
-import androidx.core.graphics.ColorUtils
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.catpuppyapp.puppygit.constants.Cons
-import com.catpuppyapp.puppygit.git.StatusTypeEntrySaver
-import com.catpuppyapp.puppygit.utils.Libgit2Helper
-import com.github.git24j.core.Repository
-import com.itsaky.androidide.R
-import com.itsaky.androidide.databinding.FragmentGitDiffBinding
-import com.itsaky.androidide.projects.IProjectManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import com.catpuppyapp.puppygit.screen.TreeToTreeChangeListScreen
+import com.itsaky.androidide.databinding.FragmentGitDiffComposeBinding
 
 /**
- * Diff 查看器页面。
+ * 2a2-A 迁移: Git Diff 查看页面,改用 puppygit 的 TreeToTreeChangeListScreen 渲染。
+ *
+ * 本页面只展示 workdir 变更(Index vs Worktree),commit-vs-commit diff 在 commit list
+ * 内点击 commit 后由 puppygit 自己的导航处理。
+ *
+ * 工具栏由 puppygit 的 TopAppBar 提供,无需自定义 toolbar。
  *
  * @author android_zero
  */
 class GitDiffFragment : BaseGitPageFragment() {
 
-  private var _binding: FragmentGitDiffBinding? = null
+  private var _binding: FragmentGitDiffComposeBinding? = null
   private val binding
     get() = _binding!!
-
-  private val changedFiles = mutableListOf<StatusTypeEntrySaver>()
-  private var currentIndex = 0
-  private val lines = mutableListOf<DiffLine>()
-  private var allLines = listOf<DiffLine>()
-  private val adapter = DiffAdapter(lines)
-  private var filterKeyword = ""
-  private var compactMode = false
 
   override fun onCreateView(
       inflater: LayoutInflater,
       container: ViewGroup?,
       savedInstanceState: Bundle?,
   ): View {
-    _binding = FragmentGitDiffBinding.inflate(inflater, container, false)
+    _binding = FragmentGitDiffComposeBinding.inflate(inflater, container, false)
     return binding.root
   }
 
   override fun setupToolbar() {
-    addToolbarAction(R.drawable.ic_add_24, getString(R.string.stage)) { stageCurrentFile() }
-
-    addToolbarAction(R.drawable.ic_undo_24, getString(R.string.revert)) { revertCurrentFile() }
-
-    addToolbarAction(R.drawable.ic_chevron_left_24, getString(R.string.previous_page)) {
-      navigateDiff(-1)
-    }
-
-    addToolbarAction(R.drawable.ic_chevron_right_24, getString(R.string.next_page)) {
-      navigateDiff(1)
-    }
-    addToolbarAction(R.drawable.ic_refresh_24, getString(R.string.refresh)) {
-      reloadChangedFilesAndDiff()
-    }
-    addToolbarAction(R.drawable.ic_filter_list_24, getString(R.string.search)) {
-      showSearchDialog()
-    }
-    addToolbarAction(R.drawable.ic_warning_24, "Style") {
-      compactMode = !compactMode
-      adapter.notifyDataSetChanged()
-    }
+    // puppygit 的 TreeToTreeChangeListScreen 自带 TopAppBar,这里不添加自定义按钮
   }
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
-    binding.rvDiffLines.layoutManager = LinearLayoutManager(context)
-    binding.rvDiffLines.adapter = adapter
-    reloadChangedFilesAndDiff()
-    observeDiffTargets()
-    observeCommitTargets()
-  }
+    val workdir = resolveWorkspaceDirPath()
 
-  private fun reloadChangedFilesAndDiff() {
-    withRepo { repo ->
-      val statusList = Libgit2Helper.getWorkdirStatusList(repo)
-      val loaded = Libgit2Helper.getWorktreeChangeList(repo, statusList, repoId = "")
-      changedFiles.clear()
-      changedFiles.addAll(loaded)
-      currentIndex = currentIndex.coerceIn(0, (changedFiles.size - 1).coerceAtLeast(0))
-      loadCurrentDiff(repo)
-    }
-  }
-
-  private fun loadCurrentDiff(repo: Repository) {
-    if (changedFiles.isEmpty()) {
-      lines.clear()
-      lines.add(DiffLine(-1, -1, "No changed files", DiffType.HUNK_HEADER))
-      allLines = lines.toList()
-      return
-    }
-
-    val file = changedFiles[currentIndex]
-
-    val diffItem = runBlocking {
-      Libgit2Helper.getSingleDiffItem(
-          repo = repo,
-          relativePathUnderRepo = file.relativePathUnderRepo,
-          fromTo = Cons.gitDiffFromIndexToWorktree,
-          loadChannel = null,
-          checkChannelLinesLimit = 200,
-          checkChannelSizeLimit = 1024 * 64,
-      )
-    }
-
-    val rendered = mutableListOf<DiffLine>()
-    rendered.add(DiffLine(-1, -1, "File: ${file.relativePathUnderRepo}", DiffType.HUNK_HEADER))
-    diffItem.hunks.forEach { hunk ->
-      rendered.add(DiffLine(-1, -1, hunk.hunk.cachedNoLineBreakHeader(), DiffType.HUNK_HEADER))
-      hunk.lines.forEach { ln ->
-        val type =
-            when {
-              ln.originType.contains("ADD", ignoreCase = true) -> DiffType.ADD
-              ln.originType.contains("DEL", ignoreCase = true) -> DiffType.DELETE
-              else -> DiffType.CONTEXT
-            }
-        rendered.add(
-            DiffLine(
-                oldLine = ln.oldLineNum,
-                newLine = ln.newLineNum,
-                content = ln.getContentNoLineBreak(),
-                type = type,
-            )
+    val compose = setGitContent {
+      val repoId = RepoIdResolver.rememberRepoIdForWorkdir(workdir)
+      if (repoId != null) {
+        // Index vs Worktree:显示未暂存变更
+        TreeToTreeChangeListScreen(
+          repoId = repoId,
+          commit1OidStrCacheKey = Cons.git_IndexCommitHash,
+          commit2OidStrCacheKey = Cons.git_LocalWorktreeCommitHash,
+          commitForQueryParentsCacheKey = Cons.git_LocalWorktreeCommitHash,
+          titleCacheKey = "Workdir Changes",
+          naviUp = { false },
         )
-      }
-    }
-
-    allLines = rendered
-    applyFilter()
-  }
-
-  private fun stageCurrentFile() {
-    val target = changedFiles.getOrNull(currentIndex) ?: return
-    withRepo { repo -> Libgit2Helper.stageStatusEntryAndWriteToDisk(repo, listOf(target)) }
-  }
-
-  private fun revertCurrentFile() {
-    val target = changedFiles.getOrNull(currentIndex) ?: return
-    withRepo { repo ->
-      Libgit2Helper.revertFilesToIndexVersion(
-          repo,
-          listOf(target.relativePathUnderRepo),
-          force = true,
-      )
-      if (target.changeType == Cons.gitStatusNew) {
-        Libgit2Helper.rmUntrackedFiles(listOf(target.canonicalPath))
-      }
-    }
-  }
-
-  private fun navigateDiff(delta: Int) {
-    if (changedFiles.isEmpty()) {
-      Toast.makeText(context, "No changed files", Toast.LENGTH_SHORT).show()
-      return
-    }
-    currentIndex = (currentIndex + delta).coerceIn(0, changedFiles.lastIndex)
-    withRepo { repo -> loadCurrentDiff(repo) }
-  }
-
-  private fun withRepo(action: suspend (Repository) -> Unit) {
-    val projectDir =
-        IProjectManager.getInstance().getWorkspace()?.getProjectDir()?.path
-            ?: IProjectManager.getInstance().projectDirPath
-    if (projectDir.isBlank()) {
-      Toast.makeText(context, "No opened project", Toast.LENGTH_SHORT).show()
-      return
-    }
-
-    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-      val ret = runCatching { Repository.open(projectDir).use { repo -> action(repo) } }
-      withContext(Dispatchers.Main) {
-        ret.onSuccess { adapter.notifyDataSetChanged() }
-        ret.onFailure {
-          Toast.makeText(context, it.localizedMessage ?: "Diff operation failed", Toast.LENGTH_LONG)
-              .show()
-        }
-      }
-    }
-  }
-
-  private fun observeDiffTargets() {
-    viewLifecycleOwner.lifecycleScope.launch {
-      viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-        GitSharedState.selectedDiffPath.collect { targetPath ->
-          if (targetPath.isNullOrBlank()) return@collect
-          val idx = changedFiles.indexOfFirst { it.relativePathUnderRepo == targetPath }
-          if (idx >= 0) {
-            currentIndex = idx
-            reloadChangedFilesAndDiff()
-          }
-        }
-      }
-    }
-  }
-
-  private fun observeCommitTargets() {
-    viewLifecycleOwner.lifecycleScope.launch {
-      viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-        GitSharedState.selectedCommitHash.collect { commitHash ->
-          if (commitHash.isNullOrBlank()) return@collect
-          withRepo { repo ->
-            val settings = com.catpuppyapp.puppygit.settings.SettingsUtil.getSettingsSnapshot()
-            val dto =
-                Libgit2Helper.getSingleCommitSimple(
-                    repo = repo,
-                    repoId = "",
-                    commitOidStr = commitHash,
-                    settings = settings,
-                )
-            val parentOid = dto.parentOidStrList.firstOrNull().orEmpty()
-            val patchLines =
-                if (parentOid.isNotBlank()) {
-                  val tree1 = Libgit2Helper.resolveTree(repo, parentOid)
-                  val tree2 = Libgit2Helper.resolveTree(repo, dto.oidStr)
-                  if (tree1 != null && tree2 != null) {
-                    val patchRet =
-                        Libgit2Helper.savePatchToFileAndGetContent(
-                            repo = repo,
-                            tree1 = tree1,
-                            tree2 = tree2,
-                            fromTo = Cons.gitDiffFromTreeToTree,
-                            returnDiffContent = true,
-                        )
-                    patchRet.data
-                        ?.content
-                        ?.lineSequence()
-                        ?.take(600)
-                        ?.map { line ->
-                          when {
-                            line.startsWith("+") && !line.startsWith("+++") ->
-                                DiffLine(-1, -1, line, DiffType.ADD)
-                            line.startsWith("-") && !line.startsWith("---") ->
-                                DiffLine(-1, -1, line, DiffType.DELETE)
-                            line.startsWith("@@") -> DiffLine(-1, -1, line, DiffType.HUNK_HEADER)
-                            else -> DiffLine(-1, -1, line, DiffType.CONTEXT)
-                          }
-                        }
-                        ?.toList()
-                        .orEmpty()
-                  } else {
-                    emptyList()
-                  }
-                } else {
-                  emptyList()
-                }
-            allLines =
-                listOf(
-                    DiffLine(-1, -1, "Commit: ${dto.shortOidStr}", DiffType.HUNK_HEADER),
-                    DiffLine(-1, -1, "Author: ${dto.author}", DiffType.CONTEXT),
-                    DiffLine(
-                        -1,
-                        -1,
-                        "Branches: ${dto.branchShortNameList.joinToString()}",
-                        DiffType.CONTEXT,
-                    ),
-                    DiffLine(
-                        -1,
-                        -1,
-                        "Parents: ${dto.parentShortOidStrList.joinToString()}",
-                        DiffType.CONTEXT,
-                    ),
-                    DiffLine(-1, -1, dto.msg, DiffType.CONTEXT),
-                ) + patchLines
-            applyFilter()
-          }
-        }
-      }
-    }
-  }
-
-  private fun showSearchDialog() {
-    val input = EditText(requireContext()).apply { setText(filterKeyword) }
-    AlertDialog.Builder(requireContext())
-        .setTitle(getString(R.string.search))
-        .setView(input)
-        .setPositiveButton(android.R.string.ok) { _, _ ->
-          filterKeyword = input.text?.toString().orEmpty().trim()
-          applyFilter()
-        }
-        .setNegativeButton(android.R.string.cancel, null)
-        .show()
-  }
-
-  private fun applyFilter() {
-    val filtered =
-        if (filterKeyword.isBlank()) {
-          allLines
-        } else {
-          allLines.filter { it.content.contains(filterKeyword, ignoreCase = true) }
-        }
-    lines.clear()
-    lines.addAll(filtered)
-  }
-
-  enum class DiffType {
-    ADD,
-    DELETE,
-    CONTEXT,
-    HUNK_HEADER,
-  }
-
-  data class DiffLine(val oldLine: Int, val newLine: Int, val content: String, val type: DiffType)
-
-  inner class DiffAdapter(private val data: List<DiffLine>) :
-      RecyclerView.Adapter<DiffAdapter.ViewHolder>() {
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-      val v =
-          LayoutInflater.from(parent.context).inflate(R.layout.item_git_diff_line, parent, false)
-      return ViewHolder(v)
-    }
-
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-      val item = data[position]
-      holder.tvContent.text = item.content
-      holder.tvLineOld.text = if (item.oldLine > 0) item.oldLine.toString() else ""
-      holder.tvLineNew.text = if (item.newLine > 0) item.newLine.toString() else ""
-
-      when (item.type) {
-        DiffType.ADD -> {
-          holder.itemView.setBackgroundColor(
-              if (compactMode) ColorUtils.setAlphaComponent(Color.parseColor("#4CAF50"), 20)
-              else Color.parseColor("#1A4CAF50")
+      } else {
+        Box(modifier = Modifier.fillMaxSize().padding(all = 16.dp)) {
+          Text(
+            text = workdir?.let { "Resolving repo…" } ?: "No opened project",
+            color = MaterialTheme.colorScheme.onSurface,
           )
-          holder.tvContent.setTextColor(Color.parseColor("#A5D6A7"))
-        }
-        DiffType.DELETE -> {
-          holder.itemView.setBackgroundColor(
-              if (compactMode) ColorUtils.setAlphaComponent(Color.parseColor("#F44336"), 20)
-              else Color.parseColor("#1AF44336")
-          )
-          holder.tvContent.setTextColor(Color.parseColor("#EF9A9A"))
-        }
-        DiffType.HUNK_HEADER -> {
-          holder.itemView.setBackgroundColor(Color.parseColor("#2C2C2C"))
-          holder.tvContent.setTextColor(Color.parseColor("#90CAF9"))
-        }
-        else -> {
-          holder.itemView.setBackgroundColor(Color.TRANSPARENT)
-          holder.tvContent.setTextColor(Color.parseColor("#C4C4C4"))
         }
       }
     }
-
-    override fun getItemCount() = data.size
-
-    inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
-      val tvLineOld: TextView = v.findViewById(R.id.tv_line_old)
-      val tvLineNew: TextView = v.findViewById(R.id.tv_line_new)
-      val tvContent: TextView = v.findViewById(R.id.tv_content)
-    }
+    binding.gitContentContainer.addView(compose)
   }
 
   override fun onDestroyView() {
