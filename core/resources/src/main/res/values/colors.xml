@@ -43,4 +43,8 @@
     <!-- 暗缟玛瑙 -->
     <color name="purple_171717">#111111</color>
     
+  <!-- git toolbar -->
+  <color name="git_toolbar_separator">#1F000000</color>
+  <color name="git_toolbar_label">#80000000</color>
+
 </resources>

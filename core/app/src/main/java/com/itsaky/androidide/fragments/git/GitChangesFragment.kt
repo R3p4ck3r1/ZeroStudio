@@ -67,36 +67,40 @@ class GitChangesFragment : BaseGitPageFragment() {
   }
 
   override fun setupToolbar() {
+    // 2b 重新设计：分组组织按钮，去掉冗余操作
+    //
+    // 分组1: Staged 操作区 (提交已暂存内容)
     addToolbarAction(R.drawable.ic_check_24, getString(R.string.commit)) {
       emitGitOperation("changes", "commit")
       commitChanges()
     }
 
+    // 分组分隔线
+    addToolbarSeparator()
+
+    // 分组2: Remote 操作区 (推送/拉取)
+    // Push - 使用 ic_arrow_upward_24 (上传箭头，区别于 Pull 的云下载)
     addToolbarAction(R.drawable.ic_arrow_upward_24, getString(R.string.push)) {
       emitGitOperation("changes", "push")
       pushCurrentBranch(force = false)
     }
 
+    // Pull - ic_cloud_download_24 (云下载图标)
     addToolbarAction(R.drawable.ic_cloud_download_24, getString(R.string.pull)) {
       emitGitOperation("changes", "pull_fetch_origin")
       pullFromOrigin()
     }
 
+    // Force Push - 危险操作放最后
     addToolbarAction(R.drawable.ic_warning_24, "Force Push") {
       emitGitOperation("changes", "force_push")
       pushCurrentBranch(force = true)
     }
 
-    addToolbarAction(R.drawable.ic_cloud_download_24, "Commit && Push") {
-      emitGitOperation("changes", "commit_and_push")
-      commitThenPush()
-    }
+    // 分组分隔线
+    addToolbarSeparator()
 
-    addToolbarAction(R.drawable.ic_refresh_24, getString(R.string.refresh)) {
-      emitGitOperation("changes", "refresh")
-      loadChanges()
-    }
-
+    // 分组3: Staging 操作区 (暂存/取消暂存/丢弃)
     addToolbarAction(R.drawable.ic_select_all_24, getString(R.string.stage_all)) {
       emitGitOperation("changes", "stage_all")
       stageAll()
@@ -110,6 +114,15 @@ class GitChangesFragment : BaseGitPageFragment() {
     addToolbarAction(R.drawable.ic_delete_sweep_24, getString(R.string.revert)) {
       emitGitOperation("changes", "discard_all")
       discardAll()
+    }
+
+    // 分组分隔线
+    addToolbarSeparator()
+
+    // 分组4: 刷新 (放在最后)
+    addToolbarAction(R.drawable.ic_refresh_24, getString(R.string.refresh)) {
+      emitGitOperation("changes", "refresh")
+      loadChanges()
     }
   }
 
