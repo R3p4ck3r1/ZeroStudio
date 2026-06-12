@@ -24,12 +24,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.ViewModelProvider
 import com.catpuppyapp.puppygit.screen.BranchListScreen
 import com.itsaky.androidide.R
 import com.itsaky.androidide.databinding.FragmentGitBranchesComposeBinding
-import com.itsaky.androidide.projects.IProjectManager
 
 /**
  * 分支管理页面（2a2 版本）。
@@ -102,23 +99,5 @@ class GitBranchesFragment : BaseGitPageFragment() {
     binding.gitContentContainer.removeAllViews()
     super.onDestroyView()
     _binding = null
-  }
-
-  private fun resolveWorkspaceDirPath(): String? {
-    val projectManager = IProjectManager.getInstance()
-    val workspaceDir =
-        runCatching { projectManager.getWorkspace()?.getProjectDir()?.path }.getOrNull()
-    if (!workspaceDir.isNullOrBlank()) {
-      return workspaceDir
-    }
-    return runCatching { projectManager.projectDirPath }
-        .getOrNull()
-        ?.takeIf { it.isNotBlank() }
-  }
-
-  private fun emitGitOperation(section: String, action: String) {
-    val activity = activity as? FragmentActivity ?: return
-    ViewModelProvider(activity)[GitUiEventViewModel::class.java]
-        .emit(GitUiEvent.Operation(section = section, action = action))
   }
 }

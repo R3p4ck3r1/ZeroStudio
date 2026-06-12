@@ -3,6 +3,7 @@ package com.itsaky.androidide.fragments.editor.markdown
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.util.Linkify
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,10 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed
-import androidx.compose.ui.text.util.Linkify
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
-import com.itsaky.androidide.fragments.EditorFragmentTabManager
+import com.itsaky.androidide.fragments.editor.EditorFragmentTabManager
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

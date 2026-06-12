@@ -33,6 +33,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.catpuppyapp.puppygit.ui.theme.InitContent
 import com.itsaky.androidide.R
+import com.itsaky.androidide.projects.IProjectManager
 
 /**
  * 所有 Git 子页面的基类。
@@ -133,7 +134,7 @@ abstract class BaseGitPageFragment : Fragment() {
         marginStart = margin
         marginEnd = margin
       }
-      text = text
+      setText(text)
       setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.git_toolbar_label))
       textSize = 10f
       gravity = android.view.Gravity.CENTER_VERTICAL
@@ -207,5 +208,25 @@ abstract class BaseGitPageFragment : Fragment() {
     val rootView = view ?: return null
     val scrollView = rootView.findViewById<HorizontalScrollView>(R.id.git_mini_toolbar_scroll)
     return scrollView?.findViewById(R.id.git_mini_toolbar_container)
+  }
+
+  /**
+   * 解析当前打开的工程目录绝对路径。
+   *
+   * 2a2 之后多个子 fragment 都需要拿到 workdir 才能让 puppygit 解析 repoId，
+   * 把这段逻辑从 `GitChangesFragment` / `GitBranchesFragment` 上提到基类共享。
+   *
+   * @return 工程目录绝对路径；当前没有打开工程时返回 `null`
+   */
+  protected fun resolveWorkspaceDirPath(): String? {
+    val projectManager = IProjectManager.getInstance()
+    val workspaceDir =
+        runCatching { projectManager.getWorkspace()?.getProjectDir()?.path }.getOrNull()
+    if (!workspaceDir.isNullOrBlank()) {
+      return workspaceDir
+    }
+    return runCatching { projectManager.projectDirPath }
+        .getOrNull()
+        ?.takeIf { it.isNotBlank() }
   }
 }
