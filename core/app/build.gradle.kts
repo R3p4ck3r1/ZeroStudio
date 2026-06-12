@@ -152,9 +152,10 @@ dependencies {
   implementation(libs.aapt2.common)
   implementation(libs.common.org.apache.commons.compress)
   implementation(libs.common.org.tukaani.tarxzip)
-  implementation(libs.bundles.io.markwon)
-  // Local HTTP server for serving markdown preview assets
-  implementation(libs.common.org.nanohttpd)
+  implementation(libs.bundles.io.markwon) // io.noties.markwon (still used by DisclaimerFragment onboarding)
+  // compose-markdown 内部使用 coil 2.x(与 core/app 自己的 coil 3.x 是分开的版本,
+  // 只为 MarkdownImageSources 暴露的 coil.request.ImageRequest / Disposable 类型存在)
+  implementation("io.coil-kt:coil:2.7.0")
 
   implementation(libs.google.auto.service.annotations)
   implementation(libs.google.gson)
