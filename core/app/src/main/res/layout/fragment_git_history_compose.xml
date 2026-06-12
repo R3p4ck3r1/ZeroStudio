@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Git 提交历史页面: 由 puppygit 的 CommitListScreen 渲染
+  容器内通过 setGitContent() 动态注入 ComposeView,顶部 TopAppBar 由 puppygit 提供
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/git_content_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface" />
