@@ -51,6 +51,7 @@ class GitConflictsFragment : BaseGitPageFragment() {
   }
 
   override fun setupToolbar() {
+    // 2a2-C 简化:去掉 "Abort Merge" 危险操作 (用户可在 Changes 页面手动处理)
     addToolbarAction(R.drawable.ic_download_24, getString(R.string.accept_theirs)) {
       emitGitOperation("conflicts", "accept_theirs_all")
       acceptAll(true)
@@ -59,11 +60,6 @@ class GitConflictsFragment : BaseGitPageFragment() {
     addToolbarAction(R.drawable.ic_arrow_upward_24, getString(R.string.accept_ours)) {
       emitGitOperation("conflicts", "accept_ours_all")
       acceptAll(false)
-    }
-
-    addToolbarAction(R.drawable.ic_warning_24, getString(R.string.abort_merge)) {
-      emitGitOperation("conflicts", "abort_merge")
-      abortMerge()
     }
   }
 
@@ -93,16 +89,6 @@ class GitConflictsFragment : BaseGitPageFragment() {
       if (ret.hasError()) {
         throw RuntimeException(ret.msg)
       }
-    }
-  }
-
-  private fun abortMerge() {
-    withRepo { repo ->
-      val ret = Libgit2Helper.resetHardToHead(repo)
-      if (ret.hasError()) {
-        throw RuntimeException(ret.msg)
-      }
-      Libgit2Helper.cleanRepoState(repo, cancelIfHasConflicts = false)
     }
   }
 
