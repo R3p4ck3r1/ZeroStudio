@@ -25,8 +25,12 @@ import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import com.catpuppyapp.puppygit.ui.theme.InitContent
 import com.itsaky.androidide.R
 
 /**
@@ -121,6 +125,30 @@ abstract class BaseGitPageFragment : Fragment() {
   override fun onDestroyView() {
     findToolbarContainer()?.removeAllViews()
     super.onDestroyView()
+  }
+
+  /**
+   * 创建一个承载 puppygit Compose 内容的 [ComposeView]。
+   *
+   * `setContent` 块内部会先调 [PuppyGitIntegration.ensureReady] 触发
+   * `AppModel.init_forPreview()`，再包一层 [InitContent] 提供 Theme /
+   * LocalActivity 等 CompositionLocal。
+   *
+   * 调用方负责把返回的 [ComposeView] 放到布局里（2a2 之后 fragment 改用
+   * puppygit screen 时，会把现有 RecyclerView 替换成这个 ComposeView）。
+   *
+   * @param content puppygit 的 Composable 内容（如 `BranchListScreen(...)`）
+   * @return 配置好的 [ComposeView]
+   */
+  protected fun setGitContent(content: @Composable () -> Unit): ComposeView {
+    val ctx = requireContext()
+    return ComposeView(ctx).apply {
+      setViewCompositionStrategy(DisposeOnViewTreeLifecycleDestroyed)
+      setContent {
+        PuppyGitIntegration.ensureReady()
+        InitContent(context = ctx.applicationContext) { content() }
+      }
+    }
   }
 
   private fun findToolbarContainer(): LinearLayout? {
