@@ -170,6 +170,15 @@ class GitPopupManager(private val context: Context) {
   private fun showSetUserInfoDialog() {
     dismiss() // 关闭 Popup
 
+    // 2c1 修复:同步读当前 global config,作为 ComposeMutableState 的初值。
+    // 之前用 `mutableStateOf("")` 会导致:
+    //   1. 对话框打开瞬间字段空白,等 AskGitUsernameAndEmailDialog 内部
+    //      LaunchedEffect 异步读完 PuppyGitSettings.json 后才填充;
+    //   2. 竞态:用户手快在 LaunchedEffect 跑完前点"确定",会把空字符串
+    //      当成新配置写回 global config,把之前配置好的 username/email
+    //      清掉。
+    val (currentUsername, currentEmail) = Libgit2Helper.getGitUsernameAndEmailFromGlobalConfig()
+
     val composeHostDialog = ComponentDialog(context)
     composeHostDialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
     composeHostDialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
@@ -179,10 +188,9 @@ class GitPopupManager(private val context: Context) {
           setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
           setContent {
-            // 状态变量，用于接收和修改用户名/邮箱
-            // AskGitUsernameAndEmailDialog 内部的 LaunchedEffect 会自动读取 PuppyGitSettings.json 并填充这些变量
-            val usernameState = remember { mutableStateOf("") }
-            val emailState = remember { mutableStateOf("") }
+            // 状态变量,初值已是当前配置 — 避免空白闪 + 竞态覆盖
+            val usernameState = remember { mutableStateOf(currentUsername) }
+            val emailState = remember { mutableStateOf(currentEmail) }
 
             val titleRes = com.catpuppyapp.puppygit.play.pro.R.string.set_global_username_and_email
 
@@ -191,7 +199,7 @@ class GitPopupManager(private val context: Context) {
                 text = stringResource(titleRes),
                 username = usernameState,
                 email = emailState,
-                isForGlobal = true, // 标记为全局设置，触发内部的全局读取逻辑
+                isForGlobal = true, // 标记为全局设置,触发内部的全局读取逻辑
                 repos = emptyList(), // 全局设置不需要传仓库列表
                 onOk = {
                   doJobThenOffLoading {
@@ -211,7 +219,7 @@ class GitPopupManager(private val context: Context) {
                 },
                 onCancel = { composeHostDialog.dismiss() },
                 enableOk = {
-                  // 允许点击确定，即使为空（可能代表清除配置
+                  // 允许点击确定,即使为空(可能代表清除配置)
                   true
                 },
             )
