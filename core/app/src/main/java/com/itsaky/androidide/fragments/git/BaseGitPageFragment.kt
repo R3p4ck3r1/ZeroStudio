@@ -18,6 +18,7 @@ package com.itsaky.androidide.fragments.git
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -103,6 +104,45 @@ abstract class BaseGitPageFragment : Fragment() {
 
     findToolbarContainer()?.addView(button)
     return button
+  }
+
+  protected fun addToolbarSeparator() {
+    val context = requireContext()
+    val separator = View(context).apply {
+      layoutParams = LinearLayout.LayoutParams(
+          1.dpToPx(),
+          resources.getDimensionPixelSize(R.dimen.git_toolbar_icon_size),
+      ).apply {
+        val margin = 4.dpToPx()
+        marginStart = margin
+        marginEnd = margin
+      }
+      setBackgroundColor(androidx.core.content.ContextCompat.getColor(context, R.color.git_toolbar_separator))
+    }
+    findToolbarContainer()?.addView(separator)
+  }
+
+  protected fun addToolbarSectionLabel(text: String) {
+    val context = requireContext()
+    val label = android.widget.TextView(context).apply {
+      layoutParams = LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.WRAP_CONTENT,
+          resources.getDimensionPixelSize(R.dimen.git_toolbar_icon_size),
+      ).apply {
+        val margin = 8.dpToPx()
+        marginStart = margin
+        marginEnd = margin
+      }
+      text = text
+      setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.git_toolbar_label))
+      textSize = 10f
+      gravity = android.view.Gravity.CENTER_VERTICAL
+    }
+    findToolbarContainer()?.addView(label)
+  }
+
+  private fun Int.dpToPx(): Int {
+    return (this * Resources.getSystem().displayMetrics.density).toInt()
   }
 
   protected fun addToolbarCustomView(view: View) {
