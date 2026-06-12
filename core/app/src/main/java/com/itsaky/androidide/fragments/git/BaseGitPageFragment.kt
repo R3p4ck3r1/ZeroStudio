@@ -158,6 +158,18 @@ abstract class BaseGitPageFragment : Fragment() {
     }
   }
 
+  /**
+   * 打开 web 链接,如果没有则弹出 toast。
+   * 2a2-B 共享:替换 3 个 fragment 中重复的 openIfAny 私有方法。
+   */
+  protected fun openWebLinkOrToast(url: String?, emptyMsg: String = "No link available") {
+    if (url.isNullOrBlank()) {
+      Toast.makeText(requireContext(), emptyMsg, Toast.LENGTH_SHORT).show()
+      return
+    }
+    openExternalLink(url)
+  }
+
   protected fun emitGitOperation(section: String, action: String) {
     uiEventViewModel.emit(GitUiEvent.Operation(section, action))
   }
