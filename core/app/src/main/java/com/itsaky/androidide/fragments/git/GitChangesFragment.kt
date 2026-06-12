@@ -36,7 +36,6 @@ import com.catpuppyapp.puppygit.utils.Libgit2Helper
 import com.github.git24j.core.Repository
 import com.itsaky.androidide.R
 import com.itsaky.androidide.databinding.FragmentGitChangesBinding
-import com.itsaky.androidide.projects.IProjectManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -343,19 +342,6 @@ class GitChangesFragment : BaseGitPageFragment() {
             delay(1500)
           }
         }
-  }
-
-  private fun resolveWorkspaceDirPath(): String? {
-    val projectManager = IProjectManager.getInstance()
-    val workspaceDir =
-        runCatching { projectManager.getWorkspace()?.getProjectDir()?.path }.getOrNull()
-    if (!workspaceDir.isNullOrBlank()) {
-      return workspaceDir
-    }
-
-    return runCatching { projectManager.projectDirPath }
-        .getOrNull()
-        ?.takeIf { it.isNotBlank() }
   }
 
   private fun readChangeSnapshot(projectDir: String): ChangeSnapshot {
