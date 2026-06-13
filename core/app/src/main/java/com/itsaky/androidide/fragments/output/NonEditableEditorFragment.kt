@@ -53,10 +53,21 @@ abstract class NonEditableEditorFragment :
 
   override fun clearOutput() {
     editor?.let { editor ->
-      val text = editor.text
-      // This is a good and robust way to clear the text.
-      text.delete(0, text.length)
-
+      // FIX: Using text.delete(0, text.length) can trigger an OutOfMemoryError
+      // when the editor's content contains a single very long line (~140MB+).
+      // sora editor's Content.delete() -> Content.deleteInternal() -> ContentLine.appendTo()
+      // tries to allocate a StringBuilder for the entire line being removed.
+      // Calling setText("") replaces the whole Content with a new empty one, which
+      // is allocation-safe regardless of how much data was previously in the editor.
+      runCatching { editor.setText("") }.onFailure { error ->
+        // Last-resort safety net: as a true root-cause fix, if even setText fails
+        // (e.g. extremely low memory during the clear call), surface the error
+        // to the logger instead of letting it crash the whole app.
+        android.util.Log.e(
+          "NonEditableEditorFragment",
+          "Failed to clear build output editor", error
+        )
+      }
       isEmpty = true
     }
   }

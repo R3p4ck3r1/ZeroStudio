@@ -62,6 +62,16 @@
 -keep class ch.qos.logback.** { *; }
 -dontwarn ch.qos.logback.**
 
+# SLF4J helper classes used at runtime by SLF4J's MessageFormatter to perform parameter
+# substitution. R8 has stripped these in past builds, causing
+# "java.lang.NoClassDefFoundError: org.slf4j.helpers.FormattingTuple" crashes at runtime when
+# the IDE tries to format a log message. Keep them explicitly.
+-keep class org.slf4j.helpers.FormattingTuple { *; }
+-keep class org.slf4j.helpers.MessageFormatter { *; }
+-keep class org.slf4j.helpers.FormattingTuple$** { *; }
+-keep class org.slf4j.helpers.MessageFormatter$** { *; }
+-dontwarn org.slf4j.helpers.**
+
 # JGit
 #-dontwarn org.eclipse.jgit.**
 

@@ -250,6 +250,17 @@ public final class Environment {
   /**
    * Injects environment variables into the native process environment using android.system.Os.setenv.
    * This is critical for making 'java', 'javac', and other tools available globally to child processes.
+   *
+   * <p><b>Important:</b> this method must NEVER call {@link #LOG} (SLF4J) for normal-path logging
+   * because the logback pipeline can, in certain initialization orderings, eventually call
+   * {@link #putEnvironment(Map, boolean)} on a logger that uses a layout which formats a message
+   * that triggers a recursive call back into {@link #ensureInitialized()} (which calls this method
+   * again), producing an unbounded recursion and a {@link StackOverflowError} deep inside
+   * {@code org.slf4j.helpers.FormattingTuple.<clinit>}. When that happens, the Android runtime
+   * hard-crashes (SIGSEGV) and the process dies.
+   *
+   * <p>To completely break that cycle, this method writes any informational or error output
+   * directly to {@link System#err} and swallows all logging-framework related failures.
    */
   private static void injectNativeEnvironment() {
     try {
@@ -260,30 +271,39 @@ public final class Environment {
         for (Map.Entry<String, String> entry : env.entrySet()) {
             try {
                 // overwrite = true
-                Os.setenv(entry.getKey(), entry.getValue(), true); 
+                Os.setenv(entry.getKey(), entry.getValue(), true);
             } catch (ErrnoException e) {
-                LOG.error("Failed to setenv: " + entry.getKey(), e);
+                // Use System.err to avoid logback re-entrancy.
+                System.err.println("Environment: failed to setenv " + entry.getKey() + ": " + e.getMessage());
             }
         }
 
         // 特别处理 PATH，确保 java 和 bin 目录在最前面
         String currentPath = System.getenv("PATH");
         if (currentPath == null) currentPath = "";
-        
-        String newPath = BIN_DIR.getAbsolutePath() + ":" + 
-                         new File(JAVA_HOME, "bin").getAbsolutePath() + ":" + 
+
+        String newPath = BIN_DIR.getAbsolutePath() + ":" +
+                         new File(JAVA_HOME, "bin").getAbsolutePath() + ":" +
                          currentPath;
-        
+
         try {
             Os.setenv("PATH", newPath, true);
         } catch (ErrnoException e) {
-            LOG.error("Failed to update PATH", e);
+            System.err.println("Environment: failed to update PATH: " + e.getMessage());
         }
 
-        LOG.info("Global native environment injected successfully. JAVA_HOME={}", JAVA_HOME);
+        // Informational message: System.err only, never LOG, to avoid the logback recursion
+        // described in the Javadoc above.
+        System.err.println("Environment: global native environment injected. JAVA_HOME=" + JAVA_HOME);
 
     } catch (Throwable t) {
-        LOG.error("Critical error injecting native environment", t);
+        // Last-resort error path. Do not use LOG here.
+        try {
+            System.err.println("Environment: critical error injecting native environment: " + t);
+            t.printStackTrace(System.err);
+        } catch (Throwable ignored) {
+            // Nothing more we can do; swallowing is the only safe option here.
+        }
     }
   }
   

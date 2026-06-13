@@ -253,32 +253,64 @@ class GradleBuildService :
     return mBinder
   }
 
-  /** Creates a Gradle init script that injects the logger plugin into user projects. */
-  private fun createLoggerInitScript(): File {
-    val initScript = File(Environment.TMP_DIR, "ide-logger-init.gradle")
-    initScript.writeText(
+  /**
+   * Creates a Gradle init script that injects the logger plugin into user projects.
+   *
+   * @return the created [File], or `null` if the script could not be created (e.g. the IDE tmp
+   *   directory has not been initialized yet, the parent directory cannot be created, or the
+   *   script cannot be written). The caller is expected to handle a `null` return value by
+   *   aborting the build cleanly instead of crashing the build service.
+   */
+  private fun createLoggerInitScript(): File? {
+    val tmpDir = Environment.TMP_DIR
+    if (tmpDir == null) {
+      log.error(
+          "Cannot create ide-logger-init.gradle: Environment.TMP_DIR is null. " +
+              "Make sure Environment.init() has been called before executing a build.")
+      return null
+    }
+
+    try {
+      // TMP_DIR may legitimately not exist yet on the very first build of a fresh install.
+      // createOrExistsDir returns true on success or when the directory already exists.
+      if (!Environment.mkdirIfNotExits(tmpDir).exists()) {
+        log.error("Failed to ensure IDE tmp directory exists at {}", tmpDir.absolutePath)
+        return null
+      }
+    } catch (e: Throwable) {
+      log.error("Failed to create IDE tmp directory at {}", tmpDir.absolutePath, e)
+      return null
+    }
+
+    val initScript = File(tmpDir, "ide-logger-init.gradle")
+    try {
+      initScript.writeText(
+          """
+            allprojects {
+                afterEvaluate {
+                    if (plugins.hasPlugin('com.android.application') || 
+                        plugins.hasPlugin('com.android.library')) {
+                        
+                        android {
+                            compileOptions {
+                                coreLibraryDesugaringEnabled = true
+                            }
+                        }
+                        
+                        dependencies {
+                            implementation files('${getLoggerRuntimeAar().absolutePath}')
+                            coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+                        }
+                    }
+                }
+            }
         """
-          allprojects {
-              afterEvaluate {
-                  if (plugins.hasPlugin('com.android.application') || 
-                      plugins.hasPlugin('com.android.library')) {
-                      
-                      android {
-                          compileOptions {
-                              coreLibraryDesugaringEnabled = true
-                          }
-                      }
-                      
-                      dependencies {
-                          implementation files('${getLoggerRuntimeAar().absolutePath}')
-                          coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
-                      }
-                  }
-              }
-          }
-      """
-            .trimIndent()
-    )
+              .trimIndent()
+      )
+    } catch (e: Throwable) {
+      log.error("Failed to write ide-logger-init.gradle at {}", initScript.absolutePath, e)
+      return null
+    }
     return initScript
   }
 
@@ -327,9 +359,25 @@ class GradleBuildService :
   /**
    * Inject logger by adding init script to Gradle arguments. This modifies the system property that
    * will be read by the Tooling API.
+   *
+   * If the init script cannot be created (see [createLoggerInitScript]), this method logs the
+   * failure and does NOT crash the build service. Builds are allowed to continue without the
+   * logger plugin so the user can still see the actual build error.
    */
   private fun injectLoggerForCurrentBuild() {
-    val initScript = createLoggerInitScript()
+    val initScript =
+        try {
+          createLoggerInitScript()
+        } catch (e: Throwable) {
+          log.error("Failed to create logger init script; continuing build without it", e)
+          null
+        }
+    if (initScript == null) {
+      // Make sure we don't leave a stale system property pointing at a non-existent file.
+      System.clearProperty("ide.logger.init.script")
+      isReleaseVariant = true
+      return
+    }
     // Set property that will be picked up by Tooling API
     System.setProperty("ide.logger.init.script", initScript.absolutePath)
   }
@@ -657,7 +705,17 @@ class GradleBuildService :
             val outputReaderJob =
                 buildServiceScope.launch(Dispatchers.IO) {
                   try {
-                    outputReader.useLines { lines -> lines.forEach { line -> logOutput(line) } }
+                    // Use a bounded read loop instead of `useLines { ... forEach }`, which buffers
+                    // every line in memory at once and can OOM the build service on very long
+                    // Gradle outputs (see crash: 141MB allocation in
+                    // NonEditableEditorFragment.clearOutput).
+                    outputReader.use { stream ->
+                      val reader = stream.bufferedReader()
+                      while (true) {
+                        val line = reader.readLine() ?: break
+                        logOutput(line)
+                      }
+                    }
                   } catch (error: Throwable) {
                     if (shouldIgnoreProcessStreamError(error)) {
                       log.debug("Ignoring gradle stdout stream close during cancellation/teardown")
@@ -670,7 +728,13 @@ class GradleBuildService :
             val errorReaderJob =
                 buildServiceScope.launch(Dispatchers.IO) {
                   try {
-                    errorReader.useLines { lines -> lines.forEach { line -> logOutput(line) } }
+                    errorReader.use { stream ->
+                      val reader = stream.bufferedReader()
+                      while (true) {
+                        val line = reader.readLine() ?: break
+                        logOutput(line)
+                      }
+                    }
                   } catch (error: Throwable) {
                     if (shouldIgnoreProcessStreamError(error)) {
                       log.debug("Ignoring gradle stderr stream close during cancellation/teardown")
@@ -898,21 +962,27 @@ class GradleBuildService :
 
     outputReaderJob =
         buildServiceScope.launch(Dispatchers.IO + CoroutineName("ToolingServerErrorReader")) {
-          val reader = input.bufferedReader()
-          try {
-            reader.forEachLine { line -> SERVER_System_err.error(line) }
-          } catch (e: Throwable) {
-            e.ifCancelledOrInterrupted(suppress = true) {
-              // will be suppressed
-              return@launch
-            }
-            if (shouldIgnoreProcessStreamError(e)) {
-              log.debug("Ignoring tooling server output stream close during cancellation/teardown")
-              return@launch
-            }
+          // Read line-by-line with a bounded BufferedReader to avoid the unbounded buffering
+          // pattern of `reader.forEachLine` which can OOM on very long outputs.
+          input.bufferedReader().use { reader ->
+            try {
+              while (true) {
+                val line = reader.readLine() ?: break
+                SERVER_System_err.error(line)
+              }
+            } catch (e: Throwable) {
+              e.ifCancelledOrInterrupted(suppress = true) {
+                // will be suppressed
+                return@launch
+              }
+              if (shouldIgnoreProcessStreamError(e)) {
+                log.debug("Ignoring tooling server output stream close during cancellation/teardown")
+                return@launch
+              }
 
-            // log the error and fail silently
-            log.error("Failed to read tooling server output", e)
+              // log the error and fail silently
+              log.error("Failed to read tooling server output", e)
+            }
           }
         }
   }
