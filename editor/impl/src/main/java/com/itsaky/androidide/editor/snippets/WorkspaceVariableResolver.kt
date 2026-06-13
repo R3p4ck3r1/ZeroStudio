@@ -35,7 +35,9 @@ class WorkspaceVariableResolver :
   }
 
   override fun resolve(name: String): String {
-    val directory = IProjectManager.getInstance().projectDir
+    // 治本：projectDir 改 nullable 后，工程未打开时返回空串（与 else 分支一致）
+    // 比 commit e935009 的 requireNonNull + try/catch 简单且无 NPE 风险
+    val directory = IProjectManager.getInstance().projectDir ?: return ""
     return when (name) {
       WORKSPACE_NAME -> directory.name
       WORKSPACE_FOLDER -> directory.absolutePath

@@ -574,7 +574,8 @@ class GradleBuildService :
   private fun stopGradleDaemons(): CompletableFuture<Void> {
     return CompletableFuture.runAsync {
       try {
-        val projectDir = ProjectManagerImpl.getInstance().projectDir
+        // 治本：projectDir 改 nullable 后，工程未打开时早退（O(1) 检查，无 try/catch 开销）
+        val projectDir = ProjectManagerImpl.getInstance().projectDir ?: return@runAsync
         val gradlewPath = File(projectDir, "gradlew").absolutePath
 
         log.info("Stopping Gradle daemons...")
@@ -636,7 +637,8 @@ class GradleBuildService :
           prepareBuild(buildInfo)
 
           try {
-            val projectDir = ProjectManagerImpl.getInstance().projectDir
+            // 治本：projectDir 改 nullable 后，工程未打开时早退（O(1) 检查）
+            val projectDir = ProjectManagerImpl.getInstance().projectDir ?: return@supplyAsync null
             val gradlewPath = File(projectDir, "gradlew").absolutePath
 
             val command = mutableListOf("sh", gradlewPath)
