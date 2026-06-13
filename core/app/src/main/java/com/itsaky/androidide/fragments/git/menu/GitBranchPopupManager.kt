@@ -110,9 +110,9 @@ class GitBranchPopupManager(
 
   private fun loadBranches(): List<BranchModel> {
     val projectDir = IProjectManager.getInstance().getWorkspace()?.getProjectDir()?.path
-    val repoPath =
+    val repoPath: String? =
         projectDir?.takeIf { it.isNotBlank() }
-            ?: IProjectManager.getInstance().projectDirPath.takeIf { it.isNotBlank() }
+            ?: IProjectManager.getInstance().projectDirPath?.takeIf { it.isNotBlank() }
             ?: return emptyList()
 
     return runCatching {

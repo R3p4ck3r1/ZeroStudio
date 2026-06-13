@@ -38,9 +38,10 @@ class KtfmtCliFormatter(private val context: Context, private val file: File) : 
     if (!KtfmtEnv.isInstalled()) return source
 
     // 获取项目根目录 (用于 .editorconfig 读取)
+    // 治本：projectDir 改 nullable 后，未打开工程时回退到 file.parentFile（保留旧语义）
     val projectRoot =
         try {
-          IProjectManager.getInstance().projectDir
+          IProjectManager.getInstance().projectDir ?: file.parentFile
         } catch (e: Exception) {
           file.parentFile
         }
@@ -66,12 +67,15 @@ class KtfmtCliFormatter(private val context: Context, private val file: File) : 
       args.add("--stdin-name=${file.absolutePath}")
       args.add("-")
 
+      // 治本：projectRoot 在上面已经能 fallback 到 file.parentFile，但为了编译期
+      // 避免 smart cast 失效，构造一个本地 val 让下面的 ?.. 表达式更清晰
+      val root = projectRoot ?: file.parentFile
       val result = runBlocking {
         TermuxCommand.run(context) {
           label("Ktfmt CLI (Stdin)")
           executable(Environment.JAVA.absolutePath)
           args(*args.toTypedArray())
-          workingDir(projectRoot.absolutePath)
+          workingDir(root.absolutePath)
           stdin(source)
         }
       }
@@ -89,12 +93,13 @@ class KtfmtCliFormatter(private val context: Context, private val file: File) : 
 
       args.add(file.absolutePath)
 
+      val root = projectRoot ?: file.parentFile
       val result = runBlocking {
         TermuxCommand.run(context) {
           label("Ktfmt CLI (File)")
           executable(Environment.JAVA.absolutePath)
           args(*args.toTypedArray())
-          workingDir(projectRoot.absolutePath)
+          workingDir(root.absolutePath)
         }
       }
 

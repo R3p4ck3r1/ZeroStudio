@@ -636,11 +636,17 @@ class GradleBuildService :
           val buildInfo = BuildInfo(tasksList)
           prepareBuild(buildInfo)
 
-          try {
-            // 治本：projectDir 改 nullable 后，工程未打开时早退（O(1) 检查）
-            val projectDir = ProjectManagerImpl.getInstance().projectDir ?: return@supplyAsync null
-            val gradlewPath = File(projectDir, "gradlew").absolutePath
+          // 治本：projectDir 改 nullable 后，工程未打开时直接以失败结果结束（避免 return null 让
+          // performBuildTasks 的类型推断为 TaskExecutionResult? 而与签名冲突）。
+          val projectDir =
+              ProjectManagerImpl.getInstance().projectDir
+                  ?: return@supplyAsync TaskExecutionResult(
+                      false,
+                      TaskExecutionResult.Failure.PROJECT_NOT_FOUND,
+                  )
+          val gradlewPath = File(projectDir, "gradlew").absolutePath
 
+          try {
             val command = mutableListOf("sh", gradlewPath)
             command.addAll(tasks)
 
@@ -710,8 +716,9 @@ class GradleBuildService :
                     // every line in memory at once and can OOM the build service on very long
                     // Gradle outputs (see crash: 141MB allocation in
                     // NonEditableEditorFragment.clearOutput).
-                    outputReader.use { stream ->
-                      val reader = stream.bufferedReader()
+                    // outputReader 已是 BufferedReader,直接用 readLine() 即可,
+                    // 不再二次 .bufferedReader()(原写法触发了 Unresolved reference 'bufferedReader')。
+                    outputReader.use { reader ->
                       while (true) {
                         val line = reader.readLine() ?: break
                         logOutput(line)
@@ -729,8 +736,7 @@ class GradleBuildService :
             val errorReaderJob =
                 buildServiceScope.launch(Dispatchers.IO) {
                   try {
-                    errorReader.use { stream ->
-                      val reader = stream.bufferedReader()
+                    errorReader.use { reader ->
                       while (true) {
                         val line = reader.readLine() ?: break
                         logOutput(line)
