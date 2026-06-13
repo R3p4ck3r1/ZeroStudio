@@ -162,10 +162,16 @@ class EditorToolboxFragment : Fragment() {
     }
     val requestedIndex = tabs.indexOfFirst { it.id == selectedTab }.coerceAtLeast(0)
     var tabRowSelectedIndex by remember { mutableIntStateOf(0) }
+    // 关键：LaunchedEffect 里也要 clamp，否则外部传一个越界 requestedIndex
+    // 进来，会先把 tabRowSelectedIndex 短暂设成越界值，下一次 recompose 才能被
+    // safeSelectedIndex 拉回。Compose 1.7+ 的 ScrollableTabRow 在那次 recompose
+    // 窗口里访问 `indicatorPositions[selectedTabIndex]` 直接 OOB。
     val safeSelectedIndex = tabRowSelectedIndex.coerceIn(0, tabs.lastIndex.coerceAtLeast(0))
 
     LaunchedEffect(tabs, requestedIndex) {
-      tabRowSelectedIndex = requestedIndex
+      // 把外部的 requestedIndex 同步到内部 state 时同步 clamp，
+      // 避免 recompose 窗口里出现 selectedTabIndex >= tabs.size 的瞬间。
+      tabRowSelectedIndex = requestedIndex.coerceIn(0, tabs.lastIndex.coerceAtLeast(0))
     }
     val compactTabHeight = 25.dp
 

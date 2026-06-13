@@ -218,15 +218,13 @@ abstract class BaseGitPageFragment : Fragment() {
    *
    * @return 工程目录绝对路径；当前没有打开工程时返回 `null`
    */
-  protected fun resolveWorkspaceDirPath(): String? {
+  protected fun resolveWorkspaceDirPath(): String? = runCatching {
     val projectManager = IProjectManager.getInstance()
     val workspaceDir =
         runCatching { projectManager.getWorkspace()?.getProjectDir()?.path }.getOrNull()
     if (!workspaceDir.isNullOrBlank()) {
-      return workspaceDir
+      return@runCatching workspaceDir
     }
-    return runCatching { projectManager.projectDirPath }
-        .getOrNull()
-        ?.takeIf { it.isNotBlank() }
-  }
+    runCatching { projectManager.projectDirPath }.getOrNull()?.takeIf { it.isNotBlank() }
+  }.getOrNull()
 }

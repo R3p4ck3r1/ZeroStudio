@@ -368,6 +368,13 @@ public class ToolsManager {
     final var initScriptBak = new File(initScript.getParentFile(), initScript.getName() + ".bak");
     final var contents = readInitScript();
 
+    // 父目录不一定存在（首次启动时，init/ 是新创建的），要先 mkdirs 再写文件，
+    // 否则 FileOutputStream 会抛 FileNotFoundException("open failed: ENOENT")。
+    final var parent = initScriptBak.getParentFile();
+    if (parent != null && !parent.exists() && !parent.mkdirs()) {
+      LOG.warn("Failed to create parent dir for init script: {}", parent.getAbsolutePath());
+    }
+
     FilesKt.writeText(initScriptBak, contents, StandardCharsets.UTF_8);
     if (!initScript.exists()) {
       FilesKt.writeText(initScript, contents, StandardCharsets.UTF_8);

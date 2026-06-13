@@ -196,15 +196,21 @@ public final class Environment {
     System.setProperty("CMAKE_HOME", CMAKE_HOME.getAbsolutePath());
     // 如果使用了 Proto 插件，有时需要指定 protoc 路径
     System.setProperty("protoc", new File(PROTOC_BIN, "protoc").getAbsolutePath());
-
     System.setProperty("gradle.user.home", GRADLE_USER_HOME.getAbsolutePath());
     System.setProperty("kotlin.home", KOTLINC_HOME.getAbsolutePath());
     System.setProperty("kotlin.lsp.home", KOTLIN_LSP_HOME.getAbsolutePath());
     System.setProperty("java.io.tmpdir", TMP_DIR.getAbsolutePath());
 
+    // 关键：先把 INITIALIZED 置为 true 再 inject。
+    // injectNativeEnvironment() 内部会调 putEnvironment() → ensureInitialized()，
+    // 而 ensureInitialized() 的守卫条件是 `!INITIALIZED || ROOT == null`。
+    // 如果先 inject 再设 INITIALIZED，ROOT 已经非空了，但 INITIALIZED 还是 false，
+    // 守卫条件 `!false || false == true` 永远成立 → 无限递归 → StackOverflowError
+    // → 触发 logback 的 FilterReply.<clinit>（这正好是 v20260610 真机 SIGSEGV 的根因）。
+    INITIALIZED = true;
+
     //  注入 Native 环境变量 (供 ProcessBuilder, Runtime.exec, Terminal 使用)
     injectNativeEnvironment();
-    INITIALIZED = true;
   }
 
   private static Context resolveContext() {

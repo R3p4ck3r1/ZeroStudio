@@ -164,11 +164,18 @@ class ProjectManagerFragment : BaseFragment() {
           verticalArrangement = Arrangement.spacedBy(12.dp),
       ) {
       Box(modifier = Modifier.fillMaxWidth()) {
-        ScrollableTabRow(selectedTabIndex = safeSelectedTabIndex, modifier = Modifier.fillMaxWidth().padding(end = 24.dp)) {
-          tabState.forEachIndexed { index, tab ->
-            Tab(selected = safeSelectedTabIndex == index, onClick = { selectedTabIndexState = index }, text = {
-              Text(tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            })
+        // 关键：tabState 为空时不要渲染 ScrollableTabRow。
+        // 之前没加守卫时，`coerceIn(0, tabState.lastIndex.coerceAtLeast(0))` 在 size=0
+        // 时会返回 0，然后内部 `indicatorPositions[0]` 会对空 list 抛
+        // IndexOutOfBoundsException；即使 size=1，selectedTabIndex 也可能在 recompose
+        // 期间漂成 1→ 触发 "Index 1 out of bounds for length 1"。
+        if (tabState.isNotEmpty()) {
+          ScrollableTabRow(selectedTabIndex = safeSelectedTabIndex, modifier = Modifier.fillMaxWidth().padding(end = 24.dp)) {
+            tabState.forEachIndexed { index, tab ->
+              Tab(selected = safeSelectedTabIndex == index, onClick = { selectedTabIndexState = index }, text = {
+                Text(tab.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+              })
+            }
           }
         }
         FloatingActionButton(
