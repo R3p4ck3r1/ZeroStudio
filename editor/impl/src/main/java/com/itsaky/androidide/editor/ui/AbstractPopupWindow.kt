@@ -76,7 +76,7 @@ abstract class AbstractPopupWindow(editor: CodeEditor, features: Int) :
           // to align to on the next attach cycle. dismiss() is a no-op if not showing.
           try {
             dismiss()
-          } catch (Throwable t) {
+          } catch (t: Throwable) {
             log.warn("Failed to dismiss popup window '{}' on anchor detach", javaClass.name, t)
           }
         }
@@ -108,7 +108,7 @@ abstract class AbstractPopupWindow(editor: CodeEditor, features: Int) :
     if (detachListenerRegistered) {
       try {
         editor.removeOnAttachStateChangeListener(detachListener)
-      } catch (Throwable t) {
+      } catch (t: Throwable) {
         log.warn("Failed to remove detach listener for popup window '{}'", javaClass.name, t)
       }
       detachListenerRegistered = false
