@@ -369,7 +369,7 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
   fun initializeProject(buildVariants: Map<String, String>) {
     val manager = ProjectManagerImpl.getInstance()
     val projectDir = manager.projectDir
-    if (!projectDir.exists()) {
+    if (projectDir == null || !projectDir.exists()) {
       log.error("GradleProject directory does not exist. Cannot initialize project")
       return
     }
@@ -414,7 +414,8 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
     this.initializingFuture =
         if (shouldInitialize || (!isFromSavedInstance && !initialized)) {
           log.debug("Sending init request to tooling server..")
-          buildService.initializeProject(createProjectInitParams(projectDir, buildVariants))
+          // 治本：projectDir 已通过前文判空为 non-null，smart-cast 让后续类型为 File。
+          projectDir?.let { buildService.initializeProject(createProjectInitParams(it, buildVariants)) }
         } else {
           log.debug("Using cached initialize result as the project is already initialized")
           CompletableFuture.supplyAsync {

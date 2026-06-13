@@ -243,9 +243,9 @@ class GitPopupManager(private val context: Context) {
 
   private fun initRepositoryIfNeeded() {
     val projectDir = IProjectManager.getInstance().getWorkspace()?.getProjectDir()?.path
-    val repoPath =
+    val repoPath: String? =
         projectDir?.takeIf { it.isNotBlank() }
-            ?: IProjectManager.getInstance().projectDirPath.takeIf { it.isNotBlank() }
+            ?: IProjectManager.getInstance().projectDirPath?.takeIf { it.isNotBlank() }
 
     if (repoPath.isNullOrBlank()) {
       Msg.requireShowLongDuration(context.getString(com.itsaky.androidide.resources.R.string.git_no_opened_project))
