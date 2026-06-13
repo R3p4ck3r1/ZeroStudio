@@ -110,10 +110,12 @@ class GitBranchPopupManager(
 
   private fun loadBranches(): List<BranchModel> {
     val projectDir = IProjectManager.getInstance().getWorkspace()?.getProjectDir()?.path
-    val repoPath: String? =
+    // 治本：projectDirPath 改 nullable 后,把它收紧成本地 val(非空 String),
+    // 避免后面 Repository.open(repoPath) 的 smart cast / use 闭包泛型推断失败。
+    val repoPath: String =
         projectDir?.takeIf { it.isNotBlank() }
-            ?: IProjectManager.getInstance().projectDirPath?.takeIf { it.isNotBlank() }
-            ?: return emptyList()
+            ?: IProjectManager.getInstance().projectDirPath
+                    ?: return emptyList()
 
     return runCatching {
           Repository.open(repoPath).use { repo ->
