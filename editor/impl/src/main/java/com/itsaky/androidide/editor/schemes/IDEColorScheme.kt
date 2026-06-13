@@ -48,8 +48,74 @@ class IDEColorScheme(internal val file: File, val key: String) : DynamicColorSch
 
   private var colorId = endColorId
 
+  /**
+   * Whether this scheme has already been loaded.
+   *
+   * Loading the same scheme multiple times would otherwise cause the internal data structures
+   * ([colorIds], [editorScheme], [languages]) to grow without bound and the [colorId] counter to
+   * monotonically increase, leading to unbounded memory growth. This flag guards [load] so that
+   * repeated calls become a no-op. Use [reset] to clear the loaded state before calling [load]
+   * again.
+   */
+  internal var isLoaded: Boolean = false
+    private set
+
+  /**
+   * Parse and load this color scheme from [file].
+   *
+   * This method is idempotent: if the scheme has already been loaded ([isLoaded] is `true`), the
+   * call is a no-op. This prevents the unbounded memory growth that would otherwise occur when
+   * [load] is called repeatedly for the same scheme instance (e.g. every time a file is opened
+   * and its language's color scheme is requested).
+   *
+   * To explicitly reload the scheme (e.g. after the scheme file has been edited on disk), call
+   * [reset] first.
+   *
+   * If a previous load attempt failed partway through parsing, this method will internally
+   * [reset] the scheme first to discard the partial state before re-parsing. This ensures that
+   * a failed load never leaves the scheme in a half-populated state that would cause entries
+   * to be appended on the next successful load.
+   *
+   * The method is synchronized so that concurrent callers (e.g. multiple Kotlin coroutines on
+   * `Dispatchers.IO`) cannot race to populate the internal data structures.
+   */
+  @Synchronized
   internal fun load() {
+    if (isLoaded) {
+      // Idempotent guard: repeated loads of the same scheme would otherwise accumulate entries
+      // in colorIds/editorScheme/languages and monotonically grow colorId, leaking memory.
+      return
+    }
+    // Discard any state left over from a previous failed load attempt so that we never append
+    // to half-populated maps. When this is the very first load, reset() is a cheap no-op since
+    // all the structures are already empty.
+    if (colorIds.size > 0 || editorScheme.size > 0 || languages.isNotEmpty() ||
+        definitions.isNotEmpty()) {
+      reset()
+    }
     SchemeParser { name -> File(this.file.parentFile, name) }.load(this)
+    isLoaded = true
+  }
+
+  /**
+   * Reset the loaded state of this color scheme. After calling this method, [isLoaded] becomes
+   * `false` and the next call to [load] will re-parse [file] from disk.
+   *
+   * All accumulated data ([colorIds], [editorScheme], [languages], [definitions]) is cleared and
+   * [colorId] is reset to its initial value. Any external references to previously-loaded
+   * [LanguageScheme] instances should be discarded by callers, as those objects are no longer
+   * reachable through this scheme.
+   *
+   * Synchronized to coordinate with [load].
+   */
+  @Synchronized
+  internal fun reset() {
+    colorIds.clear()
+    editorScheme.clear()
+    languages.clear()
+    definitions = emptyMap()
+    colorId = endColorId
+    isLoaded = false
   }
 
   fun getLanguageScheme(type: String): LanguageScheme? {

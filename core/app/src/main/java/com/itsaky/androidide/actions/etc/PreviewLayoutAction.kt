@@ -20,6 +20,7 @@ package com.itsaky.androidide.actions.etc
 import android.content.Context
 import android.content.Intent
 import android.view.MenuItem
+import android.zero.studio.layouteditor.LayoutEditorContext
 import android.zero.studio.layouteditor.LayoutFile
 import android.zero.studio.layouteditor.ProjectFile
 import android.zero.studio.layouteditor.activities.LayoutsEditorActivity
@@ -131,6 +132,21 @@ class PreviewLayoutAction(context: Context, override val order: Int) : EditorRel
 
   /** Launches the LayoutEditor with the context of the provided file. */
   private fun EditorHandlerActivity.previewLayout(file: File) {
+    // FIX: Root-cause fix for "LayoutEditorContext is not initialized" IllegalArgumentException.
+    //
+    // Before this fix, `projectFile.currentLayout = layoutFile` below calls
+    // `PreferencesManager.getPrefs` which dereferences `LayoutEditorContext.context`.
+    // `LayoutEditorContext` is only initialised in `LayoutsEditorActivity.onCreate`
+    // (via `BaseActivity`), so the very first call into the action that triggers
+    // it BEFORE the activity is created would crash the app.
+    //
+    // The proper root-cause fix is to ensure the singleton is initialised as soon
+    // as we know we are going to need it — i.e. here, before we touch any
+    // LayoutEditorContext-dependent API. `LayoutEditorContext.init` is idempotent
+    // and a no-op if already initialised, so calling it here is safe even when
+    // the user has previously opened the layout editor.
+    LayoutEditorContext.init(applicationContext)
+
     // Resolve the resource root directory (e.g., .../src/main/res)
     // We know from prepare() that file -> layout-xxx -> res
     val layoutDir = file.parentFile

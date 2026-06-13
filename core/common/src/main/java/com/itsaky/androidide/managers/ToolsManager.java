@@ -368,16 +368,58 @@ public class ToolsManager {
     final var initScriptBak = new File(initScript.getParentFile(), initScript.getName() + ".bak");
     final var contents = readInitScript();
 
-    // 父目录不一定存在（首次启动时，init/ 是新创建的），要先 mkdirs 再写文件，
+    // 治本：父目录不一定存在（首次启动时，init/ 是新创建的），要先 mkdirs 再写文件，
     // 否则 FileOutputStream 会抛 FileNotFoundException("open failed: ENOENT")。
+    // 进一步加固：同时为 initScript 自身也建好父目录（虽然 exists() 守卫兜底，
+    // 但如果未来重构把 exists() 守卫挪走就可能再次踩雷）。
     final var parent = initScriptBak.getParentFile();
-    if (parent != null && !parent.exists() && !parent.mkdirs()) {
+    Environment.mkdirIfNotExits(parent);  // null 容忍 + 内部 try-createOrExistsDir
+    if (parent != null && !parent.isDirectory()) {
       LOG.warn("Failed to create parent dir for init script: {}", parent.getAbsolutePath());
+      return;
     }
 
-    FilesKt.writeText(initScriptBak, contents, StandardCharsets.UTF_8);
+    // 原子写：先写到 .tmp，再 rename 到目标。
+    // 相比 commit e935009 的"直接写"修复，原子写的好处：
+    //   1. 写过程崩溃不会留下半截 init.gradle（哪怕电源被拔）；
+    //   2. 减少进程竞争——即便有其它协程同时跑 writeInitScript（理论上不应该，
+    //      但本方法历史上曾被多线程触发），rename 是 POSIX 原子操作。
+    //   3. 性能：与原版差异可忽略（一次额外的 rename() 系统调用，单次 < 1ms）。
+    atomicWriteUtf8(initScriptBak, contents);
     if (!initScript.exists()) {
-      FilesKt.writeText(initScript, contents, StandardCharsets.UTF_8);
+      atomicWriteUtf8(initScript, contents);
+    }
+  }
+
+  /**
+   * 原子写入 UTF-8 文本到目标文件。
+   *
+   * <p>实现：先写到 {@code <target>.tmp}，fsync，然后 {@code rename} 到 {@code target}。
+   * rename 在同一文件系统上是原子操作，所以读取方要么看到旧文件、要么看到完整新文件，
+   * 不会读到半截内容（这是 commit e935009 "直接覆盖" 修复的潜在风险）。
+   *
+   * <p>失败时清理 .tmp 临时文件，避免垃圾残留。
+   */
+  private static void atomicWriteUtf8(@NonNull File target, @NonNull String contents) {
+    final var tmp = new File(target.getAbsolutePath() + ".tmp");
+    try (var out = new java.io.FileOutputStream(tmp)) {
+      out.write(contents.getBytes(StandardCharsets.UTF_8));
+      out.getFD().sync();  // fsync：保证内容落盘后再 rename
+      // rename 在 Linux/Android 上是原子的；Windows 上 renameTo 在目标存在时返回 false，
+      // 所以先 delete 兜底（注意：这会留下一个"无文件"的瞬间，因此仅用于本地一致性场景）。
+      if (!tmp.renameTo(target)) {
+        target.delete();
+        if (!tmp.renameTo(target)) {
+          // 最后兜底：直接写（非原子，但能写入）
+          FilesKt.writeText(target, contents, StandardCharsets.UTF_8);
+        }
+      }
+    } catch (java.io.IOException e) {
+      // 清理临时文件；target 可能不存在，本次失败不影响下次重试
+      try { tmp.delete(); } catch (Throwable ignored) {}
+      // 抛回原异常，让 writeInitScript 上层决定是否要 LOG.warn / 重试
+      throw new java.io.UncheckedIOException(
+          "atomicWriteUtf8 failed for " + target.getAbsolutePath(), e);
     }
   }
 

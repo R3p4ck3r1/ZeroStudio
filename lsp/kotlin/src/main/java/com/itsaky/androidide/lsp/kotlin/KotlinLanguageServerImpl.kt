@@ -260,7 +260,9 @@ class KotlinLanguageServerImpl(
     }
 
     private fun resolveInitializationRoot(file: Path? = null): File? {
-        val managerProjectDir = runCatching { IProjectManager.getInstance().projectDir }.getOrNull()
+        // 治本：projectDir 改 nullable 后，可以直接用 safe-call 链，
+        // 不再需要 runCatching 包裹（commit e935009 的"快速止血"修复遗留）
+        val managerProjectDir = IProjectManager.getInstance().projectDir
         if (managerProjectDir != null && managerProjectDir.exists()) {
             return managerProjectDir
         }

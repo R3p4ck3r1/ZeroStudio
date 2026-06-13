@@ -96,7 +96,9 @@ class ProjectContextSource {
         )
     }
 
-    private fun isGradleDexingForced(projectDir: File, sourceFile: File): Boolean {
+    private fun isGradleDexingForced(projectDir: File?, sourceFile: File): Boolean {
+        // 治本：projectDir 改 nullable 后，no project ⇒ no gradle.properties ⇒ false
+        if (projectDir == null) return false
         val candidates = linkedSetOf<File>()
         var current: File? = sourceFile.parentFile
         while (current != null && current.path.startsWith(projectDir.path)) {

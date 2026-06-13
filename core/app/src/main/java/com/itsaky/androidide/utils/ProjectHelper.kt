@@ -526,8 +526,12 @@ object ProjectHelper {
     return if (foundModule is AndroidModule) foundModule else null
   }
 
-  /** Get project root directory */
-  fun getProjectRoot(): File {
+  /**
+   * Get project root directory. May return null if no project is opened —
+   * callers that truly need a non-null File should handle the null case
+   * (e.g. by disabling UI actions or showing a "no project" message).
+   */
+  fun getProjectRoot(): File? {
     return ProjectManagerImpl.getInstance().projectDir
   }
 }

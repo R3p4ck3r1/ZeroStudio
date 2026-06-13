@@ -153,7 +153,13 @@ class MemoryUsageWatcher(private val updateInterval: Long = DEFAULT_UPDATE_INTER
 
       // values are in kB, convert to bytes
       val usageBytes = usage * 1024L
-      memoryUsage[pid]!!.apply {
+      // FIX: do NOT re-look up `memoryUsage[pid]!!` here. The map is a ConcurrentHashMap and
+      // the process may have been removed by `unwatchProcess` running on another thread
+      // between the `memoryUsage[pid]` check above and this point. Using `!!` on a value
+      // that may have just been removed throws NullPointerException and crashes the app.
+      // We already hold a safe reference to the ProcessMemoryInfo in `proc`, so use it
+      // directly — that is the actual root cause fix.
+      proc.apply {
         // we insert the usage entry at the start of the array, then increment the shift amount by 1
         // this makes the newly inserted usage entry the last element in the array
         // and the oldest usage entry the first element in the array

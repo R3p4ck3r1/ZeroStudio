@@ -151,6 +151,11 @@ class FileTreeFragment : BottomSheetDialogFragment(), FileClickListener, FileLon
 
       val projectDirPath =
           withContext(Dispatchers.IO) { IProjectManager.getInstance().projectDirPath }
+      if (projectDirPath.isNullOrBlank()) {
+        // 治本：工程未打开时早退，避免 File(null) 抛 NPE
+        binding!!.loading.visibility = View.GONE
+        return@launch
+      }
       val projectDir = File(projectDirPath)
 
       if (!projectDir.exists()) {

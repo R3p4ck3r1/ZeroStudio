@@ -322,12 +322,10 @@ class GitChangesFragment : BaseGitPageFragment() {
     watchJob =
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
           while (isActive) {
-            // resolveWorkspaceDirPath 自身已用 runCatching 包过；
-            // 但历史版本（PR #317 之前）它在未打开工程时曾抛过
-            // IllegalStateException("Cannot get project directory. Path has not been set.")
-            // 导致 watcher 协程整条死掉。这里再包一层 runCatching 做防御，避免单个
-            // tick 异常把协程带走（同时仍然能看到日志）。
-            val projectDir = runCatching { resolveWorkspaceDirPath() }.getOrNull()
+            // 治本：resolveWorkspaceDirPath 内部已用 nullable contract 处理过，
+            // 不再需要 runCatching 包裹（commit e935009 + PR #318 的双层 runCatching
+            // 是对老 API 抛 IllegalStateException 的妥协；新契约下是干净的 null chain）。
+            val projectDir = resolveWorkspaceDirPath()
             if (projectDir != null) {
               runCatching { readChangeSnapshot(projectDir) }
                   .onSuccess { snapshot ->

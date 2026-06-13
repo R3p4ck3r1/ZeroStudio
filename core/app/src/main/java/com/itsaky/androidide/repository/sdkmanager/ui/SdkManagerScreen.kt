@@ -40,7 +40,11 @@ import com.itsaky.androidide.repository.sdkmanager.models.SdkTreeNode
 import com.itsaky.androidide.repository.sdkmanager.services.SdkInstallerManager
 import com.itsaky.androidide.repository.sdkmanager.tree.SdkTreeView
 import com.itsaky.androidide.repository.sdkmanager.viewmodel.SdkManagerViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
 
 /** @author android_zero 使用 Jetpack Compose + Material 3 构建的 SDK Manager 主界面。 */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -227,6 +231,17 @@ fun BottomActionRow(hasPendingChanges: Boolean, onCancel: () -> Unit, onApply: (
 }
 
 /** 任务执行弹出框 结合 SdkInstallerManager 执行真实的下载、Shell 解压与删除。 */
+
+/**
+ * Stable, append-only log entry for [ActionConfirmAndRunDialog]. The `id` is
+ * a monotonically increasing sequence that lets the LazyColumn use it as a
+ * stable `key` for [androidx.compose.foundation.lazy.items], which in turn
+ * allows Compose to keep item identity stable across many small appends
+ * (preventing the `MutableIntervalList.get` IndexOutOfBoundsException that
+ * was previously raised when the list was mutated from a non-Main thread).
+ */
+private data class LogEntry(val id: Int, val msg: String)
+
 @Composable
 fun ActionConfirmAndRunDialog(
     toInstall: List<SdkTreeNode>,
@@ -247,10 +262,63 @@ fun ActionConfirmAndRunDialog(
   val installingNdk = toInstall.any { it.componentType == "ndk" }
   val installingCmake = toInstall.any { it.componentType == "cmake" }
 
-  val consoleLogs = remember { mutableStateListOf<String>() }
+  // Root-cause fix for "IndexOutOfBoundsException: Index 5, size 5" in the
+  // LazyColumn log view below:
+  //
+  //   1. The previous code used `mutableStateListOf<String>()` and a plain
+  //      `::addLog` callback that appended to it from background coroutines
+  //      (TermuxCommand / OkHttp download streams run on Dispatchers.IO).
+  //      Mutating a `SnapshotStateList` from a non-Main thread is unsafe and
+  //      races with the `LazyColumn` measure pass reading `consoleLogs[i]`
+  //      via `MutableIntervalList.get` -> `IndexOutOfBoundsException`.
+  //
+  //   2. Items had no `key`, so every mutation forced a full identity table
+  //      rebuild and made the race window much wider.
+  //
+  //   3. `LaunchedEffect(consoleLogs.size) { animateScrollToItem(lastIndex) }`
+  //      re-ran on every append and called `lastIndex` *outside* the snapshot
+  //      read; an item could be removed (via the same coroutine truncating
+  //      logs) before the scroll started, producing the exact "size 5, but
+  //      asked for 5" crash.
+  //
+  // The fix is structural: producers (any thread) push to a thread-safe
+  // queue, a single Main-thread collector drains the queue into an
+  // immutable list, and the LazyColumn uses stable `key` blocks keyed by
+  // a monotonically-increasing sequence id.
+  val pendingLogs = remember { ConcurrentLinkedQueue<String>() }
+  val consoleLogs = remember { mutableStateOf<List<LogEntry>>(emptyList()) }
+  val logSeq = remember { AtomicInteger(0) }
 
+  // Drain any pending log writes on the Main thread. The collector runs
+  // forever; it is cancelled when the dialog leaves composition.
+  LaunchedEffect(Unit) {
+    // Collect the queue at ~60Hz so very high-frequency producers don't
+    // starve the UI, but logs still appear fluidly.
+    while (true) {
+      val batch = ArrayList<String>(8)
+      while (true) {
+        val next = pendingLogs.poll() ?: break
+        batch.add(next)
+        // Cap a single drain so a flood of logs doesn't block Main for too long.
+        if (batch.size >= 64) break
+      }
+      if (batch.isNotEmpty()) {
+        val base = logSeq.get()
+        val entries = batch.mapIndexed { i, msg -> LogEntry(base + i + 1, msg) }
+        logSeq.addAndGet(entries.size)
+        // Single, atomic list replacement on Main. Compose's snapshot system
+        // guarantees the LazyColumn sees a consistent immutable snapshot.
+        consoleLogs.value = consoleLogs.value + entries
+      } else {
+        kotlinx.coroutines.delay(16L)
+      }
+    }
+  }
+
+  // Backwards-compatible `addLog` that producers (which may be on any
+  // thread) call. Thread-safe by construction.
   fun addLog(msg: String) {
-    consoleLogs.add(msg)
+    pendingLogs.offer(msg)
   }
 
   AlertDialog(
@@ -319,8 +387,14 @@ fun ActionConfirmAndRunDialog(
 
             // 日志控制台
             val listState = rememberLazyListState()
-            LaunchedEffect(consoleLogs.size) {
-              if (consoleLogs.isNotEmpty()) listState.animateScrollToItem(consoleLogs.lastIndex)
+            // Use the size of the *current* list (read inside the snapshot,
+            // within the same composition that reads consoleLogs) to avoid
+            // the "IndexOutOfBoundsException: Index size-1, size size-1" race
+            // that happens when the producer thread mutates the list between
+            // the read of `consoleLogs.size` and the start of the scroll.
+            val logCount = consoleLogs.value.size
+            LaunchedEffect(logCount) {
+              if (logCount > 0) listState.animateScrollToItem(logCount - 1)
             }
             Box(
                 modifier =
@@ -329,16 +403,18 @@ fun ActionConfirmAndRunDialog(
                         .background(Color(0xFF1E1E1E), shape = MaterialTheme.shapes.small)
                         .padding(8.dp)
             ) {
+              val logs = consoleLogs.value
               LazyColumn(state = listState) {
-                items(consoleLogs) { msg ->
+                items(items = logs, key = { it.id }) { entry ->
                   val textColor =
                       when {
-                        msg.startsWith("ERR") || msg.startsWith("WARN") -> Color(0xFFFF5252)
-                        msg.startsWith(">>") -> Color(0xFF64B5F6)
+                        entry.msg.startsWith("ERR") || entry.msg.startsWith("WARN") ->
+                            Color(0xFFFF5252)
+                        entry.msg.startsWith(">>") -> Color(0xFF64B5F6)
                         else -> Color(0xFFA5D6A7)
                       }
                   Text(
-                      text = msg,
+                      text = entry.msg,
                       color = textColor,
                       fontSize = 11.sp,
                       fontFamily = FontFamily.Monospace,

@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -166,7 +167,12 @@ class EditorToolboxFragment : Fragment() {
     // 进来，会先把 tabRowSelectedIndex 短暂设成越界值，下一次 recompose 才能被
     // safeSelectedIndex 拉回。Compose 1.7+ 的 ScrollableTabRow 在那次 recompose
     // 窗口里访问 `indicatorPositions[selectedTabIndex]` 直接 OOB。
-    val safeSelectedIndex = tabRowSelectedIndex.coerceIn(0, tabs.lastIndex.coerceAtLeast(0))
+    //
+    // 治本优化：用 derivedStateOf 缓存 clamp 结果，Compose 1.7+ 的 smart skip
+    // 会在 tabs/tabRowSelectedIndex 未变时跳过下游 recompose。
+    val safeSelectedIndex by remember(tabs, tabRowSelectedIndex) {
+      derivedStateOf { tabRowSelectedIndex.coerceIn(0, tabs.lastIndex.coerceAtLeast(0)) }
+    }
 
     LaunchedEffect(tabs, requestedIndex) {
       // 把外部的 requestedIndex 同步到内部 state 时同步 clamp，

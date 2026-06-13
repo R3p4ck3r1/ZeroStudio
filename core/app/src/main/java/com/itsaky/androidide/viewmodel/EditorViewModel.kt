@@ -212,7 +212,10 @@ class EditorViewModel : ViewModel() {
 
   @PublishedApi
   internal fun getOpenedFilesCache(forWrite: Boolean = false): File {
-    val dir = Environment.getProjectCacheDir(IProjectManager.getInstance().projectDir)
+    // 治本：projectDir 改 nullable 后，cache 文件路径在没有打开工程时无意义。
+    // 用 requireProjectDir() 显式表达"必须有工程" — 行为等价于"未打开工程时抛
+    // IllegalStateException"，与原 Objects.requireNonNull 的语义一致。
+    val dir = Environment.getProjectCacheDir(IProjectManager.getInstance().requireProjectDir())
     val file = File(dir, "editor/openedFiles.json")
 
     if (file.exists() && forWrite) {

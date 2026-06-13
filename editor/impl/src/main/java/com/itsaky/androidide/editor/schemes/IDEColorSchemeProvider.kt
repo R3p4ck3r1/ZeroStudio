@@ -339,6 +339,13 @@ object IDEColorSchemeProvider {
 
   /** Destroy the loaded color schemes. */
   fun destroy() {
+    // Reset every scheme so that the accumulated state (colorIds, editorScheme, languages,
+    // definitions, colorId counter) is released. We also null out darkVariant so that the
+    // otherwise-reachable sibling scheme references don't keep the schemes alive in memory.
+    this.schemes.values.forEach { scheme ->
+      scheme.darkVariant = null
+      scheme.reset()
+    }
     this.schemes.clear()
     this.currentScheme = null
     this.isCurrentSchemeLoaded = false

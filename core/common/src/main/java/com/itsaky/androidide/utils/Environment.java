@@ -44,7 +44,14 @@ import com.itsaky.androidide.app.BaseApplication;
  */
 @SuppressLint("SdCardPath")
 public final class Environment {
+  // 关键：INITIALIZED 与 NATIVE_INJECTED 都必须是 volatile，
+  // 因为 init() / injectNativeEnvironment() 会在多线程（主线程 + Termux 启动时
+  // 的 Background Thread + Firebase Worker）中并发触发。
   private static volatile boolean INITIALIZED = false;
+  // 幂等性旗标：保证 injectNativeEnvironment() 只执行一次 setenv，
+  // 避免 putEnvironment() → ensureInitialized() → init() → inject 链路上
+  // 重复注入造成无意义的 setenv 调用（性能开销 + 触发 logback 类加载风险）。
+  private static volatile boolean NATIVE_INJECTED = false;
 
   public static final String PROJECTS_FOLDER = "AndroidIDEProjects";
   private static final Logger LOG = LoggerFactory.getLogger(Environment.class);
@@ -207,10 +214,15 @@ public final class Environment {
     // 如果先 inject 再设 INITIALIZED，ROOT 已经非空了，但 INITIALIZED 还是 false，
     // 守卫条件 `!false || false == true` 永远成立 → 无限递归 → StackOverflowError
     // → 触发 logback 的 FilterReply.<clinit>（这正好是 v20260610 真机 SIGSEGV 的根因）。
-    INITIALIZED = true;
-
-    //  注入 Native 环境变量 (供 ProcessBuilder, Runtime.exec, Terminal 使用)
-    injectNativeEnvironment();
+    //
+    // 进一步加固：用 try/finally 保证 INITIALIZED 一定会被置位，
+    // 即便 injectNativeEnvironment 抛异常也不会让后续调用方陷入"未初始化"死锁。
+    try {
+      //  注入 Native 环境变量 (供 ProcessBuilder, Runtime.exec, Terminal 使用)
+      injectNativeEnvironment();
+    } finally {
+      INITIALIZED = true;
+    }
   }
 
   private static Context resolveContext() {
@@ -250,8 +262,28 @@ public final class Environment {
   /**
    * Injects environment variables into the native process environment using android.system.Os.setenv.
    * This is critical for making 'java', 'javac', and other tools available globally to child processes.
+   *
+   * <p><b>Important:</b> this method must NEVER call {@link #LOG} (SLF4J) for normal-path logging
+   * because the logback pipeline can, in certain initialization orderings, eventually call
+   * {@link #putEnvironment(Map, boolean)} on a logger that uses a layout which formats a message
+   * that triggers a recursive call back into {@link #ensureInitialized()} (which calls this method
+   * again), producing an unbounded recursion and a {@link StackOverflowError} deep inside
+   * {@code org.slf4j.helpers.FormattingTuple.<clinit>}. When that happens, the Android runtime
+   * hard-crashes (SIGSEGV) and the process dies.
+   *
+   * <p>To completely break that cycle, this method writes any informational or error output
+   * directly to {@link System#err} and swallows all logging-framework related failures.
+   *
+   * <p><b>Idempotency:</b> the method uses the volatile flag {@link #NATIVE_INJECTED} to ensure
+   * it only runs its body once per process lifetime. Subsequent calls are O(1) early-returns,
+   * which both improves performance (no repeated setenv / map allocation) and guarantees that
+   * logback class loading is only ever touched once.
    */
   private static void injectNativeEnvironment() {
+    // 幂等性快速路径：已注入则直接返回，避免重复 setenv + 避免再次触发 logback 类加载。
+    if (NATIVE_INJECTED) {
+      return;
+    }
     try {
         Map<String, String> env = new HashMap<>();
         putEnvironment(env, false);
@@ -260,30 +292,43 @@ public final class Environment {
         for (Map.Entry<String, String> entry : env.entrySet()) {
             try {
                 // overwrite = true
-                Os.setenv(entry.getKey(), entry.getValue(), true); 
+                Os.setenv(entry.getKey(), entry.getValue(), true);
             } catch (ErrnoException e) {
-                LOG.error("Failed to setenv: " + entry.getKey(), e);
+                // Use System.err to avoid logback re-entrancy.
+                System.err.println("Environment: failed to setenv " + entry.getKey() + ": " + e.getMessage());
             }
         }
 
         // 特别处理 PATH，确保 java 和 bin 目录在最前面
         String currentPath = System.getenv("PATH");
         if (currentPath == null) currentPath = "";
-        
-        String newPath = BIN_DIR.getAbsolutePath() + ":" + 
-                         new File(JAVA_HOME, "bin").getAbsolutePath() + ":" + 
+
+        String newPath = BIN_DIR.getAbsolutePath() + ":" +
+                         new File(JAVA_HOME, "bin").getAbsolutePath() + ":" +
                          currentPath;
-        
+
         try {
             Os.setenv("PATH", newPath, true);
         } catch (ErrnoException e) {
-            LOG.error("Failed to update PATH", e);
+            System.err.println("Environment: failed to update PATH: " + e.getMessage());
         }
 
-        LOG.info("Global native environment injected successfully. JAVA_HOME={}", JAVA_HOME);
+        // Informational message: System.err only, never LOG, to avoid the logback recursion
+        // described in the Javadoc above.
+        System.err.println("Environment: global native environment injected. JAVA_HOME=" + JAVA_HOME);
 
     } catch (Throwable t) {
-        LOG.error("Critical error injecting native environment", t);
+        // Last-resort error path. Do not use LOG here.
+        try {
+            System.err.println("Environment: critical error injecting native environment: " + t);
+            t.printStackTrace(System.err);
+        } catch (Throwable ignored) {
+            // Nothing more we can do; swallowing is the only safe option here.
+        }
+    } finally {
+        // 无论成功或异常，都把旗标置位，防止反复重试触发的资源浪费。
+        // 真正的初始化失败应当在上层通过 ENV 变量缺失来发现，无需重试。
+        NATIVE_INJECTED = true;
     }
   }
   

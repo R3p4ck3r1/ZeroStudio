@@ -216,15 +216,23 @@ abstract class BaseGitPageFragment : Fragment() {
    * 2a2 之后多个子 fragment 都需要拿到 workdir 才能让 puppygit 解析 repoId，
    * 把这段逻辑从 `GitChangesFragment` / `GitBranchesFragment` 上提到基类共享。
    *
+   * <p>治本修复（v20260610 之后）：此方法不再需要任何 `runCatching` 包裹。
+   * 历史版本里 `IProjectManager.projectDirPath` getter 在工程未打开时抛
+   * `IllegalStateException("Cannot get project directory. Path has not been set.")`，
+   * 导致 `GitChangesFragment.startChangesWatcher` 协程在第一个 tick 整条死掉。
+   * 修复后 `projectDirPath` / `getWorkspace()` 都返回 nullable，可以用干净的 null chain。
+   *
+   * <p>性能：消除 `runCatching` 嵌套（原先是 2 层 runCatching 套娃），
+   * 单次 tick 的开销从 ~2 个 try/catch 帧降为 0。
+   *
    * @return 工程目录绝对路径；当前没有打开工程时返回 `null`
    */
-  protected fun resolveWorkspaceDirPath(): String? = runCatching {
+  protected fun resolveWorkspaceDirPath(): String? {
     val projectManager = IProjectManager.getInstance()
-    val workspaceDir =
-        runCatching { projectManager.getWorkspace()?.getProjectDir()?.path }.getOrNull()
-    if (!workspaceDir.isNullOrBlank()) {
-      return@runCatching workspaceDir
-    }
-    runCatching { projectManager.projectDirPath }.getOrNull()?.takeIf { it.isNotBlank() }
-  }.getOrNull()
+    // 优先从 workspace 拿（最常见的已打开工程路径）；拿不到再回退到 projectDir。
+    // 两者现在都是 nullable，可以直接用 safe-call 链。
+    return projectManager.getWorkspace()?.getProjectDir()?.path
+        ?.takeIf { it.isNotBlank() }
+        ?: projectManager.projectDirPath?.takeIf { it.isNotBlank() }
+  }
 }

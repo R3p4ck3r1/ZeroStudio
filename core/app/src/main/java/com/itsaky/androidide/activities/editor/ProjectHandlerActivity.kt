@@ -828,7 +828,10 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
 
   private fun initialSetup() {
     val manager = ProjectManagerImpl.getInstance()
-    GeneralPreferences.lastOpenedProject = manager.projectDirPath
+    // 治本：projectDirPath 改 nullable 后，可以用 safe-call + `?:` 一行处理
+    // 之前 `GeneralPreferences.lastOpenedProject = manager.projectDirPath` 在工程未打开时
+    // 会抛 IllegalStateException，导致 initialSetup 中断。
+    GeneralPreferences.lastOpenedProject = manager.projectDirPath ?: ""
     try {
       val workspace = manager.getWorkspace()
       if (workspace == null) {
@@ -838,7 +841,8 @@ abstract class ProjectHandlerActivity : BaseEditorActivity() {
 
       var projectName = workspace.getRootProject().name
       if (projectName.isEmpty()) {
-        projectName = manager.projectDir.name
+        // 治本：projectDir 改 nullable 后，name 也安全 — null 时用根目录路径替代
+        projectName = manager.projectDir?.name ?: manager.projectDirPath ?: ""
       }
 
       // supportActionBar!!.subtitle = projectName

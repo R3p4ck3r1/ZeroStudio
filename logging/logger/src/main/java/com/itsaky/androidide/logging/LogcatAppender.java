@@ -88,37 +88,53 @@ public class LogcatAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
     // exceeded (only necessary for isLoggable(), which throws
     // IllegalArgumentException)
 
-    String tag = LogUtils.processLogTag(event.getLoggerName());
+    final String tag;
+    try {
+      tag = LogUtils.processLogTag(event.getLoggerName());
+    } catch (Throwable t) {
+      // Never let the appender throw; logcat is the lowest-level logging path and must not be
+      // allowed to crash the application.
+      android.util.Log.e("LogcatAppender", "Failed to compute log tag", t);
+      return;
+    }
+
+    final String formatted;
+    try {
+      formatted = this.encoder.getLayout().doLayout(event);
+    } catch (Throwable t) {
+      android.util.Log.e(tag, "Failed to format log event: " + t.getClass().getName() + ": " + t.getMessage());
+      return;
+    }
 
     switch (event.getLevel().levelInt) {
       case Level.ALL_INT:
       case Level.TRACE_INT:
         if (!checkLoggable || Log.isLoggable(tag, Log.VERBOSE)) {
-          Log.v(tag, this.encoder.getLayout().doLayout(event));
+          Log.v(tag, formatted);
         }
         break;
 
       case Level.DEBUG_INT:
         if (!checkLoggable || Log.isLoggable(tag, Log.DEBUG)) {
-          Log.d(tag, this.encoder.getLayout().doLayout(event));
+          Log.d(tag, formatted);
         }
         break;
 
       case Level.INFO_INT:
         if (!checkLoggable || Log.isLoggable(tag, Log.INFO)) {
-          Log.i(tag, this.encoder.getLayout().doLayout(event));
+          Log.i(tag, formatted);
         }
         break;
 
       case Level.WARN_INT:
         if (!checkLoggable || Log.isLoggable(tag, Log.WARN)) {
-          Log.w(tag, this.encoder.getLayout().doLayout(event));
+          Log.w(tag, formatted);
         }
         break;
 
       case Level.ERROR_INT:
         if (!checkLoggable || Log.isLoggable(tag, Log.ERROR)) {
-          Log.e(tag, this.encoder.getLayout().doLayout(event));
+          Log.e(tag, formatted);
         }
         break;
 
