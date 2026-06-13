@@ -35,12 +35,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 /**
  * ABIs for which the product flavors will be created. The keys in this map are the names of the
- * product flavors whereas, the value for each flavor is a number that identifies the ABI in the
- * previous per-ABI versionCode encoding.
- *
- * Note: per-ABI versionCode offset has been removed. The new versionCode is
- * `YYYYMMDDNN` (shared across all ABIs of the same build), so the value here is purely
- * informational and kept only for the [flavorsAbis] consumer (`splits { abi { ... } }`).
+ * product flavors; the value is no longer used to compute per-ABI versionCode (since the new
+ * versionCode is shared across all ABIs) and is kept only for the [flavorsAbis] consumer
+ * (`splits { abi { ... } }`).
  */
 internal val flavorsAbis = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86_64" to 3)
 
@@ -104,7 +101,8 @@ fun Project.configureAndroidModule(coreLibDesugDep: Provider<MinimalExternalModu
     defaultConfig {
       minSdk = BuildConfig.minSdk
       targetSdk = BuildConfig.targetSdk
-      // versionCode = YYYYMMDDNN, versionName = vYYYYMMDD-NN-sha7
+      // versionCode = YYYYMMDDC (C 为当天打包递增计数器, 不补 0; 例 202606131)
+      // versionName = vYYYYMMDD-NN-sha7 (NN 为 2 位 0 填充的当天打包递增计数器)
       // 两者均来自 ProjectConfig, 由 -Pide.build.dailyCounter / -Pide.build.gitShortSha 注入.
       versionCode = projectVersionCode
       versionName = simpleVersionName
@@ -137,9 +135,9 @@ fun Project.configureAndroidModule(coreLibDesugDep: Provider<MinimalExternalModu
           }
         }
       }
-      // 注: 不再为每个 ABI 单独设置 versionCode; 所有 ABI 共享同一 versionCode (YYYYMMDDNN),
-      // 与 versionName 中的 NN 保持一致. 这也避免了 100*N + ABI 编码在 10 位 versionCode
-      // (上限 2,100,000,000) 下溢出的问题.
+      // 注: 所有 ABI 共享同一 versionCode (YYYYMMDDC), 不做 per-ABI 偏移;
+      // 各 ABI 通过 APK 文件名区分, 避免在 10 位 versionCode (上限 2,100,000,000)
+      // 下做 100*N + ABI 编码导致溢出.
     } else {
       defaultConfig {
         ndk {

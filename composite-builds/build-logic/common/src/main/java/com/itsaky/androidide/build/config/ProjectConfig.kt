@@ -212,12 +212,18 @@ val Project.simpleVersionName: String
   }
 
 /**
- * Generates the project version code as `YYYYMMDDNN` (an integer), where:
+ * Generates the project version code as `YYYYMMDDC` (an integer, no zero padding on the tail),
+ * where:
  * - YYYYMMDD is today's date (8 digits),
- * - NN is the daily build counter (1~99, 2 digits, zero padded).
+ * - C is the daily build counter (1~9: 9 digits total; 10~99: 10 digits total).
  *
- * Example: for date `20260613` and counter `02`, the version code is `2026061302` (10 digits,
- * well below Android's `versionCode` upper bound of 2,100,000,000).
+ * Examples:
+ * - date `20260613`, counter `1` -> `202606131`
+ * - date `20260613`, counter `2` -> `202606132`
+ * - date `20260613`, counter `42` -> `2026061342`
+ *
+ * The value stays below Android's `versionCode` upper bound of 2,100,000,000 for any date
+ * within the 21st century (max `2099123199`).
  */
 val Project.projectVersionCode: Int
   get() {
@@ -227,10 +233,12 @@ val Project.projectVersionCode: Int
             ?: throw IllegalStateException(
                 "Cannot extract version code. Invalid date string '$dateString'.")
     val counterInt = dailyBuildCounter.toIntOrNull() ?: 1
-    val versionCode = dateInt * 100 + counterInt
+    // 注意: 这里用 * 10 而不是 * 100, 这样末尾的计数器不会被强制零填充.
+    // 例: counter=1 -> 20260613 * 10 + 1 = 202606131 (而不是 2026061301).
+    val versionCode = dateInt * 10 + counterInt
 
     if (shouldPrintVersionCode) {
-      logger.warn("Version code is '$versionCode' (date + daily counter).")
+      logger.warn("Version code is '$versionCode' (date + unpadded daily counter).")
       shouldPrintVersionCode = false
     }
     return versionCode
