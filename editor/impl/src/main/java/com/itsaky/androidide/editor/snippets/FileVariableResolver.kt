@@ -47,7 +47,13 @@ class FileVariableResolver(editor: IDEEditor) :
       TM_FILENAME_BASE -> file.nameWithoutExtension
       TM_DIRECTORY -> file.parentFile?.absolutePath ?: ""
       TM_FILEPATH -> file.absolutePath
-      RELATIVE_FILEPATH -> file.relativeTo(IProjectManager.getInstance().projectDir).absolutePath
+      RELATIVE_FILEPATH -> {
+        // 治本：projectDir 改 nullable 后，RELATIVE_FILEPATH 在工程未打开时无意义
+        // 用 requireProjectDir() 显式表达"必须有工程" — 这样比"projectDir 为 null 时
+        // 抛 IllegalArgumentException(NPE in relativeTo())" 行为更可预测。
+        val projectDir = IProjectManager.getInstance().requireProjectDir()
+        file.relativeTo(projectDir).absolutePath
+      }
       else -> ""
     }
   }

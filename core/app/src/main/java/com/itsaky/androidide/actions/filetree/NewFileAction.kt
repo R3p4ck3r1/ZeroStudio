@@ -86,7 +86,11 @@ class NewFileAction(context: Context, override val order: Int) :
     }
 
     val projectDir = IProjectManager.getInstance().projectDirPath
-    Objects.requireNonNull(projectDir)
+    if (projectDir.isNullOrBlank()) {
+      // 治本：工程未打开时走"未知类型"路径，行为等价于原 Objects.requireNonNull 抛 NPE 后的兜底
+      createNewEmptyFile(context, node, file)
+      return
+    }
     val isJava =
         Pattern.compile(Pattern.quote(projectDir) + JAVA_PATH_REGEX)
             .matcher(file.absolutePath)

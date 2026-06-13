@@ -114,19 +114,16 @@ class GradleBuildService :
   private val isGradleWrapperAvailable: Boolean
     get() {
       val projectManager = ProjectManagerImpl.getInstance()
-      val projectDir = projectManager.projectDirPath
-      if (TextUtils.isEmpty(projectDir)) {
+      // 治本：projectDirPath 改 nullable 后，无需再走 TextUtils.isEmpty() 间接判空
+      // 也没有任何隐式 NPE 风险。getProjectDir() 也改 nullable，所以两个分支都显式判空。
+      val projectDir = projectManager.projectDir
+      if (projectDir == null || !projectDir.exists()) {
         return false
       }
 
-      val projectRoot = Objects.requireNonNull(projectManager.projectDir)
-      if (!projectRoot.exists()) {
-        return false
-      }
-
-      val gradlew = File(projectRoot, "gradlew")
-      val gradleWrapperJar = File(projectRoot, "gradle/wrapper/gradle-wrapper.jar")
-      val gradleWrapperProps = File(projectRoot, "gradle/wrapper/gradle-wrapper.properties")
+      val gradlew = File(projectDir, "gradlew")
+      val gradleWrapperJar = File(projectDir, "gradle/wrapper/gradle-wrapper.jar")
+      val gradleWrapperProps = File(projectDir, "gradle/wrapper/gradle-wrapper.properties")
       return gradlew.exists() && gradleWrapperJar.exists() && gradleWrapperProps.exists()
     }
 
@@ -523,7 +520,9 @@ class GradleBuildService :
       return GradleWrapperCheckResult(false)
     }
     try {
+      // 治本：projectDir 改 nullable 后，工程未打开时早退（返回 false 表示无 wrapper）
       val projectDir = ProjectManagerImpl.getInstance().projectDir
+          ?: return GradleWrapperCheckResult(false)
       val files = ZipUtils.unzipFile(extracted, projectDir)
       if (files != null && files.isNotEmpty()) {
         return GradleWrapperCheckResult(true)

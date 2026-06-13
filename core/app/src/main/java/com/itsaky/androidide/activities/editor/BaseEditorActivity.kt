@@ -484,7 +484,9 @@ abstract class BaseEditorActivity :
   }
 
   override fun onSaveInstanceState(outState: Bundle) {
-    outState.putString(KEY_PROJECT_PATH, IProjectManager.getInstance().projectDirPath)
+    // 治本：projectDirPath 改 nullable 后，用 ?: "" 兜底（Kotlin 编译器 Bundle.putString 也接受 nullable，
+    // 但保持显式空字符串语义对历史行为更友好）
+    outState.putString(KEY_PROJECT_PATH, IProjectManager.getInstance().projectDirPath ?: "")
     super.onSaveInstanceState(outState)
   }
 

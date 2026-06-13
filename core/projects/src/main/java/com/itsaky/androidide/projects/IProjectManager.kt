@@ -40,10 +40,47 @@ interface IProjectManager {
     }
   }
 
-  val projectDirPath: String
-    get() = projectDir.path
+  /**
+   * 当前打开的工程目录绝对路径；如果当前没有打开工程则返回 `null`。
+   *
+   * <p>治本修复（v20260610 之后）：此 getter 不再抛 `IllegalStateException`。
+   * 历史行为是当 `_projectDir == null` 时抛
+   * `"Cannot get project directory. Path has not been set."`，这导致所有调用方都必须
+   * 套 `try/catch` 或 `runCatching`，是性能 + 可读性的双重损失，也违反了
+   * "getter 不应抛业务异常" 的设计原则（参考 Effective Java Item 44 / 49）。
+   *
+   * <p>调用方应当：
+   * <ul>
+   *   <li>需要工程目录做实际操作时：用 `projectDirPath ?: return early`</li>
+   *   <li>确定工程已打开、但 Kotlin null-safety 不让过编译时：调用 [requireProjectDirPath]</li>
+   * </ul>
+   *
+   * <p>性能：此修复后无异常开销，调用方不需要 `runCatching` 包裹。
+   */
+  val projectDirPath: String?
+    get() = projectDir?.path
 
-  val projectDir: File
+  /**
+   * 当前打开的工程目录 [File]；未打开工程时返回 `null`。
+   * 配套 [projectDirPath] 的语义修正，行为变化见 [projectDirPath] 的 Javadoc。
+   */
+  val projectDir: File?
+
+  /**
+   * 当工程目录**已经设置**时返回其绝对路径；否则抛 [IllegalStateException]。
+   * 等价于旧版 `projectDirPath` 的非空契约，保留供**确实**需要非空路径的调用方使用。
+   */
+  fun requireProjectDirPath(): String =
+      projectDirPath
+          ?: throw IllegalStateException("Cannot get project directory. Path has not been set.")
+
+  /**
+   * 当工程目录**已经设置**时返回其 [File]；否则抛 [IllegalStateException]。
+   * 等价于旧版 `projectDir` 的非空契约。
+   */
+  fun requireProjectDir(): File =
+      projectDir
+          ?: throw IllegalStateException("Cannot get project directory. Path has not been set.")
   val projectSyncIssues: ProjectSyncIssues?
 
   fun openProject(directory: File)

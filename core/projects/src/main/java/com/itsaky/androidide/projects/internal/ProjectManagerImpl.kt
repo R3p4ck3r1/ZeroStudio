@@ -84,8 +84,19 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
   var projectInitialized: Boolean = false
   var cachedInitResult: InitializeResult? = null
 
-  override val projectDir: File
-    get() = checkNotNull(_projectDir) { "Cannot get project directory. Path has not been set." }
+  /**
+   * 当前打开的工程目录；如果当前没有打开工程则返回 `null`。
+   *
+   * <p>治本修复（v20260610 之后）：与 IProjectManager 的契约修正保持一致，
+   * 此 getter 不再抛 `IllegalStateException`。配套提供 [requireProjectDir] 给
+   * 确定需要非空路径的调用方使用。详细 Javadoc 见 [IProjectManager.projectDirPath]。
+   */
+  override val projectDir: File?
+    get() = _projectDir
+
+  override fun requireProjectDir(): File =
+      _projectDir
+          ?: throw IllegalStateException("Cannot get project directory. Path has not been set.")
 
   override val projectSyncIssues: ProjectSyncIssues?
     get() = getWorkspace()?.getProjectSyncIssues()
