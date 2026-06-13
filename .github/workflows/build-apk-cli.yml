@@ -51,6 +51,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          # 需要拿到全部 tags 用于计算当天打包递增计数器
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Install basic system dependency packages
         run: |
@@ -112,27 +115,65 @@ jobs:
       - name: Grant execution permissions to the Gradle wrapper
         run: chmod +x ./gradlew
 
+      # === 版本号/版本代码 / tag 计算 ==================================================
+      # 计算三样东西:
+      #   1) TODAY  : vYYYYMMDD(Asia/Shanghai), 用于 release tag
+      #   2) COUNTER: 当天打包递增计数器, 2 位 0 填充(01, 02, ...);
+      #               通过统计 `v${TODAY}-*` 的 git tag 数量 + 1 得到
+      #   3) SHA7   : 当前 commit 的 7 位简写, 来自 ${{ github.sha }}
+      # 注入到 gradle: -Pide.build.dailyCounter=NN -Pide.build.gitShortSha=xxxxxxx
+      - name: Compute today tag, daily counter and git short SHA
+        id: version
+        run: |
+          set -euo pipefail
+
+          TODAY="v$(TZ=Asia/Shanghai date +%Y%m%d)"
+          SHA7="${GITHUB_SHA:0:7}"
+
+          # 统计当天已存在的 tag(vYYYYMMDD-*)
+          EXISTING=$(git tag --list "${TODAY}-*" 2>/dev/null | wc -l | tr -d ' ')
+          NEXT=$((EXISTING + 1))
+          # 限制在 1~99, 不足 2 位前补 0
+          if [ "$NEXT" -gt 99 ]; then
+            echo "::error::Daily build counter overflow (>99), refusing to continue."
+            exit 1
+          fi
+          COUNTER=$(printf "%02d" "$NEXT")
+
+          # 最终 release tag 与 versionName 一致(vYYYYMMDD-NN-sha7),
+          # 便于 release 页面与 APK 元数据一一对应.
+          # 允许通过 release_tag 输入覆盖(向后兼容).
+          if [ -n "${{ github.event.inputs.release_tag }}" ]; then
+            FINAL_TAG="${{ github.event.inputs.release_tag }}"
+          else
+            FINAL_TAG="${TODAY}-${COUNTER}-${SHA7}"
+          fi
+
+          {
+            echo "today=${TODAY}"
+            echo "counter=${COUNTER}"
+            echo "sha7=${SHA7}"
+            echo "tag=${FINAL_TAG}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "::group::Resolved version info"
+          echo "  TODAY   = ${TODAY}"
+          echo "  COUNTER = ${COUNTER}  (existing tags for ${TODAY}-*: ${EXISTING})"
+          echo "  SHA7    = ${SHA7}  (from GITHUB_SHA=${GITHUB_SHA})"
+          echo "  tag     = ${FINAL_TAG}"
+          echo "::endgroup::"
+
       - name: Compile APK
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx5g -XX:MaxMetaspaceSize=1g' -Dorg.gradle.daemon=false"
           CMAKE_BUILD_PARALLEL_LEVEL: "2"
         run: |
-          gradle ${{ github.event.inputs.build_type }} --build-cache --max-workers=2
-
-      # === 草稿发布相关步骤 ============================================================
-      - name: Compute today tag (Asia/Shanghai) if not provided
-        id: today
-        run: |
-          # CLI: 优先使用手动输入的 release_tag;否则用 TZ=Asia/Shanghai 算出 vYYYYMMDD
-          if [ -n "${{ github.event.inputs.release_tag }}" ]; then
-            echo "tag=${{ github.event.inputs.release_tag }}" >> "$GITHUB_OUTPUT"
-          else
-            TAG="v$(TZ=Asia/Shanghai date +%Y%m%d)"
-            echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          fi
-          echo "::group::Resolved release info"
-          echo "  tag  = $(grep '^tag=' <<< "$(cat $GITHUB_OUTPUT)" | cut -d= -f2)"
-          echo "::endgroup::"
+          # 注入当天打包递增计数器与 git 7 位简写, gradle 端通过
+          # ProjectConfig.dailyBuildCounter / gitShortSha 读取.
+          gradle ${{ github.event.inputs.build_type }} \
+            -Pide.build.dailyCounter=${{ steps.version.outputs.counter }} \
+            -Pide.build.gitShortSha=${{ steps.version.outputs.sha7 }} \
+            --build-cache --max-workers=2
 
       - name: Collect built APKs into staging dir
         run: |
@@ -156,8 +197,8 @@ jobs:
       - name: Create / update draft GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.today.outputs.tag }}
-          name: ${{ github.event.inputs.release_title != '' && github.event.inputs.release_title || steps.today.outputs.tag }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ github.event.inputs.release_title != '' && github.event.inputs.release_title || steps.version.outputs.tag }}
           draft: true
           prerelease: ${{ github.event.inputs.prerelease == 'true' }}
           # 自动生成简洁的 changelog 主体,内容可后续在网页编辑
@@ -165,7 +206,9 @@ jobs:
             ### ZeroStudio nightly build
 
             - 构建类型：`${{ github.event.inputs.build_type }}`
-            - Commit: `${{ github.sha }}`
+            - 版本号：`${{ steps.version.outputs.tag }}`
+            - 当天打包递增计数器：`${{ steps.version.outputs.counter }}`
+            - Commit: `${{ steps.version.outputs.sha7 }}` (full: `${{ github.sha }}`)
             - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
             APK 由 GitHub Actions 自动构建并上传,如有兼容性问题请附日志 / 设备信息反馈。
