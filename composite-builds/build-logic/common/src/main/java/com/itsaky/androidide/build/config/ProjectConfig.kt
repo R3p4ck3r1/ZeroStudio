@@ -31,12 +31,79 @@ object ProjectConfig {
 private var shouldPrintNotAGitRepoWarning = true
 private var shouldPrintVersionName = true
 private var shouldPrintVersionCode = true
+private var shouldPrintDailyCounter = true
+private var shouldPrintGitShortSha = true
+
+/** Gradle property: 当天打包递增计数器(1~99), 用于拼接版本号/版本代码. */
+const val PROP_DAILY_BUILD_COUNTER = "ide.build.dailyCounter"
+
+/** Gradle property: 当前 git 提交哈希的 7 位简写. */
+const val PROP_GIT_SHORT_SHA = "ide.build.gitShortSha"
 
 /** Helper function to get the current date in YYYYMMDD format. */
-private fun getCurrentDateVersion(): String {
+internal fun getCurrentDateVersion(): String {
   val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
   return LocalDate.now().format(dateFormatter)
 }
+
+/**
+ * 当天打包递增计数器, 2 位 0 填充 (e.g. "01", "02", ..., "99").
+ *
+ * 优先读取 gradle 属性 `-Pide.build.dailyCounter`(由 CI 工作流在每次构建前自动计算);
+ * 未提供 / 非法时回退为 "01", 方便本地开发调试.
+ */
+val Project.dailyBuildCounter: String
+  get() {
+    val raw = (findProperty(PROP_DAILY_BUILD_COUNTER) as? String)?.trim().orEmpty()
+    val parsed = raw.toIntOrNull()?.coerceIn(1, 99) ?: 1
+    val formatted = "%02d".format(parsed)
+    if (shouldPrintDailyCounter) {
+      val source = if (raw.isEmpty()) "default" else "gradle property"
+      logger.warn("Daily build counter is '$formatted' (from $source).")
+      shouldPrintDailyCounter = false
+    }
+    return formatted
+  }
+
+/**
+ * 当前打包时 git 提交哈希的 7 位简写.
+ *
+ * 优先读取 gradle 属性 `-Pide.build.gitShortSha`(CI 工作流通过 `${{ github.sha }}` 注入);
+ * 未提供时尝试 `git rev-parse --short=7 HEAD`(本地开发);
+ * 失败时回退为 "local", 避免空字符串.
+ */
+val Project.gitShortSha: String
+  get() {
+    val fromProperty = (findProperty(PROP_GIT_SHORT_SHA) as? String)?.trim()?.takeIf { it.isNotEmpty() }
+    if (fromProperty != null) {
+      if (shouldPrintGitShortSha) {
+        logger.warn("Git short SHA is '$fromProperty' (from gradle property).")
+        shouldPrintGitShortSha = false
+      }
+      return fromProperty
+    }
+
+    val fromGit =
+        runCatching {
+              val proc =
+                  ProcessBuilder("git", "rev-parse", "--short=7", "HEAD")
+                      .directory(rootDir)
+                      .redirectErrorStream(true)
+                      .start()
+              proc.waitFor()
+              if (proc.exitValue() != 0) return@runCatching null
+              proc.inputStream.bufferedReader().readText().trim()
+            }
+            .getOrNull()
+            ?.takeIf { it.matches(Regex("^[0-9a-f]{7,40}$")) }
+    val resolved = fromGit ?: "local"
+    if (shouldPrintGitShortSha) {
+      val source = if (fromGit != null) "git rev-parse" else "fallback"
+      logger.warn("Git short SHA is '$resolved' (from $source).")
+      shouldPrintGitShortSha = false
+    }
+    return resolved
+  }
 
 /** Whether this build is being executed in the F-Droid build server. */
 val Project.isFDroidBuild: Boolean
@@ -122,56 +189,69 @@ val Project.isFDroidBuild: Boolean
 // return publishing
 // }
 
-/** Generates a simple version name based on the current date, in the format "vYYYYMMDD". */
+/**
+ * Generates a version name in the format `vYYYYMMDD-NN-sha7`, where:
+ * - YYYYMMDD is today's date (Asia/Shanghai or system local),
+ * - NN is the daily build counter (1~99, 2-digit zero padded),
+ * - sha7 is the first 7 characters of the current git commit hash.
+ *
+ * Example: `v20260613-02-8a3f2b`.
+ */
 val Project.simpleVersionName: String
   get() {
     val dateVersion = getCurrentDateVersion()
-    val version = "v$dateVersion"
+    val counter = dailyBuildCounter
+    val sha = gitShortSha
+    val version = "v${dateVersion}-${counter}-${sha}"
 
     if (shouldPrintVersionName) {
-      // Log the generated date-based version name
-      logger.warn("Simple version name is '$version' (date-based).")
+      logger.warn("Simple version name is '$version' (date + daily counter + git short SHA).")
       shouldPrintVersionName = false
     }
-    // No longer relying on git repo or rootProject.version for simpleVersionName,
-    // as the user explicitly requested a date-based format.
     return version
   }
 
 /**
- * Generates the project version code based on the current date, in the format YYYYMMDD (as an
- * integer).
+ * Generates the project version code as `YYYYMMDDC` (an integer, no zero padding on the tail),
+ * where:
+ * - YYYYMMDD is today's date (8 digits),
+ * - C is the daily build counter (1~9: 9 digits total; 10~99: 10 digits total).
+ *
+ * Examples:
+ * - date `20260613`, counter `1` -> `202606131`
+ * - date `20260613`, counter `2` -> `202606132`
+ * - date `20260613`, counter `42` -> `2026061342`
+ *
+ * The value stays below Android's `versionCode` upper bound of 2,100,000,000 for any date
+ * within the 21st century (max `2099123199`).
  */
 val Project.projectVersionCode: Int
   get() {
-    // Get the date string part from simpleVersionName (e.g., "YYYYMMDD" from "vYYYYMMDD")
-    val dateString = simpleVersionName.substring(1) // Remove the 'v' prefix
-
-    val versionCode = dateString.toIntOrNull()
-
-    if (versionCode == null) {
-      // This should ideally not happen if simpleVersionName is correctly formatted as vYYYYMMDD
-      throw IllegalStateException("Cannot extract version code. Invalid date string '$dateString'.")
-    }
+    val dateString = getCurrentDateVersion()
+    val dateInt =
+        dateString.toIntOrNull()
+            ?: throw IllegalStateException(
+                "Cannot extract version code. Invalid date string '$dateString'.")
+    val counterInt = dailyBuildCounter.toIntOrNull() ?: 1
+    // 注意: 这里用 * 10 而不是 * 100, 这样末尾的计数器不会被强制零填充.
+    // 例: counter=1 -> 20260613 * 10 + 1 = 202606131 (而不是 2026061301).
+    val versionCode = dateInt * 10 + counterInt
 
     if (shouldPrintVersionCode) {
-      logger.warn("Version code is '$versionCode' (date-based).")
+      logger.warn("Version code is '$versionCode' (date + unpadded daily counter).")
       shouldPrintVersionCode = false
     }
-
     return versionCode
   }
 
 val Project.publishingVersion: String
   get() {
-    val dateVersion = getCurrentDateVersion()
-    val version = "v$dateVersion"
     var publishing = simpleVersionName
     if (isFDroidBuild) {
       // when building for F-Droid, the release is already published so we should have
       // the maven dependencies already published
       // simply return the simple version name here.
-      return version
+      return publishing
     }
 
     if (
