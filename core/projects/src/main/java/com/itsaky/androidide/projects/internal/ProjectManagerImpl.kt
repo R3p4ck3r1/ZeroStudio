@@ -122,13 +122,13 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
     // 缓存插件项目标志
     pluginProjectCached =
         withContext(Dispatchers.IO) {
-          File(projectDir, Environment.PLUGIN_API_JAR_RELATIVE_PATH).exists()
+          projectDir?.let { File(it, Environment.PLUGIN_API_JAR_RELATIVE_PATH).exists() } ?: false
         }
 
     this._workspace =
         withStopWatch("Transform project proxy") {
           withContext(Dispatchers.IO) {
-            WorkspaceModelBuilder.build(projectDir, CachingProject(project))
+            projectDir?.let { WorkspaceModelBuilder.build(it, CachingProject(project)) }
           }
         }
 
@@ -287,8 +287,8 @@ class ProjectManagerImpl : IProjectManager, EventReceiver {
 
         val variantName = subproject.configuredVariant?.name ?: IAndroidProject.DEFAULT_VARIANT
 
-        val moduleDir = File(projectDir, subproject.path.replace(":", File.separator))
-        val gradleInfo = GradleFileParser.parseModuleBuildGradle(moduleDir)
+        val moduleDir = projectDir?.let { File(it, subproject.path.replace(":", File.separator)) }
+        val gradleInfo = moduleDir?.let { GradleFileParser.parseModuleBuildGradle(it) }
 
         buildVariants[subproject.path] =
             BuildVariantInfo(
